@@ -1,0 +1,12 @@
+{
+	"name": "orbital",
+	"description": "The Orbital CLI core.",
+	"copyright": "Copyright © 2016, Matthias Klumpp",
+	"authors": ["Matthias Klumpp"],
+
+	"targetType": "executable",
+	"targetPath": "../build/",
+
+	"dependencies": {
+	}
+}
