@@ -1,0 +1,13 @@
+{
+    "name": "libshared",
+    "description": "Shared components for the archive extension kit.",
+    "copyright": "Copyright © 2016, Matthias Klumpp",
+    "authors": ["Matthias Klumpp"],
+
+    "targetType": "library",
+    "targetPath": "../build/",
+
+    "dependencies": {
+    },
+    "sourcePaths": ["."],
+}

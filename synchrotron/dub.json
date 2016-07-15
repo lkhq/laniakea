@@ -1,0 +1,17 @@
+{
+    "copyright": "Copyright © 2016, Matthias Klumpp",
+    "name": "synchrotron",
+    "authors": [
+        "Matthias Klumpp"
+    ],
+    "description": "Synchronize with the Debian archive",
+    "license": "LGPL-3.0+",
+
+    "targetType": "executable",
+    "targetPath": "../build/",
+
+    "dependencies": {
+    },
+    "sourcePaths": ["source/", "../shared/"],
+
+}

@@ -2,21 +2,25 @@
 all: build
 
 build:
-	cd core && dub build
-	cd frontend && dub build
+	#cd shared && dub build --parallel
+	cd synchrotron && dub build --parallel
+	#cd frontend && dub build --parallel
 
 test:
-	cd core && dub test
+	cd shared && dub test
+	cd synchrotron && dub test
 	cd frontend && dub test
 
 clean:
 	rm -rf build/
-	rm -rf .dub/
-	rm -f dub.selections.json
-	rm -rf contrib/setup/js_tmp/
-	rm -rf data/templates/default/static/js/d3/
-	rm -rf data/templates/default/static/js/highlight/
-	rm -rf data/templates/default/static/js/rickshaw/
+
+	rm -f shared/dub.selections.json
+	rm -f synchrotron/dub.selections.json
+	rm -f frontend/dub.selections.json
+
+	rm -rf shared/.dub
+	rm -rf synchrotron/.dub
+	rm -rf frontend/.dub
 
 install:
 	@echo "Implement me!"

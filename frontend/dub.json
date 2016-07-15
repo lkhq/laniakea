@@ -1,15 +1,17 @@
 {
-	"name": "orbital-web",
-	"description": "Web-frontend for Orbital.",
-	"copyright": "Copyright © 2016, Matthias Klumpp",
-	"authors": ["Matthias Klumpp"],
+    "name": "orbital-web",
+    "description": "Web-frontend for Orbital.",
+    "copyright": "Copyright © 2016, Matthias Klumpp",
+    "authors": ["Matthias Klumpp"],
 
-	"targetType": "executable",
-	"targetPath": "../build/",
-	"dependencies": {
-		"vibe-d": "~>0.7.23"
-	},
-	"versions": ["VibeDefaultMain"],
+    "targetType": "executable",
+    "targetPath": "../build/",
 
-	"libs": ["zlib"]
+    "importPaths": ["source/", "../shared/"],
+    "dependencies": {
+        "vibe-d": "~>0.7.23"
+    },
+
+    "versions": ["VibeDefaultMain"],
+    "libs": ["zlib"]
 }
