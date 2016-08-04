@@ -2,7 +2,7 @@
 all: build
 
 build:
-	#cd shared && dub build --parallel
+	cd shared && dub build --parallel
 	cd synchrotron && dub build --parallel
 	#cd frontend && dub build --parallel
 

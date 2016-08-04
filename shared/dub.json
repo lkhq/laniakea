@@ -1,5 +1,5 @@
 {
-    "name": "libshared",
+    "name": "laniakea",
     "description": "Shared components for the archive extension kit.",
     "copyright": "Copyright © 2016, Matthias Klumpp",
     "authors": ["Matthias Klumpp"],
@@ -8,6 +8,7 @@
     "targetPath": "../build/",
 
     "dependencies": {
+        "requests": "~>0.1.9"
     },
     "sourcePaths": ["."],
 }

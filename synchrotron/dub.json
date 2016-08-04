@@ -11,8 +11,12 @@
     "targetPath": "../build/",
 
     "dependencies": {
-    },
-    "sourcePaths": ["source/", "../shared/"],
+        "laniakea": {
+            "version": "~master",
+            "path": "../shared/"
+        }
+	},
+    "sourcePaths": ["source/", "../shared"],
 
     "systemDependencies": "libarchive >= 3.2",
     "libs": ["archive"]

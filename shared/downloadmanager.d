@@ -17,13 +17,28 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module laniakea.downloadmanager;
+
 import std.stdio;
-import laniakea.config;
-import laniakea.downloadmanager;
+import requests;
 
-void main ()
+
+/**
+ * Download content from the internet and cache it
+ * if necessary.
+ */
+class DownloadManager
 {
-    Config.get ();
 
-    auto test = new DownloadManager;
+private:
+
+public:
+
+    this ()
+    {
+        auto content = getContent ("https://example.org/");
+        writeln (content);
+    }
+
+
 }
