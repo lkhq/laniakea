@@ -18,12 +18,93 @@
  */
 
 import std.stdio;
+import std.getopt;
+import std.string : format;
+import core.stdc.stdlib : exit;
+
 import laniakea.config;
-import laniakea.downloadmanager;
+import laniakea.logging;
 
-void main ()
+private immutable helpText =
+"Usage:
+  synchrotron <subcommand> [OPTION...] - Sync packages.
+
+Laniakea module for synchronizing packages with the source distribution.
+
+Subcommands:
+  sync SUITE SECTION PKGNAME  - Process new metadata for the given distribution suite.
+  autosync                    - Sync all packages which can be synced and process task queues.
+
+Help Options:
+  -h, --help       Show help options
+
+Application Options:
+  --version        Show the program version.
+  --verbose        Show extra debugging information.
+  --force          Force action.";
+
+void main(string[] args)
 {
-    Config.get ();
+    bool verbose;
+    bool showHelp;
+    bool showVersion;
+    bool forceAction;
 
-    auto test = new DownloadManager;
+    // parse command-line options
+    try {
+        getopt (args,
+            "help|h", &showHelp,
+            "verbose", &verbose,
+            "version", &showVersion,
+            "force", &forceAction);
+    } catch (Exception e) {
+        writeln ("Unable to parse parameters: ", e.msg);
+        exit (1);
+    }
+
+    if (showHelp) {
+        writeln (helpText);
+        return;
+    }
+
+    if (showVersion) {
+        writeln ("Version: ", laniakea.config.laniakeaVersion);
+        return;
+    }
+
+    if (args.length < 2) {
+        writeln ("No subcommand specified!");
+        return;
+    }
+
+    auto conf = Config.get ();
+    try {
+        conf.load ();
+    } catch (Exception e) {
+        writefln ("Unable to load configuration: %s", e.msg);
+        exit (4);
+    }
+
+    // globally enable verbose mode, if requested
+    if (verbose) {
+        laniakea.logging.setVerbose (true);
+    }
+
+    immutable command = args[1];
+    switch (command) {
+        case "sync":
+            if (args.length != 5) {
+                writeln ("Invalid number of parameters: You need to specify a source suite, source section and package name.");
+                exit (1);
+            }
+
+            break;
+        case "autosync":
+
+            break;
+        default:
+            writeln ("The command '%s' is unknown.".format (command));
+            exit (1);
+            break;
+    }
 }

@@ -27,7 +27,7 @@ import std.conv : to;
 import std.json;
 static import std.file;
 
-public immutable laniakeiaVersion = "0.1";
+public immutable laniakeaVersion = "0.1";
 
 /**
  * Information about a distribution suite.
@@ -78,15 +78,22 @@ class Config
         return instance_;
     }
 
+    private bool loaded;
+
     // Public properties
     string projectName;
     ArchiveDetails archive;
+
+    bool synchrotronEnabled;
     SynchrotronConfig synchrotron;
 
     private this () {
+        synchrotronEnabled = false;
     }
 
     void loadFromFile (string fname)
+    in { assert (!loaded); }
+    body
     {
         // read the configuration JSON file
         auto f = File (fname, "r");
@@ -110,7 +117,9 @@ class Config
 
         // Synchrotron configuration
         if ("Synchrotron" in root) {
+            synchrotronEnabled = true;
             auto syncConf = root["Synchrotron"];
+
             synchrotron.sourceSuite.name = syncConf["source"]["suite"].str;
             foreach (ref e; syncConf["source"]["archs"].array)
                 synchrotron.sourceSuite.architectures ~= e.str;
@@ -119,6 +128,8 @@ class Config
             if ("syncEnabled" in syncConf)
                 synchrotron.syncEnabled = syncConf["syncEnabled"].type == JSON_TYPE.TRUE;
         }
+
+        loaded = true;
     }
 
     void load ()
