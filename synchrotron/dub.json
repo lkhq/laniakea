@@ -14,4 +14,6 @@
     },
     "sourcePaths": ["source/", "../shared/"],
 
+    "systemDependencies": "libarchive >= 3.2",
+    "libs": ["archive"]
 }
