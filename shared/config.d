@@ -82,6 +82,7 @@ class Config
 
     // Public properties
     string projectName;
+    string cacheDir;
     ArchiveDetails archive;
 
     bool synchrotronEnabled;
@@ -107,6 +108,10 @@ class Config
         this.projectName = "Unknown";
         if ("ProjectName" in root)
             this.projectName = root["ProjectName"].str;
+
+        cacheDir = "/var/tmp/laniakea";
+        if ("CacheLocation" in root)
+            cacheDir = root["CacheLocation"].str;
 
         if ("Archive" !in root)
             throw new Exception ("Configuration must define archive details in an 'Archive' section.");

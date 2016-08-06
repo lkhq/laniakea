@@ -7,9 +7,9 @@ build:
 	#cd frontend && dub build --parallel
 
 test:
-	cd shared && dub test
+	#cd shared && dub test
 	cd synchrotron && dub test
-	cd frontend && dub test
+	#cd frontend && dub test
 
 clean:
 	rm -rf build/
