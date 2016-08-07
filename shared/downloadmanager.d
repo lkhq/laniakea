@@ -23,6 +23,7 @@ import std.stdio;
 import std.path : buildPath, baseName;
 import std.array : appender;
 import requests;
+static import std.file;
 
 import laniakea.config : Config;
 import laniakea.utils : GENERIC_BUFFER_SIZE;
@@ -46,7 +47,8 @@ public:
     this (string prefix = "")
     {
         auto conf = Config.get ();
-        rootDir = buildPath (conf.cacheDir, urlToName (prefix));
+        rootDir = buildPath (conf.cacheDir, "dlcache", urlToName (prefix));
+        std.file.mkdirRecurse (rootDir);
     }
 
     @property @safe
@@ -137,5 +139,5 @@ unittest
     auto dlm = new DownloadManager ("https://ftp.example.org/debian");
 
     // ensure we filenameify the prefix we just passed into the download-manager
-    assert (dlm.rootDir == "ftp.example.org_debian");
+    assert (dlm.rootDir == "dlcache/ftp.example.org_debian");
 }

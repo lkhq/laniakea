@@ -17,45 +17,15 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module laniakea.remoterepo;
-
-import std.stdio;
-import requests;
-
-import laniakea.downloadmanager;
-import laniakea.utils : TagFile;
+module laniakea.dak;
 
 
 /**
- * Interface with a Debian repository on a remote (ftp/http)
- * location.
+ * Interface to the Debian Archive Kit (DAK)
  */
-class RemoteRepo
+class Dak
 {
+    private:
 
-private:
-    DownloadManager dlm;
-
-public:
-
-    this (string repoUrl)
-    {
-        dlm = new DownloadManager (repoUrl);
-        dlm.useRealFileNames = true;
-    }
-
-    TagFile open (string suite, string section, string arch)
-    {
-        // TODO
-
-        return null;
-    }
-
-}
-
-unittest
-{
-    writeln ("TEST: ", "RemoteRepo");
-
-    auto repo = new RemoteRepo ("http://ftp.debian.org/debian");
+    public:
 }

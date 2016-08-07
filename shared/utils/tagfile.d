@@ -84,7 +84,7 @@ public:
         return true;
     }
 
-    string readField (string name)
+    string readField (string name, string defaultValue = null)
     {
         auto clen = content.length;
 
@@ -119,6 +119,6 @@ public:
         }
 
         // we found nothing
-        return null;
+        return defaultValue;
     }
 }
