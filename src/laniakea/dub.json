@@ -5,10 +5,11 @@
     "authors": ["Matthias Klumpp"],
 
     "targetType": "library",
-    "targetPath": "../build/",
+    "targetPath": "../../build/",
 
     "dependencies": {
         "requests": "~>0.1.9"
     },
-    "sourcePaths": ["."],
+    "sourcePaths": [".", "../c"],
+    "importPaths": [".."],
 }

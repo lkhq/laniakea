@@ -8,15 +8,16 @@
     "license": "LGPL-3.0+",
 
     "targetType": "executable",
-    "targetPath": "../build/",
+    "targetPath": "../../build/",
 
     "dependencies": {
         "laniakea": {
             "version": "~master",
-            "path": "../shared/"
+            "path": "../laniakea/"
         }
 	},
-    "sourcePaths": ["source/", "../shared"],
+    "sourcePaths": [".", "../c", "../laniakea"],
+    "importPaths": [".."],
 
     "systemDependencies": "libarchive >= 3.2",
     "libs": ["archive"]

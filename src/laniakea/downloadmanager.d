@@ -21,7 +21,7 @@ module laniakea.downloadmanager;
 
 import std.stdio;
 import std.path : buildPath, baseName;
-import std.array : appender;
+import std.array : appender, empty;
 import requests;
 static import std.file;
 

@@ -2,8 +2,8 @@
 all: build
 
 build:
-	cd shared && dub build --parallel
-	cd synchrotron && dub build --parallel
+	cd src/laniakea && dub build --parallel --compiler=ldc2
+	cd src/synchrotron && dub build --parallel --compiler=ldc2
 	#cd frontend && dub build --parallel
 
 test:

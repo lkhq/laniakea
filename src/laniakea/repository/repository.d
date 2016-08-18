@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module laniakea.repository;
+module laniakea.repository.repository;
 
 import std.stdio;
 import std.path : buildPath, dirName;
@@ -31,7 +31,7 @@ import requests : getContent;
 import laniakea.logging;
 import laniakea.config : Config;
 import laniakea.utils : TagFile, isRemote;
-import laniakea.packages;
+import laniakea.repository.packages;
 
 
 /**
