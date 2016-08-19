@@ -19,13 +19,80 @@
 
 module laniakea.repository.dak;
 
+import std.stdio : File;
+import std.process;
+import std.array : appender, join;
+import std.path : baseName;
+import std.algorithm : map;
+
+import laniakea.logging;
 
 /**
  * Interface to the Debian Archive Kit (DAK)
  */
 class Dak
 {
-    private:
 
-    public:
+private:
+
+    struct DakResult
+    {
+        bool success;
+        string data;
+    }
+
+    string dakExecutable;
+
+public:
+
+    this ()
+    {
+        dakExecutable = "dak";
+    }
+
+    private DakResult executeDak (const string command, const string[] args)
+    {
+        string getOutput (File f)
+        {
+            char[] buf;
+            auto output = appender!string;
+            while (f.readln (buf)) {
+                output ~= buf;
+            }
+            return output.data;
+        }
+
+        auto dakArgs = [dakExecutable] ~ command ~ args;
+        auto dakCmd = pipeProcess (dakArgs);
+
+        if (wait (dakCmd.pid) != 0) {
+            return DakResult (false, getOutput (dakCmd.stdout) ~ "\n" ~ getOutput (dakCmd.stderr));
+        }
+
+        return DakResult (true, getOutput (dakCmd.stdout));
+    }
+
+    bool importPackageFiles (const string suite, const string component, const string[] fnames,
+                        bool ignoreSignature = false, bool addOverrides = false)
+    {
+        // run dak import command.
+        auto args = appender!(string[]);
+        if (ignoreSignature)
+            args ~= "-s";
+        if (addOverrides)
+            args ~= "-a";
+        args ~= suite;
+        args ~= component;
+        args ~= fnames;
+        immutable res = executeDak ("import", args.data);
+
+        if (!res.success) {
+            logError ("Unable to import package '%s': %s", fnames.join (" "), res.data);
+            return false;
+        }
+
+        logInfo ("Imported package '%s' to '%s/%s'.", map!(baseName) (fnames).join (" "), suite, component);
+        return true;
+    }
+
 }

@@ -25,6 +25,8 @@ import core.stdc.stdlib : exit;
 import laniakea.config;
 import laniakea.logging;
 
+import synchrotron.syncengine;
+
 private immutable helpText =
 "Usage:
   synchrotron <subcommand> [OPTION...] - Sync packages.
@@ -97,10 +99,13 @@ void main(string[] args)
                 writeln ("Invalid number of parameters: You need to specify a source suite, source section and package name.");
                 exit (1);
             }
-
+            auto engine = new SyncEngine ();
+            immutable ret = engine.importPackages (args[2], args[3], [args[4]]);
+            if (!ret)
+                exit (2);
             break;
         case "autosync":
-
+            // TODO
             break;
         default:
             writeln ("The command '%s' is unknown.".format (command));

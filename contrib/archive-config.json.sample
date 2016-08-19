@@ -1,0 +1,8 @@
+{
+    "ProjectName": "Test",
+    "Archive": {
+        "path": "/srv/archive.example.org/sample/",
+        "develSuite": "dasyatis",
+        "landingSuite": "staging"
+    }
+}

@@ -24,14 +24,24 @@ laniakea_lib_src = [
     'src/requests/utils.d'
 ]
 
+#
+# Dependencies
+#
+crypto_dep = dependency('libcrypto')
+ssl_dep = dependency('libssl')
+archive_dep = dependency('libarchive')
+
 frontend_src = ['src/frontend/source/app.d']
 
-synchrotron_src = ['src/synchrotron/app.d']
+synchrotron_src = ['src/synchrotron/app.d', 'src/synchrotron/syncengine.d']
 
 src_dir = gir_bind_dir = include_directories('src/')
 
 synchrotron_exe = executable ('synchrotron',
     [laniakea_lib_src, synchrotron_src],
     include_directories : [src_dir],
+    dependencies : [crypto_dep,
+    		    ssl_dep,
+    		    archive_dep],
     install : true
 )
