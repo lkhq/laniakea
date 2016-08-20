@@ -20,6 +20,63 @@
 module laniakea.repository.packages;
 
 /**
+ * Type of the Debian archive item.
+ */
+enum DebType
+{
+    UNKNOWN,
+    DEB,
+    UDEB
+}
+
+/**
+ * Convert the text representation into the enumerated type.
+ */
+DebType debTypeFromString (string str)
+{
+    if (str == "deb")
+        return DebType.DEB;
+    if (str == "udeb")
+        return DebType.UDEB;
+    return DebType.UNKNOWN;
+}
+
+/**
+ * Priority of a Debian package.
+ */
+enum PackagePriority
+{
+    UNKNOWN,
+    REQUIRED,
+    IMPORTANT,
+    STANDARD,
+    OPTIONAL,
+    EXTRA
+}
+
+
+/**
+ * Convert the text representation into the enumerated type.
+ */
+PackagePriority packagePriorityFromString (string str)
+{
+    if (str == "optional")
+        return PackagePriority.OPTIONAL;
+    if (str == "extra")
+        return PackagePriority.EXTRA;
+    if (str == "standard")
+        return PackagePriority.STANDARD;
+    if (str == "important")
+        return PackagePriority.IMPORTANT;
+    if (str == "required")
+        return PackagePriority.REQUIRED;
+
+    return PackagePriority.UNKNOWN;
+}
+
+
+
+/**
  * A file in the archive.
  */
 struct ArchiveFile
@@ -33,6 +90,21 @@ struct ArchiveFile
 }
 
 /**
+ * Basic package information, used by
+ * SourcePackage to refer to binary packages.
+ */
+struct PackageInfo
+{
+    DebType type;
+    string name;
+    string ver;
+
+    string section;
+    PackagePriority priority;
+    string architecture;
+}
+
+/**
  * Data of a source package.
  */
 struct SourcePackage
@@ -40,7 +112,7 @@ struct SourcePackage
     string name;
     string ver;
     string[] architectures;
-    string[] binaryNames;
+    PackageInfo[] binaries;
 
     string standardsVersion;
     string format;

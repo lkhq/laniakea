@@ -112,9 +112,15 @@ public:
 
             pkg.ver = tf.readField ("Version");
             pkg.architectures = tf.readField ("Architecture").split (" ");
-            pkg.binaryNames = tf.readField ("Binary", "").split (",");
             pkg.standardsVersion = tf.readField ("Standards-Version");
             pkg.format = tf.readField ("Format");
+
+            foreach (bin; tf.readField ("Binary", "").split (",")) {
+                PackageInfo pi;
+                pi.name = bin;
+                pi.ver = pkg.ver;
+                pkg.binaries ~= pi;
+            }
 
             pkg.vcsBrowser = tf.readField ("Vcs-Browser");
             pkg.maintainer = tf.readField ("Maintainer");
