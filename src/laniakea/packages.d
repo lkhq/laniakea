@@ -101,7 +101,7 @@ struct PackageInfo
 
     string section;
     PackagePriority priority;
-    string architecture;
+    string[] architectures;
 }
 
 /**
@@ -117,6 +117,7 @@ struct SourcePackage
     string standardsVersion;
     string format;
 
+    string homepage;
     string vcsBrowser;
 
     string maintainer;
@@ -132,18 +133,19 @@ struct SourcePackage
  */
 struct BinaryPackage
 {
+    DebType type;
     string name;
     string ver;
     string architecture;
+    size_t installedSize;
 
-    string priority;
+    PackagePriority priority;
     string section;
 
     string[] depends;
     string[] preDepends;
 
     string maintainer;
-    string[] uploaders;
 
     ArchiveFile file;
 

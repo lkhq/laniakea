@@ -3,18 +3,18 @@ project('Laniakea', 'd')
 source_root = meson.source_root()
 
 laniakea_lib_src = [
-    'src/laniakea/archive.d',
     'src/c/libarchive.d',
     'src/laniakea/config.d',
+    'src/laniakea/compressed.d',
     'src/laniakea/downloadmanager.d',
+    'src/laniakea/packages.d',
     'src/laniakea/logging.d',
+    'src/laniakea/tagfile.d',
     'src/laniakea/repository/dak.d',
-    'src/laniakea/repository/packages.d',
     'src/laniakea/repository/package.d',
     'src/laniakea/repository/repository.d',
     'src/laniakea/utils/consts.d',
     'src/laniakea/utils/package.d',
-    'src/laniakea/utils/tagfile.d',
     'src/laniakea/utils/utils.d'
 ]
 

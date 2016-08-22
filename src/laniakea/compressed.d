@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module laniakea.archive;
+module laniakea.compressed;
 
 import std.stdio;
 import std.string;

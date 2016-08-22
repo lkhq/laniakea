@@ -21,9 +21,15 @@ module laniakea.utils.tagfile;
 
 import std.stdio;
 import std.string;
-import laniakea.archive;
+import std.array : appender;
+
+import laniakea.compressed;
+import laniakea.packages;
 
 
+/**
+ * Parser for Debians RFC2822-style metadata.
+ */
 class TagFile
 {
 
@@ -40,14 +46,7 @@ public:
     void open (string fname)
     {
         content = null;
-        string data;
-
-        try {
-            data = decompressFile (fname);
-        } catch (Exception e) {
-            throw e;
-        }
-
+        auto data = decompressFile (fname);
         content = splitLines (data);
         pos = 0;
     }
@@ -121,4 +120,43 @@ public:
         // we found nothing
         return defaultValue;
     }
+}
+
+/**
+ * Parse a "Package-List" field and return its information in
+ * PackageInfo data structures.
+ * See https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package-List
+ */
+public PackageInfo[] parsePackageListString (const string pkgListRaw, const string defaultVersion = null)
+{
+    import std.string : splitLines;
+
+    auto res = appender!(PackageInfo[]);
+    foreach (ref line; pkgListRaw.splitLines) {
+        auto parts = line.strip.split (" ");
+        if (parts.length < 4)
+            continue;
+
+        PackageInfo pi;
+        pi.name = parts[0];
+        pi.ver = defaultVersion;
+        pi.type = debTypeFromString (parts[1]);
+        pi.section = parts[2];
+        pi.priority = packagePriorityFromString (parts[3]);
+
+        if (parts.length > 4) {
+            // we have additional data
+            auto rawVals = parts[4].split (" ");
+            foreach (ref v; rawVals) {
+                if (v.startsWith ("arch=")) {
+                    // handle architectures
+                    pi.architectures = v[5..$].split (",");
+                }
+            }
+        }
+
+        res ~= pi;
+    }
+
+    return res.data;
 }
