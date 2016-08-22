@@ -19,6 +19,8 @@
 
 module laniakea.utils.utils;
 
+import std.string : split, strip;
+
 /**
  * Check if string contains a remote URI.
  */
@@ -31,4 +33,32 @@ bool isRemote (const string uri)
     auto match = matchFirst (uri, uriregex);
 
     return (!match.empty);
+}
+
+/**
+ * Split a string and strip whitespaces.
+ */
+@safe
+string[] splitStrip (const string str, const string sep) pure
+{
+    auto res = str.split (sep);
+    foreach (ref s; res)
+        s = s.strip ();
+    return res;
+}
+
+unittest
+{
+    import std.stdio;
+    writeln ("TEST: ", "Misc Utils");
+
+    // remote checks
+    assert (isRemote ("http://test.com"));
+    assert (isRemote ("https://example.org"));
+    assert (!isRemote ("/srv/mirror"));
+    assert (!isRemote ("file:///srv/test"));
+
+    // check splitStrip
+    assert ("a b c d".splitStrip (" ") == ["a", "b", "c", "d"]);
+    assert ("a,  b, c,  d  ".splitStrip (", ") == ["a", "b", "c", "d"]);
 }

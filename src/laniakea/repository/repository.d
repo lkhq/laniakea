@@ -30,7 +30,7 @@ import requests : getContent;
 
 import laniakea.logging;
 import laniakea.config : Config;
-import laniakea.utils : TagFile, isRemote;
+import laniakea.utils : TagFile, isRemote, splitStrip;
 import laniakea.repository.packages;
 
 
@@ -107,15 +107,12 @@ public:
             SourcePackage pkg;
             pkg.name = pkgname;
 
-            // TODO: We probably want a splitAndStrip function to strip whitespaces
-            // after splitting a string.
-
             pkg.ver = tf.readField ("Version");
             pkg.architectures = tf.readField ("Architecture").split (" ");
             pkg.standardsVersion = tf.readField ("Standards-Version");
             pkg.format = tf.readField ("Format");
 
-            foreach (bin; tf.readField ("Binary", "").split (",")) {
+            foreach (bin; tf.readField ("Binary", "").splitStrip (",")) {
                 PackageInfo pi;
                 pi.name = bin;
                 pi.ver = pkg.ver;
@@ -124,9 +121,9 @@ public:
 
             pkg.vcsBrowser = tf.readField ("Vcs-Browser");
             pkg.maintainer = tf.readField ("Maintainer");
-            pkg.uploaders = tf.readField ("Uploaders", "").split (","); // FIXME: Careful! Splitting just by comma isn't enough!
+            pkg.uploaders = tf.readField ("Uploaders", "").splitStrip (","); // FIXME: Careful! Splitting just by comma isn't enough!
 
-            pkg.buildDepends = tf.readField ("Build-Depends", "").split (",");
+            pkg.buildDepends = tf.readField ("Build-Depends", "").splitStrip (",");
             pkg.directory = tf.readField ("Directory");
 
             auto files = appender!(ArchiveFile[]);
