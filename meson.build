@@ -1,5 +1,6 @@
 project('Laniakea', 'd')
 
+source_root = meson.source_root()
 
 laniakea_lib_src = [
     'src/laniakea/archive.d',
@@ -19,7 +20,6 @@ laniakea_lib_src = [
 #
 # 3rd-party Libraries
 #
-source_root = meson.source_root()
 find_program('git')
 find_program('dub')
 
@@ -51,16 +51,40 @@ archive_dep = dependency('libarchive')
 
 frontend_src = ['src/frontend/source/app.d']
 
-synchrotron_src = ['src/synchrotron/app.d', 'src/synchrotron/syncengine.d']
+synchrotron_src = ['src/synchrotron/syncengine.d']
 
 src_dir = include_directories('src/')
 
 synchrotron_exe = executable ('synchrotron',
-    [laniakea_lib_src, synchrotron_src],
-    include_directories : [src_dir],
-    dependencies : [crypto_dep,
+    [laniakea_lib_src,
+     'src/synchrotron/app.d',
+     synchrotron_src],
+    include_directories: [src_dir],
+    dependencies: [crypto_dep,
                     ssl_dep,
                     archive_dep,
                     requests_lib],
-    install : true
+    install: true
 )
+
+#
+# Tests
+#
+tests_src_dir = include_directories('tests/')
+
+tests_src = [
+    'tests/runner.d'
+]
+
+main_test_exe = executable ('main_test',
+    [tests_src,
+     laniakea_lib_src,
+     synchrotron_src],
+    include_directories: [src_dir, tests_src_dir],
+    dependencies: [crypto_dep,
+                    ssl_dep,
+                    archive_dep,
+                    requests_lib],
+    d_args: meson.get_compiler('d').unittest_args()
+)
+test('laniakea_main_test', main_test_exe)
