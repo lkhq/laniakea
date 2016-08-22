@@ -10,6 +10,7 @@ laniakea_lib_src = [
     'src/laniakea/logging.d',
     'src/laniakea/repository/dak.d',
     'src/laniakea/repository/packages.d',
+    'src/laniakea/repository/package.d',
     'src/laniakea/repository/repository.d',
     'src/laniakea/utils/consts.d',
     'src/laniakea/utils/package.d',
@@ -70,10 +71,13 @@ synchrotron_exe = executable ('synchrotron',
 #
 # Tests
 #
+
 tests_src_dir = include_directories('tests/')
 
 tests_src = [
-    'tests/runner.d'
+    'tests/runner.d',
+    'tests/testutils.d',
+    'tests/repotests.d'
 ]
 
 main_test_exe = executable ('main_test',
@@ -87,4 +91,4 @@ main_test_exe = executable ('main_test',
                     requests_lib],
     d_args: meson.get_compiler('d').unittest_args()
 )
-test('laniakea_main_test', main_test_exe)
+test('laniakea_main_test', main_test_exe, args: [source_root + '/tests/data'])

@@ -45,7 +45,7 @@ Application Options:
   --verbose        Show extra debugging information.
   --force          Force action.";
 
-void main(string[] args)
+void main (string[] args)
 {
     bool verbose;
     bool showHelp;

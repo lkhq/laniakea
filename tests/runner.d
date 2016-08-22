@@ -18,8 +18,33 @@
  */
 
 import std.stdio;
+import core.stdc.stdlib : exit;
+static import std.file;
 
-void main(string[] args)
+// import test units
+import repotests;
+
+void main (string[] args)
 {
-    writeln ("No other tests found.");
+    if (args.length != 2) {
+        writeln ("That's planning for failure, Morty. Even dumber than regular planning.");
+        writeln ("(You should really pass a directory with test data as first parameter.)");
+        exit (1);
+    }
+
+    immutable testDataDir = args[1];
+    if (!std.file.exists (testDataDir)) {
+        writeln ("Glurp... Test data directory ", testDataDir, " does not exist, something is really wrong here...");
+        exit (1);
+    }
+
+    // At this point, we already ran all the stuff from unittest blocks.
+    // now we can do a bit more complex tests which are longer or
+    // involve a lot of pieces needing to work well together.
+    // Those tests also only test public API, and usually require
+    // aditional data from the test-data directory (while stuff in
+    // unittest blocks is always standalone).
+    testRepositoryRead (testDataDir);
+
+    writeln ("Done.");
 }

@@ -153,11 +153,3 @@ public:
     }
 
 }
-
-unittest
-{
-    writeln ("TEST: ", "Repository");
-
-    auto repo = new Repository ("http://archive.tanglu.org/tanglu", "tanglu");
-    repo.getSourcePackages ("staging", "main");
-}

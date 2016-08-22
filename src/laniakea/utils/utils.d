@@ -49,9 +49,6 @@ string[] splitStrip (const string str, const string sep) pure
 
 unittest
 {
-    import std.stdio;
-    writeln ("TEST: ", "Misc Utils");
-
     // remote checks
     assert (isRemote ("http://test.com"));
     assert (isRemote ("https://example.org"));
