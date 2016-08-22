@@ -12,6 +12,7 @@ laniakea_lib_src = [
     'src/laniakea/tagfile.d',
     'src/laniakea/repository/dak.d',
     'src/laniakea/repository/package.d',
+    'src/laniakea/repository/dscfile.d',
     'src/laniakea/repository/repository.d',
     'src/laniakea/utils/consts.d',
     'src/laniakea/utils/package.d',

@@ -20,8 +20,24 @@
 import std.stdio;
 import std.string : format;
 
+@safe:
+
+/**
+ * Print a test name to stdout.
+ * Useful for long running tests, to see which test is running at time.
+ */
 @trusted
 void printTestInfo (string, Args...) (const string tmpl, const Args args)
 {
     writeln ("TEST: ", format (tmpl, args));
+}
+
+/**
+ * Helper to print some helpful information when an equality assertion fails.
+ */
+@trusted
+void assertEq(T, U) (T t, U u, string file = __FILE__, ulong line = __LINE__)
+{
+    import std.conv : to;
+    assert (t == u, "\n" ~ file ~ ":" ~ line.to!string ~ "  '" ~ t.to!string ~ "' != '" ~ u.to!string ~ "'");
 }

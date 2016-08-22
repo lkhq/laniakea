@@ -19,11 +19,11 @@
 
 module laniakea.repository.dscfile;
 
-import std.string : strip, split, splitLines;
+import std.string : strip, split;
 
 import laniakea.logging;
-import laniakea.utils.tagfile;
-import laniakea.repository.packages;
+import laniakea.tagfile;
+import laniakea.packages;
 
 /**
  * Read information from a Debian source package (.dsc file)
@@ -75,23 +75,7 @@ public:
                 sp.binaries ~= pi;
             }
         } else {
-            foreach (ref line; pkgListRaw.splitLines) {
-                auto parts = line.strip.split (" ");
-                if (parts.length != 4)
-                    continue;
-
-                PackageInfo pi;
-                pi.name = parts[0];
-                pi.ver = sp.ver;
-                pi.type = debTypeFromString (parts[1]);
-                pi.section = parts[2];
-                pi.priority = packagePriorityFromString (parts[3]);
-
-                // TODO: Architecture
-                sp.binaries ~= pi;
-
-                //appstream-doc deb doc optional arch=all
-            }
+            sp.binaries = parsePackageListString (pkgListRaw, sp.ver);
         }
 
         return sp;
