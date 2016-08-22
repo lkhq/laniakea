@@ -18,6 +18,7 @@
  */
 
 module laniakea.utils.tagfile;
+@safe:
 
 import std.stdio;
 import std.string;
@@ -25,7 +26,6 @@ import std.array : appender;
 
 import laniakea.compressed;
 import laniakea.packages;
-
 
 /**
  * Parser for Debians RFC2822-style metadata.
@@ -55,7 +55,7 @@ public:
         pos = 0;
     }
 
-    bool nextSection ()
+    bool nextSection () pure
     {
         bool breakNext = false;
         auto clen = content.length;
@@ -83,7 +83,7 @@ public:
         return true;
     }
 
-    string readField (string name, string defaultValue = null)
+    string readField (string name, string defaultValue = null) pure
     {
         auto clen = content.length;
 
@@ -127,7 +127,7 @@ public:
  * PackageInfo data structures.
  * See https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package-List
  */
-public PackageInfo[] parsePackageListString (const string pkgListRaw, const string defaultVersion = null)
+public PackageInfo[] parsePackageListString (const string pkgListRaw, const string defaultVersion = null) pure @safe
 {
     import std.string : splitLines;
 

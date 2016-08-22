@@ -21,7 +21,7 @@ module laniakea.repository.repository;
 
 import std.stdio;
 import std.path : buildPath, dirName;
-import std.string : strip, format;
+import std.string : strip, format, endsWith;
 import std.array : appender, split, empty;
 import std.conv : to;
 static import std.file;
@@ -90,6 +90,9 @@ public:
     @property @safe
     string baseDir () { return rootDir; }
 
+    /**
+     * Return a list of all source packages in the given suite and component.
+     */
     SourcePackage[] getSourcePackages (const string suite, const string component)
     {
         immutable indexFname = getRepoFile (buildPath ("dists", suite, component, "source", "Sources.xz"));
@@ -116,7 +119,7 @@ public:
             pkg.vcsBrowser = tf.readField ("Vcs-Browser");
             pkg.homepage = tf.readField ("Homepage");
             pkg.maintainer = tf.readField ("Maintainer");
-            pkg.uploaders = tf.readField ("Uploaders", "").splitStrip (","); // FIXME: Careful! Splitting just by comma isn't enough!
+            pkg.uploaders = tf.readField ("Uploaders", "").splitStrip (","); // FIXME: Careful! Splitting just by comma isn't enough! We need to parse this properly.
 
             pkg.buildDepends = tf.readField ("Build-Depends", "").splitStrip (",");
             pkg.directory = tf.readField ("Directory");
@@ -160,15 +163,12 @@ public:
         return pkgs.data;
     }
 
-    BinaryPackage[] getBinaryPackages (const string suite, const string component, const string arch)
+    /**
+     * Internal
+     */
+    @safe
+    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf)
     {
-        immutable indexFname = getRepoFile (buildPath ("dists", suite, component, "binary-%s".format (arch), "Packages.xz"));
-        if (indexFname.empty)
-            return [];
-
-        auto tf = new TagFile;
-        tf.open (indexFname);
-
         auto pkgs = appender!(BinaryPackage[]);
         do {
             auto pkgname = tf.readField ("Package");
@@ -195,6 +195,10 @@ public:
             pkg.file.size = to!size_t (tf.readField ("Size"));
             pkg.file.sha256sum = tf.readField ("SHA256");
 
+            pkg.type = DebType.DEB;
+            if (pkg.file.fname.endsWith (".udeb"))
+                pkg.type = DebType.UDEB;
+
             // Do some issue-reporting
             if (pkg.file.fname.empty)
                 logWarning ("Binary package %s/%s seems to have no files.", pkg.name, pkg.ver);
@@ -203,6 +207,40 @@ public:
         } while (tf.nextSection ());
 
         return pkgs.data;
+    }
+
+    /**
+     * Get a list of binary package information for the given repository suite,
+     * component and architecture.
+     */
+    BinaryPackage[] getBinaryPackages (const string suite, const string component, const string arch)
+    {
+        immutable indexFname = getRepoFile (buildPath ("dists", suite, component, "binary-%s".format (arch), "Packages.xz"));
+        if (indexFname.empty)
+            return [];
+
+        auto tf = new TagFile;
+        tf.open (indexFname);
+
+        return readBinaryPackagesFromData (tf);
+    }
+
+    /**
+     * Get a list of binary installer packages for the given repository suite, component
+     * and architecture.
+     * These binary packages are typically udebs used by the debian-installer, and should not
+     * be installed on an user's system.
+     */
+    BinaryPackage[] getInstallerPackages (const string suite, const string component, const string arch)
+    {
+        immutable indexFname = getRepoFile (buildPath ("dists", suite, component, "debian-installer", "binary-%s".format (arch), "Packages.xz"));
+        if (indexFname.empty)
+            return [];
+
+        auto tf = new TagFile;
+        tf.open (indexFname);
+
+        return readBinaryPackagesFromData (tf);
     }
 
 }

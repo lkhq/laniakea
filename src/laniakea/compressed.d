@@ -78,6 +78,10 @@ private string readArchiveData (archive *ar, string name = null)
     return data.data;
 }
 
+/**
+ * Decompress a file into memory and return the result as string.
+ */
+@trusted
 string decompressFile (string fname)
 {
     int ret;
@@ -96,7 +100,10 @@ string decompressFile (string fname)
     return readArchiveData (ar, fname);
 }
 
-string decompressData (ubyte[] data)
+/**
+ * Decompress data and return its decompressed form as string.
+ */
+string decompressData (ubyte[] data) @trusted
 {
     int ret;
 

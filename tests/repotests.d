@@ -102,6 +102,33 @@ void validateSourcePackages (SourcePackage[] srcPkgs)
     assert (found);
 }
 
+void validateBinaryPackages (BinaryPackage[] binPkgs)
+{
+    assertEq (binPkgs.length, 7);
+
+    bool found = false;
+    foreach (ref pkg; binPkgs) {
+        if (pkg.name != "kernel-wedge")
+            continue;
+        found = true;
+
+        assertEq (pkg.ver, "2.94");
+        assertEq (pkg.maintainer, "Debian Install System Team <debian-boot@lists.debian.org>");
+
+        assertEq (pkg.depends, ["debhelper (>= 9)", "make"]);
+
+        assertEq (pkg.architecture, "all");
+        assertEq (pkg.section, "utils");
+        assertEq (pkg.priority, PackagePriority.OPTIONAL);
+        assertEq (pkg.installedSize, 89);
+
+        assertEq (pkg.file.fname, "pool/main/k/kernel-wedge/kernel-wedge_2.94_all.deb");
+        assertEq (pkg.file.size, 39766);
+        assertEq (pkg.file.sha256sum, "c0915bf4c3d6d42525c93827d9fd107447d68942e4a187fcbf4c68e78a12a6cf");
+    }
+    assert (found);
+}
+
 void testRepositoryRead (const string datadir)
 {
     printTestInfo ("Repository (Read)");
@@ -110,4 +137,7 @@ void testRepositoryRead (const string datadir)
 
     auto srcPkgs = repo.getSourcePackages ("testing", "main");
     validateSourcePackages (srcPkgs);
+
+    auto binPkgs = repo.getBinaryPackages ("testing", "main", "amd64");
+    validateBinaryPackages (binPkgs);
 }

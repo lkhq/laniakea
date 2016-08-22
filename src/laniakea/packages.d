@@ -18,6 +18,7 @@
  */
 
 module laniakea.repository.packages;
+@safe:
 
 /**
  * Type of the Debian archive item.
@@ -32,7 +33,7 @@ enum DebType
 /**
  * Convert the text representation into the enumerated type.
  */
-DebType debTypeFromString (string str)
+DebType debTypeFromString (string str) pure
 {
     if (str == "deb")
         return DebType.DEB;
@@ -58,7 +59,7 @@ enum PackagePriority
 /**
  * Convert the text representation into the enumerated type.
  */
-PackagePriority packagePriorityFromString (string str)
+PackagePriority packagePriorityFromString (string str) pure
 {
     if (str == "optional")
         return PackagePriority.OPTIONAL;
