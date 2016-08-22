@@ -57,15 +57,26 @@ synchrotron_src = ['src/synchrotron/syncengine.d']
 
 src_dir = include_directories('src/')
 
+#
+# Build Laniakea and its modules
+#
+base_deps = [crypto_dep,
+             ssl_dep,
+             archive_dep,
+             requests_lib]
+
+laniakea_lib = static_library ('laniakea',
+    [laniakea_lib_src],
+    include_directories: [src_dir],
+    dependencies: [base_deps]
+)
+
 synchrotron_exe = executable ('synchrotron',
-    [laniakea_lib_src,
-     'src/synchrotron/app.d',
+    ['src/synchrotron/app.d',
      synchrotron_src],
     include_directories: [src_dir],
-    dependencies: [crypto_dep,
-                    ssl_dep,
-                    archive_dep,
-                    requests_lib],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
     install: true
 )
 
@@ -86,10 +97,7 @@ main_test_exe = executable ('main_test',
      laniakea_lib_src,
      synchrotron_src],
     include_directories: [src_dir, tests_src_dir],
-    dependencies: [crypto_dep,
-                    ssl_dep,
-                    archive_dep,
-                    requests_lib],
+    dependencies: [base_deps],
     d_args: meson.get_compiler('d').unittest_args()
 )
 test('laniakea_main_test', main_test_exe, args: [source_root + '/tests/data'])
