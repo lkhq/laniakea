@@ -16,7 +16,8 @@ laniakea_lib_src = [
     'src/laniakea/repository/repository.d',
     'src/laniakea/utils/consts.d',
     'src/laniakea/utils/package.d',
-    'src/laniakea/utils/utils.d'
+    'src/laniakea/utils/utils.d',
+    'src/laniakea/utils/versioncmp.d'
 ]
 
 #
@@ -83,7 +84,6 @@ synchrotron_exe = executable ('synchrotron',
 #
 # Tests
 #
-
 tests_src_dir = include_directories('tests/')
 
 tests_src = [
