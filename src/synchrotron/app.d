@@ -79,7 +79,7 @@ void main (string[] args)
         return;
     }
 
-    auto conf = Config.get ();
+    auto conf = BaseConfig.get ();
     try {
         conf.load ();
     } catch (Exception e) {
@@ -100,7 +100,7 @@ void main (string[] args)
                 exit (1);
             }
             auto engine = new SyncEngine ();
-            immutable ret = engine.importPackages (args[2], args[3], [args[4]]);
+            immutable ret = engine.syncPackages (args[2], args[3], [args[4]]);
             if (!ret)
                 exit (2);
             break;

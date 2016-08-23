@@ -17,9 +17,21 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module synchrotron.syncengine;
-
 import laniakea.repository.dak;
+
+import laniakea.config;
+
+/**
+ * Thrown on a package sync error.
+ */
+class PackageSyncError : Error
+{
+    @safe pure nothrow
+    this (string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        super( msg, file, line, next );
+    }
+}
 
 /**
  * Execute package synchronization in Synchrotron
@@ -30,6 +42,7 @@ class SyncEngine
 private:
 
     Dak dak;
+    BaseConfig conf;
     bool m_importsTrusted;
 
 public:
@@ -37,6 +50,7 @@ public:
     this ()
     {
         dak = new Dak ();
+        conf = BaseConfig.get ();
     }
 
     @property
@@ -51,13 +65,21 @@ public:
         m_importsTrusted = v;
     }
 
-    bool importPackageFiles (const string suite, const string component, const string[] fnames)
+    private void checkSyncReady ()
+    {
+        if (!conf.synchrotron.syncEnabled)
+            throw new PackageSyncError ("Synchronization is disabled.");
+    }
+
+    private bool importPackageFiles (const string suite, const string component, const string[] fnames)
     {
         return dak.importPackageFiles (suite, component, fnames, importsTrusted, true);
     }
 
-    bool importPackages (const string suite, const string component, const string[] pkgnames)
+    bool syncPackages (const string suite, const string component, const string[] pkgnames, bool force = false)
     {
+        checkSyncReady ();
+
         // TODO: Analyze the input, fetch the packages from the source distribution and
         // import them into the target in their correct order.
         // Then apply the correct, synced override from the source distro.

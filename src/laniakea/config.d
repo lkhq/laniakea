@@ -41,35 +41,37 @@ struct DistroSuite
 /**
  * Information about the derivative's package archive.
  */
-struct ArchiveDetails {
+struct ArchiveDetails
+{
     string rootPath;
     DistroSuite develSuite;
-    DistroSuite landingSuite;
+    DistroSuite incomingSuite;
 }
 
 /**
  * Configuration specific for the synchrotron tool.
  */
-struct SynchrotronConfig {
+struct SynchrotronConfig
+{
     DistroSuite sourceSuite;
     string sourceRepoUrl;
     bool syncEnabled;
 }
 
-class Config
+class BaseConfig
 {
     // Thread local
     private static bool instantiated_;
 
     // Thread global
-    private __gshared Config instance_;
+    private __gshared BaseConfig instance_;
 
-    static Config get ()
+    static BaseConfig get ()
     {
         if (!instantiated_) {
-            synchronized (Config.classinfo) {
+            synchronized (BaseConfig.classinfo) {
                 if (!instance_)
-                    instance_ = new Config ();
+                    instance_ = new BaseConfig ();
 
                 instantiated_ = true;
             }
@@ -118,7 +120,7 @@ class Config
 
         archive.rootPath = root["Archive"]["path"].str;
         archive.develSuite.name = root["Archive"]["develSuite"].str;
-        archive.landingSuite.name = root["Archive"]["landingSuite"].str;
+        archive.incomingSuite.name = root["Archive"]["incomingSuite"].str;
 
         // Synchrotron configuration
         if ("Synchrotron" in root) {

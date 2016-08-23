@@ -29,7 +29,7 @@ static import std.file;
 import requests : getContent;
 
 import laniakea.logging;
-import laniakea.config : Config;
+import laniakea.config : BaseConfig;
 import laniakea.utils : isRemote, splitStrip;
 import laniakea.tagfile;
 import laniakea.packages;
@@ -50,7 +50,7 @@ public:
     this (string location, string repoName = null)
     {
         if (isRemote (location)) {
-            auto conf = Config.get ();
+            auto conf = BaseConfig.get ();
             rootDir = buildPath (conf.cacheDir, "repos_tmp", repoName);
             std.file.mkdirRecurse (rootDir);
             repoUrl = location;
@@ -134,7 +134,7 @@ public:
                 ArchiveFile file;
                 file.sha256sum = parts[0];
                 file.size = to!size_t (parts[1]);
-                file.fname = parts[2];
+                file.fname = buildPath (pkg.directory, parts[2]);
 
                 files ~= file;
             }
@@ -241,6 +241,16 @@ public:
         tf.open (indexFname);
 
         return readBinaryPackagesFromData (tf);
+    }
+
+    /**
+     * Get a file from the repository.
+     * Returns:
+     *          An absolute path to the repository file.
+     */
+    string getFile (ArchiveFile afile)
+    {
+        return getRepoFile (afile.fname);
     }
 
 }

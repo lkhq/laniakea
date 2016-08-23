@@ -61,15 +61,15 @@ void validateSourcePackages (SourcePackage[] srcPkgs)
         assertEq (spkg.files.length, 3);
         foreach (ref file; spkg.files) {
             if (file.fname.endsWith (".dsc")) {
-                assertEq (file.fname, "0ad_0.0.20-1.dsc");
+                assertEq (file.fname, "pool/main/0/0ad/0ad_0.0.20-1.dsc");
                 assertEq (file.size, 2455);
                 assertEq (file.sha256sum, "f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955");
             } else if (file.fname.endsWith (".debian.tar.xz")) {
-                assertEq (file.fname, "0ad_0.0.20-1.debian.tar.xz");
+                assertEq (file.fname, "pool/main/0/0ad/0ad_0.0.20-1.debian.tar.xz");
                 assertEq (file.size, 70688);
                 assertEq (file.sha256sum, "3256f0a33654aa8c22605c693be3dd3a11b4fdb7c7e2a9016670f28f135d1737");
             } else if (file.fname.endsWith (".orig.tar.xz")) {
-                assertEq (file.fname, "0ad_0.0.20.orig.tar.xz");
+                assertEq (file.fname, "pool/main/0/0ad/0ad_0.0.20.orig.tar.xz");
                 assertEq (file.size, 25610932);
                 assertEq (file.sha256sum, "a396d5cb37057ddd3cd523434f70c56be21588a2228443e7508d2b2d610fc68e");
             } else {
