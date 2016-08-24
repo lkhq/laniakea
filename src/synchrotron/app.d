@@ -92,20 +92,22 @@ void main (string[] args)
         laniakea.logging.setVerbose (true);
     }
 
+    auto engine = new SyncEngine ();
     immutable command = args[1];
     switch (command) {
         case "sync":
             if (args.length != 5) {
-                writeln ("Invalid number of parameters: You need to specify a source suite, source section and package name.");
+                writeln ("Invalid number of parameters: You need to specify a source section and package name.");
                 exit (1);
             }
-            auto engine = new SyncEngine ();
-            immutable ret = engine.syncPackages (args[2], args[3], [args[4]]);
+            immutable ret = engine.syncPackages (args[2], args[3..$]);
             if (!ret)
                 exit (2);
             break;
         case "autosync":
-            // TODO
+            immutable ret = engine.autosync ();
+            if (!ret)
+                exit (2);
             break;
         default:
             writeln ("The command '%s' is unknown.".format (command));

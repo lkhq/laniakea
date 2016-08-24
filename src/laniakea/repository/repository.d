@@ -18,19 +18,22 @@
  */
 
 module laniakea.repository.repository;
+@safe:
 
 import std.stdio;
 import std.path : buildPath, dirName;
 import std.string : strip, format, endsWith;
 import std.array : appender, split, empty;
 import std.conv : to;
+import std.typecons : Flag, Yes, No;
+import std.digest.sha;
 static import std.file;
 
 import requests : getContent;
 
 import laniakea.logging;
 import laniakea.config : BaseConfig;
-import laniakea.utils : isRemote, splitStrip;
+import laniakea.utils : isRemote, splitStrip, compareVersions, hashFile;
 import laniakea.tagfile;
 import laniakea.packages;
 
@@ -47,6 +50,7 @@ private:
 
 public:
 
+    @trusted
     this (string location, string repoName = null)
     {
         if (isRemote (location)) {
@@ -62,8 +66,11 @@ public:
 
     /**
      * Download a file and retrieve a filename.
+     *
+     * This function does not validate the result, this step
+     * has to be done by the caller.
      */
-    string getRepoFile (const string repoLocation)
+    private string getRepoFileInternal (const string repoLocation) @trusted
     {
         if (repoUrl is null) {
             immutable fname = buildPath (rootDir, repoLocation);
@@ -95,7 +102,7 @@ public:
      */
     SourcePackage[] getSourcePackages (const string suite, const string component)
     {
-        immutable indexFname = getRepoFile (buildPath ("dists", suite, component, "source", "Sources.xz"));
+        immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, component, "source", "Sources.xz"));
         if (indexFname.empty)
             return [];
 
@@ -215,7 +222,7 @@ public:
      */
     BinaryPackage[] getBinaryPackages (const string suite, const string component, const string arch)
     {
-        immutable indexFname = getRepoFile (buildPath ("dists", suite, component, "binary-%s".format (arch), "Packages.xz"));
+        immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, component, "binary-%s".format (arch), "Packages.xz"));
         if (indexFname.empty)
             return [];
 
@@ -233,7 +240,7 @@ public:
      */
     BinaryPackage[] getInstallerPackages (const string suite, const string component, const string arch)
     {
-        immutable indexFname = getRepoFile (buildPath ("dists", suite, component, "debian-installer", "binary-%s".format (arch), "Packages.xz"));
+        immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, component, "debian-installer", "binary-%s".format (arch), "Packages.xz"));
         if (indexFname.empty)
             return [];
 
@@ -248,9 +255,34 @@ public:
      * Returns:
      *          An absolute path to the repository file.
      */
-    string getFile (ArchiveFile afile)
+    string getFile (ArchiveFile afile, Flag!"validate" validate = Yes.validate)
     {
-        return getRepoFile (afile.fname);
+        immutable fname = getRepoFileInternal (afile.fname);
+
+        if (validate) {
+            immutable hash = hashFile!SHA256 (fname);
+            if (hash != afile.sha256sum)
+                throw new Exception ("Checksum validation of '%s' failed.", fname);
+        }
+
+        return fname;
     }
 
+}
+
+public T[string] getNewestPackagesMap(T) (T[] pkgList)
+{
+    T[string] res;
+
+    foreach (ref pkg; pkgList) {
+        if (pkg.name in res) {
+            auto epkg = res[pkg.name];
+            if (compareVersions (epkg.ver, pkg.ver) > 0)
+                res[pkg.name] = pkg;
+        } else {
+            res[pkg.name] = pkg;
+        }
+    }
+
+    return res;
 }

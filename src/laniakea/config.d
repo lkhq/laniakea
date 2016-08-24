@@ -18,6 +18,7 @@
  */
 
 module laniakea.config;
+@safe:
 
 import std.stdio;
 import std.array : appender;
@@ -36,6 +37,7 @@ struct DistroSuite
 {
     string name;
     string[] architectures;
+    string[] components;
 }
 
 /**
@@ -44,6 +46,7 @@ struct DistroSuite
 struct ArchiveDetails
 {
     string rootPath;
+    string distroTag;
     DistroSuite develSuite;
     DistroSuite incomingSuite;
 }
@@ -53,8 +56,9 @@ struct ArchiveDetails
  */
 struct SynchrotronConfig
 {
-    DistroSuite sourceSuite;
+    string sourceName;
     string sourceRepoUrl;
+    DistroSuite sourceSuite;
     bool syncEnabled;
 }
 
@@ -66,6 +70,7 @@ class BaseConfig
     // Thread global
     private __gshared BaseConfig instance_;
 
+    @trusted
     static BaseConfig get ()
     {
         if (!instantiated_) {
@@ -94,6 +99,7 @@ class BaseConfig
         synchrotronEnabled = false;
     }
 
+    @trusted
     void loadFromFile (string fname)
     in { assert (!loaded); }
     body
@@ -119,6 +125,7 @@ class BaseConfig
             throw new Exception ("Configuration must define archive details in an 'Archive' section.");
 
         archive.rootPath = root["Archive"]["path"].str;
+        archive.distroTag = root["Archive"]["distroTag"].str;
         archive.develSuite.name = root["Archive"]["develSuite"].str;
         archive.incomingSuite.name = root["Archive"]["incomingSuite"].str;
 
@@ -126,6 +133,10 @@ class BaseConfig
         if ("Synchrotron" in root) {
             synchrotronEnabled = true;
             auto syncConf = root["Synchrotron"];
+
+            synchrotron.sourceName = "Debian";
+            if ("sourceName" in syncConf)
+                synchrotron.sourceName = syncConf["sourceName"].str;
 
             synchrotron.sourceSuite.name = syncConf["source"]["suite"].str;
             foreach (ref e; syncConf["source"]["archs"].array)

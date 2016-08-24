@@ -18,13 +18,15 @@
  */
 
 module laniakea.utils.utils;
+@safe:
 
+import std.stdio : File, writeln;
 import std.string : split, strip;
+import std.digest.sha;
 
 /**
  * Check if string contains a remote URI.
  */
-@safe
 bool isRemote (const string uri)
 {
     import std.regex;
@@ -38,13 +40,38 @@ bool isRemote (const string uri)
 /**
  * Split a string and strip whitespaces.
  */
-@safe
 string[] splitStrip (const string str, const string sep) pure
 {
     auto res = str.split (sep);
     foreach (ref s; res)
         s = s.strip ();
     return res;
+}
+
+/**
+ * Generate a cryptographic hashsum for the contents of a
+ * given file and return the hash as hex string.
+ */
+@trusted
+string hashFile (Hash) (const string fname) if (isDigest!Hash)
+{
+    auto file = File (fname);
+    auto result = digest!Hash (file.byChunk (4096 * 1024));
+
+    return toHexString (result).dup;
+}
+
+/**
+ * Get debian revision string from a version number.
+ */
+string getDebianRev (const string ver)
+{
+    import std.string : lastIndexOf;
+
+    immutable idx = ver.lastIndexOf ('-');
+    if (idx < 0)
+        return null;
+    return ver[idx+1..$];
 }
 
 unittest
@@ -58,4 +85,11 @@ unittest
     // check splitStrip
     assert ("a b c d".splitStrip (" ") == ["a", "b", "c", "d"]);
     assert ("a,  b, c,  d  ".splitStrip (", ") == ["a", "b", "c", "d"]);
+
+    // check getting Debian revision numbers
+    assert (getDebianRev ("1.0-3") == "3");
+    assert (getDebianRev ("2.0") == null);
+    assert (getDebianRev ("-4") == "4");
+    assert (getDebianRev ("2.4a-") == null);
+    assert (getDebianRev ("2.6~a-0tanglu4") == "0tanglu4");
 }
