@@ -21,8 +21,8 @@ module laniakea.utils.utils;
 @safe:
 
 import std.stdio : File, writeln;
-import std.string : split, strip;
-import std.digest.sha;
+import std.string : split, strip, toLower;
+import std.digest.sha : isDigest;
 
 /**
  * Check if string contains a remote URI.
@@ -53,12 +53,15 @@ string[] splitStrip (const string str, const string sep) pure
  * given file and return the hash as hex string.
  */
 @trusted
-string hashFile (Hash) (const string fname) if (isDigest!Hash)
+string hashFile (Hash) (const string fname)
+        if (isDigest!Hash)
 {
+    import std.digest.sha : digest, toHexString;
+
     auto file = File (fname);
     auto result = digest!Hash (file.byChunk (4096 * 1024));
 
-    return toHexString (result).dup;
+    return toHexString (result).toLower;
 }
 
 /**

@@ -262,7 +262,7 @@ public:
         if (validate) {
             immutable hash = hashFile!SHA256 (fname);
             if (hash != afile.sha256sum)
-                throw new Exception ("Checksum validation of '%s' failed.", fname);
+                throw new Exception ("Checksum validation of '%s' failed (%s != %s).".format (fname, hash, afile.sha256sum));
         }
 
         return fname;

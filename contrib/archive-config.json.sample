@@ -1,8 +1,31 @@
 {
     "ProjectName": "Test",
     "Archive": {
-        "path": "/srv/archive.example.org/sample/",
+        "path": "/tmp/testrepo/",
         "develSuite": "dasyatis",
-        "landingSuite": "staging"
+        "incomingSuite": "staging",
+        "distroTag": "test"
+    },
+
+    "Synchrotron": {
+      "syncEnabled": true,
+      "source": {
+        "suite": "testing",
+        "archs": [ "amd64",
+                   "armel",
+                   "armhf",
+                   "i386",
+                   "ia64",
+                   "mips",
+                   "mipsel",
+                   "powerpc",
+                   "s390",
+                   "s390x",
+                   "sparc",
+                   "kfreebsd-amd64",
+                   "kfreebsd-i386",
+                   "m68k" ],
+        "repoUrl": "http://ftp.debian.org/debian/"
+      }
     }
 }

@@ -96,7 +96,7 @@ void main (string[] args)
     immutable command = args[1];
     switch (command) {
         case "sync":
-            if (args.length != 5) {
+            if (args.length != 4) {
                 writeln ("Invalid number of parameters: You need to specify a source section and package name.");
                 exit (1);
             }
