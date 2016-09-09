@@ -7,7 +7,7 @@ laniakea_lib_src = [
     'src/laniakea/config.d',
     'src/laniakea/compressed.d',
     'src/laniakea/downloadmanager.d',
-    'src/laniakea/packages.d',
+    'src/laniakea/pkgitems.d',
     'src/laniakea/logging.d',
     'src/laniakea/tagfile.d',
     'src/laniakea/repository/dak.d',

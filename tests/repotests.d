@@ -23,7 +23,7 @@ import std.string : startsWith, endsWith;
 import std.algorithm;
 
 import testutils;
-import laniakea.packages;
+import laniakea.pkgitems;
 import laniakea.repository;
 
 

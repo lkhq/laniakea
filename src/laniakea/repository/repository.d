@@ -35,7 +35,7 @@ import laniakea.logging;
 import laniakea.config : BaseConfig;
 import laniakea.utils : isRemote, splitStrip, compareVersions, hashFile;
 import laniakea.tagfile;
-import laniakea.packages;
+import laniakea.pkgitems;
 
 
 /**

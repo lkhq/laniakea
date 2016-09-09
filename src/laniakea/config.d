@@ -21,7 +21,7 @@ module laniakea.config;
 @safe:
 
 import std.stdio;
-import std.array : appender;
+import std.array : appender, empty;
 import std.string : format, toLower, startsWith;
 import std.path : dirName, getcwd, buildPath, buildNormalizedPath;
 import std.conv : to;
@@ -60,6 +60,7 @@ struct SynchrotronConfig
     string sourceRepoUrl;
     DistroSuite sourceSuite;
     bool syncEnabled;
+    bool syncBinaries;
 }
 
 class BaseConfig
@@ -92,6 +93,8 @@ class BaseConfig
     string cacheDir;
     ArchiveDetails archive;
 
+    DistroSuite[] suites;
+
     bool synchrotronEnabled;
     SynchrotronConfig synchrotron;
 
@@ -123,15 +126,38 @@ class BaseConfig
 
         if ("Archive" !in root)
             throw new Exception ("Configuration must define archive details in an 'Archive' section.");
+        if ("Suites" !in root)
+            throw new Exception ("Configuration must define suites in a 'Suites' section.");
 
         archive.rootPath = root["Archive"]["path"].str;
         archive.distroTag = root["Archive"]["distroTag"].str;
-        archive.develSuite.name = root["Archive"]["develSuite"].str;
-        archive.incomingSuite.name = root["Archive"]["incomingSuite"].str;
+        auto develSuiteName = root["Archive"]["develSuite"].str;
+        auto incomingSuiteName = root["Archive"]["incomingSuite"].str;
+
+        // Suites configuration
+        foreach (sname, sdetails; root["Suites"].object) {
+            DistroSuite suite;
+            suite.name = sname;
+
+            foreach (ref e; sdetails["components"].array)
+                suite.components ~= e.str;
+            foreach (ref e; sdetails["architectures"].array)
+                suite.architectures ~= e.str;
+
+            if (suite.name == develSuiteName)
+                archive.develSuite = suite;
+            else if (suite.name == incomingSuiteName)
+                archive.incomingSuite = suite;
+        }
+
+        // Sanity check
+        if (archive.develSuite.name.empty)
+            throw new Exception ("Could not find definition of development suite %s.".format (develSuiteName));
+        if (archive.incomingSuite.name.empty)
+            throw new Exception ("Could not find definition of incoming suite %s.".format (incomingSuiteName));
 
         // Synchrotron configuration
         if ("Synchrotron" in root) {
-            synchrotronEnabled = true;
             auto syncConf = root["Synchrotron"];
 
             synchrotron.sourceName = "Debian";
@@ -139,12 +165,14 @@ class BaseConfig
                 synchrotron.sourceName = syncConf["sourceName"].str;
 
             synchrotron.sourceSuite.name = syncConf["source"]["suite"].str;
-            foreach (ref e; syncConf["source"]["archs"].array)
+            foreach (ref e; syncConf["source"]["architectures"].array)
                 synchrotron.sourceSuite.architectures ~= e.str;
             synchrotron.sourceRepoUrl = syncConf["source"]["repoUrl"].str;
 
             if ("syncEnabled" in syncConf)
                 synchrotron.syncEnabled = syncConf["syncEnabled"].type == JSON_TYPE.TRUE;
+            if ("syncBinaries" in syncConf)
+                synchrotron.syncBinaries = syncConf["syncBinaries"].type == JSON_TYPE.TRUE;
         }
 
         loaded = true;

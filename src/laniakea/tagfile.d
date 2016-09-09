@@ -25,7 +25,7 @@ import std.string;
 import std.array : appender;
 
 import laniakea.compressed;
-import laniakea.packages;
+import laniakea.pkgitems;
 
 /**
  * Parser for Debians RFC2822-style metadata.
