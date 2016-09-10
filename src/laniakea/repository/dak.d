@@ -87,11 +87,11 @@ public:
         immutable res = executeDak ("import", args.data);
 
         if (!res.success) {
-            logError ("Unable to import package '%s': %s", fnames.join (" "), res.data);
+            logError ("Unable to import package files '%s': %s", fnames.join (" "), res.data);
             return false;
         }
 
-        logInfo ("Imported package '%s' to '%s/%s'.", map!(baseName) (fnames).join (" "), suite, component);
+        logInfo ("Imported '%s' to '%s/%s'.", map!(baseName) (fnames).join (" "), suite, component);
         return true;
     }
 

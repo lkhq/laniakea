@@ -187,8 +187,11 @@ public:
 
             pkg.ver = tf.readField ("Version");
             pkg.architecture = tf.readField ("Architecture");
-            pkg.installedSize = to!size_t (tf.readField ("Installed-Size"));
             pkg.maintainer = tf.readField ("Maintainer");
+
+            immutable isize = tf.readField ("Installed-Size");
+            if (!isize.empty)
+                pkg.installedSize = to!size_t (tf.readField ("Installed-Size"));
 
             pkg.depends = tf.readField ("Depends", "").splitStrip (",");
             pkg.preDepends = tf.readField ("Pre-Depends", "").splitStrip (",");
@@ -199,7 +202,10 @@ public:
             pkg.priority = packagePriorityFromString (tf.readField ("Priority"));
 
             pkg.file.fname = tf.readField ("Filename");
-            pkg.file.size = to!size_t (tf.readField ("Size"));
+
+            immutable size = tf.readField ("Size");
+            if (!size.empty)
+                pkg.file.size = to!size_t (tf.readField ("Size"));
             pkg.file.sha256sum = tf.readField ("SHA256");
 
             pkg.type = DebType.DEB;
