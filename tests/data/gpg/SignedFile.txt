@@ -1,0 +1,22 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+I am a harmless test file for the Laniakea Project that
+has been signed for the testsuite to validate its signature.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJX1aGVAAoJEO/YvQfSJEeP6OMQAN7tf34zCKlIC83xnG1vHCLZ
+sIKvEyzhlOXl8sJ4oULNGq/P06qxscck4c09EemGszIhBBkNSrT25d/gaDc9boPS
+idNXaEDEJdoIWEnytiUgJjMulYwFHd97G39L947Yy/vnKgrCT9xxqntuQFLsuLdo
+Z0HhZJ2PIHT2lSlAFOMvTydNGJtIWsbDZKbLOOLoMvX32Aijgd5mmt3gXlcimgot
+ec9slrOylh0GxKujDZkl5tsFgwlKP8wqy8m43wImakJQ+6nJ/Y0nAYQuQRuZ64wD
+x8DpPpapn7ArlqyZ+NLaC3eX0bFD4mF3XNhdPRyI2jmKo+cTQCc3txNxMxXWtthn
+MbvkZWdJmXOa4Ja3ndEDXwF6sMbqU6HCBtGZX77T5rcXuFvGSGEcMJLF40K8pPGh
+K3rbC4prmc7cXSchX8FK3wMu1XYFrdAcXN5f+chLkN+obiGUSbr4Y+heS1UWScgH
+QaLNfoMry+ZDExUMdYsaxtzbUVdfqbsERx3I6jxXAvmj/LOwamxcSkRyl9sTOe2w
+XlyV/oW/uClB+8WxxVNXKKilvb36og/bvz7J/kyf8vCrBgZzYPgknFiqfLEvUOB/
+r+z709Vjtm6fKR09TQ08PiO6+16TDb9cTlh0LVXQgXcNOecoRwAeiQneSjkvN722
+vGnAdzwPt9zrWMvv+6iW
+=D/O+
+-----END PGP SIGNATURE-----

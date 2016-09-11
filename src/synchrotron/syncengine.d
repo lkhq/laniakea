@@ -33,12 +33,12 @@ import laniakea.logging;
 /**
  * Thrown on a package sync error.
  */
-class PackageSyncError : Error
+class PackageSyncError: Error
 {
     @safe pure nothrow
     this (string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
-        super( msg, file, line, next );
+        super (msg, file, line, next);
     }
 }
 

@@ -23,6 +23,7 @@ static import std.file;
 
 // import test units
 import repotests;
+import gpgtests;
 
 void main (string[] args)
 {
@@ -45,6 +46,8 @@ void main (string[] args)
     // aditional data from the test-data directory (while stuff in
     // unittest blocks is always standalone).
     testRepositoryRead (testDataDir);
+
+    testGnuPG (testDataDir);
 
     writeln ("Done.");
 }

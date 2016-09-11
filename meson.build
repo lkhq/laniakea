@@ -15,6 +15,7 @@ laniakea_lib_src = [
     'src/laniakea/repository/dscfile.d',
     'src/laniakea/repository/repository.d',
     'src/laniakea/utils/consts.d',
+    'src/laniakea/utils/gpg.d',
     'src/laniakea/utils/package.d',
     'src/laniakea/utils/utils.d',
     'src/laniakea/utils/versioncmp.d'
@@ -89,7 +90,8 @@ tests_src_dir = include_directories('tests/')
 tests_src = [
     'tests/runner.d',
     'tests/testutils.d',
-    'tests/repotests.d'
+    'tests/repotests.d',
+    'tests/gpgtests.d'
 ]
 
 main_test_exe = executable ('main_test',
