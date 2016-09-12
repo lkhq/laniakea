@@ -267,19 +267,20 @@ public:
             foreach (spkg; srcPkgMap.byValue) {
                 auto dpkgP = spkg.name in destPkgMap;
                 if (dpkgP !is null) {
+                    auto dpkg = *dpkgP;
+
                     if (compareVersions (spkg.ver, (*dpkgP).ver) >= 0) {
                         logDebug ("Skipped sync of %s: Target version '%s' is newer/equal than source version '%s'.",
                                   spkg.name, (*dpkgP).ver, spkg.ver);
                         continue;
                     }
-                }
-                auto dpkg = *dpkgP;
 
-                // check if we have a modified target package,
-                // indicated via its Debian revision, e.g. "1.0-0tanglu1"
-                if (dpkg.ver.getDebianRev.canFind (distroTag)) {
-                    logInfo ("No syncing %s/%s: It has modifications.", spkg.name, spkg.ver);
-                    continue;
+                    // check if we have a modified target package,
+                    // indicated via its Debian revision, e.g. "1.0-0tanglu1"
+                    if (dpkg.ver.getDebianRev.canFind (distroTag)) {
+                        logInfo ("No syncing %s/%s: It has modifications.", spkg.name, spkg.ver);
+                        continue;
+                    }
                 }
 
                 // sync source package
