@@ -53,9 +53,13 @@ crypto_dep = dependency('libcrypto')
 ssl_dep = dependency('libssl')
 archive_dep = dependency('libarchive')
 
+cthulhu_src = []
+
 frontend_src = ['src/frontend/source/app.d']
 
 synchrotron_src = ['src/synchrotron/syncengine.d']
+
+spears_src = []
 
 src_dir = include_directories('src/')
 
@@ -80,6 +84,16 @@ synchrotron_exe = executable ('synchrotron',
     link_with: [laniakea_lib],
     dependencies: [base_deps],
     install: true
+)
+
+cthulhu_exe = executable ('cthulhu',
+    ['src/cthulhu/app.d',
+     cthulhu_src],
+    include_directories: [src_dir],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
+    install: true,
+    install_dir : 'lib/laniakea/'
 )
 
 #
