@@ -77,6 +77,16 @@ laniakea_lib = static_library ('laniakea',
     dependencies: [base_deps]
 )
 
+cthulhu_exe = executable ('cthulhu',
+    ['src/cthulhu/app.d',
+     cthulhu_src],
+    include_directories: [src_dir],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
+    install: true,
+    install_dir : 'lib/laniakea/'
+)
+
 synchrotron_exe = executable ('synchrotron',
     ['src/synchrotron/app.d',
      synchrotron_src],
@@ -86,9 +96,9 @@ synchrotron_exe = executable ('synchrotron',
     install: true
 )
 
-cthulhu_exe = executable ('cthulhu',
-    ['src/cthulhu/app.d',
-     cthulhu_src],
+spears_exe = executable ('spears',
+    ['src/spears/app.d',
+     spears_src],
     include_directories: [src_dir],
     link_with: [laniakea_lib],
     dependencies: [base_deps],
