@@ -73,6 +73,7 @@ public:
         sourceRepo = new Repository (conf.synchrotron.sourceRepoUrl,
                                      conf.synchrotron.sourceName,
                                      conf.synchrotron.sourceKeyrings);
+        m_importsTrusted = true; // we trust everything by default
     }
 
     @property
@@ -133,7 +134,7 @@ public:
             // request each file to be there.
             // (dak will fetch the files referenced in the .dsc file from the same directory)
             if (file.fname.endsWith (".dsc"))
-                dscfile = file.fname;
+                dscfile = sourceRepo.getFile (file);
             sourceRepo.getFile (file);
         }
 
