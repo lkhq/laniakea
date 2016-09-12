@@ -23,7 +23,10 @@ module laniakea.utils.tagfile;
 import std.stdio;
 import std.string;
 import std.array : appender;
+import std.conv : to;
+import std.path : buildPath;
 
+import laniakea.utils : splitStrip;
 import laniakea.compressed;
 import laniakea.pkgitems;
 
@@ -45,8 +48,13 @@ public:
 
     void open (string fname)
     {
-        content = null;
         auto data = decompressFile (fname);
+        load (data);
+    }
+
+    void load (string data)
+    {
+        content = null;
         content = splitLines (data);
         pos = 0;
     }
@@ -159,4 +167,25 @@ public PackageInfo[] parsePackageListString (const string pkgListRaw, const stri
     }
 
     return res.data;
+}
+
+public ArchiveFile[] parseChecksumsList (string dataRaw, string baseDir = null)
+{
+    auto files = appender!(ArchiveFile[]);
+    foreach (ref fileRaw; dataRaw.split ('\n')) {
+        auto parts = fileRaw.strip.splitStrip (" "); // f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955 2455 0ad_0.0.20-1.dsc
+        if (parts.length != 3)
+            continue;
+
+        ArchiveFile file;
+        file.sha256sum = parts[0];
+        file.size = to!size_t (parts[1]);
+        if (baseDir.empty)
+            file.fname = parts[2];
+        else
+            file.fname = buildPath (baseDir, parts[2]);
+
+        files ~= file;
+    }
+    return files.data;
 }

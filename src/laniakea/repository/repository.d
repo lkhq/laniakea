@@ -45,13 +45,23 @@ class Repository
 {
 
 private:
+
+    struct InReleaseData
+    {
+        ArchiveFile[] files;
+    }
+
     string rootDir;
     string repoUrl;
+    string[] keyrings;
+    bool repoTrusted;
+
+    InReleaseData[string] inRelease;
 
 public:
 
     @trusted
-    this (string location, string repoName = null)
+    this (string location, string repoName = null, string[] trustedKeyrings = [])
     {
         if (isRemote (location)) {
             auto conf = BaseConfig.get ();
@@ -62,6 +72,26 @@ public:
             rootDir = location;
             repoUrl = null;
         }
+
+        keyrings = trustedKeyrings;
+        repoTrusted = false;
+    }
+
+    @property @safe
+    string baseDir () { return rootDir; }
+
+    void setTrusted (bool trusted)
+    {
+        repoTrusted = trusted;
+        logDebug ("Marked repository '%s' as trusted.", repoLocation);
+    }
+
+    @property @safe
+    private string repoLocation ()
+    {
+        if (repoUrl.empty)
+            return rootDir;
+        return repoUrl;
     }
 
     /**
@@ -70,15 +100,15 @@ public:
      * This function does not validate the result, this step
      * has to be done by the caller.
      */
-    private string getRepoFileInternal (const string repoLocation) @trusted
+    private string getRepoFileInternal (const string location) @trusted
     {
         if (repoUrl is null) {
-            immutable fname = buildPath (rootDir, repoLocation);
+            immutable fname = buildPath (rootDir, location);
             if (std.file.exists (fname))
                 return fname;
         } else {
-            immutable sourceUrl = buildPath (repoUrl, repoLocation);
-            immutable targetFname = buildPath (rootDir, repoLocation);
+            immutable sourceUrl = buildPath (repoUrl, location);
+            immutable targetFname = buildPath (rootDir, location);
             std.file.mkdirRecurse (targetFname.dirName);
 
             auto content = getContent (sourceUrl);
@@ -90,19 +120,77 @@ public:
         }
 
         // There was an error, we couldn't find or download the file
-        logError ("Could not find repository file '%s'", repoLocation);
+        logError ("Could not find repository file '%s'", location);
         return null;
     }
 
-    @property @safe
-    string baseDir () { return rootDir; }
+    private InReleaseData getRepoInformation (string suite)
+    {
+        import laniakea.utils.gpg : SignedFile;
+
+        auto irP = suite in inRelease;
+        if (irP !is null)
+            return *irP;
+
+        auto tf = new TagFile;
+        immutable irfname = getRepoFileInternal (buildPath ("dists", suite, "InRelease"));
+        if (irfname.empty)
+            return InReleaseData ();
+
+        if (keyrings.empty) {
+            // TODO: Maybe make this error fatal? Or should we allow this behavior for convenience?
+            if (!repoTrusted)
+                logError ("Can not validate repository '%s': No trusted keys found.", repoLocation);
+            tf.open (irfname);
+        } else {
+            auto sf = new SignedFile (keyrings);
+            sf.open (irfname);
+            tf.load (sf.content);
+        }
+
+        auto ird = InReleaseData ();
+
+        auto filesRaw = tf.readField ("SHA256");
+        ird.files = parseChecksumsList (filesRaw);
+
+        inRelease[suite] = ird;
+        return ird;
+    }
+
+    private string getIndexFile (string suite, string fname)
+    {
+        auto ird = getRepoInformation (suite);
+        immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, fname));
+        if (indexFname.empty)
+            return null;
+
+        // if we can not validate, just continue
+        if (keyrings.empty)
+            return indexFname;
+
+        // validate the file
+        immutable hash = hashFile!SHA256 (indexFname);
+        bool valid = false;
+        foreach (ref file; ird.files) {
+            if (file.fname == fname) {
+                if (hash != file.sha256sum)
+                    throw new Exception ("Checksum validation of '%s' failed (%s != %s).".format (fname, hash, file.sha256sum));
+                valid = true;
+            }
+        }
+
+        if (!valid)
+            throw new Exception ("Unable to validate '%s': File not mentioned in InRelease.".format (fname));
+
+        return indexFname;
+    }
 
     /**
      * Return a list of all source packages in the given suite and component.
      */
     SourcePackage[] getSourcePackages (const string suite, const string component)
     {
-        immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, component, "source", "Sources.xz"));
+        immutable indexFname = getIndexFile (suite, buildPath (component, "source", "Sources.xz"));
         if (indexFname.empty)
             return [];
 
@@ -131,21 +219,7 @@ public:
             pkg.buildDepends = tf.readField ("Build-Depends", "").splitStrip (",");
             pkg.directory = tf.readField ("Directory");
 
-            auto files = appender!(ArchiveFile[]);
-            immutable filesRaw = tf.readField ("Checksums-Sha256"); // f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955 2455 0ad_0.0.20-1.dsc
-            foreach (ref fileRaw; filesRaw.split ('\n')) {
-                auto parts = fileRaw.strip.split (" ");
-                if (parts.length != 3)
-                    continue;
-
-                ArchiveFile file;
-                file.sha256sum = parts[0];
-                file.size = to!size_t (parts[1]);
-                file.fname = buildPath (pkg.directory, parts[2]);
-
-                files ~= file;
-            }
-            pkg.files = files.data;
+            pkg.files = parseChecksumsList (tf.readField ("Checksums-Sha256"), pkg.directory);
 
             immutable rawPkgList = tf.readField ("Package-List");
             if (rawPkgList is null) {
@@ -228,7 +302,7 @@ public:
      */
     BinaryPackage[] getBinaryPackages (const string suite, const string component, const string arch)
     {
-        immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, component, "binary-%s".format (arch), "Packages.xz"));
+        immutable indexFname = getIndexFile (suite, buildPath (component, "binary-%s".format (arch), "Packages.xz"));
         if (indexFname.empty)
             return [];
 
@@ -246,7 +320,7 @@ public:
      */
     BinaryPackage[] getInstallerPackages (const string suite, const string component, const string arch)
     {
-        immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, component, "debian-installer", "binary-%s".format (arch), "Packages.xz"));
+        immutable indexFname = getIndexFile (suite, buildPath (component, "debian-installer", "binary-%s".format (arch), "Packages.xz"));
         if (indexFname.empty)
             return [];
 

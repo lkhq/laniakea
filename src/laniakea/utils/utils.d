@@ -23,6 +23,7 @@ module laniakea.utils.utils;
 import std.stdio : File, writeln;
 import std.string : split, strip, toLower;
 import std.digest.sha : isDigest;
+import std.array : appender, empty;
 
 /**
  * Check if string contains a remote URI.
@@ -39,13 +40,18 @@ bool isRemote (const string uri)
 
 /**
  * Split a string and strip whitespaces.
+ * Also only strip once per whitespace and ignore empty elements.
  */
 string[] splitStrip (const string str, const string sep) pure
 {
-    auto res = str.split (sep);
-    foreach (ref s; res)
-        s = s.strip ();
-    return res;
+    auto res = appender!(string[]);
+    auto splt = str.split (sep);
+    foreach (ref s; splt) {
+        if (s.empty)
+            continue;
+        res ~= s.strip;
+    }
+    return res.data;
 }
 
 /**
@@ -75,6 +81,20 @@ string getDebianRev (const string ver)
     if (idx < 0)
         return null;
     return ver[idx+1..$];
+}
+
+string[] findFilesBySuffix (string dir, string suffix) @trusted
+{
+    import std.file;
+    import std.string : endsWith;
+
+    auto files = appender!(string[]);
+    foreach (DirEntry e; dirEntries (dir, SpanMode.shallow, true)) {
+        if (e.name.endsWith (suffix))
+            files ~= e.name;
+    }
+
+    return files.data;
 }
 
 unittest

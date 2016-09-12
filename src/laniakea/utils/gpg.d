@@ -18,6 +18,7 @@
  */
 
 module laniakea.utils.gpg;
+@safe:
 
 import std.string : format, splitLines;
 import std.array : empty, split;
@@ -49,8 +50,9 @@ class SysError: Error
     {
         import core.stdc.errno;
         import core.stdc.string;
+        import std.string : fromStringz;
 
-        super ("%s: %s".format (msg, strerror (errno)), file, line, next);
+        super ("%s: %s".format (msg, strerror (errno).fromStringz), file, line, next);
     }
 }
 
@@ -181,7 +183,7 @@ public:
         verify (data, requireSignature);
     }
 
-    void open (string fname, bool requireSignature = true)
+    void open (string fname, bool requireSignature = true) @trusted
     {
         import std.stdio;
         import std.array : appender;
@@ -228,7 +230,7 @@ public:
         return signatureIds[0];
     }
 
-    private void verify (string data, bool requireSignature)
+    private void verify (string data, bool requireSignature) @trusted
     {
         import core.sys.posix.unistd : fork, pid_t;
         import core.sys.posix.sys.wait : waitpid;
@@ -283,7 +285,7 @@ public:
         }
     }
 
-    string[int] doIO (pid_t pid, int[] readFDs, SysPipe stdin, string inputData)
+    string[int] doIO (pid_t pid, int[] readFDs, SysPipe stdin, string inputData) @trusted
     {
         import core.sys.posix.fcntl;
         import core.sys.posix.sys.select;
@@ -291,6 +293,7 @@ public:
         import core.sys.posix.sys.wait : waitpid, WNOHANG;
         import std.conv : to;
         import std.string : toStringz, fromStringz;
+        import core.stdc.string : strlen;
 
         fd_set rfds;
         fd_set wfds;
@@ -321,6 +324,8 @@ public:
         bool working = true;
         nfds += 1;
 
+        auto inputDataZ = inputData.toStringz;
+        auto inputDataLen = strlen (inputDataZ);
         while (working) {
             working = waitpid (pid, null, WNOHANG) == 0;
 
@@ -340,12 +345,13 @@ public:
                 readLines[fd] ~= to!string (data[0..len]);
             }
 
-            auto dataSlice = inputData[writePos..$];
-            if (dataSlice.empty) {
+            if (writePos >= inputDataLen) {
                 stdin.closeW ();
             } else {
-                auto data = dataSlice.toStringz;
-                auto bytesWritten = write (stdin.w, data, char.sizeof * dataSlice.length);
+                auto bytesWritten = write (stdin.w, inputDataZ + writePos, inputDataLen - writePos);
+                if (bytesWritten < 0)
+                    continue;
+                    //throw new SysError ("Could not write to pipe");
                 writePos += bytesWritten;
                 working = true;
             }
@@ -354,7 +360,7 @@ public:
         return readLines;
     }
 
-    private void execGpg (int stdin, int stdout, int stderr, int statusfd)
+    private void execGpg (int stdin, int stdout, int stderr, int statusfd) @trusted
     {
         import std.string : toStringz, fromStringz;
         import core.sys.posix.unistd : dup2, close, execvp;

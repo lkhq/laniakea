@@ -67,10 +67,12 @@ public:
         // the repository of the distribution we import stuff into
         targetRepo = new Repository (conf.archive.rootPath,
                                      conf.projectName);
+        targetRepo.setTrusted (true);
 
         // the repository of the distribution we use to sync stuff from
         sourceRepo = new Repository (conf.synchrotron.sourceRepoUrl,
-                                     conf.synchrotron.sourceName);
+                                     conf.synchrotron.sourceName,
+                                     conf.synchrotron.sourceKeyrings);
     }
 
     @property

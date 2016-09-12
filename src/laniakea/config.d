@@ -28,6 +28,8 @@ import std.conv : to;
 import std.json;
 static import std.file;
 
+import laniakea.utils : findFilesBySuffix;
+
 public immutable laniakeaVersion = "0.1";
 
 /**
@@ -61,6 +63,8 @@ struct SynchrotronConfig
     DistroSuite sourceSuite;
     bool syncEnabled;
     bool syncBinaries;
+
+    string[] sourceKeyrings;
 }
 
 class BaseConfig
@@ -163,6 +167,10 @@ class BaseConfig
             synchrotron.sourceName = "Debian";
             if ("sourceName" in syncConf)
                 synchrotron.sourceName = syncConf["sourceName"].str;
+
+            if ("SourceKeyringDir" in syncConf) {
+                synchrotron.sourceKeyrings = findFilesBySuffix (syncConf["SourceKeyringDir"].str, ".gpg");
+            }
 
             synchrotron.sourceSuite.name = syncConf["source"]["suite"].str;
             foreach (ref e; syncConf["source"]["architectures"].array)
