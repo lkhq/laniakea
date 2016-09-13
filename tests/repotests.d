@@ -29,7 +29,7 @@ import laniakea.repository;
 
 void validateSourcePackages (SourcePackage[] srcPkgs)
 {
-    assertEq (srcPkgs.length, 6);
+    assertEq (srcPkgs.length, 8);
 
     bool found = false;
     foreach (ref spkg; srcPkgs) {
