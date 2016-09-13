@@ -176,7 +176,7 @@ public:
                     if (binI.name !in binPkgMap)
                         continue;
                     auto binPkg = binPkgMap[binI.name];
-                    if (compareVersions (binPkg.ver, binI.ver) < 0) {
+                    if (compareVersions (binI.ver, binPkg.ver) > 0) {
                         logInfo ("Not syncing binary package '%s': Version number '%s' is lower than the source package version '%s'.",
                                     binPkg.name, binPkg.ver, binI.ver);
                         continue;
@@ -226,7 +226,7 @@ public:
 
             auto spkg = *spkgP;
             if (dpkgP !is null) {
-                if (compareVersions (spkg.ver, (*dpkgP).ver) >= 0) {
+                if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
                     logInfo ("Can not sync %s: Target version '%s' is newer/equal than source version '%s'.",
                              pkgname, (*dpkgP).ver, spkg.ver);
                     continue;
@@ -270,7 +270,7 @@ public:
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
 
-                    if (compareVersions (spkg.ver, (*dpkgP).ver) >= 0) {
+                    if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
                         logDebug ("Skipped sync of %s: Target version '%s' is newer/equal than source version '%s'.",
                                   spkg.name, (*dpkgP).ver, spkg.ver);
                         continue;

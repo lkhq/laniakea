@@ -355,12 +355,14 @@ public T[string] getNewestPackagesMap(T) (T[] pkgList)
     T[string] res;
 
     foreach (ref pkg; pkgList) {
-        if (pkg.name in res) {
-            auto epkg = res[pkg.name];
-            if (compareVersions (epkg.ver, pkg.ver) > 0)
-                res[pkg.name] = pkg;
-        } else {
+        auto epkgP = pkg.name in res;
+        if (epkgP is null) {
             res[pkg.name] = pkg;
+        } else {
+            auto epkg = *epkgP;
+            if (compareVersions (pkg.ver, epkg.ver) > 0) {
+                res[pkg.name] = pkg;
+            }
         }
     }
 
