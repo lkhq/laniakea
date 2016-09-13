@@ -149,7 +149,7 @@ public:
     /**
      * Import binary packages for the given set of source packages into the archive.
      */
-    private bool importBinariesForSources (SourcePackage[] spkgs, string suite, string component)
+    private bool importBinariesForSources (SourcePackage[] spkgs, string targetSuite, string component)
     {
         if (!conf.synchrotron.syncBinaries) {
             logDebug ("Skipping binary syncs.");
@@ -159,10 +159,17 @@ public:
         // list of valid architectrures supported by the target
         immutable targetArchs = conf.archive.incomingSuite.architectures.idup;
 
-        // cache of binary-package mappings
+        // cache of binary-package mappings for the source
         BinaryPackage[string][string] binPkgArchMap;
         foreach (ref arch; targetArchs) {
             binPkgArchMap[arch] = getSourceRepoPackageMap!BinaryPackage (component, arch);
+        }
+
+        // cache of binary-package mappings from the target repository
+        BinaryPackage[string][string] destBinPkgArchMap;
+        foreach (ref arch; targetArchs) {
+            auto destBinPkgs = targetRepo.getBinaryPackages (targetSuite, component, arch);
+            destBinPkgArchMap[arch] = getNewestPackagesMap (destBinPkgs);
         }
 
         foreach (ref spkg; spkgs) {
@@ -170,6 +177,7 @@ public:
                 if (arch !in binPkgArchMap)
                     continue;
                 auto binPkgMap = binPkgArchMap[arch];
+                auto destBinPkgMap = destBinPkgArchMap[arch];
 
                 auto binFiles = appender!(string[]);
                 foreach (ref binI; parallel (spkg.binaries)) {
@@ -181,8 +189,19 @@ public:
                                     binPkg.name, binPkg.ver, binI.ver);
                         continue;
                     }
+
                     // TODO: Handle Debian binNMUs better: Maybe strip the "+b1" suffix and then do *exact* version comparisons, to ensure
                     // that source and binary version are exactly the same, and we don't do bad binary syncs.
+
+                    auto ebinPkgP = binPkg.name in destBinPkgMap;
+                    if (ebinPkgP !is null) {
+                        auto ebinPkg = *ebinPkgP;
+                        if (compareVersions (ebinPkg.ver, binPkg.ver) >= 0) {
+                            logInfo ("Not syncing binary package '%s/%s': Existing binary package with bigger/equal version '%s' found.",
+                                        binPkg.name, binPkg.ver, ebinPkg.ver);
+                            continue;
+                        }
+                    }
 
                     auto fname = sourceRepo.getFile (binPkg.file);
                     synchronized (this)
@@ -193,7 +212,7 @@ public:
                 if (binFiles.data.length == 0) {
                     logWarning ("Unable to sync any binary for source package %s/%s", spkg.name, spkg.ver);
                 } else {
-                    auto ret = importPackageFiles (suite, component, binFiles.data);
+                    auto ret = importPackageFiles (targetSuite, component, binFiles.data);
                     if (!ret)
                         return false;
                 }
