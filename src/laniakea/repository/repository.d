@@ -29,9 +29,8 @@ import std.typecons : Flag, Yes, No;
 import std.digest.sha;
 static import std.file;
 
-import requests : getContent;
-
 import laniakea.logging;
+import laniakea.net : downloadFile;
 import laniakea.config : BaseConfig;
 import laniakea.utils : isRemote, splitStrip, compareVersions, hashFile;
 import laniakea.tagfile;
@@ -111,11 +110,7 @@ public:
             immutable targetFname = buildPath (rootDir, location);
             std.file.mkdirRecurse (targetFname.dirName);
 
-            auto content = getContent (sourceUrl);
-            auto f = File (targetFname, "wb");
-            f.rawWrite (content.data);
-            f.close ();
-
+            downloadFile (sourceUrl, targetFname);
             return targetFname;
         }
 

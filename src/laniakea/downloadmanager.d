@@ -22,11 +22,11 @@ module laniakea.downloadmanager;
 import std.stdio;
 import std.path : buildPath, baseName;
 import std.array : appender, empty;
-import requests;
 static import std.file;
 
 import laniakea.config : BaseConfig;
 import laniakea.utils : GENERIC_BUFFER_SIZE;
+import laniakea.net;
 
 
 /**
@@ -104,12 +104,7 @@ public:
         else
             targetFname = buildPath (rootDir, hashString (url));
 
-        auto content = getContent (url);
-
-        auto f = File (targetFname, "wb");
-        f.rawWrite (content.data);
-        f.close ();
-
+        downloadFile (url, targetFname);
         return targetFname;
     }
 
