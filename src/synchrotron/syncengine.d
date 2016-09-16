@@ -57,6 +57,9 @@ private:
     Repository sourceRepo;
     Repository targetRepo;
 
+    immutable string targetSuite;
+    immutable string distroTag;
+
 public:
 
     this ()
@@ -68,6 +71,9 @@ public:
         targetRepo = new Repository (conf.archive.rootPath,
                                      conf.projectName);
         targetRepo.setTrusted (true);
+
+        targetSuite = conf.archive.incomingSuite.name;
+        distroTag = conf.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
         sourceRepo = new Repository (conf.synchrotron.sourceRepoUrl,
@@ -95,23 +101,62 @@ public:
     }
 
     /**
-     * Get an associative array of the newest packages present in the repository
-     * we should import packages from.
+     * Get an associative array of the newest packages present in a repository.
      */
-    private T[string] getSourceRepoPackageMap(T) (string component, string arch = null)
+    private T[string] getRepoPackageMap(T, R) (R repo, string suiteName, string component, string arch = null, bool withInstaller = true)
         if (is(T == SourcePackage) || is(T == BinaryPackage))
     {
         T[] pkgList;
         static if (is(T == SourcePackage)) {
-            pkgList = sourceRepo.getSourcePackages (conf.synchrotron.sourceSuite.name, component);
+            pkgList = repo.getSourcePackages (suiteName, component);
         } else static if (is(T == BinaryPackage)) {
-            pkgList = sourceRepo.getBinaryPackages (conf.synchrotron.sourceSuite.name, component, arch);
+            pkgList = repo.getBinaryPackages (suiteName, component, arch);
         } else {
             assert (0);
         }
 
         auto pkgMap = getNewestPackagesMap (pkgList);
+        static if (is(T == BinaryPackage)) {
+            if (withInstaller) {
+                // and d-i packages to the mix
+                auto ipkgList = repo.getInstallerPackages (suiteName, component, arch);
+                auto ipkgMap = getNewestPackagesMap (ipkgList);
+
+                foreach (ref name, ref pkg; ipkgMap)
+                    pkgMap[name] = pkg;
+            }
+        }
+
+        pkgMap.rehash; // makes lookups slightly faster later
         return pkgMap;
+    }
+
+    /**
+     * Get an associative array of the newest packages present in the repository we pull packages from.
+     * Convenience function for getRepoPackageMap.
+     */
+    private T[string] getSourceRepoPackageMap(T) (string component, string arch = null, bool withInstaller = true)
+        if (is(T == SourcePackage) || is(T == BinaryPackage))
+    {
+        return getRepoPackageMap!T (sourceRepo,
+                                    conf.synchrotron.sourceSuite.name,
+                                    component,
+                                    arch,
+                                    withInstaller);
+    }
+
+    /**
+     * Get an associative array of the newest packages present in the repository we import the new packages into.
+     * Convenience function for getRepoPackageMap.
+     */
+    private T[string] getTargetRepoPackageMap(T) (string component, string arch = null, bool withInstaller = true)
+        if (is(T == SourcePackage) || is(T == BinaryPackage))
+    {
+        return getRepoPackageMap!T (targetRepo,
+                                    targetSuite,
+                                    component,
+                                    arch,
+                                    withInstaller);
     }
 
     /**
@@ -126,7 +171,7 @@ public:
      * Import a source package from the source repository into the
      * target repo.
      */
-    private bool importSourcePackage (SourcePackage spkg, string suite, string component)
+    private bool importSourcePackage (SourcePackage spkg, string component)
     {
         string dscfile;
         foreach (file; spkg.files) {
@@ -143,13 +188,13 @@ public:
             return false;
         }
 
-        return importPackageFiles (suite, component, [dscfile]);
+        return importPackageFiles (targetSuite, component, [dscfile]);
     }
 
     /**
      * Import binary packages for the given set of source packages into the archive.
      */
-    private bool importBinariesForSources (SourcePackage[] spkgs, string targetSuite, string component)
+    private bool importBinariesForSources (SourcePackage[] spkgs, string component)
     {
         if (!conf.synchrotron.syncBinaries) {
             logDebug ("Skipping binary syncs.");
@@ -168,8 +213,7 @@ public:
         // cache of binary-package mappings from the target repository
         BinaryPackage[string][string] destBinPkgArchMap;
         foreach (ref arch; targetArchs) {
-            auto destBinPkgs = targetRepo.getBinaryPackages (targetSuite, component, arch);
-            destBinPkgArchMap[arch] = getNewestPackagesMap (destBinPkgs);
+            destBinPkgArchMap[arch] = getTargetRepoPackageMap!BinaryPackage (component, arch);
         }
 
         foreach (ref spkg; spkgs) {
@@ -227,10 +271,8 @@ public:
     body
     {
         checkSyncReady ();
-        immutable targetSuite = conf.archive.incomingSuite.name;
 
-        auto destPkgs = targetRepo.getSourcePackages (targetSuite, component);
-        auto destPkgMap = getNewestPackagesMap (destPkgs);
+        auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
         auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
 
         auto syncedSrcPkgs = appender!(SourcePackage[]);
@@ -254,13 +296,13 @@ public:
 
             // sync source package
             // the source package must always be known to dak first
-            auto ret = importSourcePackage (spkg, targetSuite, component);
+            auto ret = importSourcePackage (spkg, component);
             if (!ret)
                 return false;
             syncedSrcPkgs ~= spkg;
         }
 
-        auto ret = importBinariesForSources (syncedSrcPkgs.data, targetSuite, component);
+        auto ret = importBinariesForSources (syncedSrcPkgs.data, component);
 
         // TODO: Analyze the input, fetch the packages from the source distribution and
         // import them into the target in their correct order.
@@ -275,13 +317,10 @@ public:
     bool autosync ()
     {
         checkSyncReady ();
-        immutable distroTag = conf.archive.distroTag;
-        immutable targetSuite = conf.archive.incomingSuite.name;
 
         auto syncedSrcPkgs = appender!(SourcePackage[]);
         foreach (ref component; conf.archive.incomingSuite.components) {
-            auto destPkgs = targetRepo.getSourcePackages (targetSuite, component);
-            auto destPkgMap = getNewestPackagesMap (destPkgs);
+            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
             auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
 
             foreach (spkg; srcPkgMap.byValue) {
@@ -290,7 +329,7 @@ public:
                     auto dpkg = *dpkgP;
 
                     if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
-                        logDebug ("Skipped sync of %s: Target version '%s' is newer/equal than source version '%s'.",
+                        logDebug ("Skipped sync of %s: Target version '%s' is equal/newer than source version '%s'.",
                                   spkg.name, (*dpkgP).ver, spkg.ver);
                         continue;
                     }
@@ -305,14 +344,14 @@ public:
 
                 // sync source package
                 // the source package must always be known to dak first
-                auto ret = importSourcePackage (spkg, targetSuite, component);
+                auto ret = importSourcePackage (spkg, component);
                 if (!ret)
                     return false;
                 syncedSrcPkgs ~= spkg;
             }
 
             // import binaries as well, if necessary
-            auto ret = importBinariesForSources (syncedSrcPkgs.data, targetSuite, component);
+            auto ret = importBinariesForSources (syncedSrcPkgs.data, component);
             if (!ret)
                 return false;
         }
