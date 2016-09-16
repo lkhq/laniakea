@@ -24,6 +24,7 @@ import std.process;
 import std.array : appender, join;
 import std.path : baseName;
 import std.algorithm : map;
+static import std.file;
 
 import laniakea.logging;
 
@@ -47,7 +48,9 @@ public:
 
     this ()
     {
-        dakExecutable = "dak";
+        dakExecutable = "/usr/local/bin/dak";
+        if (!std.file.exists (dakExecutable))
+            dakExecutable = "dak";
     }
 
     private DakResult executeDak (const string command, const string[] args)
