@@ -26,8 +26,10 @@ import std.string : format, toLower, startsWith;
 import std.path : dirName, getcwd, buildPath, buildNormalizedPath;
 import std.conv : to;
 import std.json;
+import std.typecons : Nullable;
 static import std.file;
 
+import laniakea.logging;
 import laniakea.utils : findFilesBySuffix;
 import laniakea.pkgitems : VersionPriority;
 
@@ -170,6 +172,8 @@ class BaseConfig
                 archive.develSuite = suite;
             else if (suite.name == incomingSuiteName)
                 archive.incomingSuite = suite;
+
+            suites ~= suite;
         }
 
         // Sanity check
@@ -228,5 +232,17 @@ class BaseConfig
         }
 
         loadFromFile ("/etc/laniakea/archive-config.json");
+    }
+
+    Nullable!DistroSuite getSuite (string name)
+    {
+        Nullable!DistroSuite res;
+        foreach (ref suite; suites) {
+            if (suite.name == name) {
+                res = suite;
+                break;
+            }
+        }
+        return res;
     }
 }

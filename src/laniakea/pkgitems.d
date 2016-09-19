@@ -56,19 +56,6 @@ enum PackagePriority
 }
 
 /**
- * Priority of a package upload.
- */
-enum VersionPriority
-{
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL,
-    EMERGENCY
-}
-
-
-/**
  * Convert the text representation into the enumerated type.
  */
 PackagePriority packagePriorityFromString (string str) pure
@@ -87,7 +74,35 @@ PackagePriority packagePriorityFromString (string str) pure
     return PackagePriority.UNKNOWN;
 }
 
+/**
+ * Priority of a package upload.
+ */
+enum VersionPriority
+{
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL,
+    EMERGENCY
+}
 
+string toString (VersionPriority priority)
+{
+    switch (priority) {
+        case VersionPriority.LOW:
+            return "low";
+        case VersionPriority.MEDIUM:
+            return "medium";
+        case VersionPriority.HIGH:
+            return "high";
+        case VersionPriority.CRITICAL:
+            return "critical";
+        case VersionPriority.EMERGENCY:
+            return "emergency";
+        default:
+            return "unknown";
+    }
+}
 
 /**
  * A file in the archive.
