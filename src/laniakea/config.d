@@ -29,6 +29,7 @@ import std.json;
 static import std.file;
 
 import laniakea.utils : findFilesBySuffix;
+import laniakea.pkgitems : VersionPriority;
 
 public immutable laniakeaVersion = "0.1";
 
@@ -67,6 +68,17 @@ struct SynchrotronConfig
     string[] sourceKeyrings;
 }
 
+/**
+ * Configuration specific for the spears tool.
+ */
+struct SpearsConfigEntry
+{
+    string fromSuite;
+    string toSuite;
+
+    uint[VersionPriority] delays;
+}
+
 class BaseConfig
 {
     // Thread local
@@ -95,12 +107,15 @@ class BaseConfig
     // Public properties
     string projectName;
     string cacheDir;
+    string workspace;
     ArchiveDetails archive;
 
     DistroSuite[] suites;
 
     bool synchrotronEnabled;
     SynchrotronConfig synchrotron;
+
+    SpearsConfigEntry[] spears;
 
     private this () {
         synchrotronEnabled = false;
@@ -132,7 +147,10 @@ class BaseConfig
             throw new Exception ("Configuration must define archive details in an 'Archive' section.");
         if ("Suites" !in root)
             throw new Exception ("Configuration must define suites in a 'Suites' section.");
+        if ("Workspace" !in root)
+            throw new Exception ("Configuration must define a persistent working directory via 'Workspace'.");
 
+        workspace = root["Workspace"].str;
         archive.rootPath = root["Archive"]["path"].str;
         archive.distroTag = root["Archive"]["distroTag"].str;
         auto develSuiteName = root["Archive"]["develSuite"].str;
@@ -181,6 +199,18 @@ class BaseConfig
                 synchrotron.syncEnabled = syncConf["syncEnabled"].type == JSON_TYPE.TRUE;
             if ("syncBinaries" in syncConf)
                 synchrotron.syncBinaries = syncConf["syncBinaries"].type == JSON_TYPE.TRUE;
+        }
+
+        // Spears configuration
+        if ("Spears" in root) {
+            foreach (ref e; root["Spears"].array) {
+                SpearsConfigEntry spc;
+
+                spc.fromSuite = e["from"].str;
+                spc.toSuite = e["to"].str;
+
+                spears ~= spc;
+            }
         }
 
         loaded = true;

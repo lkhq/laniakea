@@ -24,6 +24,7 @@ import core.stdc.stdlib : exit;
 
 import laniakea.config;
 import laniakea.logging;
+import spears.spearsengine;
 
 
 private immutable helpText =
@@ -33,7 +34,9 @@ private immutable helpText =
 Laniakea module for managing the Britney package migrator.
 
 Subcommands:
-  ???
+  update                    - Refresh configurations.
+  migrate [SUITE1] [SUITE2] - Run migration.
+                              If suites are omitted, migration is run for all targets.
 
 Help Options:
   -h, --help       Show help options
@@ -88,5 +91,28 @@ void main (string[] args)
     // globally enable verbose mode, if requested
     if (verbose) {
         laniakea.logging.setVerbose (true);
+    }
+
+    auto engine = new SpearsEngine ();
+    immutable command = args[1];
+    switch (command) {
+        case "update":
+            immutable ret = engine.updateConfig ();
+            if (!ret)
+                exit (2);
+            break;
+        case "migrate":
+            bool ret;
+            if (args.length < 4) {
+                ret = engine.runMigration ();
+            }
+            ret = engine.runMigration (args[2], args[3]);
+            if (!ret)
+                exit (2);
+            break;
+        default:
+            writeln ("The command '%s' is unknown.".format (command));
+            exit (1);
+            break;
     }
 }

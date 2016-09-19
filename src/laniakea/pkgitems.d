@@ -55,6 +55,18 @@ enum PackagePriority
     EXTRA
 }
 
+/**
+ * Priority of a package upload.
+ */
+enum VersionPriority
+{
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL,
+    EMERGENCY
+}
+
 
 /**
  * Convert the text representation into the enumerated type.

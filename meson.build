@@ -28,7 +28,7 @@ frontend_src = ['src/frontend/source/app.d']
 
 synchrotron_src = ['src/synchrotron/syncengine.d']
 
-spears_src = []
+spears_src = ['src/spears/spearsengine.d']
 
 src_dir = include_directories('src/')
 
