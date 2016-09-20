@@ -25,6 +25,9 @@ static import std.file;
 
 import laniakea.logging;
 import laniakea.config;
+import laniakea.git;
+
+private immutable britneyGitRepository = "https://anonscm.debian.org/git/mirror/britney2.git";
 
 /**
  * Interface to Debian's Archive Migrator (Britney2)
@@ -71,5 +74,17 @@ public:
         }
 
         return BritneyResult (true, getOutput (brCmd.stdout));
+    }
+
+    void updateDist ()
+    {
+        auto git = new Git;
+        git.repository = britneyDir;
+        if (!std.file.exists (britneyDir)) {
+            std.file.mkdirRecurse (britneyDir);
+            git.clone (britneyGitRepository);
+        } else {
+            git.pull ();
+        }
     }
 }

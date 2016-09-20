@@ -25,13 +25,13 @@ import std.array : appender;
 import std.typecons : Tuple;
 static import std.file;
 
-import laniakea.repository;
 import laniakea.repository.dak;
 import laniakea.pkgitems;
 import laniakea.config;
 import laniakea.logging;
 
 import spears.britneyconfig;
+import spears.britney;
 
 /**
  * Run package migrations using Britney and manage its configurations.
@@ -41,14 +41,14 @@ class SpearsEngine
 
 private:
 
-    Dak dak;
+    Britney britney;
     BaseConfig conf;
 
 public:
 
     this ()
     {
-        dak = new Dak ();
+        britney = new Britney ();
         conf = BaseConfig.get ();
     }
 
@@ -88,6 +88,7 @@ public:
         immutable workspace = buildPath (conf.workspace, "spears");
         std.file.mkdirRecurse (workspace);
 
+        logInfo ("Updating configuration");
         immutable archiveRootPath = conf.archive.rootPath;
         foreach (ref mentry; conf.spears) {
             auto scRes = suitesFromConfigEntry (mentry);
@@ -108,6 +109,9 @@ public:
 
             bc.save ();
         }
+
+        logInfo ("Updating Britney");
+        britney.updateDist ();
 
         return true;
     }
