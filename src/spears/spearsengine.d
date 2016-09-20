@@ -96,6 +96,7 @@ public:
             auto fromSuite = scRes.from;
             auto toSuite = scRes.to;
 
+            logInfo ("Refreshing Britney config for '%s -> %s'", fromSuite.name, toSuite.name);
             immutable miWorkspace = buildPath (workspace, "%s-to-%s".format (fromSuite.name, toSuite.name));
             auto bc = new BritneyConfig (miWorkspace);
 
