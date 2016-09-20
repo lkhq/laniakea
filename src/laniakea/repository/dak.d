@@ -53,6 +53,13 @@ public:
             dakExecutable = "dak";
     }
 
+    @property
+    string urgencyExportDir ()
+    {
+        // FIXME: Don't hardcode this!
+        return "/srv/dak/export/urgencies/";
+    }
+
     private DakResult executeDak (const string command, const string[] args)
     {
         string getOutput (File f)

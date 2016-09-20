@@ -68,6 +68,20 @@ void logError (string, Args...) (const string tmpl, const Args args)
 }
 
 @trusted
+void logVerboseLn (T) (const T msg)
+{
+    if (__verbose)
+        writeln (msg);
+}
+
+@trusted
+void logVerbose (T) (const T msg)
+{
+    if (__verbose)
+        std.stdio.write (msg);
+}
+
+@trusted
 void setVerbose (const bool enabled)
 {
     __verbose = enabled;

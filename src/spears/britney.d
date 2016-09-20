@@ -20,7 +20,8 @@
 import std.stdio : File;
 import std.process;
 import std.array : appender;
-import std.path : baseName, buildPath;
+import std.string : format;
+import std.path : baseName, buildPath, dirName;
 static import std.file;
 
 import laniakea.logging;
@@ -54,7 +55,7 @@ public:
         britneyExe = buildPath (britneyDir, "britney.py");
     }
 
-    private BritneyResult runBritney (const string command, const string[] args)
+    private BritneyResult runBritney (const string workDir, const string[] args)
     {
         string getOutput (File f)
         {
@@ -66,14 +67,32 @@ public:
             return output.data;
         }
 
-        auto brArgs = [britneyExe] ~ command ~ args;
-        auto brCmd = pipeProcess (brArgs);
+        auto brArgs = [britneyExe] ~ args;
+        auto brCmd = pipeProcess (brArgs,
+                                  cast(Redirect) 7,
+                                  cast(const(string[string])) null, // env
+                                  cast(Config) null, // config
+                                  workDir);
+
+        bool running;
+        auto stdoutText = appender!string;
+        do {
+            auto br = tryWait (brCmd.pid);
+            running = !br.terminated;
+
+            char[512] buf;
+            if (!brCmd.stdout.eof) {
+                auto res = brCmd.stdout.rawRead (buf);
+                stdoutText ~= res;
+                logVerbose (res);
+            }
+        } while (running);
 
         if (wait (brCmd.pid) != 0) {
-            return BritneyResult (false, getOutput (brCmd.stdout) ~ "\n" ~ getOutput (brCmd.stderr));
+            return BritneyResult (false, stdoutText.data ~ "\n" ~ getOutput (brCmd.stderr));
         }
 
-        return BritneyResult (true, getOutput (brCmd.stdout));
+        return BritneyResult (true, stdoutText.data);
     }
 
     void updateDist ()
@@ -87,4 +106,14 @@ public:
             git.pull ();
         }
     }
+
+    string run (string configFile)
+    {
+        auto res = runBritney (configFile.dirName, ["-c", configFile, "-v"]);
+        if (!res.success)
+            throw new Exception ("Britney run failed: %s".format (res.data));
+
+        return res.data;
+    }
+
 }

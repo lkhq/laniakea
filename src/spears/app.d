@@ -105,8 +105,9 @@ void main (string[] args)
             bool ret;
             if (args.length < 4) {
                 ret = engine.runMigration ();
+            } else {
+                ret = engine.runMigration (args[2], args[3]);
             }
-            ret = engine.runMigration (args[2], args[3]);
             if (!ret)
                 exit (2);
             break;

@@ -38,6 +38,13 @@ private:
 
     Appender!(string[]) contents;
 
+    bool pathsSet;
+    bool componentsSet;
+    bool archsSet;
+    bool brokenArchsSet;
+    bool delaysSet;
+    bool newArchesSet;
+
 public:
 
     this (string britneyDir)
@@ -76,19 +83,25 @@ public:
 
     void setArchivePaths (string fromPath, string toPath)
     {
+        assert (!pathsSet);
+
         // paths for control files
         contents ~= "UNSTABLE = %s".format (fromPath);
         contents ~= "TESTING  = %s".format (toPath);
 
+        pathsSet = true;
     }
 
     void setComponents (string[] components)
     {
+        assert(!componentsSet);
         contents ~= "COMPONENTS = %s".format (components.join (", "));
+        componentsSet = true;
     }
 
     void setArchitectures (string[] archs)
     {
+        assert (!archsSet);
         immutable archStr = archs.join (" ");
 
         // List of release architectures
@@ -96,15 +109,55 @@ public:
 
         // if you're not in this list, arch: all packages are allowed to break on you
         contents ~= "NOBREAKALL_ARCHES = %s".format (archStr);
+
+        archsSet = true;
+    }
+
+    void setBrokenArchitectures (string[] archs)
+    {
+        assert (!brokenArchsSet);
+        immutable archStr = archs.join (" ");
+
+        // if you're in this list, your packages may not stay in sync with the source
+        contents ~= "OUTOFSYNC_ARCHES  = %s".format (archStr);
+        contents ~= "FUCKED_ARCHES     = %s".format (archStr);
+
+        // if you're in this list, your uninstallability count may increase
+        contents ~= "BREAK_ARCHES      = %s".format (archStr);
+
+        brokenArchsSet = true;
+    }
+
+    void setNewArchitectures (string[] archs)
+    {
+        assert (!newArchesSet);
+        immutable archStr = archs.join (" ");
+
+        // if you're in this list, you are a new architecture
+        contents ~= "NEW_ARCHES        = %s".format (archStr);
+
+        newArchesSet = true;
     }
 
     void setDelays (uint[VersionPriority] delays)
     {
+        import std.traits : EnumMembers;
+        assert (!delaysSet);
+
+        // ensure all priorities have a value
+        foreach (immutable prio; [EnumMembers!VersionPriority]) {
+            if (prio !in delays)
+                delays[prio] = 0;
+        }
+
+        // write delay config
         foreach (ref prio, ref days; delays) {
             contents ~= "MINDAYS_%s = %s".format (prio.toString.toUpper, to!string (days));
         }
 
         contents ~= "DEFAULT_URGENCY   = medium";
+
+        delaysSet = true;
     }
 
     void save ()
@@ -115,6 +168,19 @@ public:
         std.file.mkdirRecurse (buildPath (baseDir, "output", "target"));
         std.file.mkdirRecurse (buildPath (baseDir, "input", "hints"));
         std.file.mkdirRecurse (buildPath (baseDir, "state"));
+
+        // ensure essential settings are set (assert, only in debug mode!)
+        assert (pathsSet);
+        assert (componentsSet);
+        assert (archsSet);
+        if (!brokenArchsSet)
+            setBrokenArchitectures ([]);
+        if (!newArchesSet)
+            setNewArchitectures ([]);
+        if (!delaysSet) {
+            uint[VersionPriority] delays;
+            setDelays (delays);
+        }
 
         // save configuration
         immutable confFname = buildPath (baseDir, "britney.conf");
