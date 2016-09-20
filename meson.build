@@ -7,6 +7,7 @@ laniakea_lib_src = [
     'src/laniakea/config.d',
     'src/laniakea/compressed.d',
     'src/laniakea/downloadmanager.d',
+    'src/laniakea/git.d',
     'src/laniakea/pkgitems.d',
     'src/laniakea/logging.d',
     'src/laniakea/net.d',
@@ -29,7 +30,8 @@ frontend_src = ['src/frontend/source/app.d']
 synchrotron_src = ['src/synchrotron/syncengine.d']
 
 spears_src = ['src/spears/spearsengine.d',
-              'src/spears/britneyconfig.d'
+              'src/spears/britneyconfig.d',
+              'src/spears/britney.d'
 ]
 
 src_dir = include_directories('src/')
