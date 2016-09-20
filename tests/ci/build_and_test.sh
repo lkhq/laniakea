@@ -10,8 +10,8 @@ $DC --version
 # on the CI system.
 #
 
-mkdir build
+mkdir build && cd build
 meson ..
 ninja
 
-DESTDIR=/tmp/lk-root/ ninja install
+DESTDIR=/tmp/lk-root ninja install

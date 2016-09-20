@@ -11,7 +11,9 @@ RUN apt-get install -yq git build-essential ldc
 
 # install dependencies used by both appstream and appstream-generator
 RUN apt-get install -yq --no-install-recommends \
+    pkg-config \
     meson \
+    libssl-dev \
     libcurl4-gnutls-dev \
     libarchive-dev
 
