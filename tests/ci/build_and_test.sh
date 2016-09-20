@@ -14,4 +14,8 @@ mkdir build && cd build
 meson ..
 ninja
 
+# Test
+./main_test ../tests/data/
+
+# Test Install
 DESTDIR=/tmp/lk-root ninja install
