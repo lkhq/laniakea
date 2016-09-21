@@ -237,8 +237,8 @@ public:
                     }
 
                     if (binI.ver != binPkg.sourceVersion) {
-                        logInfo ("Not syncing binary package '%s': Version number '%s' does not match source package version '%s'.",
-                                    binPkg.name, binI.ver, binPkg.sourceVersion);
+                        logDebug ("Not syncing binary package '%s': Version number '%s' does not match source package version '%s'.",
+                                  binPkg.name, binI.ver, binPkg.sourceVersion);
                         continue;
                     }
 
@@ -328,9 +328,25 @@ public:
         auto syncedSrcPkgs = appender!(SourcePackage[]);
         foreach (ref component; conf.archive.incomingSuite.components) {
             auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
-            auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
 
-            foreach (ref spkg; srcPkgMap.byValue) {
+            // The source package lists contains many different versions, some source package
+            // versions are explicitly kept for GPL-compatibility.
+            // Sometimes a binary package migrates into another suite, dragging a newer source-package
+            // that it was built against with itslf into the target suite.
+            // These packages then have a source with a high version number, but might not have any
+            // binaries due to them migrating later.
+            // We need to care for that case when doing binary syncs (TODO: and maybe safeguard against it
+            // when doing source-only syncs too?), That's why we don't filter out the newest packages in
+            // binary-sync-mode.
+            SourcePackage[] srcPkgRange;
+            if (conf.synchrotron.syncBinaries) {
+                srcPkgRange = sourceRepo.getSourcePackages (conf.synchrotron.sourceSuite.name, component);
+            } else {
+                auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
+                srcPkgRange = srcPkgMap.values;
+            }
+
+            foreach (ref spkg; parallel (srcPkgRange)) {
                 auto dpkgP = spkg.name in destPkgMap;
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
@@ -351,10 +367,12 @@ public:
 
                 // sync source package
                 // the source package must always be known to dak first
-                auto ret = importSourcePackage (spkg, component);
-                if (!ret)
-                    return false;
-                syncedSrcPkgs ~= spkg;
+                synchronized (this) {
+                    auto ret = importSourcePackage (spkg, component);
+                    if (!ret)
+                        return false;
+                    syncedSrcPkgs ~= spkg;
+                }
             }
 
             // import binaries as well, if necessary
