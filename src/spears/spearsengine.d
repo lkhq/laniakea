@@ -18,9 +18,9 @@
  */
 
 import std.array : empty;
-import std.string : format, startsWith;
+import std.string : format, startsWith, strip, split;
 import std.algorithm : canFind;
-import std.path : buildPath, baseName;
+import std.path : buildPath, baseName, dirName;
 import std.array : appender;
 import std.typecons : Tuple;
 static import std.file;
@@ -163,7 +163,7 @@ public:
         f.close ();
     }
 
-    private void setupRandom (string miWorkspace)
+    private void setupVarious (string miWorkspace)
     {
         import std.stdio : File;
 
@@ -187,6 +187,35 @@ public:
         }
     }
 
+    private string postprocessHeidiFile (string miWorkspace)
+    {
+        import std.stdio : File;
+        immutable heidiResult = buildPath (miWorkspace, "output", "target", "HeidiResult");
+        immutable processedResult = buildPath (miWorkspace, "output", "target", "heidi", "current");
+
+        char[] buf;
+        auto finalData = appender!(string[]);
+
+        auto f = File (heidiResult, "r");
+        while (f.readln (buf)) {
+            auto parts = buf.strip.split (" ");
+            if (parts.length != 4) {
+                logWarning ("Found invalid line in Britney result: %s", buf.strip);
+                continue;
+            }
+            finalData ~= "%s %s %s".format (parts[0], parts[1], parts[2]);
+        }
+
+        f.close ();
+        std.file.mkdirRecurse (processedResult.dirName);
+        f = File (processedResult, "w");
+        foreach (ref line; finalData.data)
+            f.writeln (line);
+        f.close ();
+
+        return processedResult;
+    }
+
     private bool runMigrationInternal (DistroSuite fromSuite, DistroSuite toSuite)
     {
         immutable miWorkspace = getMigrateWorkspace (fromSuite.name, toSuite.name);
@@ -200,13 +229,13 @@ public:
         // ensure prerequisites are met and Britney is fed with all the data it needs
         collectUrgencies (miWorkspace);
         setupDates (miWorkspace);
-        setupRandom (miWorkspace);
+        setupVarious (miWorkspace);
 
         // execute the migration tester
         britney.run (britneyConf);
 
         // tell dak to import the new data (overriding the target suite)
-        immutable heidiResult = buildPath (miWorkspace, "output", "target", "HeidiResult");
+        immutable heidiResult = postprocessHeidiFile (miWorkspace);
         return dak.setSuiteToBritneyResult (toSuite.name, heidiResult);
     }
 

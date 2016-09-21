@@ -60,20 +60,27 @@ public:
         return "/srv/dak/export/urgencies/";
     }
 
-    private DakResult executeDak (const string command, const string[] args)
+    private DakResult executeDak (const string command, const string[] args, string stdinData = null)
     {
         string getOutput (File f)
         {
-            char[] buf;
+            char[512] buf;
             auto output = appender!string;
-            while (f.readln (buf)) {
-                output ~= buf;
+            while (!f.eof) {
+                auto res = f.rawRead (buf);
+                output ~= res;
             }
             return output.data;
         }
 
         auto dakArgs = [dakExecutable] ~ command ~ args;
         auto dakCmd = pipeProcess (dakArgs);
+
+        if (stdinData !is null) {
+            dakCmd.stdin.write (stdinData);
+            dakCmd.stdin.flush ();
+            dakCmd.stdin.close ();
+        }
 
         if (wait (dakCmd.pid) != 0) {
             return DakResult (false, getOutput (dakCmd.stdout) ~ "\n" ~ getOutput (dakCmd.stderr));
@@ -122,8 +129,8 @@ public:
 
         // an empty file might cause us to delete the whole repository contents.
         // this is a safeguard against that.
-        auto hf = std.file.readText (heidiFile);
-        if (hf.strip.empty) {
+        immutable heidiData = std.file.readText (heidiFile).strip;
+        if (heidiData.empty) {
             logWarning ("Stopped Britney result import: File '%s' is empty.", heidiFile);
             return false;
         }
@@ -131,8 +138,8 @@ public:
         logInfo ("Importing britney result from %s", heidiFile);
 
         // run dak import command.
-        auto args = ["--set", suiteName, "--britney", heidiFile];
-        immutable res = executeDak ("control-suite", args);
+        auto args = ["--set", suiteName, "--britney"];
+        immutable res = executeDak ("control-suite", args, heidiData);
 
         if (!res.success) {
             logError ("Unable apply Britney result to '%s': %s", suiteName, res.data);
