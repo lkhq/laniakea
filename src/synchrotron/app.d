@@ -34,8 +34,8 @@ private immutable helpText =
 Laniakea module for synchronizing packages with the source distribution.
 
 Subcommands:
-  sync SUITE SECTION PKGNAME  - Process new metadata for the given distribution suite.
-  autosync                    - Sync all packages which can be synced and process task queues.
+  sync SUITE SECTION PKGNAME - Process new metadata for the given distribution suite.
+  autosync                   - Sync all packages which can be synced and process task queues.
 
 Help Options:
   -h, --help       Show help options
@@ -96,11 +96,15 @@ void main (string[] args)
     immutable command = args[1];
     switch (command) {
         case "sync":
-            if (args.length < 4) {
+            if (args.length < 5) {
                 writeln ("Invalid number of parameters: You need to specify a source section and package name.");
                 exit (1);
             }
-            immutable ret = engine.syncPackages (args[2], args[3..$]);
+
+            // "default" is an alias for the defaulr sync source suite
+            if (args[2] != "default")
+                engine.setSourceSuite (args[2]);
+            immutable ret = engine.syncPackages (args[3], args[4..$]);
             if (!ret)
                 exit (2);
             break;

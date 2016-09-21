@@ -63,7 +63,8 @@ struct SynchrotronConfig
 {
     string sourceName;
     string sourceRepoUrl;
-    DistroSuite sourceSuite;
+    DistroSuite[] sourceSuites;
+    string defaultSourceSuite;
     bool syncEnabled;
     bool syncBinaries;
 
@@ -194,9 +195,18 @@ class BaseConfig
                 synchrotron.sourceKeyrings = findFilesBySuffix (syncConf["SourceKeyringDir"].str, ".gpg");
             }
 
-            synchrotron.sourceSuite.name = syncConf["source"]["suite"].str;
+            synchrotron.defaultSourceSuite = syncConf["source"]["defaultSuite"].str;
+
+            string[] archs;
             foreach (ref e; syncConf["source"]["architectures"].array)
-                synchrotron.sourceSuite.architectures ~= e.str;
+                archs ~= e.str;
+
+            foreach (ref jsuite; syncConf["source"]["suites"].array) {
+                DistroSuite suite;
+                suite.name = jsuite.str;
+                suite.architectures = archs;
+                synchrotron.sourceSuites ~= suite;
+            }
             synchrotron.sourceRepoUrl = syncConf["source"]["repoUrl"].str;
 
             if ("syncEnabled" in syncConf)

@@ -18,7 +18,7 @@
  */
 
 import std.array : empty;
-import std.string : endsWith;
+import std.string : endsWith, format;
 import std.algorithm : canFind;
 import std.array : appender;
 import std.parallelism : parallel;
@@ -57,7 +57,9 @@ private:
     Repository sourceRepo;
     Repository targetRepo;
 
-    immutable string targetSuite;
+    DistroSuite sourceSuite;
+    DistroSuite targetSuite;
+
     immutable string distroTag;
 
 public:
@@ -72,7 +74,7 @@ public:
                                      conf.projectName);
         targetRepo.setTrusted (true);
 
-        targetSuite = conf.archive.incomingSuite.name;
+        targetSuite = conf.archive.incomingSuite;
         distroTag = conf.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
@@ -80,6 +82,13 @@ public:
                                      conf.synchrotron.sourceName,
                                      conf.synchrotron.sourceKeyrings);
         m_importsTrusted = true; // we trust everything by default
+
+        foreach (ref suite; conf.synchrotron.sourceSuites) {
+            if (suite.name == conf.synchrotron.defaultSourceSuite) {
+                sourceSuite = suite;
+                break;
+            }
+        }
     }
 
     @property
@@ -92,6 +101,21 @@ public:
     void importsTrusted (bool v)
     {
         m_importsTrusted = v;
+    }
+
+    void setSourceSuite (string suiteName)
+    {
+        auto ret = false;
+        foreach (ref suite; conf.synchrotron.sourceSuites) {
+            if (suite.name == suiteName) {
+                sourceSuite = suite;
+                ret = true;
+                break;
+            }
+        }
+
+        if (!ret)
+            throw new Exception ("The source suite name '%s' is unknown.".format (suiteName));
     }
 
     private void checkSyncReady ()
@@ -139,7 +163,7 @@ public:
         if (is(T == SourcePackage) || is(T == BinaryPackage))
     {
         return getRepoPackageMap!T (sourceRepo,
-                                    conf.synchrotron.sourceSuite.name,
+                                    sourceSuite.name,
                                     component,
                                     arch,
                                     withInstaller);
@@ -153,7 +177,7 @@ public:
         if (is(T == SourcePackage) || is(T == BinaryPackage))
     {
         return getRepoPackageMap!T (targetRepo,
-                                    targetSuite,
+                                    targetSuite.name,
                                     component,
                                     arch,
                                     withInstaller);
@@ -188,7 +212,7 @@ public:
             return false;
         }
 
-        return importPackageFiles (targetSuite, component, [dscfile]);
+        return importPackageFiles (targetSuite.name, component, [dscfile]);
     }
 
     /**
@@ -263,7 +287,7 @@ public:
                     if (!existingPackages)
                         logWarning ("No binary packages synced for source %s/%s", spkg.name, spkg.ver);
                 } else {
-                    auto ret = importPackageFiles (targetSuite, component, binFiles.data);
+                    auto ret = importPackageFiles (targetSuite.name, component, binFiles.data);
                     if (!ret)
                         return false;
                 }
@@ -340,7 +364,7 @@ public:
             // binary-sync-mode.
             SourcePackage[] srcPkgRange;
             if (conf.synchrotron.syncBinaries) {
-                srcPkgRange = sourceRepo.getSourcePackages (conf.synchrotron.sourceSuite.name, component);
+                srcPkgRange = sourceRepo.getSourcePackages (sourceSuite.name, component);
             } else {
                 auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
                 srcPkgRange = srcPkgMap.values;
