@@ -231,7 +231,7 @@ public:
 
             // Do some issue-reporting
             if (pkg.files.empty)
-                logWarning ("Source package %s/%s seems to have no files.", pkg.name, pkg.ver);
+                logWarning ("Source package %s/%s seems to have no files (in %s).", pkg.name, pkg.ver, repoLocation);
 
             pkgs ~= pkg;
         } while (tf.nextSection ());

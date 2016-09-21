@@ -54,7 +54,7 @@ public:
 
     void load (string data)
     {
-        content = data.split ("\n");
+        content = data.splitLines ();
         pos = 0;
     }
 
