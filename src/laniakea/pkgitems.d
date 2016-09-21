@@ -167,6 +167,9 @@ struct BinaryPackage
     string architecture;
     size_t installedSize;
 
+    string sourceName;
+    string sourceVersion;
+
     PackagePriority priority;
     string section;
 

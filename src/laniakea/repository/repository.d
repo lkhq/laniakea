@@ -22,11 +22,12 @@ module laniakea.repository.repository;
 
 import std.stdio;
 import std.path : buildPath, dirName;
-import std.string : strip, format, endsWith;
+import std.string : strip, format, endsWith, indexOf;
 import std.array : appender, split, empty;
 import std.conv : to;
 import std.typecons : Flag, Yes, No;
 import std.digest.sha;
+import std.algorithm : canFind;
 static import std.file;
 
 import laniakea.logging;
@@ -257,6 +258,18 @@ public:
             pkg.ver = tf.readField ("Version");
             pkg.architecture = tf.readField ("Architecture");
             pkg.maintainer = tf.readField ("Maintainer");
+
+            immutable sourceId = tf.readField ("Source");
+            if (sourceId is null) {
+                pkg.sourceName = pkg.name;
+                pkg.sourceVersion = pkg.ver;
+            } else if (sourceId.canFind ("(")) {
+                pkg.sourceName = sourceId[0..sourceId.indexOf ("(")-1].strip;
+                pkg.sourceVersion = sourceId[sourceId.indexOf ("(")+1..sourceId.indexOf (")")].strip;
+            } else {
+                pkg.sourceName = sourceId;
+                pkg.sourceVersion = pkg.ver;
+            }
 
             immutable isize = tf.readField ("Installed-Size");
             if (!isize.empty)

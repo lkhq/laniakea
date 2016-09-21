@@ -223,19 +223,24 @@ public:
                 auto binPkgMap = binPkgArchMap[arch];
                 auto destBinPkgMap = destBinPkgArchMap[arch];
 
+                auto existingPackages = false;
                 auto binFiles = appender!(string[]);
                 foreach (ref binI; parallel (spkg.binaries)) {
                     if (binI.name !in binPkgMap)
                         continue;
                     auto binPkg = binPkgMap[binI.name];
-                    if (compareVersions (binI.ver, binPkg.ver) > 0) {
-                        logInfo ("Not syncing binary package '%s': Version number '%s' is lower than the source package version '%s'.",
-                                    binPkg.name, binPkg.ver, binI.ver);
+
+                    if (binPkg.sourceName != spkg.name) {
+                        logWarning ("Tried to sync binary package '%s' for source package '%s', but binary does not claim to be build by this source.",
+                                    binPkg.name, spkg.name);
                         continue;
                     }
 
-                    // TODO: Handle Debian binNMUs better: Maybe strip the "+b1" suffix and then do *exact* version comparisons, to ensure
-                    // that source and binary version are exactly the same, and we don't do bad binary syncs.
+                    if (binI.ver != binPkg.sourceVersion) {
+                        logInfo ("Not syncing binary package '%s': Version number '%s' does not match source package version '%s'.",
+                                    binPkg.name, binI.ver, binPkg.sourceVersion);
+                        continue;
+                    }
 
                     auto ebinPkgP = binPkg.name in destBinPkgMap;
                     if (ebinPkgP !is null) {
@@ -243,6 +248,7 @@ public:
                         if (compareVersions (ebinPkg.ver, binPkg.ver) >= 0) {
                             logInfo ("Not syncing binary package '%s/%s': Existing binary package with bigger/equal version '%s' found.",
                                         binPkg.name, binPkg.ver, ebinPkg.ver);
+                            existingPackages = true;
                             continue;
                         }
                     }
@@ -254,7 +260,8 @@ public:
 
                 // now import the binary packages, if there is anything to import
                 if (binFiles.data.length == 0) {
-                    logWarning ("Unable to sync any binary for source package %s/%s", spkg.name, spkg.ver);
+                    if (!existingPackages)
+                        logWarning ("Unable to sync any binary for source package %s/%s", spkg.name, spkg.ver);
                 } else {
                     auto ret = importPackageFiles (targetSuite, component, binFiles.data);
                     if (!ret)
@@ -276,7 +283,7 @@ public:
         auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
 
         auto syncedSrcPkgs = appender!(SourcePackage[]);
-        foreach (pkgname; pkgnames) {
+        foreach (ref pkgname; pkgnames) {
             auto spkgP = pkgname in srcPkgMap;
             auto dpkgP = pkgname in destPkgMap;
 
@@ -323,7 +330,7 @@ public:
             auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
             auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
 
-            foreach (spkg; srcPkgMap.byValue) {
+            foreach (ref spkg; srcPkgMap.byValue) {
                 auto dpkgP = spkg.name in destPkgMap;
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
