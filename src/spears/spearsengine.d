@@ -197,12 +197,17 @@ public:
         }
 
         logInfo ("Migration run for '%s -> %s'", fromSuite.name, toSuite.name);
+        // ensure prerequisites are met and Britney is fed with all the data it needs
         collectUrgencies (miWorkspace);
         setupDates (miWorkspace);
         setupRandom (miWorkspace);
 
+        // execute the migration tester
         britney.run (britneyConf);
-        return true;
+
+        // tell dak to import the new data (overriding the target suite)
+        immutable heidiResult = buildPath (miWorkspace, "output", "target", "HeidiResult");
+        return dak.setSuiteToBritneyResult (toSuite.name, heidiResult);
     }
 
     bool runMigration (string fromSuite, string toSuite)

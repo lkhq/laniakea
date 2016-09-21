@@ -21,7 +21,7 @@ module laniakea.repository.dak;
 
 import std.stdio : File;
 import std.process;
-import std.array : appender, join;
+import std.array : appender, join, empty;
 import std.path : baseName;
 import std.algorithm : map;
 static import std.file;
@@ -102,6 +102,44 @@ public:
         }
 
         logInfo ("Imported '%s' to '%s/%s'.", map!(baseName) (fnames).join (" "), suite, component);
+        return true;
+    }
+
+    /**
+     * Import a Britney result (HeidiResult file) into the dak database.
+     * This will *override* all existing package information in the target suite.
+     * Use this command with great care!
+     **/
+    bool setSuiteToBritneyResult (string suiteName, string heidiFile)
+    {
+        import std.string : strip;
+
+        // do some sanity checks
+        if (!std.file.exists (heidiFile)) {
+            logWarning ("Britney result not imported: File '%s' does not exist.", heidiFile);
+            return false;
+        }
+
+        // an empty file might cause us to delete the whole repository contents.
+        // this is a safeguard against that.
+        auto hf = std.file.readText (heidiFile);
+        if (hf.strip.empty) {
+            logWarning ("Stopped Britney result import: File '%s' is empty.", heidiFile);
+            return false;
+        }
+
+        logInfo ("Importing britney result from %s", heidiFile);
+
+        // run dak import command.
+        auto args = ["--set", suiteName, "--britney", heidiFile];
+        immutable res = executeDak ("control-suite", args);
+
+        if (!res.success) {
+            logError ("Unable apply Britney result to '%s': %s", suiteName, res.data);
+            return false;
+        }
+
+        logInfo ("Updated packages in '%s' based on Britney result.", suiteName);
         return true;
     }
 
