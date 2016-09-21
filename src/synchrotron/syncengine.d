@@ -261,7 +261,7 @@ public:
                 // now import the binary packages, if there is anything to import
                 if (binFiles.data.length == 0) {
                     if (!existingPackages)
-                        logWarning ("Unable to sync any binary for source package %s/%s", spkg.name, spkg.ver);
+                        logWarning ("No binary packages synced for source %s/%s", spkg.name, spkg.ver);
                 } else {
                     auto ret = importPackageFiles (targetSuite, component, binFiles.data);
                     if (!ret)
@@ -346,7 +346,7 @@ public:
                 srcPkgRange = srcPkgMap.values;
             }
 
-            foreach (ref spkg; parallel (srcPkgRange)) {
+            foreach (ref spkg; srcPkgRange) {
                 auto dpkgP = spkg.name in destPkgMap;
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
@@ -367,12 +367,10 @@ public:
 
                 // sync source package
                 // the source package must always be known to dak first
-                synchronized (this) {
-                    auto ret = importSourcePackage (spkg, component);
-                    if (!ret)
-                        return false;
-                    syncedSrcPkgs ~= spkg;
-                }
+                auto ret = importSourcePackage (spkg, component);
+                if (!ret)
+                    return false;
+                syncedSrcPkgs ~= spkg;
             }
 
             // import binaries as well, if necessary
