@@ -20,8 +20,8 @@
 import std.stdio : File;
 import std.process;
 import std.array : appender, join;
-import std.string : format;
-import std.path : baseName, buildPath, dirName;
+import std.string : format, toLower;
+import std.path : buildPath;
 static import std.file;
 
 import laniakea.logging;
@@ -110,7 +110,7 @@ public:
     {
         auto git = new Git;
         git.repository = metaSrcDir;
-        if (!std.file.exists (metaSrcDir)) {
+        if (!std.file.exists (buildPath (metaSrcDir, ".git"))) {
             std.file.mkdirRecurse (metaSrcDir);
             git.clone (conf.eggshell.metaPackageGitSourceUrl);
         } else {
@@ -119,6 +119,8 @@ public:
     }
 
     bool run ()
+    in { assert (conf.archive.develSuite.architectures.length > 0); }
+    body
     {
         immutable devSuiteName = conf.archive.develSuite.name;
 
@@ -131,15 +133,16 @@ public:
         immutable seedSrcDir = buildPath(metaSrcDir, "seed");
 
         // create target directory
-        auto resultsDir = buildPath (resultsBaseDir, "%s.%s".format (conf.projectName, devSuiteName));
+        auto resultsDir = buildPath (resultsBaseDir, "%s.%s".format (conf.projectName.toLower, devSuiteName));
         std.file.mkdirRecurse (resultsDir);
 
         // prepare parameters
-        auto geArgs = ["-S", "file://" ~ seedSrcDir,
-                       "-s", devSuiteName,
-                       "-d", devSuiteName,
-                       "-m", "file://" ~ conf.archive.rootPath,
-                       "-c", conf.archive.develSuite.components.join (" ")];
+        auto geArgs = ["-S", "file://" ~ seedSrcDir, // seed source
+                       "-s", devSuiteName, // suite name
+                       "-d", devSuiteName, // suite / dist name
+                       "-m", "file://" ~ conf.archive.rootPath, // mirror
+                       "-c", conf.archive.develSuite.components.join (" "), // components to check
+                       "-a", conf.archive.develSuite.architectures[0]];
         // NOTE: Maybe we want to limit the seed to only stuff in the primary (main) component?
 
         // execute germinator
