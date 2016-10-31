@@ -82,6 +82,14 @@ struct SpearsConfigEntry
     uint[VersionPriority] delays;
 }
 
+/**
+ * Configuration specific for the germinate module.
+ */
+struct EggshellConfig
+{
+    string metaPackageGitSourceUrl;
+}
+
 class BaseConfig
 {
     // Thread local
@@ -119,6 +127,8 @@ class BaseConfig
     SynchrotronConfig synchrotron;
 
     SpearsConfigEntry[] spears;
+
+    EggshellConfig eggshell;
 
     private this () {
         synchrotronEnabled = false;
@@ -225,6 +235,13 @@ class BaseConfig
 
                 spears ~= spc;
             }
+        }
+
+        // Eggshell configuration
+        if ("Eggshell" in root) {
+            auto esConf = root["Eggshell"];
+
+            eggshell.metaPackageGitSourceUrl = esConf["metaPackageGitSourceUrl"].str;
         }
 
         loaded = true;

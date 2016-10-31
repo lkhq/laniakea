@@ -34,6 +34,8 @@ spears_src = ['src/spears/spearsengine.d',
               'src/spears/britney.d'
 ]
 
+eggshell_src = ['src/eggshell/germinate.d']
+
 src_dir = include_directories('src/')
 
 #
@@ -84,7 +86,17 @@ spears_exe = executable ('spears',
     link_with: [laniakea_lib],
     dependencies: [base_deps],
     install: true,
-    install_dir : 'lib/laniakea/'
+    install_dir: 'lib/laniakea/'
+)
+
+eggshell_exe = executable ('eggshell',
+    ['src/eggshell/app.d',
+     eggshell_src],
+    include_directories: [src_dir],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
+    install: true,
+    install_dir: 'lib/laniakea/'
 )
 
 #
