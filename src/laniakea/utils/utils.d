@@ -72,14 +72,16 @@ string hashFile (Hash) (const string fname)
 
 /**
  * Get debian revision string from a version number.
+ * Params:
+ *     fullVersionForNative: Return the full version if we have a native package.
  */
-string getDebianRev (const string ver)
+string getDebianRev (const string ver, bool fullVersionForNative = true)
 {
     import std.string : lastIndexOf;
 
     immutable idx = ver.lastIndexOf ('-');
     if (idx < 0)
-        return null;
+        return fullVersionForNative? ver : null;
     return ver[idx+1..$];
 }
 
