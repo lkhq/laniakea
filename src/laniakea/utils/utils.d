@@ -113,8 +113,10 @@ unittest
 
     // check getting Debian revision numbers
     assert (getDebianRev ("1.0-3") == "3");
-    assert (getDebianRev ("2.0") == null);
+    assert (getDebianRev ("2.0", false) == null);
+    assert (getDebianRev ("2.0") == "2.0");
     assert (getDebianRev ("-4") == "4");
-    assert (getDebianRev ("2.4a-") == null);
+    assert (getDebianRev ("2.4a-", false) == null);
+    assert (getDebianRev ("2.4tanglu1") == "2.4tanglu1");
     assert (getDebianRev ("2.6~a-0tanglu4") == "0tanglu4");
 }
