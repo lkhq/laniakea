@@ -23,6 +23,8 @@ import std.algorithm : canFind;
 import std.array : appender;
 import std.parallelism : parallel;
 
+import vibe.db.mongo.mongo;
+
 import laniakea.repository;
 import laniakea.repository.dak;
 import laniakea.pkgitems;
@@ -372,6 +374,10 @@ public:
 
             foreach (ref spkg; srcPkgRange) {
                 auto dpkgP = spkg.name in destPkgMap;
+
+                if ((spkg.name == "firefox") || (spkg.name == "thunderbird"))
+                    continue;
+
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
 

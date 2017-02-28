@@ -121,6 +121,9 @@ class BaseConfig
     string workspace;
     ArchiveDetails archive;
 
+    string databaseName;
+    string mongoUrl;
+
     DistroSuite[] suites;
 
     bool synchrotronEnabled;
@@ -162,6 +165,16 @@ class BaseConfig
             throw new Exception ("Configuration must define suites in a 'Suites' section.");
         if ("Workspace" !in root)
             throw new Exception ("Configuration must define a persistent working directory via 'Workspace'.");
+
+        databaseName = "laniakea";
+        mongoUrl = "mongodb://localhost/";
+        if ("Database" in root) {
+            // read database properties
+            if ("mongoUrl" in root["Database"].object)
+                mongoUrl = root["Database"]["mongoUrl"].str;
+            if ("db" in root["Database"].object)
+                databaseName = root["Database"]["db"].str;
+        }
 
         workspace = root["Workspace"].str;
         archive.rootPath = root["Archive"]["path"].str;

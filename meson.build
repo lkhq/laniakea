@@ -20,7 +20,11 @@ laniakea_lib_src = [
     'src/laniakea/utils/gpg.d',
     'src/laniakea/utils/package.d',
     'src/laniakea/utils/utils.d',
-    'src/laniakea/utils/versioncmp.d'
+    'src/laniakea/utils/versioncmp.d',
+    'src/laniakea/db/package.d',
+    'src/laniakea/db/database.d',
+    'src/laniakea/db/schema/package.d',
+    'src/laniakea/db/schema/basic.d'
 ]
 
 cthulhu_src = []
@@ -46,13 +50,21 @@ ssl_dep = dependency('libssl')
 archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
 
+# Vibe
+vibe_core_dep = dependency('vibe-core')
+vibe_data_dep = dependency('vibe-data')
+vibe_mongo_dep = dependency('vibe-mongodb')
+
 #
 # Build Laniakea and its modules
 #
 base_deps = [crypto_dep,
              ssl_dep,
              archive_dep,
-             curl_dep]
+             curl_dep,
+             vibe_core_dep,
+             vibe_data_dep,
+             vibe_mongo_dep]
 
 laniakea_lib = static_library ('laniakea',
     [laniakea_lib_src],
