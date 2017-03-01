@@ -25,6 +25,7 @@ import std.parallelism : parallel;
 
 import vibe.db.mongo.mongo;
 
+import laniakea.db.schema.basic;
 import laniakea.repository;
 import laniakea.repository.dak;
 import laniakea.pkgitems;

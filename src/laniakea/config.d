@@ -32,18 +32,9 @@ static import std.file;
 import laniakea.logging;
 import laniakea.utils : findFilesBySuffix;
 import laniakea.pkgitems : VersionPriority;
+import laniakea.db.schema.basic;
 
 public immutable laniakeaVersion = "0.1";
-
-/**
- * Information about a distribution suite.
- */
-struct DistroSuite
-{
-    string name;
-    string[] architectures;
-    string[] components;
-}
 
 /**
  * Information about the derivative's package archive.

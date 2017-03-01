@@ -77,3 +77,13 @@ struct Job {
 
     JobResult result;
 }
+
+/**
+ * Information about a distribution suite.
+ */
+struct DistroSuite
+{
+    string name;
+    string[] architectures;
+    string[] components;
+}

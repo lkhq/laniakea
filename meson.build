@@ -24,7 +24,12 @@ laniakea_lib_src = [
     'src/laniakea/db/package.d',
     'src/laniakea/db/database.d',
     'src/laniakea/db/schema/package.d',
-    'src/laniakea/db/schema/basic.d'
+    'src/laniakea/db/schema/basic.d',
+    'src/laniakea/db/schema/synchrotron.d'
+]
+
+lkadmin_src = [
+    'src/admin/admintool.d'
 ]
 
 cthulhu_src = []
@@ -70,6 +75,16 @@ laniakea_lib = static_library ('laniakea',
     [laniakea_lib_src],
     include_directories: [src_dir],
     dependencies: [base_deps]
+)
+
+lkadmin_exe = executable ('lk-admin',
+    ['src/admin/app.d',
+     lkadmin_src],
+    include_directories: [src_dir],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
+    install: true,
+    install_dir : 'bin/'
 )
 
 cthulhu_exe = executable ('cthulhu',
@@ -126,6 +141,7 @@ tests_src = [
 main_test_exe = executable ('main_test',
     [tests_src,
      laniakea_lib_src,
+     lkadmin_src,
      synchrotron_src],
     include_directories: [src_dir, tests_src_dir],
     dependencies: [base_deps],

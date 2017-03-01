@@ -29,6 +29,7 @@ import laniakea.repository.dak;
 import laniakea.pkgitems;
 import laniakea.config;
 import laniakea.logging;
+import laniakea.db.schema.basic;
 
 import spears.britneyconfig;
 import spears.britney;

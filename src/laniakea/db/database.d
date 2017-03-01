@@ -71,6 +71,11 @@ public:
         return db[name];
     }
 
+    final void fsync ()
+    {
+        db.fsync ();
+    }
+
     final auto jobs ()
     {
         return db["jobs"];
@@ -89,7 +94,6 @@ public:
     void addJob (ref Job job)
     {
         job.id = BsonObjectID.generate ();
-
         jobs.insert (job);
     }
 }
