@@ -25,7 +25,7 @@ import std.path : buildPath;
 static import std.file;
 
 import laniakea.logging;
-import laniakea.config;
+import laniakea.localconfig;
 import laniakea.git;
 
 /**
@@ -46,7 +46,7 @@ private:
     string metaSrcDir;
     string resultsBaseDir;
 
-    BaseConfig conf;
+    LocalConfig conf;
 
 public:
 
@@ -55,7 +55,7 @@ public:
         // default to system germinator (usually /usr/bin/germinate)
         germinateExe = "germinate";
 
-        conf = BaseConfig.get ();
+        conf = LocalConfig.get;
 
         immutable workspace = buildPath (conf.workspace, "eggshell");
         std.file.mkdirRecurse (workspace);

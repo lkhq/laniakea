@@ -17,15 +17,20 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- import vibe.db.mongo.mongo;
- import laniakea.config;
- import laniakea.logging;
- import laniakea.db.schema.basic;
+@trusted:
+
+import std.typecons : Nullable;
+import vibe.db.mongo.mongo;
+import laniakea.localconfig;
+import laniakea.logging;
+
+import laniakea.db.schema.basic;
+import laniakea.db.schema.synchrotron;
 
 /**
  * A connection to the Laniakea database.
  */
-class Database
+final class Database
 {
     // Thread local
     private static bool instantiated_;
@@ -56,7 +61,7 @@ private:
 
     private this ()
     {
-        auto conf = BaseConfig.get ();
+        auto conf = LocalConfig.get ();
         databaseName = conf.databaseName;
         mongoUrl = conf.mongoUrl;
 
@@ -66,34 +71,84 @@ private:
 
 public:
 
-    final auto getCollection (const string name)
+    auto getCollection (const string name)
     {
         return db[name];
     }
 
-    final void fsync ()
+    void fsync ()
     {
         db.fsync ();
     }
 
-    final auto jobs ()
+    auto configBase ()
     {
-        return db["jobs"];
+        return db["config.base"];
     }
 
-    final auto configGlobal ()
+    auto getBaseConfig ()
     {
-        return db["config.global"];
+        return configBase.findOne!BaseConfig (["kind": BaseConfigKind.PROJECT]);
     }
 
-    final auto configSynchrotron ()
+    auto getSuiteDetails (string suiteName)
+    {
+        Nullable!DistroSuite result;
+
+        auto bconf = getBaseConfig;
+        foreach (suite; bconf.suites) {
+            if (suite.name == suiteName) {
+                result = suite;
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    auto configSynchrotron ()
     {
         return db["config.synchrotron"];
+    }
+
+    auto getSynchrotronConfig ()
+    {
+        return configSynchrotron.findOne!SynchrotronConfig (["kind": SynchrotronConfigKind.BASE]);
+    }
+
+    auto getSynchrotronBlacklist ()
+    {
+        return configSynchrotron.findOne!SynchrotronBlacklist (["kind": SynchrotronConfigKind.BLACKLIST]);
+    }
+
+    auto jobs ()
+    {
+        return db["jobs"];
     }
 
     void addJob (ref Job job)
     {
         job.id = BsonObjectID.generate ();
         jobs.insert (job);
+    }
+
+    auto logs ()
+    {
+        return db["log"];
+    }
+
+    void addLogEntry (LogEntrySeverity severity, string origin, string title, string content)
+    {
+        import std.datetime : Clock;
+        LogEntry entry;
+        entry.id = BsonObjectID.generate ();
+
+        entry.time = BsonDate (Clock.currTime);
+        entry.severity = severity;
+        entry.moduleName = origin;
+        entry.title = title;
+        entry.content = content;
+
+        logs.insert (entry);
     }
 }

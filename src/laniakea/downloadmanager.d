@@ -24,7 +24,7 @@ import std.path : buildPath, baseName;
 import std.array : appender, empty;
 static import std.file;
 
-import laniakea.config : BaseConfig;
+import laniakea.localconfig : LocalConfig;
 import laniakea.utils : GENERIC_BUFFER_SIZE;
 import laniakea.net;
 
@@ -46,7 +46,7 @@ public:
 
     this (string prefix = "")
     {
-        auto conf = BaseConfig.get ();
+        auto conf = LocalConfig.get;
         rootDir = buildPath (conf.cacheDir, "dlcache", urlToName (prefix));
         std.file.mkdirRecurse (rootDir);
     }

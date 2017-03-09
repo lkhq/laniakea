@@ -22,15 +22,18 @@ import std.string : endsWith, format;
 import std.algorithm : canFind;
 import std.array : appender;
 import std.parallelism : parallel;
+import std.typecons : Nullable;
 
 import vibe.db.mongo.mongo;
 
+import laniakea.db.database;
 import laniakea.db.schema.basic;
+import laniakea.db.schema.synchrotron;
 import laniakea.repository;
 import laniakea.repository.dak;
 import laniakea.pkgitems;
 import laniakea.utils : compareVersions, getDebianRev;
-import laniakea.config;
+import laniakea.localconfig;
 import laniakea.logging;
 
 /**
@@ -54,7 +57,7 @@ class SyncEngine
 private:
 
     Dak dak;
-    BaseConfig conf;
+    Database db;
     bool m_importsTrusted;
 
     Repository sourceRepo;
@@ -63,35 +66,42 @@ private:
     DistroSuite sourceSuite;
     DistroSuite targetSuite;
 
+    SynchrotronConfig syncConfig;
+    BaseConfig baseConfig;
+
     immutable string distroTag;
 
 public:
 
     this ()
     {
-        dak = new Dak ();
-        conf = BaseConfig.get ();
+        dak = new Dak;
+        db = Database.get;
+        auto conf = LocalConfig.get;
+
+        baseConfig = db.getBaseConfig.get;
+        syncConfig = db.getSynchrotronConfig.get;
 
         // the repository of the distribution we import stuff into
         targetRepo = new Repository (conf.archive.rootPath,
-                                     conf.projectName);
+                                     baseConfig.projectName);
         targetRepo.setTrusted (true);
 
-        targetSuite = conf.archive.incomingSuite;
-        distroTag = conf.archive.distroTag;
+        targetSuite = db.getSuiteDetails (baseConfig.archive.incomingSuite);
+        distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
-        sourceRepo = new Repository (conf.synchrotron.sourceRepoUrl,
-                                     conf.synchrotron.sourceName,
+        sourceRepo = new Repository (syncConfig.source.repoUrl,
+                                     syncConfig.sourceName,
                                      conf.synchrotron.sourceKeyrings);
         m_importsTrusted = true; // we trust everything by default
 
-        foreach (ref suite; conf.synchrotron.sourceSuites) {
-            if (suite.name == conf.synchrotron.defaultSourceSuite) {
-                sourceSuite = suite;
-                break;
-            }
-        }
+        setSourceSuite (syncConfig.source.defaultSuite);
+    }
+
+    void addLogEntry (LogEntrySeverity severity, string title, string content)
+    {
+        db.addLogEntry (severity, "synchrotron", title, content);
     }
 
     @property
@@ -109,7 +119,7 @@ public:
     void setSourceSuite (string suiteName)
     {
         auto ret = false;
-        foreach (ref suite; conf.synchrotron.sourceSuites) {
+        foreach (ref suite; syncConfig.source.suites) {
             if (suite.name == suiteName) {
                 sourceSuite = suite;
                 ret = true;
@@ -123,7 +133,7 @@ public:
 
     private void checkSyncReady ()
     {
-        if (!conf.synchrotron.syncEnabled)
+        if (!syncConfig.syncEnabled)
             throw new PackageSyncError ("Synchronization is disabled.");
     }
 
@@ -223,13 +233,14 @@ public:
      */
     private bool importBinariesForSources (SourcePackage[] spkgs, string component)
     {
-        if (!conf.synchrotron.syncBinaries) {
+        if (!syncConfig.syncBinaries) {
             logDebug ("Skipping binary syncs.");
             return true;
         }
 
         // list of valid architectrures supported by the target
-        immutable targetArchs = conf.archive.incomingSuite.architectures.idup;
+        auto incomingSuite = db.getSuiteDetails (baseConfig.archive.incomingSuite);
+        immutable targetArchs = incomingSuite.architectures.idup;
 
         // cache of binary-package mappings for the source
         BinaryPackage[string][string] binPkgArchMap;
@@ -352,8 +363,10 @@ public:
     {
         checkSyncReady ();
 
+        auto incomingSuite = db.getSuiteDetails (baseConfig.archive.incomingSuite);
         auto syncedSrcPkgs = appender!(SourcePackage[]);
-        foreach (ref component; conf.archive.incomingSuite.components) {
+
+        foreach (ref component; incomingSuite.components) {
             auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
 
             // The source package lists contains many different versions, some source package
@@ -366,7 +379,7 @@ public:
             // when doing source-only syncs too?), That's why we don't filter out the newest packages in
             // binary-sync-mode.
             SourcePackage[] srcPkgRange;
-            if (conf.synchrotron.syncBinaries) {
+            if (syncConfig.syncBinaries) {
                 srcPkgRange = sourceRepo.getSourcePackages (sourceSuite.name, component);
             } else {
                 auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);

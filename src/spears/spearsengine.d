@@ -27,7 +27,7 @@ static import std.file;
 
 import laniakea.repository.dak;
 import laniakea.pkgitems;
-import laniakea.config;
+import laniakea.localconfig;
 import laniakea.logging;
 import laniakea.db.schema.basic;
 
@@ -44,7 +44,7 @@ private:
 
     Britney britney;
     Dak dak;
-    BaseConfig conf;
+    LocalConfig conf;
 
     immutable string workspace;
 
@@ -54,7 +54,7 @@ public:
     {
         britney = new Britney ();
         dak = new Dak ();
-        conf = BaseConfig.get ();
+        conf = LocalConfig.get;
 
         workspace = buildPath (conf.workspace, "spears");
         std.file.mkdirRecurse (workspace);

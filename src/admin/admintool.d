@@ -22,6 +22,7 @@ import std.string : format;
 
 import vibe.db.mongo.mongo;
 import laniakea.db.database;
+import laniakea.db.schema.basic;
 import laniakea.db.schema.synchrotron;
 
 
@@ -91,6 +92,51 @@ public:
         db = Database.get ();
     }
 
+    bool baseInit ()
+    {
+        writeln ("Configuring base settings for Laniakea");
+
+        BaseConfig bconf;
+
+        writeQS ("Name of this project");
+        bconf.projectName = readString ();
+
+        bool addSuite = true;
+        while (addSuite) {
+            DistroSuite suite;
+            writeQS ("Adding a new suite. Please set a name");
+            suite.name = readString ();
+
+            writeQS ("List of components for suite '%s'".format (suite.name));
+            suite.components = readList ();
+
+            writeQS ("List of architectures for suite '%s'".format (suite.name));
+            suite.architectures = readList ();
+
+            bconf.suites ~= suite;
+
+            writeQB ("Add another suite?");
+            addSuite = readBool ();
+        }
+
+        writeQS ("Name of the 'incoming' suite which new packages are usually uploaded to");
+        bconf.archive.incomingSuite = readString ();
+
+        writeQS ("Name of the 'development' suite which is rolling or will become a final release");
+        bconf.archive.develSuite = readString ();
+
+        writeQS ("Distribution version tag (commonly found in package versions, e.g. 'tanglu' for OS 'Tanglu' with versions like '1.0-0tanglu1'");
+        bconf.archive.distroTag = readString ();
+
+        auto coll = db.configBase;
+
+        bconf.id = BsonObjectID.generate ();
+        coll.update (["kind": bconf.kind], bconf, UpdateFlags.upsert);
+
+        db.fsync;
+        return true;
+    }
+
     bool synchrotronInit ()
     {
         writeln ("Configuring base settings for Synchrotron");
@@ -103,19 +149,32 @@ public:
         writeQS ("Source repository URL");
         syconf.source.repoUrl = readString ();
 
+        bool addSuite = true;
+        while (addSuite) {
+            DistroSuite suite;
+            writeQS ("Adding a new source suite. Please set a name");
+            suite.name = readString ();
+
+            writeQS ("List of components for suite '%s'".format (suite.name));
+            suite.components = readList ();
+
+            writeQS ("List of architectures for suite '%s'".format (suite.name));
+            suite.architectures = readList ();
+
+            syconf.source.suites ~= suite;
+
+            writeQB ("Add another suite?");
+            addSuite = readBool ();
+        }
+
         writeQS ("Default source suite");
         syconf.source.defaultSuite = readString ();
-
-        writeQS ("Sync source architectures");
-        syconf.source.architectures = readList ();
 
         writeQB ("Enable sync?");
         syconf.syncEnabled = readBool ();
 
         writeQB ("Synchronize binary packages?");
         syconf.syncBinaries = readBool ();
-
-        // TODO: Allow registering suites
 
         auto coll = db.configSynchrotron;
 

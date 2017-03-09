@@ -22,7 +22,7 @@ import std.getopt;
 import std.string : format;
 import core.stdc.stdlib : exit;
 
-import laniakea.config;
+import laniakea.localconfig;
 import laniakea.logging;
 
 import admin.admintool;
@@ -66,7 +66,7 @@ void main (string[] args)
     }
 
     if (showVersion) {
-        writeln ("Version: ", laniakea.config.laniakeaVersion);
+        writeln ("Version: ", laniakea.localconfig.laniakeaVersion);
         return;
     }
 
@@ -75,7 +75,7 @@ void main (string[] args)
         return;
     }
 
-    auto conf = BaseConfig.get ();
+    auto conf = LocalConfig.get;
     try {
         conf.load ();
     } catch (Exception e) {
@@ -100,6 +100,9 @@ void main (string[] args)
             bool ret = true;
             switch (args[2]) {
                 case "init":
+                    ret = tool.baseInit ();
+                    if (!ret)
+                        exit (2);
                     ret = tool.synchrotronInit ();
                     break;
                 default:

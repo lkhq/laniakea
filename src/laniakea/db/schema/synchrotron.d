@@ -17,9 +17,11 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- import vibe.db.mongo.mongo;
- import vibe.data.serialization : name;
- import laniakea.db.schema.basic;
+module laniakea.db.schema.synchrotron;
+
+import vibe.db.mongo.mongo;
+import vibe.data.serialization : name;
+import laniakea.db.schema.basic;
 
 /**
  * Configuration kind.
@@ -35,7 +37,6 @@ enum SynchrotronConfigKind {
  */
 struct SyncSourceInfo {
     string defaultSuite;    // default suite name, e.g. "sid"
-    string[] architectures; // architectures of the source suite
     DistroSuite[] suites;   // suites available in the source ("sid", "jessie", ...)
 
     string repoUrl;         // URL of the package repository

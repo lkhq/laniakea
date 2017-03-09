@@ -32,7 +32,7 @@ static import std.file;
 
 import laniakea.logging;
 import laniakea.net : downloadFile;
-import laniakea.config : BaseConfig;
+import laniakea.localconfig : LocalConfig;
 import laniakea.utils : isRemote, splitStrip, compareVersions, hashFile;
 import laniakea.tagfile;
 import laniakea.pkgitems;
@@ -64,7 +64,7 @@ public:
     this (string location, string repoName = null, string[] trustedKeyrings = [])
     {
         if (isRemote (location)) {
-            auto conf = BaseConfig.get ();
+            auto conf = LocalConfig.get;
             rootDir = buildPath (conf.cacheDir, "repos_tmp", repoName);
             std.file.mkdirRecurse (rootDir);
             repoUrl = location;

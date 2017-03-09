@@ -25,7 +25,7 @@ import std.path : baseName, buildPath, dirName;
 static import std.file;
 
 import laniakea.logging;
-import laniakea.config;
+import laniakea.localconfig;
 import laniakea.git;
 
 private immutable britneyGitRepository = "https://anonscm.debian.org/git/mirror/britney2.git";
@@ -51,7 +51,7 @@ public:
 
     this ()
     {
-        britneyDir = buildPath (BaseConfig.get ().workspace, "dist", "britney2");
+        britneyDir = buildPath (LocalConfig.get.workspace, "dist", "britney2");
         britneyExe = buildPath (britneyDir, "britney.py");
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module laniakea.config;
+module laniakea.localconfig;
 @safe:
 
 import std.stdio;
@@ -48,17 +48,10 @@ struct ArchiveDetails
 }
 
 /**
- * Configuration specific for the synchrotron tool.
+ * Local configuration specific for the synchrotron tool.
  */
-struct SynchrotronConfig
+struct LocalSynchrotronConfig
 {
-    string sourceName;
-    string sourceRepoUrl;
-    DistroSuite[] sourceSuites;
-    string defaultSourceSuite;
-    bool syncEnabled;
-    bool syncBinaries;
-
     string[] sourceKeyrings;
 }
 
@@ -81,21 +74,21 @@ struct EggshellConfig
     string metaPackageGitSourceUrl;
 }
 
-class BaseConfig
+final class LocalConfig
 {
     // Thread local
     private static bool instantiated_;
 
     // Thread global
-    private __gshared BaseConfig instance_;
+    private __gshared LocalConfig instance_;
 
     @trusted
-    static BaseConfig get ()
+    static LocalConfig get ()
     {
         if (!instantiated_) {
-            synchronized (BaseConfig.classinfo) {
+            synchronized (LocalConfig.classinfo) {
                 if (!instance_)
-                    instance_ = new BaseConfig ();
+                    instance_ = new LocalConfig ();
 
                 instantiated_ = true;
             }
@@ -117,16 +110,13 @@ class BaseConfig
 
     DistroSuite[] suites;
 
-    bool synchrotronEnabled;
-    SynchrotronConfig synchrotron;
+    LocalSynchrotronConfig synchrotron;
 
     SpearsConfigEntry[] spears;
 
     EggshellConfig eggshell;
 
-    private this () {
-        synchrotronEnabled = false;
-    }
+    private this () { }
 
     @trusted
     void loadFromFile (string fname)
@@ -197,36 +187,13 @@ class BaseConfig
         if (archive.incomingSuite.name.empty)
             throw new Exception ("Could not find definition of incoming suite %s.".format (incomingSuiteName));
 
-        // Synchrotron configuration
+        // Local synchrotron configuration
         if ("Synchrotron" in root) {
             auto syncConf = root["Synchrotron"];
-
-            synchrotron.sourceName = "Debian";
-            if ("sourceName" in syncConf)
-                synchrotron.sourceName = syncConf["sourceName"].str;
 
             if ("SourceKeyringDir" in syncConf) {
                 synchrotron.sourceKeyrings = findFilesBySuffix (syncConf["SourceKeyringDir"].str, ".gpg");
             }
-
-            synchrotron.defaultSourceSuite = syncConf["source"]["defaultSuite"].str;
-
-            string[] archs;
-            foreach (ref e; syncConf["source"]["architectures"].array)
-                archs ~= e.str;
-
-            foreach (ref jsuite; syncConf["source"]["suites"].array) {
-                DistroSuite suite;
-                suite.name = jsuite.str;
-                suite.architectures = archs;
-                synchrotron.sourceSuites ~= suite;
-            }
-            synchrotron.sourceRepoUrl = syncConf["source"]["repoUrl"].str;
-
-            if ("syncEnabled" in syncConf)
-                synchrotron.syncEnabled = syncConf["syncEnabled"].type == JSON_TYPE.TRUE;
-            if ("syncBinaries" in syncConf)
-                synchrotron.syncBinaries = syncConf["syncBinaries"].type == JSON_TYPE.TRUE;
         }
 
         // Spears configuration

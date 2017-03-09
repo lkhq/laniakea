@@ -22,7 +22,7 @@ import std.getopt;
 import std.string : format;
 import core.stdc.stdlib : exit;
 
-import laniakea.config;
+import laniakea.localconfig;
 import laniakea.logging;
 
 import synchrotron.syncengine;
@@ -70,7 +70,7 @@ void main (string[] args)
     }
 
     if (showVersion) {
-        writeln ("Version: ", laniakea.config.laniakeaVersion);
+        writeln ("Version: ", laniakea.localconfig.laniakeaVersion);
         return;
     }
 
@@ -79,7 +79,7 @@ void main (string[] args)
         return;
     }
 
-    auto conf = BaseConfig.get ();
+    auto conf = LocalConfig.get;
     try {
         conf.load ();
     } catch (Exception e) {

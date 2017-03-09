@@ -79,6 +79,33 @@ struct Job {
 }
 
 /**
+ * Result of a job.
+ **/
+enum LogEntrySeverity
+{
+    UNKNOWN,
+    CRITICAL,
+    ERROR,
+    WARNING,
+    INFO,
+    DEBUG
+}
+
+/**
+ * A log entry.
+ **/
+struct LogEntry {
+    @name("_id") BsonObjectID id;
+
+    LogEntrySeverity severity;     // Urgency of this issue
+    @name("module") string moduleName; // the name of the module responsible for this log entry
+    BsonDate time;  // Time when this issue was created.
+
+    string title;     // A human-readable title of this issue
+    string content;   // content of this issue
+}
+
+/**
  * Information about a distribution suite.
  */
 struct DistroSuite
@@ -86,4 +113,34 @@ struct DistroSuite
     string name;
     string[] architectures;
     string[] components;
+}
+
+/**
+ * Base configuration kind
+ **/
+enum BaseConfigKind {
+    UNKNOWN,
+    PROJECT
+}
+
+/**
+ * Basic archive configuration
+ **/
+struct BaseArchiveConfig {
+    string develSuite;     // Development target suite ("testing", "green", ...)
+    string incomingSuite;  // Suite where new packages typically arrive ("unstable", "staging", ...)
+    string distroTag;      // Version tag for this distribution ("pureos", "tanglu", ...) - will usually be part of a package version, e.g. "1.0-0tanglu1"
+}
+
+/**
+ * Basic project configuration
+ **/
+struct BaseConfig {
+    @name("_id") BsonObjectID id;
+
+    BaseConfigKind kind = BaseConfigKind.PROJECT;
+
+    string projectName;         // Name of the distrobution or project ("Tanglu", "PureOS", ...)
+    BaseArchiveConfig archive;  // archive specific settings
+    DistroSuite[] suites;       // suites this OS contains
 }

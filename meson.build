@@ -4,7 +4,7 @@ source_root = meson.source_root()
 
 laniakea_lib_src = [
     'src/c/libarchive.d',
-    'src/laniakea/config.d',
+    'src/laniakea/localconfig.d',
     'src/laniakea/compressed.d',
     'src/laniakea/downloadmanager.d',
     'src/laniakea/git.d',
