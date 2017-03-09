@@ -29,7 +29,7 @@ import laniakea.repository.dak;
 import laniakea.pkgitems;
 import laniakea.localconfig;
 import laniakea.logging;
-import laniakea.db.schema.basic;
+import laniakea.db;
 
 import spears.britneyconfig;
 import spears.britney;
@@ -44,7 +44,11 @@ private:
 
     Britney britney;
     Dak dak;
-    LocalConfig conf;
+
+    Database db;
+    BaseConfig baseConf;
+    SpearsConfig spearsConf;
+    LocalConfig localConf;
 
     immutable string workspace;
 
@@ -54,9 +58,13 @@ public:
     {
         britney = new Britney ();
         dak = new Dak ();
-        conf = LocalConfig.get;
 
-        workspace = buildPath (conf.workspace, "spears");
+        db = Database.get;
+        baseConf = db.getBaseConfig;
+        spearsConf = db.getSpearsConfig;
+
+        localConf = LocalConfig.get;
+        workspace = buildPath (localConf.workspace, "spears");
         std.file.mkdirRecurse (workspace);
     }
 
@@ -66,7 +74,7 @@ public:
         SuiteCheckResult res;
         res.error = false;
 
-        auto maybeSuite = conf.getSuite (centry.fromSuite);
+        auto maybeSuite = db.getSuite (centry.fromSuite);
         if (maybeSuite.isNull) {
             logError ("Migration source suite '%s' does not exist. Can not create configuration.", centry.fromSuite);
             res.error = true;
@@ -74,7 +82,7 @@ public:
         }
         res.from = maybeSuite.get ();
 
-        maybeSuite = conf.getSuite (centry.toSuite);
+        maybeSuite = db.getSuite (centry.toSuite);
         if (maybeSuite.isNull) {
             logError ("Migration target suite '%s' does not exist. Can not create configuration.", centry.toSuite);
             res.error = true;
@@ -99,8 +107,8 @@ public:
     bool updateConfig ()
     {
         logInfo ("Updating configuration");
-        immutable archiveRootPath = conf.archive.rootPath;
-        foreach (ref mentry; conf.spears) {
+        immutable archiveRootPath = localConf.archive.rootPath;
+        foreach (ref mentry; spearsConf.migrations) {
             auto scRes = suitesFromConfigEntry (mentry);
             if (scRes.error)
                 continue;
@@ -245,7 +253,7 @@ public:
         bool done = false;
         bool ret = true;
 
-        foreach (ref mentry; conf.spears) {
+        foreach (ref mentry; spearsConf.migrations) {
             if ((mentry.fromSuite == fromSuite) && (mentry.toSuite == toSuite)) {
                 auto scRes = suitesFromConfigEntry (mentry);
                 if (scRes.error)
@@ -267,7 +275,7 @@ public:
     bool runMigration ()
     {
         bool ret = true;
-        foreach (ref mentry; conf.spears) {
+        foreach (ref mentry; spearsConf.migrations) {
             auto scRes = suitesFromConfigEntry (mentry);
             if (scRes.error)
                 continue;

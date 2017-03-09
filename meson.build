@@ -25,7 +25,9 @@ laniakea_lib_src = [
     'src/laniakea/db/database.d',
     'src/laniakea/db/schema/package.d',
     'src/laniakea/db/schema/basic.d',
-    'src/laniakea/db/schema/synchrotron.d'
+    'src/laniakea/db/schema/synchrotron.d',
+    'src/laniakea/db/schema/spears.d',
+    'src/laniakea/db/schema/eggshell.d'
 ]
 
 lkadmin_src = [

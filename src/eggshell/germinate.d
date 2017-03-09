@@ -24,6 +24,7 @@ import std.string : format, toLower;
 import std.path : buildPath;
 static import std.file;
 
+import laniakea.db;
 import laniakea.logging;
 import laniakea.localconfig;
 import laniakea.git;
@@ -46,7 +47,10 @@ private:
     string metaSrcDir;
     string resultsBaseDir;
 
-    LocalConfig conf;
+    Database db;
+    EggshellConfig eggshellConf;
+    BaseConfig baseConf;
+    LocalConfig localConf;
 
 public:
 
@@ -55,9 +59,12 @@ public:
         // default to system germinator (usually /usr/bin/germinate)
         germinateExe = "germinate";
 
-        conf = LocalConfig.get;
+        db = Database.get;
+        eggshellConf = db.getEggshellConfig;
+        baseConf = db.getBaseConfig;
 
-        immutable workspace = buildPath (conf.workspace, "eggshell");
+        localConf = LocalConfig.get;
+        immutable workspace = buildPath (localConf.workspace, "eggshell");
         std.file.mkdirRecurse (workspace);
 
         // meta package / seed source directory
@@ -112,17 +119,17 @@ public:
         git.repository = metaSrcDir;
         if (!std.file.exists (buildPath (metaSrcDir, ".git"))) {
             std.file.mkdirRecurse (metaSrcDir);
-            git.clone (conf.eggshell.metaPackageGitSourceUrl);
+            git.clone (eggshellConf.metaPackageGitSourceUrl);
         } else {
             git.pull ();
         }
     }
 
     bool run ()
-    in { assert (conf.archive.develSuite.architectures.length > 0); }
+    in { assert (db.getSuite (baseConf.archive.develSuite).architectures.length > 0); }
     body
     {
-        immutable devSuiteName = conf.archive.develSuite.name;
+        immutable devSuiteName = baseConf.archive.develSuite;
 
         // update the seed (contained in the metapackage repository)
         updateMetapackage ();
@@ -133,16 +140,18 @@ public:
         immutable seedSrcDir = buildPath(metaSrcDir, "seed");
 
         // create target directory
-        auto resultsDir = buildPath (resultsBaseDir, "%s.%s".format (conf.projectName.toLower, devSuiteName));
+        auto resultsDir = buildPath (resultsBaseDir, "%s.%s".format (baseConf.projectName.toLower, devSuiteName));
         std.file.mkdirRecurse (resultsDir);
+
+        auto develSuite = db.getSuite (baseConf.archive.develSuite);
 
         // prepare parameters
         auto geArgs = ["-S", "file://" ~ seedSrcDir, // seed source
                        "-s", devSuiteName, // suite name
                        "-d", devSuiteName, // suite / dist name
-                       "-m", "file://" ~ conf.archive.rootPath, // mirror
-                       "-c", conf.archive.develSuite.components.join (" "), // components to check
-                       "-a", conf.archive.develSuite.architectures[0]];
+                       "-m", "file://" ~ localConf.archive.rootPath, // mirror
+                       "-c", develSuite.components.join (" "), // components to check
+                       "-a", develSuite.architectures[0]];
         // NOTE: Maybe we want to limit the seed to only stuff in the primary (main) component?
 
         // execute germinator

@@ -17,15 +17,18 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module laniakea.db.database;
 @trusted:
 
 import std.typecons : Nullable;
+import std.string : format;
+import std.array : empty;
+
 import vibe.db.mongo.mongo;
 import laniakea.localconfig;
 import laniakea.logging;
 
-import laniakea.db.schema.basic;
-import laniakea.db.schema.synchrotron;
+import laniakea.db.schema;
 
 /**
  * A connection to the Laniakea database.
@@ -88,10 +91,33 @@ public:
 
     auto getBaseConfig ()
     {
-        return configBase.findOne!BaseConfig (["kind": BaseConfigKind.PROJECT]);
+        auto bconf = configBase.findOne!BaseConfig (["kind": BaseConfigKind.PROJECT]);
+
+        // Sanity check
+        DistroSuite develSuite;
+        DistroSuite incomingSuite;
+        foreach (ref suite; bconf.suites) {
+            if (suite.name == bconf.archive.develSuite) {
+                develSuite = suite;
+                continue;
+            } else if (suite.name == bconf.archive.incomingSuite) {
+                incomingSuite = suite;
+                continue;
+            }
+        }
+
+        if (bconf.isNull)
+            throw new Exception ("No base configuration was found in the database. Is Laniakea set up correctly?");
+
+        if (develSuite.name.empty)
+            throw new Exception ("Could not find definition of development suite %s.".format (bconf.archive.develSuite));
+        if (incomingSuite.name.empty)
+            throw new Exception ("Could not find definition of incoming suite %s.".format (bconf.archive.incomingSuite));
+
+        return bconf.get;
     }
 
-    auto getSuiteDetails (string suiteName)
+    auto getSuite (string suiteName)
     {
         Nullable!DistroSuite result;
 
@@ -119,6 +145,32 @@ public:
     auto getSynchrotronBlacklist ()
     {
         return configSynchrotron.findOne!SynchrotronBlacklist (["kind": SynchrotronConfigKind.BLACKLIST]);
+    }
+
+    auto configEggshell ()
+    {
+        return db["config.eggshell"];
+    }
+
+    auto getEggshellConfig ()
+    {
+        auto econf = configEggshell.findOne!EggshellConfig (["kind": EggshellConfigKind.BASE]);
+        if (econf.isNull)
+            throw new Exception ("No Eggshell configuration was found in the database. Can not continue.");
+        return econf.get;
+    }
+
+    auto configSpears ()
+    {
+        return db["config.spears"];
+    }
+
+    auto getSpearsConfig ()
+    {
+        auto sconf = configEggshell.findOne!SpearsConfig (["kind": SpearsConfigKind.BASE]);
+        if (sconf.isNull)
+            throw new Exception ("Unable to find Spears configuration in the database. Can not continue.");
+        return sconf.get;
     }
 
     auto jobs ()

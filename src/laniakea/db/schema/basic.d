@@ -17,6 +17,9 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module laniakea.db.schema.basic;
+@safe:
+
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
 

@@ -79,15 +79,15 @@ public:
         db = Database.get;
         auto conf = LocalConfig.get;
 
-        baseConfig = db.getBaseConfig.get;
-        syncConfig = db.getSynchrotronConfig.get;
+        baseConfig = db.getBaseConfig;
+        syncConfig = db.getSynchrotronConfig;
 
         // the repository of the distribution we import stuff into
         targetRepo = new Repository (conf.archive.rootPath,
                                      baseConfig.projectName);
         targetRepo.setTrusted (true);
 
-        targetSuite = db.getSuiteDetails (baseConfig.archive.incomingSuite);
+        targetSuite = db.getSuite (baseConfig.archive.incomingSuite);
         distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
@@ -239,7 +239,7 @@ public:
         }
 
         // list of valid architectrures supported by the target
-        auto incomingSuite = db.getSuiteDetails (baseConfig.archive.incomingSuite);
+        auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
         immutable targetArchs = incomingSuite.architectures.idup;
 
         // cache of binary-package mappings for the source
@@ -363,7 +363,7 @@ public:
     {
         checkSyncReady ();
 
-        auto incomingSuite = db.getSuiteDetails (baseConfig.archive.incomingSuite);
+        auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
         auto syncedSrcPkgs = appender!(SourcePackage[]);
 
         foreach (ref component; incomingSuite.components) {

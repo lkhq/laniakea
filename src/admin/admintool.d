@@ -21,9 +21,7 @@ import std.stdio;
 import std.string : format;
 
 import vibe.db.mongo.mongo;
-import laniakea.db.database;
-import laniakea.db.schema.basic;
-import laniakea.db.schema.synchrotron;
+import laniakea.db;
 
 
 /**
@@ -137,6 +135,11 @@ public:
         return true;
     }
 
+    void baseDumpConfig ()
+    {
+        writeln (db.configBase.findOne (["kind": BaseConfigKind.PROJECT]).serializeToPrettyJson);
+    }
+
     bool synchrotronInit ()
     {
         writeln ("Configuring base settings for Synchrotron");
@@ -182,6 +185,61 @@ public:
         coll.update (["kind": syconf.kind], syconf, UpdateFlags.upsert);
 
         db.fsync;
+        return true;
+    }
+
+    void synchrotronDumpConfig ()
+    {
+        writeln (db.configSynchrotron.findOne (["kind": SynchrotronConfigKind.BASE]).serializeToPrettyJson);
+        writeln ();
+        writeln (db.configSynchrotron.findOne (["kind": SynchrotronConfigKind.BLACKLIST]).serializeToPrettyJson);
+    }
+
+    bool setConfValue (string moduleName, string command)
+    {
+        bool updateData (T) (MongoCollection coll, T selector, string setExpr)
+        {
+            try {
+                auto json = parseJsonString ("{ " ~ setExpr ~ " }");
+                coll.findAndModifyExt (selector, ["$set": json], ["new": true]);
+            } catch (Exception e) {
+                writeln ("Update failed: ", e);
+                return false;
+            }
+
+            return true;
+        }
+        switch (moduleName) {
+            case "base":
+                auto coll = db.configBase;
+                if (!updateData (coll, ["kind": BaseConfigKind.PROJECT], command))
+                    return false;
+                break;
+            case "synchrotron":
+                auto coll = db.configSynchrotron;
+                if (!updateData (coll, ["kind": SynchrotronConfigKind.BASE], command))
+                    return false;
+                break;
+            case "synchrotron.blacklist":
+                auto coll = db.configSynchrotron;
+                if (!updateData (coll, ["kind": SynchrotronConfigKind.BLACKLIST], command))
+                    return false;
+                break;
+            case "spears":
+                auto coll = db.configSpears;
+                if (!updateData (coll, ["kind": SpearsConfigKind.BASE], command))
+                    return false;
+                break;
+            case "eggshell":
+                auto coll = db.configEggshell;
+                if (!updateData (coll, ["kind": EggshellConfigKind.BASE], command))
+                    return false;
+                break;
+            default:
+                writeln ("Unknown module name: ", moduleName);
+                return false;
+        }
+
         return true;
     }
 

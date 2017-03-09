@@ -91,7 +91,21 @@ void main (string[] args)
     auto tool = new AdminTool ();
     immutable command = args[1];
     switch (command) {
-        case "synchrotron":
+        case "init":
+            if (!tool.baseInit ())
+                exit (2);
+            if (!tool.synchrotronInit ())
+                exit (2);
+            break;
+        case "config-set":
+            if (args.length < 4) {
+                writeln ("Invalid number of parameters: You need to specify a module and an update command.");
+                exit (1);
+            }
+            if (!tool.setConfValue (args[2], args[3]))
+                exit (2);
+            break;
+        case "base":
             if (args.length < 3) {
                 writeln ("Invalid number of parameters: You need to specify an action.");
                 exit (1);
@@ -101,9 +115,31 @@ void main (string[] args)
             switch (args[2]) {
                 case "init":
                     ret = tool.baseInit ();
-                    if (!ret)
-                        exit (2);
+                    break;
+                case "dump":
+                    tool.baseDumpConfig ();
+                    break;
+                default:
+                    writeln ("The command '%s' is unknown.".format (command));
+                    exit (1);
+                break;
+            }
+            if (!ret)
+                exit (2);
+            break;
+        case "synchrotron":
+            if (args.length < 3) {
+                writeln ("Invalid number of parameters: You need to specify an action.");
+                exit (1);
+            }
+
+            bool ret = true;
+            switch (args[2]) {
+                case "init":
                     ret = tool.synchrotronInit ();
+                    break;
+                case "dump":
+                    tool.synchrotronDumpConfig ();
                     break;
                 default:
                     writeln ("The command '%s' is unknown.".format (command));

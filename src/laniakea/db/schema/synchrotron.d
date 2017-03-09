@@ -18,6 +18,7 @@
  */
 
 module laniakea.db.schema.synchrotron;
+@safe:
 
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;

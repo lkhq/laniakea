@@ -31,21 +31,9 @@ static import std.file;
 
 import laniakea.logging;
 import laniakea.utils : findFilesBySuffix;
-import laniakea.pkgitems : VersionPriority;
 import laniakea.db.schema.basic;
 
 public immutable laniakeaVersion = "0.1";
-
-/**
- * Information about the derivative's package archive.
- */
-struct ArchiveDetails
-{
-    string rootPath;
-    string distroTag;
-    DistroSuite develSuite;
-    DistroSuite incomingSuite;
-}
 
 /**
  * Local configuration specific for the synchrotron tool.
@@ -56,22 +44,11 @@ struct LocalSynchrotronConfig
 }
 
 /**
- * Configuration specific for the spears tool.
+ * Local information about the derivative's package archive.
  */
-struct SpearsConfigEntry
+struct LocalArchiveDetails
 {
-    string fromSuite;
-    string toSuite;
-
-    uint[VersionPriority] delays;
-}
-
-/**
- * Configuration specific for the germinate module.
- */
-struct EggshellConfig
-{
-    string metaPackageGitSourceUrl;
+    string rootPath;
 }
 
 final class LocalConfig
@@ -100,21 +77,14 @@ final class LocalConfig
     private bool loaded;
 
     // Public properties
-    string projectName;
     string cacheDir;
     string workspace;
-    ArchiveDetails archive;
 
     string databaseName;
     string mongoUrl;
 
-    DistroSuite[] suites;
-
+    LocalArchiveDetails archive;
     LocalSynchrotronConfig synchrotron;
-
-    SpearsConfigEntry[] spears;
-
-    EggshellConfig eggshell;
 
     private this () { }
 
@@ -132,18 +102,12 @@ final class LocalConfig
 
         JSONValue root = parseJSON (jsonData.data);
 
-        this.projectName = "Unknown";
-        if ("ProjectName" in root)
-            this.projectName = root["ProjectName"].str;
-
         cacheDir = "/var/tmp/laniakea";
         if ("CacheLocation" in root)
             cacheDir = root["CacheLocation"].str;
 
         if ("Archive" !in root)
-            throw new Exception ("Configuration must define archive details in an 'Archive' section.");
-        if ("Suites" !in root)
-            throw new Exception ("Configuration must define suites in a 'Suites' section.");
+            throw new Exception ("Configuration must define a persistent working directory via 'Workspace'.");
         if ("Workspace" !in root)
             throw new Exception ("Configuration must define a persistent working directory via 'Workspace'.");
 
@@ -159,33 +123,6 @@ final class LocalConfig
 
         workspace = root["Workspace"].str;
         archive.rootPath = root["Archive"]["path"].str;
-        archive.distroTag = root["Archive"]["distroTag"].str;
-        auto develSuiteName = root["Archive"]["develSuite"].str;
-        auto incomingSuiteName = root["Archive"]["incomingSuite"].str;
-
-        // Suites configuration
-        foreach (sname, sdetails; root["Suites"].object) {
-            DistroSuite suite;
-            suite.name = sname;
-
-            foreach (ref e; sdetails["components"].array)
-                suite.components ~= e.str;
-            foreach (ref e; sdetails["architectures"].array)
-                suite.architectures ~= e.str;
-
-            if (suite.name == develSuiteName)
-                archive.develSuite = suite;
-            else if (suite.name == incomingSuiteName)
-                archive.incomingSuite = suite;
-
-            suites ~= suite;
-        }
-
-        // Sanity check
-        if (archive.develSuite.name.empty)
-            throw new Exception ("Could not find definition of development suite %s.".format (develSuiteName));
-        if (archive.incomingSuite.name.empty)
-            throw new Exception ("Could not find definition of incoming suite %s.".format (incomingSuiteName));
 
         // Local synchrotron configuration
         if ("Synchrotron" in root) {
@@ -194,25 +131,6 @@ final class LocalConfig
             if ("SourceKeyringDir" in syncConf) {
                 synchrotron.sourceKeyrings = findFilesBySuffix (syncConf["SourceKeyringDir"].str, ".gpg");
             }
-        }
-
-        // Spears configuration
-        if ("Spears" in root) {
-            foreach (ref e; root["Spears"].array) {
-                SpearsConfigEntry spc;
-
-                spc.fromSuite = e["from"].str;
-                spc.toSuite = e["to"].str;
-
-                spears ~= spc;
-            }
-        }
-
-        // Eggshell configuration
-        if ("Eggshell" in root) {
-            auto esConf = root["Eggshell"];
-
-            eggshell.metaPackageGitSourceUrl = esConf["metaPackageGitSourceUrl"].str;
         }
 
         loaded = true;
@@ -230,17 +148,5 @@ final class LocalConfig
         }
 
         loadFromFile ("/etc/laniakea/archive-config.json");
-    }
-
-    Nullable!DistroSuite getSuite (string name)
-    {
-        Nullable!DistroSuite res;
-        foreach (ref suite; suites) {
-            if (suite.name == name) {
-                res = suite;
-                break;
-            }
-        }
-        return res;
     }
 }
