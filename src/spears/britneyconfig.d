@@ -17,6 +17,9 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module spears.britneyconfig;
+@safe:
+
 import std.array : empty, join;
 import std.string : format, toUpper;
 import std.path : buildPath;
@@ -160,7 +163,7 @@ public:
         delaysSet = true;
     }
 
-    void save ()
+    void save () @trusted
     {
         import std.stdio;
 

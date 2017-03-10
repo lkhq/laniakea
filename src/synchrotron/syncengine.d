@@ -17,6 +17,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module synchrotron.syncengine;
+
 import std.array : empty;
 import std.string : endsWith, format;
 import std.algorithm : canFind;

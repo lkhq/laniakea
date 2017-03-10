@@ -17,6 +17,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module eggshell.germinate;
+
 import std.stdio : File;
 import std.process;
 import std.array : appender, join;

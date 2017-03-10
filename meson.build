@@ -144,7 +144,9 @@ main_test_exe = executable ('main_test',
     [tests_src,
      laniakea_lib_src,
      lkadmin_src,
-     synchrotron_src],
+     synchrotron_src,
+     spears_src,
+     eggshell_src],
     include_directories: [src_dir, tests_src_dir],
     dependencies: [base_deps],
     d_args: meson.get_compiler('d').unittest_args()
@@ -155,7 +157,7 @@ test('laniakea_main_test', main_test_exe, args: [source_root + '/tests/data'])
 # Documentation
 #
 doc_sources = []
-foreach s : laniakea_lib_src
+foreach s : (laniakea_lib_src + lkadmin_src + synchrotron_src + spears_src + eggshell_src)
   doc_sources += source_root + '/' + s
 endforeach
 
