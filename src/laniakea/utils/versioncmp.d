@@ -18,6 +18,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module laniakea.utils.versioncmp;
 @safe:
 
 import std.ascii;

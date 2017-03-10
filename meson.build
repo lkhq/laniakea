@@ -150,3 +150,19 @@ main_test_exe = executable ('main_test',
     d_args: meson.get_compiler('d').unittest_args()
 )
 test('laniakea_main_test', main_test_exe, args: [source_root + '/tests/data'])
+
+#
+# Documentation
+#
+doc_sources = []
+foreach s : laniakea_lib_src
+  doc_sources += source_root + '/' + s
+endforeach
+
+docs_target = custom_target('documentation',
+  output : 'documentation.fake',
+  input : laniakea_lib_src,
+  command : ['ldc2', '-D', '-dw', '-c', '-o-',
+             '-Dd=docs/', '-Xf=docs/documentation.json', doc_sources, '-I', source_root + '/src',
+             '-I/usr/include/d/vibe', '-oq']
+)
