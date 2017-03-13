@@ -101,9 +101,20 @@ public:
         setSourceSuite (syncConfig.source.defaultSuite);
     }
 
-    void addLogEntry (LogEntrySeverity severity, string title, string content)
+    private void addLogEntry (LogEntrySeverity severity, string title, string content)
     {
         db.addLogEntry (severity, "synchrotron", title, content);
+    }
+
+    private auto getPackageBlacklist ()
+    {
+        auto syncBlConf = db.getSynchrotronBlacklist;
+        string[string] syncBlacklist;
+        if (!syncBlConf.isNull) {
+            syncBlacklist = syncBlConf.blacklist;
+        }
+
+        return syncBlacklist;
     }
 
     @property
@@ -322,6 +333,8 @@ public:
         auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
         auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
 
+        auto syncBlacklist = getPackageBlacklist ();
+
         auto syncedSrcPkgs = appender!(SourcePackage[]);
         foreach (ref pkgname; pkgnames) {
             auto spkgP = pkgname in srcPkgMap;
@@ -329,6 +342,10 @@ public:
 
             if (spkgP is null) {
                 logInfo ("Can not sync %s: Does not exist in source.", pkgname);
+                continue;
+            }
+            if (pkgname in syncBlacklist) {
+                logInfo ("Can not sync %s: The package is blacklisted.", pkgname);
                 continue;
             }
 
@@ -368,6 +385,8 @@ public:
         auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
         auto syncedSrcPkgs = appender!(SourcePackage[]);
 
+        auto syncBlacklist = getPackageBlacklist ();
+
         foreach (ref component; incomingSuite.components) {
             auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
 
@@ -389,11 +408,11 @@ public:
             }
 
             foreach (ref spkg; srcPkgRange) {
-                auto dpkgP = spkg.name in destPkgMap;
-
-                if ((spkg.name == "firefox") || (spkg.name == "thunderbird"))
+                // ignore blacklisted packages in automatic sync
+                if (spkg.name in syncBlacklist)
                     continue;
 
+                auto dpkgP = spkg.name in destPkgMap;
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
 

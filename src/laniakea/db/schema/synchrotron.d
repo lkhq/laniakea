@@ -64,5 +64,5 @@ struct SynchrotronBlacklist {
     @name("_id") BsonObjectID id;
 
     SynchrotronConfigKind kind = SynchrotronConfigKind.BLACKLIST;
-    string[] blacklist;
+    string[string] blacklist; // array of blacklisted package (key) and blacklist reasons (value)
 }

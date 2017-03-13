@@ -139,7 +139,10 @@ public:
 
     auto getSynchrotronConfig ()
     {
-        return configSynchrotron.findOne!SynchrotronConfig (["kind": SynchrotronConfigKind.BASE]);
+        auto syconf = configSynchrotron.findOne!SynchrotronConfig (["kind": SynchrotronConfigKind.BASE]);
+        if (syconf.isNull)
+            throw new Exception ("No Synchrotron configuration was found in the database.");
+        return syconf.get;
     }
 
     auto getSynchrotronBlacklist ()
