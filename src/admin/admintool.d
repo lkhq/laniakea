@@ -131,6 +131,7 @@ public:
         auto coll = db.configBase;
 
         bconf.id = BsonObjectID.generate ();
+        coll.remove (["kind": bconf.kind]);
         coll.update (["kind": bconf.kind], bconf, UpdateFlags.upsert);
 
         db.fsync;
@@ -184,6 +185,7 @@ public:
         auto coll = db.configSynchrotron;
 
         syconf.id = BsonObjectID.generate ();
+        coll.remove (["kind": syconf.kind]);
         coll.update (["kind": syconf.kind], syconf, UpdateFlags.upsert);
 
         db.fsync;
