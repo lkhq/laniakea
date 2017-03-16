@@ -141,6 +141,20 @@ void main (string[] args)
                 case "dump":
                     tool.synchrotronDumpConfig ();
                     break;
+                case "blacklist-add":
+                    if (args.length < 5) {
+                        writeln ("Invalid number of parameters: You need to specify a package to add and a reason to ignore it.");
+                        exit (1);
+                    }
+                    tool.synchrotronBlacklistAdd (args[3], args[4]);
+                    break;
+                case "blacklist-remove":
+                    if (args.length < 4) {
+                        writeln ("Invalid number of parameters: You need to specify a package to remove.");
+                        exit (1);
+                    }
+                    tool.synchrotronBlacklistRemove (args[3]);
+                    break;
                 default:
                     writeln ("The command '%s' is unknown.".format (command));
                     exit (1);

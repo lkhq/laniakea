@@ -194,9 +194,22 @@ public:
 
     void synchrotronDumpConfig ()
     {
+        writeln ("Config:");
         writeln (db.configSynchrotron.findOne (["kind": SynchrotronConfigKind.BASE]).serializeToPrettyJson);
-        writeln ();
+        writeln ("Blacklist:");
         writeln (db.configSynchrotron.findOne (["kind": SynchrotronConfigKind.BLACKLIST]).serializeToPrettyJson);
+    }
+
+    void synchrotronBlacklistAdd (string pkg, string reason)
+    {
+        db.configSynchrotron.findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
+                    ["$set": ["blacklist." ~ pkg: reason]], ["upsert": true]);
+    }
+
+    void synchrotronBlacklistRemove (string pkg)
+    {
+        db.configSynchrotron.findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
+                    ["$unset": ["blacklist." ~ pkg: ""]], ["upsert": true]);
     }
 
     bool setConfValue (string moduleName, string command)
