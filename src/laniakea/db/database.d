@@ -170,7 +170,7 @@ public:
 
     auto getSpearsConfig ()
     {
-        auto sconf = configEggshell.findOne!SpearsConfig (["kind": SpearsConfigKind.BASE]);
+        auto sconf = configSpears.findOne!SpearsConfig (["kind": SpearsConfigKind.BASE]);
         if (sconf.isNull)
             throw new Exception ("Unable to find Spears configuration in the database. Can not continue.");
         return sconf.get;
