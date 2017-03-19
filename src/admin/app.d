@@ -96,6 +96,8 @@ void main (string[] args)
                 exit (2);
             if (!tool.synchrotronInit ())
                 exit (2);
+            if (!tool.spearsInit ())
+                exit (2);
             break;
         case "config-set":
             if (args.length < 4) {
@@ -106,67 +108,107 @@ void main (string[] args)
                 exit (2);
             break;
         case "base":
-            if (args.length < 3) {
-                writeln ("Invalid number of parameters: You need to specify an action.");
-                exit (1);
-            }
-
-            bool ret = true;
-            switch (args[2]) {
-                case "init":
-                    ret = tool.baseInit ();
-                    break;
-                case "dump":
-                    tool.baseDumpConfig ();
-                    break;
-                default:
-                    writeln ("The command '%s' is unknown.".format (command));
-                    exit (1);
-                break;
-            }
-            if (!ret)
-                exit (2);
+            processBaseCommands (tool, args);
             break;
         case "synchrotron":
-            if (args.length < 3) {
-                writeln ("Invalid number of parameters: You need to specify an action.");
-                exit (1);
-            }
-
-            bool ret = true;
-            switch (args[2]) {
-                case "init":
-                    ret = tool.synchrotronInit ();
-                    break;
-                case "dump":
-                    tool.synchrotronDumpConfig ();
-                    break;
-                case "blacklist-add":
-                    if (args.length < 5) {
-                        writeln ("Invalid number of parameters: You need to specify a package to add and a reason to ignore it.");
-                        exit (1);
-                    }
-                    tool.synchrotronBlacklistAdd (args[3], args[4]);
-                    break;
-                case "blacklist-remove":
-                    if (args.length < 4) {
-                        writeln ("Invalid number of parameters: You need to specify a package to remove.");
-                        exit (1);
-                    }
-                    tool.synchrotronBlacklistRemove (args[3]);
-                    break;
-                default:
-                    writeln ("The command '%s' is unknown.".format (command));
-                    exit (1);
-                break;
-            }
-
-            if (!ret)
-                exit (2);
+            processSynchrotronCommands (tool, args);
+            break;
+        case "spears":
+            processSpearsCommands (tool, args);
             break;
         default:
             writeln ("The command '%s' is unknown.".format (command));
             exit (1);
             break;
     }
+}
+
+private void processBaseCommands (AdminTool tool, string[] args)
+{
+    if (args.length < 3) {
+        writeln ("Invalid number of parameters: You need to specify an action.");
+        exit (1);
+    }
+    immutable command = args[2];
+
+    bool ret = true;
+    switch (command) {
+        case "init":
+            ret = tool.baseInit ();
+            break;
+        case "dump":
+            tool.baseDumpConfig ();
+            break;
+        default:
+            writeln ("The command '%s' is unknown.".format (command));
+            exit (1);
+        break;
+    }
+    if (!ret)
+        exit (2);
+}
+
+private void processSynchrotronCommands (AdminTool tool, string[] args)
+{
+    if (args.length < 3) {
+        writeln ("Invalid number of parameters: You need to specify an action.");
+        exit (1);
+    }
+    immutable command = args[2];
+
+    bool ret = true;
+    switch (command) {
+        case "init":
+            ret = tool.synchrotronInit ();
+            break;
+        case "dump":
+            tool.synchrotronDumpConfig ();
+            break;
+        case "blacklist-add":
+            if (args.length < 5) {
+                writeln ("Invalid number of parameters: You need to specify a package to add and a reason to ignore it.");
+                exit (1);
+            }
+            tool.synchrotronBlacklistAdd (args[3], args[4]);
+            break;
+        case "blacklist-remove":
+            if (args.length < 4) {
+                writeln ("Invalid number of parameters: You need to specify a package to remove.");
+                exit (1);
+            }
+            tool.synchrotronBlacklistRemove (args[3]);
+            break;
+        default:
+            writeln ("The command '%s' is unknown.".format (command));
+            exit (1);
+        break;
+    }
+
+    if (!ret)
+        exit (2);
+}
+
+private void processSpearsCommands (AdminTool tool, string[] args)
+{
+    if (args.length < 3) {
+        writeln ("Invalid number of parameters: You need to specify an action.");
+        exit (1);
+    }
+    immutable command = args[2];
+
+    bool ret = true;
+    switch (command) {
+        case "init":
+            ret = tool.spearsInit ();
+            break;
+        case "dump":
+            tool.spearsDumpConfig ();
+            break;
+        default:
+            writeln ("The command '%s' is unknown.".format (command));
+            exit (1);
+        break;
+    }
+    if (!ret)
+        exit (2);
 }

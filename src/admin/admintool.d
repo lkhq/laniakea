@@ -24,12 +24,13 @@ import std.string : format;
 
 import vibe.db.mongo.mongo;
 import laniakea.db;
+import laniakea.pkgitems;
 
 
 /**
  * Perform various administrative actions.
  */
-class AdminTool
+final class AdminTool
 {
 
 private:
@@ -73,6 +74,23 @@ private:
         }
     }
 
+    final int readInt ()
+    {
+        import std.conv : to;
+
+        while (true) {
+            auto s = readString ();
+            int v;
+            try {
+                v = to!int (s);
+            } catch (Exception e) {
+                write (m_currentMsg);
+                continue;
+            }
+            return v;
+        }
+    }
+
     final void writeQS (string msg)
     {
         m_currentMsg = format ("%s: ", msg);
@@ -82,6 +100,12 @@ private:
     final void writeQB (string msg)
     {
         m_currentMsg = format ("%s [y/n]: ", msg);
+        write (m_currentMsg);
+    }
+
+    final void writeQI (string msg)
+    {
+        m_currentMsg = format ("%s [number]: ", msg);
         write (m_currentMsg);
     }
 
@@ -210,6 +234,50 @@ public:
     {
         db.configSynchrotron.findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
                     ["$unset": ["blacklist." ~ pkg: ""]], ["upsert": true]);
+    }
+
+    bool spearsInit ()
+    {
+        import std.traits;
+
+        writeln ("Configuring settings for Spears (migrations)");
+
+        SpearsConfig spconf;
+
+        bool addMigration = true;
+        while (addMigration) {
+            SpearsConfigEntry migration;
+            writeQS ("Migrate from suite (source name)");
+            migration.fromSuite = readString ();
+
+            writeQS ("Migrate to suite (target name)");
+            migration.toSuite = readString ();
+
+            foreach (immutable prio; [EnumMembers!VersionPriority]) {
+                writeQI ("Delay for packages of priority '%s' in days".format (prio));
+                immutable delay = readInt ();
+                migration.delays[prio] = delay;
+            }
+
+            spconf.migrations ~= migration;
+
+            writeQB ("Add another migration task?");
+            addMigration = readBool ();
+        }
+
+        auto coll = db.configSpears;
+
+        spconf.id = BsonObjectID.generate ();
+        coll.remove (["kind": spconf.kind]);
+        coll.update (["kind": spconf.kind], spconf, UpdateFlags.upsert);
+
+        db.fsync;
+        return true;
+    }
+
+    void spearsDumpConfig ()
+    {
+        writeln (db.configSpears.findOne (["kind": SpearsConfigKind.BASE]).serializeToPrettyJson);
     }
 
     bool setConfValue (string moduleName, string command)
