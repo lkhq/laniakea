@@ -129,6 +129,11 @@ eggshell_exe = executable ('eggshell',
 )
 
 #
+# Web frontend
+#
+subdir('src/web')
+
+#
 # Tests
 #
 tests_src_dir = include_directories('tests/')

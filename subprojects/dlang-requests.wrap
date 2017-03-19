@@ -1,4 +1,0 @@
-[wrap-git]
-directory=dlang-requests
-url=https://github.com/ikod/dlang-requests.git
-revision=head
