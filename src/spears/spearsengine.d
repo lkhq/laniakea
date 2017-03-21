@@ -61,7 +61,7 @@ public:
 
         db = Database.get;
         baseConf = db.getBaseConfig;
-        spearsConf = db.getSpearsConfig;
+        spearsConf = db.getConfig!SpearsConfig;
 
         localConf = LocalConfig.get;
         workspace = buildPath (localConf.workspace, "spears");

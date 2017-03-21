@@ -152,7 +152,7 @@ public:
         writeQS ("Distribution version tag (commonly found in package versions, e.g. 'tanglu' for OS 'Tanglu' with versions like '1.0-0tanglu1'");
         bconf.archive.distroTag = readString ();
 
-        auto coll = db.configBase;
+        auto coll = db.collConfig!(ModuleName.BASE);
 
         bconf.id = BsonObjectID.generate ();
         coll.remove (["kind": bconf.kind]);
@@ -164,7 +164,7 @@ public:
 
     void baseDumpConfig ()
     {
-        writeln (db.configBase.findOne (["kind": BaseConfigKind.PROJECT]).serializeToPrettyJson);
+        writeln (db.collConfig!(ModuleName.BASE).findOne (["kind": BaseConfigKind.PROJECT]).serializeToPrettyJson);
     }
 
     bool synchrotronInit ()
@@ -206,7 +206,7 @@ public:
         writeQB ("Synchronize binary packages?");
         syconf.syncBinaries = readBool ();
 
-        auto coll = db.configSynchrotron;
+        auto coll = db.collConfig!(ModuleName.SYNCHROTRON);
 
         syconf.id = BsonObjectID.generate ();
         coll.remove (["kind": syconf.kind]);
@@ -218,22 +218,25 @@ public:
 
     void synchrotronDumpConfig ()
     {
+        auto collSyconf = db.collConfig!(ModuleName.SYNCHROTRON);
         writeln ("Config:");
-        writeln (db.configSynchrotron.findOne (["kind": SynchrotronConfigKind.BASE]).serializeToPrettyJson);
+        writeln (collSyconf.findOne (["kind": SynchrotronConfigKind.BASE]).serializeToPrettyJson);
         writeln ("Blacklist:");
-        writeln (db.configSynchrotron.findOne (["kind": SynchrotronConfigKind.BLACKLIST]).serializeToPrettyJson);
+        writeln (collSyconf.findOne (["kind": SynchrotronConfigKind.BLACKLIST]).serializeToPrettyJson);
     }
 
     void synchrotronBlacklistAdd (string pkg, string reason)
     {
-        db.configSynchrotron.findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
-                    ["$set": ["blacklist." ~ pkg: reason]], ["upsert": true]);
+        db.collConfig!(ModuleName.SYNCHROTRON)
+                        .findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
+                         ["$set": ["blacklist." ~ pkg: reason]], ["upsert": true]);
     }
 
     void synchrotronBlacklistRemove (string pkg)
     {
-        db.configSynchrotron.findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
-                    ["$unset": ["blacklist." ~ pkg: ""]], ["upsert": true]);
+        db.collConfig!(ModuleName.SYNCHROTRON)
+                        .findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
+                         ["$unset": ["blacklist." ~ pkg: ""]], ["upsert": true]);
     }
 
     bool spearsInit ()
@@ -265,7 +268,7 @@ public:
             addMigration = readBool ();
         }
 
-        auto coll = db.configSpears;
+        auto coll = db.collConfig!(ModuleName.SPEARS);
 
         spconf.id = BsonObjectID.generate ();
         coll.remove (["kind": spconf.kind]);
@@ -277,7 +280,7 @@ public:
 
     void spearsDumpConfig ()
     {
-        writeln (db.configSpears.findOne (["kind": SpearsConfigKind.BASE]).serializeToPrettyJson);
+        writeln (db.collConfig!(ModuleName.SPEARS).findOne (["kind": SpearsConfigKind.BASE]).serializeToPrettyJson);
     }
 
     bool setConfValue (string moduleName, string command)
@@ -296,27 +299,27 @@ public:
         }
         switch (moduleName) {
             case "base":
-                auto coll = db.configBase;
+                auto coll = db.collConfig!(ModuleName.BASE);
                 if (!updateData (coll, ["kind": BaseConfigKind.PROJECT], command))
                     return false;
                 break;
             case "synchrotron":
-                auto coll = db.configSynchrotron;
+                auto coll = db.collConfig!(ModuleName.SYNCHROTRON);
                 if (!updateData (coll, ["kind": SynchrotronConfigKind.BASE], command))
                     return false;
                 break;
             case "synchrotron.blacklist":
-                auto coll = db.configSynchrotron;
+                auto coll = db.collConfig!(ModuleName.SYNCHROTRON);
                 if (!updateData (coll, ["kind": SynchrotronConfigKind.BLACKLIST], command))
                     return false;
                 break;
             case "spears":
-                auto coll = db.configSpears;
+                auto coll = db.collConfig!(ModuleName.SPEARS);
                 if (!updateData (coll, ["kind": SpearsConfigKind.BASE], command))
                     return false;
                 break;
             case "eggshell":
-                auto coll = db.configEggshell;
+                auto coll = db.collConfig!(ModuleName.EGGSHELL);
                 if (!updateData (coll, ["kind": EggshellConfigKind.BASE], command))
                     return false;
                 break;

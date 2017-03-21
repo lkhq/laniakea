@@ -82,7 +82,7 @@ public:
         auto conf = LocalConfig.get;
 
         baseConfig = db.getBaseConfig;
-        syncConfig = db.getSynchrotronConfig;
+        syncConfig = db.getConfig!SynchrotronConfig;
 
         // the repository of the distribution we import stuff into
         targetRepo = new Repository (conf.archive.rootPath,
@@ -101,9 +101,9 @@ public:
         setSourceSuite (syncConfig.source.defaultSuite);
     }
 
-    private void addLogEntry (LogEntrySeverity severity, string title, string content)
+    private void addEvent (EventKind kind, string title, string content)
     {
-        db.addLogEntry (severity, "synchrotron", title, content);
+        db.addEvent (kind, ModuleName.SYNCHROTRON, title, content);
     }
 
     private auto getPackageBlacklist ()

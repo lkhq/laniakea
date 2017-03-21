@@ -84,14 +84,46 @@ public:
         db.fsync ();
     }
 
-    auto configBase ()
+    auto collConfig (ModuleName modname) ()
     {
-        return db["config.base"];
+        static if (modname == ModuleName.UNKNOWN)
+            static assert (0, "Can not get config for invalid module name.");
+        mixin("return db[\"config." ~ modname ~ "\"];");
+    }
+
+    auto getConfig (T) () {
+        import std.traits :fullyQualifiedName;
+
+        Nullable!T conf;
+        ModuleName modname;
+
+        static if (is(T == SynchrotronConfig)) {
+            modname = ModuleName.SYNCHROTRON;
+            auto dbColl = collConfig!(ModuleName.SYNCHROTRON);
+            conf = dbColl.findOne!T (["kind": SynchrotronConfigKind.BASE]);
+
+        } else static if (is (T == EggshellConfig)) {
+            modname = ModuleName.EGGSHELL;
+            auto dbColl = collConfig!(ModuleName.EGGSHELL);
+            conf = dbColl.findOne!T (["kind": EggshellConfigKind.BASE]);
+
+        } else static if (is (T == SpearsConfig)) {
+            modname = ModuleName.SPEARS;
+            auto dbColl = collConfig!(ModuleName.SPEARS);
+            conf = dbColl.findOne!T (["kind": SpearsConfigKind.BASE]);
+
+        } else {
+            static assert (0, "Finding configuration for " ~ fullyQualifiedName!T ~ "is not implemented.");
+        }
+
+        if (conf.isNull)
+            throw new Exception ("No '%s' configuration was found in the database.".format (modname));
+        return conf.get;
     }
 
     auto getBaseConfig ()
     {
-        auto bconf = configBase.findOne!BaseConfig (["kind": BaseConfigKind.PROJECT]);
+        auto bconf = collConfig!(ModuleName.BASE).findOne!BaseConfig (["kind": BaseConfigKind.PROJECT]);
 
         // Sanity check
         DistroSuite develSuite;
@@ -132,51 +164,12 @@ public:
         return result;
     }
 
-    auto configSynchrotron ()
-    {
-        return db["config.synchrotron"];
-    }
-
-    auto getSynchrotronConfig ()
-    {
-        auto syconf = configSynchrotron.findOne!SynchrotronConfig (["kind": SynchrotronConfigKind.BASE]);
-        if (syconf.isNull)
-            throw new Exception ("No Synchrotron configuration was found in the database.");
-        return syconf.get;
-    }
-
     auto getSynchrotronBlacklist ()
     {
-        return configSynchrotron.findOne!SynchrotronBlacklist (["kind": SynchrotronConfigKind.BLACKLIST]);
+        return collConfig!(ModuleName.SYNCHROTRON).findOne!SynchrotronBlacklist (["kind": SynchrotronConfigKind.BLACKLIST]);
     }
 
-    auto configEggshell ()
-    {
-        return db["config.eggshell"];
-    }
-
-    auto getEggshellConfig ()
-    {
-        auto econf = configEggshell.findOne!EggshellConfig (["kind": EggshellConfigKind.BASE]);
-        if (econf.isNull)
-            throw new Exception ("No Eggshell configuration was found in the database. Can not continue.");
-        return econf.get;
-    }
-
-    auto configSpears ()
-    {
-        return db["config.spears"];
-    }
-
-    auto getSpearsConfig ()
-    {
-        auto sconf = configSpears.findOne!SpearsConfig (["kind": SpearsConfigKind.BASE]);
-        if (sconf.isNull)
-            throw new Exception ("Unable to find Spears configuration in the database. Can not continue.");
-        return sconf.get;
-    }
-
-    auto jobs ()
+    auto collJobs ()
     {
         return db["jobs"];
     }
@@ -184,26 +177,26 @@ public:
     void addJob (ref Job job)
     {
         job.id = BsonObjectID.generate ();
-        jobs.insert (job);
+        collJobs.insert (job);
     }
 
-    auto logs ()
+    auto collEvents ()
     {
-        return db["log"];
+        return db["events"];
     }
 
-    void addLogEntry (LogEntrySeverity severity, string origin, string title, string content)
+    void addEvent (EventKind kind, ModuleName origin, string title, string content)
     {
         import std.datetime : Clock;
-        LogEntry entry;
+        EventEntry entry;
         entry.id = BsonObjectID.generate ();
 
         entry.time = BsonDate (Clock.currTime);
-        entry.severity = severity;
+        entry.kind = kind;
         entry.moduleName = origin;
         entry.title = title;
         entry.content = content;
 
-        logs.insert (entry);
+        collEvents.insert (entry);
     }
 }

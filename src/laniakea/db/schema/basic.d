@@ -23,6 +23,15 @@ module laniakea.db.schema.basic;
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
 
+enum ModuleName
+{
+    UNKNOWN     = "",
+    BASE        = "base",
+    SYNCHROTRON = "synchrotron",
+    SPEARS      = "spears",
+    EGGSHELL    = "eggshell"
+}
+
 /**
  * Type of the particular job.
  **/
@@ -82,26 +91,25 @@ struct Job {
 }
 
 /**
- * Result of a job.
+ * Type of an incident.
  **/
-enum LogEntrySeverity
+enum EventKind
 {
     UNKNOWN,
-    CRITICAL,
-    ERROR,
-    WARNING,
     INFO,
-    DEBUG
+    WARNING,
+    ERROR,
+    CRITICAL
 }
 
 /**
- * A log entry.
+ * An event log entry.
  **/
-struct LogEntry {
+struct EventEntry {
     @name("_id") BsonObjectID id;
 
-    LogEntrySeverity severity;     // Urgency of this issue
-    @name("module") string moduleName; // the name of the module responsible for this log entry
+    EventKind kind;     // Type of this event
+    @name("module") string moduleName; // the name of the module responsible for this event
     BsonDate time;  // Time when this issue was created.
 
     string title;     // A human-readable title of this issue
