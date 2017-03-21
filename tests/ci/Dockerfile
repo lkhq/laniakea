@@ -26,12 +26,28 @@ RUN apt-get install -yq --no-install-recommends \
     libssl1.0-dev \
     zlib1g-dev
 
-RUN git clone https://github.com/ximion/vibe.d.git vibe.d
+# build & install 3rd-party libraries
+RUN mkdir -p /build/extra
+WORKDIR /build/extra
 
+# Vibe.d
+RUN git clone --depth 1 https://github.com/ximion/vibe.d.git vibe.d
 RUN mkdir vibe.d/b
 RUN cd vibe.d/b/ && meson --prefix=/usr ..
 RUN cd vibe.d/b/ && ninja && ninja install
 
+# Tinyendian
+RUN git clone --depth 1 https://github.com/ximion/tinyendian.git tinyendian
+RUN mkdir tinyendian/b
+RUN cd tinyendian/b/ && meson --prefix=/usr ..
+RUN cd tinyendian/b/ && ninja && ninja install
+
+# D-YAML
+RUN git clone --depth 1 https://github.com/lkorigin/D-YAML.git dyaml
+RUN mkdir dyaml/b
+RUN cd dyaml/b/ && meson --prefix=/usr ..
+RUN cd dyaml/b/ && ninja && ninja install
+
 # finish
-RUN mkdir /build
 WORKDIR /build
+RUN rm -rf extra
