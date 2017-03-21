@@ -42,7 +42,8 @@ synchrotron_src = ['src/synchrotron/syncengine.d']
 
 spears_src = ['src/spears/spearsengine.d',
               'src/spears/britneyconfig.d',
-              'src/spears/britney.d'
+              'src/spears/britney.d',
+              'src/spears/excuses.d',
 ]
 
 eggshell_src = ['src/eggshell/germinate.d']
@@ -56,6 +57,7 @@ crypto_dep = dependency('libcrypto')
 ssl_dep = dependency('libssl')
 archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
+dyaml_dep = dependency('dyaml')
 
 # Vibe
 vibe_core_dep = dependency('vibe-core')
@@ -113,7 +115,8 @@ spears_exe = executable ('spears',
      spears_src],
     include_directories: [src_dir],
     link_with: [laniakea_lib],
-    dependencies: [base_deps],
+    dependencies: [base_deps,
+                   dyaml_dep],
     install: true,
     install_dir: 'lib/laniakea/'
 )
@@ -153,7 +156,7 @@ main_test_exe = executable ('main_test',
      spears_src,
      eggshell_src],
     include_directories: [src_dir, tests_src_dir],
-    dependencies: [base_deps],
+    dependencies: [base_deps, dyaml_dep],
     d_args: meson.get_compiler('d').unittest_args()
 )
 test('laniakea_main_test', main_test_exe, args: [source_root + '/tests/data'])
