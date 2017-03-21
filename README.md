@@ -1,6 +1,8 @@
 Laniakea
 ========
 
+[![Build Status](https://travis-ci.org/lkorigin/laniakea.svg?branch=master)](https://travis-ci.org/lkorigin/laniakea)
+
 A new tool to manage (Debian) derivatives.
 
 This software is currently under development. Its tasks include:
