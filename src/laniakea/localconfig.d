@@ -29,6 +29,8 @@ import std.json;
 import std.typecons : Nullable;
 static import std.file;
 
+public import laniakea.db.schema.basic;
+
 import laniakea.logging;
 import laniakea.utils : findFilesBySuffix;
 import laniakea.db.schema.basic;
@@ -86,13 +88,22 @@ final class LocalConfig
     LocalArchiveDetails archive;
     LocalSynchrotronConfig synchrotron;
 
-    private this () { }
+    LkModule currentModule;
+
+    private this () { currentModule = LkModule.UNKNOWN; }
+
+    void init (LkModule mod)
+    {
+        currentModule = mod;
+    }
 
     @trusted
-    void loadFromFile (string fname)
+    void loadFromFile (string fname, LkModule mod)
     in { assert (!loaded); }
     body
     {
+        init (mod);
+
         // read the configuration JSON file
         auto f = File (fname, "r");
         auto jsonData = appender!string;
@@ -136,17 +147,17 @@ final class LocalConfig
         loaded = true;
     }
 
-    void load ()
+    void load (LkModule mod)
     {
         immutable exeDir = dirName (std.file.thisExePath ());
 
         if (!exeDir.startsWith ("/usr")) {
             immutable resPath = buildNormalizedPath (exeDir, "..", "data", "archive-config.json");
             if (std.file.exists (resPath)) {
-                loadFromFile (resPath);
+                loadFromFile (resPath, mod);
             }
         }
 
-        loadFromFile ("/etc/laniakea/archive-config.json");
+        loadFromFile ("/etc/laniakea/archive-config.json", mod);
     }
 }

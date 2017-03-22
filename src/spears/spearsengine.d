@@ -33,6 +33,7 @@ import laniakea.db;
 
 import spears.britneyconfig;
 import spears.britney;
+import spears.excuses;
 
 /**
  * Run package migrations using Britney and manage its configurations.
@@ -225,6 +226,30 @@ public:
         return processedResult;
     }
 
+    private bool updateDatabase (string miWorkspace)
+    {
+        import std.file : isFile;
+        immutable excusesYaml = buildPath (miWorkspace, "output", "target", "excuses.yaml");
+
+        if (!excusesYaml.isFile) {
+            db.addEvent (EventKind.ERROR, "no-excuses-data", "Unable to find and process the excuses information. Spears data will be outdated.");
+            return false;
+        }
+
+        auto efile = new ExcusesFile (excusesYaml);
+        auto collExcuses = db.getCollection ("spears.excuses");
+        // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
+        // day, it needs to be optimized to just update stuff that is needed.
+        foreach (cur; collExcuses.find ())
+            collExcuses.remove (cur);
+        foreach (excuse; efile.getExcuses ().byValue) {
+            excuse.id = db.newBsonId ();
+            collExcuses.insert (excuse);
+        }
+
+        return true;
+    }
+
     private bool runMigrationInternal (DistroSuite fromSuite, DistroSuite toSuite)
     {
         immutable miWorkspace = getMigrateWorkspace (fromSuite.name, toSuite.name);
@@ -245,7 +270,11 @@ public:
 
         // tell dak to import the new data (overriding the target suite)
         immutable heidiResult = postprocessHeidiFile (miWorkspace);
-        return dak.setSuiteToBritneyResult (toSuite.name, heidiResult);
+        auto ret = dak.setSuiteToBritneyResult (toSuite.name, heidiResult);
+
+        // add the results to our database
+        ret = updateDatabase (miWorkspace) && ret;
+        return ret;
     }
 
     bool runMigration (string fromSuite, string toSuite)

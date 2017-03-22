@@ -23,13 +23,19 @@ module laniakea.db.schema.basic;
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
 
-enum ModuleName
+/**
+ * A list of all modules integrated into the Laniakea suite,
+ * with their respective identifier strings.
+ * Any piece that uses the database *requires* a module name.
+ */
+enum LkModule
 {
     UNKNOWN     = "",
-    BASE        = "base",
-    SYNCHROTRON = "synchrotron",
-    SPEARS      = "spears",
-    EGGSHELL    = "eggshell"
+    BASE        = "base",        /// The Laniakea base platform
+    SYNCHROTRON = "synchrotron", /// Syncs packages from a source distribution
+    SPEARS      = "spears",      /// Automatic package migration
+    EGGSHELL    = "eggshell",    /// Interface to Germinate, a metapackage / default-package-selection generator
+    ADMINCLI    = "admin-cli"    /// CLI interface to Laniakea settings and the database, useful debug tool
 }
 
 /**

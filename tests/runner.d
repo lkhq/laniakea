@@ -25,6 +25,8 @@ static import std.file;
 import repotests;
 import gpgtests;
 
+static import test_spears;
+
 void main (string[] args)
 {
     if (args.length != 2) {
@@ -48,6 +50,9 @@ void main (string[] args)
     testRepositoryRead (testDataDir);
 
     testGnuPG (testDataDir);
+
+    // Spears
+    test_spears.testExcusesFile (testDataDir);
 
     writeln ("Done.");
 }

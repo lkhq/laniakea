@@ -145,7 +145,8 @@ tests_src = [
     'tests/runner.d',
     'tests/testutils.d',
     'tests/repotests.d',
-    'tests/gpgtests.d'
+    'tests/gpgtests.d',
+    'tests/test_spears.d'
 ]
 
 main_test_exe = executable ('main_test',
@@ -174,5 +175,5 @@ docs_target = custom_target('documentation',
   input : laniakea_lib_src,
   command : ['ldc2', '-D', '-dw', '-c', '-o-',
              '-Dd=docs/', '-Xf=docs/documentation.json', doc_sources, '-I', source_root + '/src',
-             '-I/usr/include/d/vibe', '-oq']
+             '-I/usr/include/d/vibe', '-I/usr/local/include/d/', '-oq']
 )

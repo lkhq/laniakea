@@ -54,3 +54,60 @@ struct SpearsConfig {
 
     SpearsConfigEntry[] migrations;
 }
+
+/**
+ * List of old binaries of a specific version that a package has left behind.
+ **/
+struct SpearsOldBinaries {
+    string pkgVersion;
+    string[] binaries;
+}
+
+/**
+ * Age requirements for a package to migrate
+ **/
+struct SpearsAgePolicy {
+    uint currentAge;
+    uint requiredAge;
+}
+
+/**
+ * Reason why a package doesn't migrate
+ **/
+struct SpearsReason {
+    string[] blockedBy; /// packages this package depends on which might prevent migration
+
+    string[] migrateAfter; /// packages queued to migrate before this one
+    string[string] manualBlock;  /// manual explicit block hints given by machines and people
+}
+
+/**
+ * Information about missing builds
+ **/
+struct SpearsMissingBuilds {
+    string[] primaryArchs;   /// primary architectures
+    string[] secondaryArchs; /// secondary architectures
+}
+
+/**
+ * Data for a package migration excuse, as emitted by Britney
+ **/
+struct SpearsExcuse {
+    @name("_id") BsonObjectID id;
+
+    string sourcePackage; /// source package that is affected by this excuse
+    string maintainer;    /// name of the maintainer responsible for this package
+
+    SpearsAgePolicy age;  /// policy on how old the package needs to be to migrate
+
+    string newVersion;    /// package version waiting to migrate
+    string oldVersion;    /// old package version in the target suite
+
+    SpearsMissingBuilds missingBuilds; /// list of architectures where the package has not been built
+
+    SpearsOldBinaries[] oldBinaries; /// Superseded cruft binaries that need to be garbage-collected
+
+    SpearsReason reason; /// reasoning on why this might not be allowed to migrate
+
+    bool isCandidate;
+}

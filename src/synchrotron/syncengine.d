@@ -101,11 +101,6 @@ public:
         setSourceSuite (syncConfig.source.defaultSuite);
     }
 
-    private void addEvent (EventKind kind, string title, string content)
-    {
-        db.addEvent (kind, ModuleName.SYNCHROTRON, title, content);
-    }
-
     private auto getPackageBlacklist ()
     {
         auto syncBlConf = db.getSynchrotronBlacklist;

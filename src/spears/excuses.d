@@ -23,7 +23,7 @@ module spears.excuses;
 static import yaml;
 
 import laniakea.logging;
-import laniakea.pkgitems;
+import laniakea.db.schema.spears;
 
 /**
  * Read the
@@ -39,5 +39,66 @@ public:
     this (string fname)
     {
         yroot = yaml.Loader (fname).load ();
+    }
+
+    private auto toStringArray (yaml.Node node)
+    {
+        string[] res;
+        res.reserve (node.length);
+        foreach (ref yaml.Node n; node)
+            res ~= n.as!string;
+
+        return res;
+    }
+
+    SpearsExcuse[string] getExcuses () @trusted
+    {
+        SpearsExcuse[string] res;
+
+        auto ysrc = yroot["sources"];
+        foreach(yaml.Node yentry; ysrc) {
+            SpearsExcuse excuse;
+
+            excuse.sourcePackage = yentry["source"].as!string;
+            excuse.maintainer = yentry["maintainer"].as!string;
+            excuse.isCandidate = yentry["is-candidate"].as!bool;
+
+            excuse.newVersion = yentry["new-version"].as!string;
+            excuse.oldVersion = yentry["old-version"].as!string;
+
+            auto ypolicy = yentry["policy_info"];
+            excuse.age.currentAge = ypolicy["age"]["current-age"].as!uint;
+            excuse.age.requiredAge = ypolicy["age"]["age-requirement"].as!uint;
+
+            if (yentry.containsKey ("missing-builds")) {
+                auto ybuilds = yentry["missing-builds"];
+                excuse.missingBuilds.primaryArchs = toStringArray (ybuilds["on-architectures"]);
+                excuse.missingBuilds.secondaryArchs = toStringArray (ybuilds["on-unimportant-architectures"]);
+            }
+
+            if (yentry.containsKey ("old-binaries")) {
+                foreach (yaml.Node yver, yaml.Node ybins; yentry["old-binaries"]) {
+                    SpearsOldBinaries oldBin;
+
+                    oldBin.pkgVersion = yver.as!string;
+                    oldBin.binaries   = toStringArray (ybins);
+                    excuse.oldBinaries ~= oldBin;
+                }
+            }
+
+            if (yentry.containsKey ("dependencies")) {
+                auto ydeps = yentry["dependencies"];
+                if (ydeps.containsKey ("migrate-after")) {
+                    excuse.reason.migrateAfter = toStringArray (ydeps["migrate-after"]);
+                }
+                if (ydeps.containsKey ("blocked-by")) {
+                    excuse.reason.blockedBy = toStringArray (ydeps["blocked-by"]);
+                }
+            }
+
+            res[excuse.sourcePackage ~ "/" ~ excuse.newVersion] = excuse;
+        }
+
+        return res;
     }
 }

@@ -82,7 +82,7 @@ void main (string[] args)
 
     auto conf = LocalConfig.get;
     try {
-        conf.load ();
+        conf.load (LkModule.SPEARS);
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);

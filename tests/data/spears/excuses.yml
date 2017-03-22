@@ -1,0 +1,508 @@
+generated-date: 2017-03-20 14:06:23.975540
+sources:
+- dependencies:
+    migrate-after:
+    - android-platform-frameworks-base
+    - android-platform-system-core
+  excuses: []
+  is-candidate: true
+  item-name: android-sdk-meta
+  maintainer: Android Tools Maintainers
+  new-version: 25.0.0+5
+  old-version: 24.3.3+4
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 0
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: android-sdk-meta
+- dependencies:
+    migrate-after:
+    - openssl
+  excuses: []
+  is-candidate: true
+  item-name: dsniff
+  maintainer: Debian Security Tools Packaging Team
+  new-version: 2.4b1+debian-24
+  old-version: 2.4b1+debian-22.1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 0
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: dsniff
+- excuses:
+  - 'missing build on <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=golang-golang-x-tools&ver=1%3A0.0%7Egit20161028.0.b814a3b%2Bds-4"
+    target="_blank">amd64</a>: golang-go.tools, golang-go.tools-dev, golang-golang-x-tools,
+    golang-golang-x-tools-dev (from <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=golang-golang-x-tools&ver=1%3A0.0%7Egit20161028.0.b814a3b%2Bds-3"
+    target="_blank">1:0.0~git20161028.0.b814a3b+ds-3</a>)'
+  is-candidate: false
+  item-name: golang-golang-x-tools
+  maintainer: pkg-go
+  missing-builds:
+    on-architectures:
+    - amd64
+    on-unimportant-architectures: []
+  new-version: 1:0.0~git20161028.0.b814a3b+ds-4
+  old-binaries:
+    1:0.0~git20161028.0.b814a3b+ds-3:
+    - golang-go.tools
+    - golang-go.tools-dev
+    - golang-golang-x-tools
+    - golang-golang-x-tools-dev
+  old-version: 1:0.0~git20161028.0.b814a3b+ds-3
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 0
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: golang-golang-x-tools
+- dependencies:
+    migrate-after:
+    - qtbase-opensource-src
+  excuses: []
+  is-candidate: true
+  item-name: kscreen
+  maintainer: Debian/Kubuntu Qt/KDE Maintainers
+  new-version: 4:5.8.5-2
+  old-version: 4:5.8.2-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 0
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: kscreen
+- dependencies:
+    migrate-after:
+    - linux
+    - linux-signed
+  excuses: []
+  is-candidate: true
+  item-name: linux-latest
+  maintainer: Debian Kernel Team
+  new-version: 80pureos1
+  old-version: '75'
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 0
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: linux-latest
+- dependencies:
+    blocked-by:
+    - texlive-base
+    migrate-after:
+    - texlive-bin
+  excuses:
+  - 'missing build on <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=texlive-extra&ver=2016.20170123-5"
+    target="_blank">amd64</a>: texlive-math-extra (from <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=texlive-extra&ver=2016.20160819-1"
+    target="_blank">2016.20160819-1</a>)'
+  is-candidate: false
+  item-name: texlive-extra
+  maintainer: Debian TeX Maintainers
+  missing-builds:
+    on-architectures:
+    - amd64
+    on-unimportant-architectures: []
+  new-version: 2016.20170123-5
+  old-binaries:
+    2016.20160819-1:
+    - texlive-math-extra
+  old-version: 2016.20160819-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 0
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: texlive-extra
+- dependencies:
+    migrate-after:
+    - openssl
+  excuses: []
+  is-candidate: true
+  item-name: wget
+  maintainer: Noël Köthe
+  new-version: 1.18-5
+  old-version: 1.18-4
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 0
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: wget
+- excuses:
+  - 'missing build on <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=binutils&ver=2.28-2"
+    target="_blank">amd64</a>: binutils, binutils-aarch64-linux-gnu, binutils-alpha-linux-gnu,
+    binutils-arm-linux-gnueabi, binutils-arm-linux-gnueabihf, binutils-dev, binutils-doc,
+    binutils-hppa-linux-gnu, binutils-hppa64-linux-gnu, binutils-m68k-linux-gnu, binutils-mips-linux-gnu,
+    binutils-mips64-linux-gnuabi64, binutils-mips64-linux-gnuabin32, binutils-mips64el-linux-gnuabi64,
+    binutils-mips64el-linux-gnuabin32, binutils-mipsel-linux-gnu, binutils-multiarch,
+    binutils-multiarch-dev, binutils-powerpc-linux-gnu, binutils-powerpc-linux-gnuspe,
+    binutils-powerpc64-linux-gnu, binutils-powerpc64le-linux-gnu, binutils-s390x-linux-gnu,
+    binutils-sh4-linux-gnu, binutils-source, binutils-sparc64-linux-gnu (from <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=binutils&ver=2.27.90.20170124-2"
+    target="_blank">2.27.90.20170124-2</a>)'
+  is-candidate: false
+  item-name: binutils
+  maintainer: Matthias Klose
+  missing-builds:
+    on-architectures:
+    - amd64
+    on-unimportant-architectures: []
+  new-version: 2.28-2
+  old-binaries:
+    2.27.90.20170124-2:
+    - binutils
+    - binutils-aarch64-linux-gnu
+    - binutils-alpha-linux-gnu
+    - binutils-arm-linux-gnueabi
+    - binutils-arm-linux-gnueabihf
+    - binutils-dev
+    - binutils-doc
+    - binutils-hppa-linux-gnu
+    - binutils-hppa64-linux-gnu
+    - binutils-m68k-linux-gnu
+    - binutils-mips-linux-gnu
+    - binutils-mips64-linux-gnuabi64
+    - binutils-mips64-linux-gnuabin32
+    - binutils-mips64el-linux-gnuabi64
+    - binutils-mips64el-linux-gnuabin32
+    - binutils-mipsel-linux-gnu
+    - binutils-multiarch
+    - binutils-multiarch-dev
+    - binutils-powerpc-linux-gnu
+    - binutils-powerpc-linux-gnuspe
+    - binutils-powerpc64-linux-gnu
+    - binutils-powerpc64le-linux-gnu
+    - binutils-s390x-linux-gnu
+    - binutils-sh4-linux-gnu
+    - binutils-source
+    - binutils-sparc64-linux-gnu
+  old-version: 2.27.90.20170124-2
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 2
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: binutils
+- excuses:
+  - 'missing build on <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=golang-github-rackspace-gophercloud&ver=1.0.0%2Bgit20161013.1012.e00690e8-1"
+    target="_blank">amd64</a>: golang-github-rackspace-gophercloud-dev (from <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=golang-github-rackspace-gophercloud&ver=1.0.0%2Bgit20160603.920.934dbf8-1"
+    target="_blank">1.0.0+git20160603.920.934dbf8-1</a>)'
+  is-candidate: false
+  item-name: golang-github-rackspace-gophercloud
+  maintainer: Debian Go Packaging Team
+  missing-builds:
+    on-architectures:
+    - amd64
+    on-unimportant-architectures: []
+  new-version: 1.0.0+git20161013.1012.e00690e8-1
+  old-binaries:
+    1.0.0+git20160603.920.934dbf8-1:
+    - golang-github-rackspace-gophercloud-dev
+  old-version: 1.0.0+git20160603.920.934dbf8-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 2
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: golang-github-rackspace-gophercloud
+- excuses:
+  - 'missing build on <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=golang-github-tideland-golib&ver=4.20.0-4"
+    target="_blank">amd64</a>: golang-github-tideland-golib-dev (from <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=golang-github-tideland-golib&ver=4.20.0-1"
+    target="_blank">4.20.0-1</a>)'
+  is-candidate: false
+  item-name: golang-github-tideland-golib
+  maintainer: Debian Go Packaging Team
+  missing-builds:
+    on-architectures:
+    - amd64
+    on-unimportant-architectures: []
+  new-version: 4.20.0-4
+  old-binaries:
+    4.20.0-1:
+    - golang-github-tideland-golib-dev
+  old-version: 4.20.0-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 2
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: golang-github-tideland-golib
+- dependencies:
+    migrate-after:
+    - evolution-data-server
+  excuses: []
+  is-candidate: true
+  item-name: folks
+  maintainer: Debian Telepathy maintainers
+  new-version: 0.11.3-2
+  old-version: 0.11.2-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 3
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: folks
+- dependencies:
+    migrate-after:
+    - gdal
+    - hdf5
+    - openmpi
+    - qtbase-opensource-src
+  excuses: []
+  is-candidate: true
+  item-name: vtk6
+  maintainer: Debian Science Team
+  new-version: 6.3.0+dfsg1-4
+  old-version: 6.3.0+dfsg1-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 3
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: vtk6
+- dependencies:
+    migrate-after:
+    - boost1.62
+  excuses: []
+  is-candidate: true
+  item-name: widelands
+  maintainer: Debian Games Team
+  new-version: 1:19+repack-3
+  old-version: 1:18-3
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 3
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: widelands
+- dependencies:
+    migrate-after:
+    - openssl
+  excuses: []
+  is-candidate: true
+  item-name: libapache2-mod-auth-mellon
+  maintainer: Thijs Kinkhorst
+  new-version: 0.12.0-2
+  old-version: 0.12.0-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 4
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: libapache2-mod-auth-mellon
+- dependencies:
+    migrate-after:
+    - openssl1.0
+  excuses: []
+  is-candidate: true
+  item-name: nodejs
+  maintainer: Debian Javascript Maintainers
+  new-version: 4.7.2~dfsg-2
+  old-version: 4.6.1~dfsg-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 4
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: nodejs
+- dependencies:
+    migrate-after:
+    - openssl
+  excuses: []
+  is-candidate: true
+  item-name: tor
+  maintainer: Peter Palfrader
+  new-version: 0.2.9.10-1
+  old-version: 0.2.8.9-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 4
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: tor
+- dependencies:
+    migrate-after:
+    - openssl
+    - perl
+  excuses: []
+  is-candidate: true
+  item-name: irssi
+  maintainer: Rhonda D'Vine
+  new-version: 1.0.2-1
+  old-version: 0.8.20-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 5
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: irssi
+- dependencies:
+    migrate-after:
+    - boost1.62
+    - qtbase-opensource-src
+  excuses: []
+  is-candidate: true
+  item-name: qbittorrent
+  maintainer: Cristian Greco
+  new-version: 3.3.7-3
+  old-version: 3.3.7-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 5
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: qbittorrent
+- dependencies:
+    migrate-after:
+    - xorg-server
+  excuses: []
+  is-candidate: true
+  item-name: xserver-xorg-video-siliconmotion
+  maintainer: Debian X Strike Force
+  new-version: 1:1.7.9-2
+  old-version: 1:1.7.8-2
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 5
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: xserver-xorg-video-siliconmotion
+- dependencies:
+    migrate-after:
+    - evolution-data-server
+  excuses: []
+  is-candidate: true
+  item-name: gnome-shell
+  maintainer: Debian GNOME Maintainers
+  new-version: 3.22.3-2
+  old-version: 3.22.0-1
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 6
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: gnome-shell
+- dependencies:
+    blocked-by:
+    - fftw3
+    migrate-after:
+    - perl
+  excuses:
+  - 'old binaries left on <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=imagemagick&ver=8%3A6.9.7.4%2Bdfsg-2"
+    target="_blank">amd64</a>: imagemagick-dbg, libmagick++-6.q16-5v5 (from <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=imagemagick&ver=8%3A6.8.9.9-7.2"
+    target="_blank">8:6.8.9.9-7.2</a>); libmagick++-6.q16-6v6, libmagick++-6.q16hdri-6v6,
+    libmagickcore-6.q16-2, libmagickcore-6.q16-2-extra, libmagickcore-6.q16hdri-2,
+    libmagickcore-6.q16hdri-2-extra, libmagickwand-6.q16-2, libmagickwand-6.q16hdri-2
+    (from <a href="https://buildd.debian.org/status/logs.php?arch=amd64&pkg=imagemagick&ver=8%3A6.9.6.6%2Bdfsg-1"
+    target="_blank">8:6.9.6.6+dfsg-1</a>) (but ignoring cruft, so nevermind)'
+  - Invalidated by dependency
+  is-candidate: false
+  item-name: imagemagick
+  maintainer: ImageMagick Packaging Team
+  new-version: 8:6.9.7.4+dfsg-2
+  old-binaries:
+    8:6.8.9.9-7.2:
+    - imagemagick-dbg
+    - libmagick++-6.q16-5v5
+    8:6.9.6.6+dfsg-1:
+    - libmagick++-6.q16-6v6
+    - libmagick++-6.q16hdri-6v6
+    - libmagickcore-6.q16-2
+    - libmagickcore-6.q16-2-extra
+    - libmagickcore-6.q16hdri-2
+    - libmagickcore-6.q16hdri-2-extra
+    - libmagickwand-6.q16-2
+    - libmagickwand-6.q16hdri-2
+  old-version: 8:6.8.9.9-7.2
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 11
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason:
+  - depends
+  source: imagemagick

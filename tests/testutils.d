@@ -22,6 +22,8 @@ import std.string : format;
 
 @safe:
 
+string g_testDataDir = null;
+
 /**
  * Print a test name to stdout.
  * Useful for long running tests, to see which test is running at time.
@@ -40,4 +42,16 @@ void assertEq(T, U) (T t, U u, string file = __FILE__, ulong line = __LINE__)
 {
     import std.conv : to;
     assert (t == u, "\n" ~ file ~ ":" ~ line.to!string ~ "  '" ~ t.to!string ~ "' != '" ~ u.to!string ~ "'");
+}
+
+/**
+ * Return root directory for test data files.
+ */
+string testDataDir (string modname)
+{
+    import std.array : empty;
+    import std.path : buildPath;
+    assert (!g_testDataDir.empty);
+
+    return buildPath (g_testDataDir, modname);
 }

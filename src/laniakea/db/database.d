@@ -64,7 +64,9 @@ private:
 
     private this ()
     {
-        auto conf = LocalConfig.get ();
+        auto conf = LocalConfig.get;
+        assert (conf.currentModule != LkModule.UNKNOWN);
+
         databaseName = conf.databaseName;
         mongoUrl = conf.mongoUrl;
 
@@ -73,6 +75,11 @@ private:
     }
 
 public:
+
+    auto newBsonId ()
+    {
+        return BsonObjectID.generate ();
+    }
 
     auto getCollection (const string name)
     {
@@ -84,32 +91,37 @@ public:
         db.fsync ();
     }
 
-    auto collConfig (ModuleName modname) ()
+    auto collConfig (LkModule modname) ()
     {
-        static if (modname == ModuleName.UNKNOWN)
+        static if (modname == LkModule.UNKNOWN)
             static assert (0, "Can not get config for invalid module name.");
         mixin("return db[\"config." ~ modname ~ "\"];");
     }
 
+    auto getCollection (string collname) ()
+    {
+        mixin("return db[\"" ~ collname ~ "\"];");
+    }
+
     auto getConfig (T) () {
-        import std.traits :fullyQualifiedName;
+        import std.traits : fullyQualifiedName;
 
         Nullable!T conf;
-        ModuleName modname;
+        LkModule modname;
 
         static if (is(T == SynchrotronConfig)) {
-            modname = ModuleName.SYNCHROTRON;
-            auto dbColl = collConfig!(ModuleName.SYNCHROTRON);
+            modname = LkModule.SYNCHROTRON;
+            auto dbColl = collConfig!(LkModule.SYNCHROTRON);
             conf = dbColl.findOne!T (["kind": SynchrotronConfigKind.BASE]);
 
         } else static if (is (T == EggshellConfig)) {
-            modname = ModuleName.EGGSHELL;
-            auto dbColl = collConfig!(ModuleName.EGGSHELL);
+            modname = LkModule.EGGSHELL;
+            auto dbColl = collConfig!(LkModule.EGGSHELL);
             conf = dbColl.findOne!T (["kind": EggshellConfigKind.BASE]);
 
         } else static if (is (T == SpearsConfig)) {
-            modname = ModuleName.SPEARS;
-            auto dbColl = collConfig!(ModuleName.SPEARS);
+            modname = LkModule.SPEARS;
+            auto dbColl = collConfig!(LkModule.SPEARS);
             conf = dbColl.findOne!T (["kind": SpearsConfigKind.BASE]);
 
         } else {
@@ -123,7 +135,7 @@ public:
 
     auto getBaseConfig ()
     {
-        auto bconf = collConfig!(ModuleName.BASE).findOne!BaseConfig (["kind": BaseConfigKind.PROJECT]);
+        auto bconf = collConfig!(LkModule.BASE).findOne!BaseConfig (["kind": BaseConfigKind.PROJECT]);
 
         // Sanity check
         DistroSuite develSuite;
@@ -166,7 +178,7 @@ public:
 
     auto getSynchrotronBlacklist ()
     {
-        return collConfig!(ModuleName.SYNCHROTRON).findOne!SynchrotronBlacklist (["kind": SynchrotronConfigKind.BLACKLIST]);
+        return collConfig!(LkModule.SYNCHROTRON).findOne!SynchrotronBlacklist (["kind": SynchrotronConfigKind.BLACKLIST]);
     }
 
     auto collJobs ()
@@ -185,7 +197,7 @@ public:
         return db["events"];
     }
 
-    void addEvent (EventKind kind, ModuleName origin, string title, string content)
+    void addEvent (EventKind kind, LkModule origin, string tag, string title, string content)
     {
         import std.datetime : Clock;
         EventEntry entry;
@@ -198,5 +210,15 @@ public:
         entry.content = content;
 
         collEvents.insert (entry);
+    }
+
+    void addEvent (EventKind kind, string tag, string title, string content)
+    {
+        addEvent (kind, LocalConfig.get.currentModule, tag, title, content);
+    }
+
+    void addEvent (EventKind kind, string tag, string title)
+    {
+        addEvent (kind, LocalConfig.get.currentModule, tag, title, null);
     }
 }
