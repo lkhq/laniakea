@@ -20,6 +20,8 @@ struct UserSettings {
 // The methods of this class will be mapped to HTTP routes and serve as
 // request handlers.
 class SampleService {
+    string serviceName = "Laniakea";
+
 	private {
 		// Type-safe and convenient access of user settings. This
 		// SessionVar will store the contents of the variable in the
@@ -34,7 +36,7 @@ class SampleService {
 	@path("/") void getHome()
 	{
 		auto settings = m_userSettings;
-		render!("home.dt", settings);
+		render!("home.dt", settings, serviceName);
 	}
 
 	// Method name gets mapped to "GET /login" and a single optional
@@ -42,7 +44,7 @@ class SampleService {
 	void getLogin(string _error = null)
 	{
 		string error = _error;
-		render!("login.dt", error);
+		render!("login.dt", error, serviceName);
 	}
 
 	// Method name gets mapped to "POST /login" and two HTTP form parameters
@@ -84,7 +86,7 @@ class SampleService {
 	{
 		UserSettings settings = m_userSettings;
 		auto error = _error;
-		render!("settings.dt", error, settings);
+		render!("settings.dt", error, settings, serviceName);
 	}
 
 	// POST /settings
@@ -124,6 +126,22 @@ class SampleService {
 }
 
 
+private string findPublicDir ()
+{
+    import std.file : exists, thisExePath;
+    import std.path : buildPath, buildNormalizedPath;
+
+    immutable exePath = thisExePath;
+    string staticDir = buildPath (exePath, "public");
+    if (staticDir.exists)
+        return staticDir;
+    staticDir = buildNormalizedPath (exePath, "..", "..", "..", "..", "src", "web", "public");
+    logInfo (staticDir);
+    if (staticDir.exists)
+        return staticDir;
+    return "public/";
+}
+
 shared static this()
 {
 	// Create the router that will dispatch each request to the proper handler method
@@ -133,7 +151,7 @@ shared static this()
 	router.registerWebInterface(new SampleService);
 	// All requests that haven't been handled by the web interface registered above
 	// will be handled by looking for a matching file in the public/ folder.
-	router.get("*", serveStaticFiles("public/"));
+	router.get("*", serveStaticFiles(findPublicDir ()));
 
 	// Start up the HTTP server
 	auto settings = new HTTPServerSettings;

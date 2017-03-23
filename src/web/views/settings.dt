@@ -1,4 +1,4 @@
-extends layout
+extends base
 
 block head
 	- auto title = "Settings";
@@ -20,4 +20,4 @@ block contents
 			p.error= error
 
 		div
-			button(type="sumbit") OK
+			button(type="submit") OK

@@ -1,4 +1,4 @@
-extends layout
+extends base
 
 block head
 	- auto title = "Home";
