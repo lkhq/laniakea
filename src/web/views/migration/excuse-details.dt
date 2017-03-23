@@ -6,6 +6,13 @@ block head
 block contents
     h2 Migration excuse for: #{excuse.sourcePackage} #{excuse.newVersion}
 
+    br
+    p Is candidate:
+        - if (excuse.isCandidate)
+            font.fa.fa-check-circle(color='green')
+        - else
+            font.fa.fa-times-circle(color='red')
+
     h3 Age
     p Package is #{excuse.age.currentAge} days old (needed #{excuse.age.requiredAge})
 
