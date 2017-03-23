@@ -1,0 +1,43 @@
+extends base
+
+block head
+    - auto title = "Migration Excuses";
+
+block contents
+    h1 Package Migration Excuses
+
+    .input-group
+        span.input-group-addon Filter
+        |
+        input#filter.form-control(type='text', placeholder='Type here...')
+    br
+    table.table
+        thead
+            tr
+                th Affected Item
+                th Source Version
+                th Target Version
+        tbody.searchable
+            - foreach (entry; excuses)
+                tr
+                td= entry.sourcePackage
+                td
+                    a(href='excuses/#{entry.sourcePackage}/#{entry.newVersion}')= entry.newVersion
+                td= entry.oldVersion
+
+
+block scripts
+    script(type='text/javascript').
+        $(window).load(function() {
+            $(document).ready(function () {
+                (function ($) {
+                    $('#filter').keyup(function () {
+                        var rex = new RegExp($(this).val(), 'i');
+                        $('.searchable tr').hide();
+                            $('.searchable tr').filter(function () {
+                                return rex.test($(this).text());
+                            }).show();
+                        })
+                    }(jQuery));
+                });
+            });

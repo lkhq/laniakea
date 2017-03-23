@@ -1,0 +1,37 @@
+extends base
+
+block head
+    - auto title = "Migration Excuse for #{excuse.sourcePackage} #{excuse.newVersion}";
+
+block contents
+    h2 Migration excuse for: #{excuse.sourcePackage} #{excuse.newVersion}
+
+    h3 Age
+    p Package is #{excuse.age.currentAge} days old (needed #{excuse.age.requiredAge})
+
+    - if (!excuse.oldBinaries.empty)
+        h3 Old cruft binaries
+        - foreach (item; excuse.oldBinaries)
+            p
+                b= item.pkgVersion
+            ul
+                - foreach (bin; item.binaries)
+                    li= bin
+
+    - if (!excuse.reason.blockedBy.empty)
+        h3 Blocked by
+        ul
+            - foreach (pkg; excuse.reason.blockedBy)
+                li= pkg
+
+    - if (!excuse.reason.migrateAfter.empty)
+        h3 Waiting for
+        ul
+            - foreach (pkg; excuse.reason.migrateAfter)
+                li= pkg
+
+    - if (excuse.reason.manualBlock.length > 0)
+        h3 Explicit block requests
+        ul
+            - foreach (entity; excuse.reason.manualBlock.byKey)
+                p= entity

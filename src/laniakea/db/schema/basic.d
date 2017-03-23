@@ -35,7 +35,8 @@ enum LkModule
     SYNCHROTRON = "synchrotron", /// Syncs packages from a source distribution
     SPEARS      = "spears",      /// Automatic package migration
     EGGSHELL    = "eggshell",    /// Interface to Germinate, a metapackage / default-package-selection generator
-    ADMINCLI    = "admin-cli"    /// CLI interface to Laniakea settings and the database, useful debug tool
+    ADMINCLI    = "admin-cli",   /// CLI interface to Laniakea settings and the database, useful debug tool
+    WEB         = "web"          /// Laniakea web view
 }
 
 /**

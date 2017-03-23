@@ -9,7 +9,7 @@ html(lang='en')
     link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css', integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u', crossorigin='anonymous')
     link(href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css", rel="stylesheet", integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN", crossorigin="anonymous")
     link(rel='stylesheet', href='//cdnjs.cloudflare.com/ajax/libs/metisMenu/2.7.0/metisMenu.min.css')
-    link(href='css/laniakea.css', rel='stylesheet')
+    link(href='/css/laniakea.css', rel='stylesheet')
     //if lt IE 9
       script(src='https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js')
       script(src='https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js')
@@ -51,32 +51,29 @@ html(lang='en')
                     button.btn.btn-primary(type='button')
                       i.fa.fa-search
               li
-                a.active(href='#')
-                  i.fa.fa-dashboard.fa-fw
-                  |  Dashboard
+                a.active(href='/')
+                  i.fa.fa-tasks.fa-fw
+                  |  Overview
               li
                 a(href='#')
-                  i.fa.fa-sitemap.fa-fw
-                  |  Multi-Level Dropdown
+                  i.fa.fa-exchange.fa-fw
+                  |  Migration
                   span.fa.arrow
                 ul.nav.nav-second-level
                   li
-                    a(href='#') Second Level Item
-                  li
-                    a(href='#')
-                      | Third Level
-                      span.fa.arrow
-                    ul.nav.nav-third-level
-                      li
-                        a(href='#') Third Level Item
+                    a(href='/migration/excuses')
+                      i.fa.fa-key.fa-fw
+                      |  Excuses
       #page-wrapper
         .container-fluid
           .row
             .col-lg-12
+              br
               block contents
 
     //- Scripts
     script(src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js')
     script(src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js', integrity='sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa', crossorigin='anonymous')
     script(src='//cdnjs.cloudflare.com/ajax/libs/metisMenu/2.7.0/metisMenu.min.js')
-    script(src='js/laniakea.js')
+    script(src='/js/laniakea.js')
+    block scripts

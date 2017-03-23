@@ -16,6 +16,12 @@ body {
     background-color: #fff;
 }
 
+.page-header {
+    border-bottom: 1px solid #eee;
+    margin: 40px 0 20px;
+    padding-bottom: 9px;
+}
+
 @media(min-width:768px) {
     #page-wrapper {
         position: inherit;
