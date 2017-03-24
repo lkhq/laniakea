@@ -38,6 +38,23 @@ import laniakea.db.schema.basic;
 public immutable laniakeaVersion = "0.1";
 
 /**
+ * Get a JSON file from Laniakea's local configuration
+ * directory.
+ */
+public string getConfigFile (string fname)
+{
+    immutable exeDir = dirName (std.file.thisExePath ());
+
+    if (!exeDir.startsWith ("/usr")) {
+        immutable resPath = buildNormalizedPath (exeDir, "..", "data", fname);
+        if (std.file.exists (resPath))
+            return resPath;
+    }
+
+    return buildPath ("/etc", "laniakea", fname);
+}
+
+/**
  * Local configuration specific for the synchrotron tool.
  */
 struct LocalSynchrotronConfig
@@ -149,15 +166,7 @@ final class LocalConfig
 
     void load (LkModule mod)
     {
-        immutable exeDir = dirName (std.file.thisExePath ());
-
-        if (!exeDir.startsWith ("/usr")) {
-            immutable resPath = buildNormalizedPath (exeDir, "..", "data", "base-config.json");
-            if (std.file.exists (resPath)) {
-                loadFromFile (resPath, mod);
-            }
-        }
-
-        loadFromFile ("/etc/laniakea/base-config.json", mod);
+        immutable confFilePath = getConfigFile ("base-config.json");
+        loadFromFile (confFilePath, mod);
     }
 }

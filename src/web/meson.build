@@ -10,7 +10,9 @@ vibe_web_dep = dependency('vibe-web')
 vibe_diet_dep = dependency('vibe-diet')
 
 lk_web_src = [
-    'src/app.d',
+    'app.d',
+    'spearsweb.d',
+    'webconfig.d',
     '/usr/include/d/vibe/appmain.d'
 ]
 

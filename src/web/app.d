@@ -21,25 +21,28 @@ module app;
 
 import std.exception : enforce;
 import vibe.core.log;
-import vibe.http.fileserver;
 import vibe.http.router;
 import vibe.http.server;
-import vibe.utils.validation;
 import vibe.web.web;
+import vibe.http.fileserver;
 
-import laniakea.db;
 import laniakea.localconfig;
 
-class LaniakeaService {
-    string serviceName = "Laniakea";
+import web.webconfig;
+
+import web.spearsweb;
+
+class LaniakeaWebService {
+    GlobalInfo ginfo;
 
 	private {
-        Database db;
+        WebConfig wconf;
 	}
 
-    this ()
+    this (WebConfig conf)
     {
-        db = Database.get;
+        wconf = conf;
+        ginfo = wconf.ginfo;
     }
 
 	// overrides the path that gets inferred from the method name to
@@ -47,34 +50,8 @@ class LaniakeaService {
 	@path("/")
     void getOverview()
 	{
-		render!("overview.dt", serviceName);
+		render!("overview.dt", ginfo);
 	}
-
-    @path("/migration/excuses")
-	void getMigrationExcuses ()
-	{
-        auto collExcuses = db.getCollection ("spears.excuses");
-        auto excuses = collExcuses.find!SpearsExcuse;
-		render!("migration/excuses.dt", serviceName, excuses);
-	}
-
-    @path("/migration/excuses/:source/:version")
-    void getMigrationExcuseDetails (HTTPServerRequest req, HTTPServerResponse res)
-    {
-        immutable sourcePackage = req.params["source"];
-        immutable newVersion = req.params["version"];
-
-        auto collExcuses = db.getCollection ("spears.excuses");
-        auto excuse = collExcuses.findOne!SpearsExcuse (["sourcePackage": sourcePackage, "newVersion": newVersion]);
-        if (excuse.isNull) {
-            res.statusCode = 404;
-            res.writeBody("");
-            return;
-        }
-
-        render!("migration/excuse-details.dt", serviceName, excuse);
-    }
-
 }
 
 private string findPublicDir ()
@@ -87,7 +64,6 @@ private string findPublicDir ()
     if (staticDir.exists)
         return staticDir;
     staticDir = buildNormalizedPath (exePath, "..", "..", "..", "..", "src", "web", "public");
-    logInfo (staticDir);
     if (staticDir.exists)
         return staticDir;
     return "public/";
@@ -98,15 +74,20 @@ shared static this ()
 	// Create the router that will dispatch each request to the proper handler method
 	auto router = new URLRouter;
 
+    // Initialize the global and app-specific configuration
     LocalConfig.get.load (LkModule.WEB);
+    auto wconf = new WebConfig (LocalConfig.get);
+    wconf.load ();
 
-	// Register our service class as a web interface. Each public method
-	// will be mapped to a route in the URLRouter
-	router.registerWebInterface (new LaniakeaService);
+	// Register individual service classes to the router
+	router.registerWebInterface (new LaniakeaWebService (wconf));
+    router.registerWebInterface (new SpearsWebService (wconf));
 
 	// All requests that haven't been handled by the web interface registered above
 	// will be handled by looking for a matching file in the public/ folder.
-	router.get("*", serveStaticFiles (findPublicDir ()));
+    immutable publicDir = findPublicDir ();
+    logInfo ("Static data from: %s", publicDir);
+	router.get("*", serveStaticFiles (publicDir));
 
 	// Start up the HTTP server
 	auto settings = new HTTPServerSettings;
