@@ -95,6 +95,9 @@ struct SpearsMissingBuilds {
 struct SpearsExcuse {
     @name("_id") BsonObjectID id;
 
+    string sourceSuite;   /// Source suite of this package
+    string targetSuite;   /// Target suite of this package
+
     string sourcePackage; /// source package that is affected by this excuse
     string maintainer;    /// name of the maintainer responsible for this package
 

@@ -29,7 +29,7 @@ void testExcusesFile (const string datadir)
 
     immutable excusesFname = buildPath (datadir, "spears", "excuses.yml");
 
-    auto ef = new ExcusesFile (excusesFname);
+    auto ef = new ExcusesFile (excusesFname, "testSource", "testTarget");
 
     ef.getExcuses ();
 }

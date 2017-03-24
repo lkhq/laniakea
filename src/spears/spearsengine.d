@@ -226,7 +226,7 @@ public:
         return processedResult;
     }
 
-    private bool updateDatabase (string miWorkspace)
+    private bool updateDatabase (string miWorkspace, DistroSuite fromSuite, DistroSuite toSuite)
     {
         import std.file : isFile;
         immutable excusesYaml = buildPath (miWorkspace, "output", "target", "excuses.yaml");
@@ -236,11 +236,11 @@ public:
             return false;
         }
 
-        auto efile = new ExcusesFile (excusesYaml);
+        auto efile = new ExcusesFile (excusesYaml, fromSuite.name, toSuite.name);
         auto collExcuses = db.getCollection ("spears.excuses");
         // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
         // day, it needs to be optimized to just update stuff that is needed.
-        foreach (cur; collExcuses.find ())
+        foreach (cur; collExcuses.find (["sourceSuite": fromSuite.name, "targetSuite": toSuite.name]))
             collExcuses.remove (cur);
         foreach (excuse; efile.getExcuses ().byValue) {
             excuse.id = db.newBsonId ();
@@ -273,7 +273,7 @@ public:
         auto ret = dak.setSuiteToBritneyResult (toSuite.name, heidiResult);
 
         // add the results to our database
-        ret = updateDatabase (miWorkspace) && ret;
+        ret = updateDatabase (miWorkspace, fromSuite, toSuite) && ret;
         return ret;
     }
 

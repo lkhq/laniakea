@@ -26,7 +26,8 @@ import laniakea.logging;
 import laniakea.db.schema.spears;
 
 /**
- * Read the
+ * Read the excuses.yml Britney output file and create SpearsExcuse structs to
+ * be added to the database.
  */
 class ExcusesFile
 {
@@ -34,11 +35,17 @@ class ExcusesFile
 private:
     yaml.Node yroot;
 
+    string sourceSuite;
+    string targetSuite;
+
 public:
 
-    this (string fname)
+    this (string fname, string source, string target)
     {
         yroot = yaml.Loader (fname).load ();
+
+        sourceSuite = source;
+        targetSuite = target;
     }
 
     private auto toStringArray (yaml.Node node)
@@ -58,6 +65,9 @@ public:
         auto ysrc = yroot["sources"];
         foreach(yaml.Node yentry; ysrc) {
             SpearsExcuse excuse;
+
+            excuse.sourceSuite = sourceSuite;
+            excuse.targetSuite = targetSuite;
 
             excuse.sourcePackage = yentry["source"].as!string;
             excuse.maintainer = yentry["maintainer"].as!string;
