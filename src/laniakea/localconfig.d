@@ -118,7 +118,7 @@ final class LocalConfig
             cacheDir = root["CacheLocation"].str;
 
         if ("Archive" !in root)
-            throw new Exception ("Configuration must define a persistent working directory via 'Workspace'.");
+            throw new Exception ("Configuration must define an archive location via 'Archive'.");
         if ("Workspace" !in root)
             throw new Exception ("Configuration must define a persistent working directory via 'Workspace'.");
 
@@ -152,12 +152,12 @@ final class LocalConfig
         immutable exeDir = dirName (std.file.thisExePath ());
 
         if (!exeDir.startsWith ("/usr")) {
-            immutable resPath = buildNormalizedPath (exeDir, "..", "data", "archive-config.json");
+            immutable resPath = buildNormalizedPath (exeDir, "..", "data", "base-config.json");
             if (std.file.exists (resPath)) {
                 loadFromFile (resPath, mod);
             }
         }
 
-        loadFromFile ("/etc/laniakea/archive-config.json", mod);
+        loadFromFile ("/etc/laniakea/base-config.json", mod);
     }
 }
