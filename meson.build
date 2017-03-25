@@ -134,7 +134,15 @@ eggshell_exe = executable ('eggshell',
 #
 # Web frontend
 #
-subdir('src/web')
+opt_webgui = get_option('webgui')
+if (opt_webgui)
+    subdir('src/web')
+endif
+
+#
+# Data
+#
+subdir('data')
 
 #
 # Tests

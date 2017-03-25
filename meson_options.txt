@@ -1,0 +1,1 @@
+option('webgui', type : 'boolean', value : true, description : 'Build the web interface')

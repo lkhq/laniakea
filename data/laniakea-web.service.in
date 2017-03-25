@@ -1,0 +1,16 @@
+[Unit]
+Description=Laniakea Web GUI
+After=syslog.target network.target
+
+[Service]
+Type=simple
+Restart=on-failure
+ProtectSystem=full
+User=lkweb
+Group=lkweb
+ExecStart=@LKWEB_INSTALL_BIN@
+ConditionPathExists=/etc/laniakea/web-config.json
+
+
+[Install]
+WantedBy=multi-user.target

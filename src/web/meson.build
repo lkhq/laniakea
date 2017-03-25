@@ -6,7 +6,7 @@ current_src_dir = meson.current_source_dir()
 # Additional dependencies
 #
 vibe_http_dep = dependency('vibe-http')
-vibe_web_dep = dependency('vibe-web')
+vibe_web_dep  = dependency('vibe-web')
 vibe_diet_dep = dependency('vibe-diet')
 
 lk_web_src = [
