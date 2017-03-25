@@ -20,6 +20,7 @@ RUN apt-get install -yq --no-install-recommends \
 # install vibe.d
 RUN apt-get install -yq --no-install-recommends \
     git \
+    systemd \
     dlang-libevent \
     dlang-openssl \
     libevent-dev \
