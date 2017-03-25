@@ -283,6 +283,31 @@ public:
         writeln (db.collConfig!(LkModule.SPEARS).findOne (["kind": SpearsConfigKind.BASE]).serializeToPrettyJson);
     }
 
+    bool eggshellInit ()
+    {
+        writeln ("Configuring settings for Eggshell (metapackages / germinator)");
+
+        EggshellConfig esconf;
+
+        SpearsConfigEntry migration;
+        writeQS ("Git pull URL for the germinate metapackage sources");
+        esconf.metaPackageGitSourceUrl = readString ();
+
+        auto coll = db.collConfig!(LkModule.EGGSHELL);
+
+        esconf.id = BsonObjectID.generate ();
+        coll.remove (["kind": esconf.kind]);
+        coll.update (["kind": esconf.kind], esconf, UpdateFlags.upsert);
+
+        db.fsync;
+        return true;
+    }
+
+    void eggshellDumpConfig ()
+    {
+        writeln (db.collConfig!(LkModule.EGGSHELL).findOne (["kind": EggshellConfigKind.BASE]).serializeToPrettyJson);
+    }
+
     bool setConfValue (string moduleName, string command)
     {
         bool updateData (T) (MongoCollection coll, T selector, string setExpr)

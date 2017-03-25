@@ -98,6 +98,8 @@ void main (string[] args)
                 exit (2);
             if (!tool.spearsInit ())
                 exit (2);
+            if (!tool.eggshellInit ())
+                exit (2);
             break;
         case "config-set":
             if (args.length < 4) {
@@ -115,6 +117,9 @@ void main (string[] args)
             break;
         case "spears":
             processSpearsCommands (tool, args);
+            break;
+        case "eggshell":
+            processEggshellCommands (tool, args);
             break;
         default:
             writeln ("The command '%s' is unknown.".format (command));
@@ -203,6 +208,31 @@ private void processSpearsCommands (AdminTool tool, string[] args)
             break;
         case "dump":
             tool.spearsDumpConfig ();
+            break;
+        default:
+            writeln ("The command '%s' is unknown.".format (command));
+            exit (1);
+        break;
+    }
+    if (!ret)
+        exit (2);
+}
+
+private void processEggshellCommands (AdminTool tool, string[] args)
+{
+    if (args.length < 3) {
+        writeln ("Invalid number of parameters: You need to specify an action.");
+        exit (1);
+    }
+    immutable command = args[2];
+
+    bool ret = true;
+    switch (command) {
+        case "init":
+            ret = tool.eggshellInit ();
+            break;
+        case "dump":
+            tool.eggshellDumpConfig ();
             break;
         default:
             writeln ("The command '%s' is unknown.".format (command));
