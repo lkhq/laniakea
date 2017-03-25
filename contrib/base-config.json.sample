@@ -1,12 +1,12 @@
 {
+    "Workspace": "/tmp/lkws/",
+
     "Archive": {
-        "path": "/tmp/testrepo/",
+        "path": "/tmp/testrepo/"
     },
 
 
     "Synchrotron": {
-      "SourceKeyringDir": "/etc/apt/trusted.gpg.d/",
-    },
-
-   "Workspace": "/tmp/lkws/"
+      "SourceKeyringDir": "/etc/apt/trusted.gpg.d/"
+    }
 }
