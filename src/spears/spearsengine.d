@@ -241,8 +241,7 @@ public:
         auto collExcuses = db.getCollection ("spears.excuses");
         // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
         // day, it needs to be optimized to just update stuff that is needed.
-        foreach (cur; collExcuses.find (["sourceSuite": fromSuite.name, "targetSuite": toSuite.name]))
-            collExcuses.remove (cur);
+        collExcuses.remove (["sourceSuite": fromSuite.name, "targetSuite": toSuite.name]);
         foreach (excuse; efile.getExcuses ().byValue) {
             excuse.id = db.newBsonId ();
             collExcuses.insert (excuse);

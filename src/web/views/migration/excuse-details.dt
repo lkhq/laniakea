@@ -42,4 +42,14 @@ block contents
         h3 Explicit block requests
         ul
             - foreach (entity; excuse.reason.manualBlock.byKey)
-                p= entity
+                li= entity
+
+    - if (!excuse.reason.other.empty)
+        h3 Other reasons
+        ul
+            - foreach (msg; excuse.reason.other)
+                li= msg
+
+    - if (!excuse.reason.logExcerpt.empty)
+        h3 Log Excerpt
+        pre.well= excuse.reason.logExcerpt

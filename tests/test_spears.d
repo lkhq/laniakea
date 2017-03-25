@@ -30,7 +30,7 @@ void testExcusesFile (const string datadir)
     immutable excusesFname = buildPath (datadir, "spears", "excuses.yml");
     immutable logFname = buildPath (datadir, "spears", "output.txt");
 
-    auto ef = new ExcusesFile (excusesFname, logFname, "testSource", "testTarget");
+    auto ef = new ExcusesFile (excusesFname, logFname, "test-source", "test-target");
 
     auto excuses = ef.getExcuses ();
 
@@ -42,9 +42,9 @@ static if (0) {
     LocalConfig.get.load (LkModule.SPEARS);
     auto db = Database.get;
     auto collExcuses = db.getCollection ("spears.excuses");
-    foreach (cur; collExcuses.find (["sourceSuite": "testSource", "targetSuite": "testTarget"]))
-        collExcuses.remove (cur);
-    foreach (excuse; ef.getExcuses ().byValue) {
+
+    collExcuses.remove (["sourceSuite": "test-source", "targetSuite": "test-target"]);
+    foreach (excuse; excuses.byValue) {
         excuse.id = db.newBsonId ();
         collExcuses.insert (excuse);
     }
