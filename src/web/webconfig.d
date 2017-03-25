@@ -31,7 +31,14 @@ import laniakea.db;
  * template for rendering.
  */
 struct GlobalInfo {
+    struct MigrationsInfo {
+        string sourceSuite;
+        string targetSuite;
+    }
+
     string serviceName;
+
+    MigrationsInfo[] migrations;
 }
 
 final class WebConfig
@@ -54,6 +61,15 @@ final class WebConfig
         db = Database.get;
 
         baseConf = db.getBaseConfig;
+
+        auto spearsConf = db.getConfig!SpearsConfig ();
+        foreach (item; spearsConf.migrations) {
+            GlobalInfo.MigrationsInfo minfo;
+            minfo.sourceSuite = item.sourceSuite;
+            minfo.targetSuite = item.targetSuite;
+
+            ginfo.migrations ~= minfo;
+        }
     }
 
     @trusted

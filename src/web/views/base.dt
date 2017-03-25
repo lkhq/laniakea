@@ -60,10 +60,13 @@ html(lang='en')
                   |  Migration
                   span.fa.arrow
                 ul.nav.nav-second-level
-                  li
-                    a(href='/migration/excuses')
-                      i.fa.fa-key.fa-fw
-                      |  Excuses
+                  - foreach (item; ginfo.migrations)
+                    li
+                      a(href='/migration/#{item.sourceSuite}/#{item.targetSuite}/excuses')
+                        i.fa.fa-key.fa-fw
+                        | #{item.sourceSuite}
+                        font.fa.fa-arrow-right
+                          | #{item.targetSuite}
       #page-wrapper
         .container-fluid
           .row

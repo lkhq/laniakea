@@ -32,4 +32,19 @@ void testExcusesFile (const string datadir)
     auto ef = new ExcusesFile (excusesFname, "testSource", "testTarget");
 
     ef.getExcuses ();
+
+static if (0) {
+    import laniakea.db;
+    import laniakea.localconfig;
+    LocalConfig.get.load (LkModule.SPEARS);
+    auto db = Database.get;
+    auto collExcuses = db.getCollection ("spears.excuses");
+    foreach (cur; collExcuses.find (["sourceSuite": "testSource", "targetSuite": "testTarget"]))
+        collExcuses.remove (cur);
+    foreach (excuse; ef.getExcuses ().byValue) {
+        excuse.id = db.newBsonId ();
+        collExcuses.insert (excuse);
+    }
+}
+
 }

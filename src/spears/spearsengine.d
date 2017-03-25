@@ -75,17 +75,17 @@ public:
         SuiteCheckResult res;
         res.error = false;
 
-        auto maybeSuite = db.getSuite (centry.fromSuite);
+        auto maybeSuite = db.getSuite (centry.sourceSuite);
         if (maybeSuite.isNull) {
-            logError ("Migration source suite '%s' does not exist. Can not create configuration.", centry.fromSuite);
+            logError ("Migration source suite '%s' does not exist. Can not create configuration.", centry.sourceSuite);
             res.error = true;
             return res;
         }
         res.from = maybeSuite.get ();
 
-        maybeSuite = db.getSuite (centry.toSuite);
+        maybeSuite = db.getSuite (centry.targetSuite);
         if (maybeSuite.isNull) {
-            logError ("Migration target suite '%s' does not exist. Can not create configuration.", centry.toSuite);
+            logError ("Migration target suite '%s' does not exist. Can not create configuration.", centry.targetSuite);
             res.error = true;
             return res;
         }
@@ -283,7 +283,7 @@ public:
         bool ret = true;
 
         foreach (ref mentry; spearsConf.migrations) {
-            if ((mentry.fromSuite == fromSuite) && (mentry.toSuite == toSuite)) {
+            if ((mentry.sourceSuite == fromSuite) && (mentry.targetSuite == toSuite)) {
                 auto scRes = suitesFromConfigEntry (mentry);
                 if (scRes.error)
                     continue;

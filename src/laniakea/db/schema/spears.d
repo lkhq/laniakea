@@ -38,8 +38,8 @@ enum SpearsConfigKind {
  */
 struct SpearsConfigEntry
 {
-    string fromSuite;
-    string toSuite;
+    string sourceSuite; /// Name of the suite packages migrate from
+    string targetSuite; /// Name of the suite packages migrate to
 
     uint[VersionPriority] delays;
 }

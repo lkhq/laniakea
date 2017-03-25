@@ -251,10 +251,10 @@ public:
         while (addMigration) {
             SpearsConfigEntry migration;
             writeQS ("Migrate from suite (source name)");
-            migration.fromSuite = readString ();
+            migration.sourceSuite = readString ();
 
             writeQS ("Migrate to suite (target name)");
-            migration.toSuite = readString ();
+            migration.targetSuite = readString ();
 
             foreach (immutable prio; [EnumMembers!VersionPriority]) {
                 writeQI ("Delay for packages of priority '%s' in days".format (prio));

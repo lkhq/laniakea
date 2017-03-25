@@ -46,17 +46,23 @@ class SpearsWebService {
         ginfo = wconf.ginfo;
     }
 
-    @path("excuses")
- 	void getMigrationExcuses ()
+    @path(":from/:to/excuses")
+ 	void getMigrationExcuses (HTTPServerRequest req, HTTPServerResponse res)
  	{
+        immutable sourceSuite = req.params["from"];
+        immutable targetSuite = req.params["to"];
+
         auto collExcuses = db.getCollection ("spears.excuses");
-        auto excuses = collExcuses.find!SpearsExcuse (["sourceSuite": "unstable", "targetSuite": "testing"]);
+        auto excuses = collExcuses.find!SpearsExcuse (["sourceSuite": sourceSuite, "targetSuite": targetSuite]);
         render!("migration/excuses.dt", ginfo, excuses);
  	}
 
-    @path("excuses/:source/:version")
+    @path(":from/:to/excuses/:source/:version")
     void getMigrationExcuseDetails (HTTPServerRequest req, HTTPServerResponse res)
     {
+        immutable sourceSuite = req.params["from"];
+        immutable targetSuite = req.params["to"];
+
         immutable sourcePackage = req.params["source"];
         immutable newVersion = req.params["version"];
 
