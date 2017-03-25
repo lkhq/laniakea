@@ -71,6 +71,8 @@ private string findPublicDir ()
 
 shared static this ()
 {
+    import core.memory;
+
 	// Create the router that will dispatch each request to the proper handler method
 	auto router = new URLRouter;
 
@@ -91,10 +93,13 @@ shared static this ()
 
 	// Start up the HTTP server
 	auto settings = new HTTPServerSettings;
-	settings.port = 8080;
+	settings.port = wconf.port;
 	settings.bindAddresses = ["::1", "127.0.0.1"];
 	settings.sessionStore = new MemorySessionStore;
 	listenHTTP (settings, router);
 
-	logInfo("Please open http://127.0.0.1:8080/ in your browser.");
+	logInfo("Listening on 127.0.0.1:%s");
+
+    // clean up stuff left from the initialization explicitly
+    GC.collect ();
 }

@@ -53,6 +53,8 @@ final class WebConfig
         GlobalInfo ginfo;
         BaseConfig baseConf;
         Database db;
+
+        ushort port;
     }
 
     this (LocalConfig lconf)
@@ -90,6 +92,10 @@ final class WebConfig
         ginfo.serviceName = baseConf.projectName;
         if ("ServiceName" in jroot)
             ginfo.serviceName = jroot["ServiceName"].to!string;
+
+        port = 8080;
+        if ("Port" in jroot)
+            port = jroot["Port"].to!ushort;
 
         m_loaded = true;
     }

@@ -7,7 +7,7 @@ Type=simple
 Restart=on-failure
 ProtectSystem=full
 User=lkweb
-Group=lkweb
+Group=www-data
 ExecStart=@LKWEB_INSTALL_BIN@
 ConditionPathExists=/etc/laniakea/web-config.json
 
