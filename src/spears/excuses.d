@@ -20,14 +20,15 @@
 module spears.excuses;
 @safe:
 
+import std.array : appender;
 static import yaml;
 
 import laniakea.logging;
 import laniakea.db.schema.spears;
 
 /**
- * Read the excuses.yml Britney output file and create SpearsExcuse structs to
- * be added to the database.
+ * Read the excuses.yml Britney output file as well as the Britney logfile
+ * and create SpearsExcuse structs to be added to the database from their data.
  */
 class ExcusesFile
 {
@@ -38,14 +39,25 @@ private:
     string sourceSuite;
     string targetSuite;
 
+    string logContent;
+
 public:
 
-    this (string fname, string source, string target)
+    this (string excusesFname, string logFname, string source, string target) @trusted
     {
-        yroot = yaml.Loader (fname).load ();
+        import std.stdio;
 
         sourceSuite = source;
         targetSuite = target;
+
+        yroot = yaml.Loader (excusesFname).load ();
+
+        auto f = File (logFname, "r");
+        auto lData = appender!string;
+        string line;
+        while ((line = f.readln ()) !is null)
+            lData ~= line;
+        logContent = lData.data;
     }
 
     private auto toStringArray (yaml.Node node)
@@ -58,9 +70,55 @@ public:
         return res;
     }
 
-    SpearsExcuse[string] getExcuses () @trusted
+    /**
+     * Generate a dictionary of packageName -> logExcerpt from
+     * the logfile.
+     */
+    private string[string] processLogData ()
+    {
+        import std.string;
+
+        string[string] res;
+        string[] currentPackages;
+        bool autoHinter = false;
+        foreach (line; logContent.splitLines) {
+            // stop adding hinter information if we leave a block
+            if (line.empty) {
+                autoHinter = false;
+                currentPackages = [];
+                continue;
+            }
+
+            // simple migrations
+            if (line.startsWith ("trying:"))
+                currentPackages = [line[7..$].strip];
+
+            // autohinter action
+            if (line.startsWith ("Trying easy from autohinter:")) {
+                autoHinter = true;
+                auto pkgsLine = line[28..$].strip;
+                foreach (ref pkgid; pkgsLine.split (" ")) {
+                    auto parts = pkgid.split ("/");
+                    currentPackages ~= parts[0];
+                }
+            }
+
+            // ignore uninteresting entries
+            if (currentPackages.empty)
+                continue;
+            foreach (ref pkg; currentPackages)
+                res[pkg] ~= line ~ "\n";
+        }
+
+        return res;
+    }
+
+    SpearsExcuse[string] getExcuses ()
     {
         SpearsExcuse[string] res;
+
+        // get log data
+        auto logInfo = processLogData ();
 
         auto ysrc = yroot["sources"];
         foreach(yaml.Node yentry; ysrc) {
@@ -104,6 +162,18 @@ public:
                 if (ydeps.containsKey ("blocked-by")) {
                     excuse.reason.blockedBy = toStringArray (ydeps["blocked-by"]);
                 }
+            }
+
+            // other plaintext excuses
+            if (yentry.containsKey ("excuses")) {
+                auto yn = yentry["excuses"];
+                excuse.reason.other = toStringArray (yn);
+            }
+
+            // add log information
+            auto logInfoP = excuse.sourcePackage in logInfo;
+            if (logInfoP !is null) {
+                excuse.reason.logExcerpt = (*logInfoP);
             }
 
             res[excuse.sourcePackage ~ "/" ~ excuse.newVersion] = excuse;

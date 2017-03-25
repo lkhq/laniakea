@@ -506,3 +506,23 @@ sources:
   reason:
   - depends
   source: imagemagick
+- dependencies:
+    migrate-after:
+    - 0ad-data
+    - boost1.62
+  excuses: []
+  is-candidate: true
+  item-name: 0ad
+  maintainer: Debian Games Team
+  new-version: 0.0.21-2
+  old-version: 0.0.20-3
+  policy_info:
+    age:
+      age-requirement: 0
+      current-age: 126
+    rc-bugs:
+      shared-bugs: []
+      unique-source-bugs: []
+      unique-target-bugs: []
+  reason: []
+  source: 0ad

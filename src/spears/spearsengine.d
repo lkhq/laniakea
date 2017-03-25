@@ -228,15 +228,16 @@ public:
 
     private bool updateDatabase (string miWorkspace, DistroSuite fromSuite, DistroSuite toSuite)
     {
-        import std.file : isFile;
+        import std.file : exists;
         immutable excusesYaml = buildPath (miWorkspace, "output", "target", "excuses.yaml");
+        immutable logFile = buildPath (miWorkspace, "output", "target", "output.txt");
 
-        if (!excusesYaml.isFile) {
+        if ((!excusesYaml.exists) || (!logFile.exists)) {
             db.addEvent (EventKind.ERROR, "no-excuses-data", "Unable to find and process the excuses information. Spears data will be outdated.");
             return false;
         }
 
-        auto efile = new ExcusesFile (excusesYaml, fromSuite.name, toSuite.name);
+        auto efile = new ExcusesFile (excusesYaml, logFile, fromSuite.name, toSuite.name);
         auto collExcuses = db.getCollection ("spears.excuses");
         // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
         // day, it needs to be optimized to just update stuff that is needed.

@@ -1,0 +1,228 @@
+Generated on: 2017.03.25 14:06:03 +0000
+Arch order is: amd64
+info: main run
+start: 23+0: a-23
+orig: 23+0: a-23
+recur: []  1912/0
+trying: jdeb
+skipped: jdeb (0, 0, 103)
+    got: 24+0: a-24
+    * amd64: libjdeb-java
+trying: cdist
+skipped: cdist (0, 1, 102)
+    got: 24+0: a-24
+    * amd64: cdist-doc
+trying: why3 coq aac-tactics ssreflect camlzip dose3
+skipped: why3 coq aac-tactics ssreflect camlzip dose3 (0, 2, 101)
+    got: 47+0: a-47
+    * amd64: cduce, eliom, libapache2-mod-netcgi-apache, libdose3-ocaml-dev, libeliom-ocaml-dev, libgalax-ocaml-dev, libhttp-ocaml-dev, liblastfm-ocaml-dev, libldap-ocaml-dev, libnethttpd-ocaml-dev, libocamlnet-gtk2-ocaml-dev, libocamlnet-ocaml, libocamlnet-ocaml-dev, libocamlnet-ssl-ocaml, libocamlnet-ssl-ocaml-dev, libocsigenserver-ocaml, libocsigenserver-ocaml-dev, libpxp-ocaml-dev, librss-ocaml, librss-ocaml-dev, libxmlrpc-light-ocaml-dev, nurpawiki, ocaml-libs, ocsigenserver
+    - splitting the component into single items and retrying them
+trying: dose3
+skipped: dose3 (0, 2, 106)
+    got: 25+0: a-25
+    * amd64: libdose3-ocaml, libdose3-ocaml-dev
+trying: camlzip
+skipped: camlzip (0, 3, 105)
+    got: 50+0: a-50
+    * amd64: cduce, eliom, libapache2-mod-netcgi-apache, libdose3-ocaml, libdose3-ocaml-dev, libeliom-ocaml-dev, libgalax-ocaml-dev, libhttp-ocaml-dev, liblastfm-ocaml-dev, libldap-ocaml-dev, libnethttpd-ocaml-dev, libocamlnet-gtk2-ocaml-dev, libocamlnet-ocaml, libocamlnet-ocaml-dev, libocamlnet-ssl-ocaml, libocamlnet-ssl-ocaml-dev, libocsigenserver-ocaml, libocsigenserver-ocaml-dev, libpxp-ocaml-dev, librss-ocaml, librss-ocaml-dev, libwhy3-ocaml-dev, libxmlrpc-light-ocaml-dev, nurpawiki, ocaml-libs, ocsigenserver, why3-coq
+trying: ssreflect
+skipped: ssreflect (0, 4, 104)
+    got: 26+0: a-26
+    * amd64: libssreflect-coq, libssreflect-ocaml, libssreflect-ocaml-dev
+trying: aac-tactics
+skipped: aac-tactics (0, 5, 103)
+    got: 26+0: a-26
+    * amd64: libaac-tactics-coq, libaac-tactics-ocaml, libaac-tactics-ocaml-dev
+trying: coq
+skipped: coq (0, 6, 102)
+    got: 30+0: a-30
+    * amd64: libaac-tactics-coq, libaac-tactics-ocaml, libaac-tactics-ocaml-dev, libssreflect-coq, libssreflect-ocaml, libssreflect-ocaml-dev, why3-coq
+trying: why3
+skipped: why3 (0, 7, 101)
+    got: 25+0: a-25
+    * amd64: libwhy3-ocaml-dev, why3-coq
+trying: nageru
+skipped: nageru (0, 8, 100)
+    got: 24+0: a-24
+    * amd64: nageru
+trying: duo-unix
+skipped: duo-unix (28, 850, 1024)
+    got: 27+0: a-27
+    * amd64: libduo-dev, libduo3, libpam-duo, login-duo
+trying: grisbi
+skipped: grisbi (28, 851, 1023)
+    got: 24+0: a-24
+    * amd64: grisbi
+trying: up-imapproxy
+skipped: up-imapproxy (28, 852, 1022)
+    got: 24+0: a-24
+    * amd64: imapproxy
+trying: getdns
+skipped: getdns (28, 853, 1021)
+    got: 28+0: a-28
+    * amd64: getdns-utils, libgetdns-dev, libgetdns1, python-getdns, python3-getdns
+trying: android-platform-tools-base
+skipped: android-platform-tools-base (28, 854, 1020)
+    got: 24+0: a-24
+    * amd64: libgradle-android-plugin-java
+trying: android-sdk-meta
+skipped: android-sdk-meta (28, 855, 1019)
+    got: 26+0: a-26
+    * amd64: android-sdk, android-sdk-build-tools, android-sdk-platform-tools
+trying: android-platform-frameworks-base
+skipped: android-platform-frameworks-base (28, 856, 1018)
+    got: 24+0: a-24
+    * amd64: android-libandroidfw-dev
+trying: android-platform-system-core
+skipped: android-platform-system-core (28, 857, 1017)
+    got: 45+0: a-45
+    * amd64: adb, android-libadb, android-libadb-dev, android-platform-tools-base, android-sdk, android-sdk-platform-tools, androidsdk-ddms, androidsdk-hierarchyviewer, androidsdk-uiautomatorviewer, ddms, fastboot, hierarchyviewer, libandroid-ddms-java, libandroid-ddms-ui-java, libandroid-tools-chimpchat-java, libandroid-tools-hierarchyviewer2lib-java, libandroidsdk-ddmlib-java, libandroidsdk-ddmuilib-java, libandroidsdk-hierarchyviewerlib-java, libgradle-android-plugin-java, monkeyrunner, uiautomatorviewer
+trying: scrypt
+skipped: scrypt (28, 858, 1016)
+    got: 24+0: a-24
+    * amd64: scrypt
+trying: 0ad-data
+skipped: 0ad-data (0, 1486, 410)
+    got: 24+0: a-24
+    * amd64: 0ad
+trying: 0ad
+skipped: 0ad (0, 1487, 409)
+    got: 24+0: a-24
+    * amd64: 0ad
+trying: dacs
+skipped: dacs (28, 859, 1015)
+    got: 27+0: a-27
+    * amd64: dacs, libapache2-mod-dacs, libdacs-dev, libdacs1
+trying: nmh
+skipped: nmh (28, 860, 1014)
+    got: 25+0: a-25
+    * amd64: nmh, xlbiff
+trying: sylpheed
+skipped: sylpheed (28, 861, 1013)
+    got: 26+0: a-26
+    * amd64: sylpheed, sylpheed-i18n, sylpheed-plugins
+trying: nodau
+skipped: nodau (28, 862, 1012)
+    got: 24+0: a-24
+    * amd64: nodau
+trying: dillo
+skipped: dillo (28, 863, 1011)
+    got: 24+0: a-24
+    * amd64: dillo
+trying: clamav
+skipped: clamav (28, 864, 1010)
+    got: 42+0: a-42
+    * amd64: clamassassin, clamav, clamav-daemon, clamav-freshclam, clamav-milter, clamav-unofficial-sigs, clamdscan, clamsmtp, clamtk, clamtk-gnome, clamtk-nautilus, dansguardian, e2guardian, havp, libc-icap-mod-clamav, libc-icap-mod-virus-scan, libclamav-dev, libclamav7, python-pyclamav
+trying: libapache2-mod-qos
+skipped: libapache2-mod-qos (28, 865, 1009)
+    got: 24+0: a-24
+    * amd64: libapache2-mod-qos
+trying: alljoyn-services-1604
+skipped: alljoyn-services-1604 (28, 866, 1008)
+    got: 26+0: a-26
+    * amd64: alljoyn-services-1604, liballjoynservices-dev-1604, liballjoynservices1604
+trying: libapache2-mod-auth-mellon
+skipped: libapache2-mod-auth-mellon (28, 867, 1007)
+    got: 24+0: a-24
+    * amd64: libapache2-mod-auth-mellon
+trying: yapet
+skipped: yapet (28, 868, 1006)
+    got: 24+0: a-24
+    * amd64: yapet
+trying: dsniff
+skipped: dsniff (28, 869, 1005)
+    got: 24+0: a-24
+    * amd64: dsniff
+trying: wget
+skipped: wget (28, 1500, 374)
+    got: 24+0: a-24
+    * amd64: wget-udeb
+Trying easy from autohinter: crtmpserver/1.0~dfsg-5.3 dcmtk/3.6.1~20160216-4 haskell-hsopenssl/0.11.3.2-3 kdelibs4support/5.28.0-1 libp11/0.4.3-1 libssh/0.7.3-2 nodejs/4.7.2~dfsg-2 openssl1.0/1.0.2k-1 pkcs11-helper/1.21-1 proftpd-dfsg/1.3.5b-3 ptlib/2.10.11~dfsg-2.1 xml-security-c/1.7.3-4
+start: 23+0: a-23
+orig: 23+0: a-23
+easy: 375+0: a-375
+    * amd64: akonadi-kde-resource-googledata, akonadiconsole, akregator, autokey-qt, blogilo, boinc-dev, botan1.10-dbg, calligra, calligra-semanticitems, calligraplan, cl-sql-aodbc, cl-sql-odbc, cl-sql-postgresql, cl-sql-tests, cqrlog, digikam, digikam-private-libs, dolfin-bin, dolfin-doc, dolphin-plugins, eclipse-titan, ecryptfs-utils-dbg, eliom, fenics, gdebi-kde, golang-github-coreos-go-tspi-dev, golang-github-coreos-rkt-dev, grass-dev, gwenview, kaddressbook, kajongg, kalarm, kannel-dev, kanyremote, kde-cli-tools, kde-config-touchpad, kde-full, kde-plasma-desktop, kde-standard, kde-style-qtcurve-qt5, kdeconnect, kdeedu, kdegames, kdegraphics, kdepim, kdepim-addons, kdepim-runtime, kdepim-themeeditors, kdesdk, kdesdk-dolphin-plugins, kdeutils, kdewebdev, kfloppy, kfourinline, kgamma5, khotkeys, kinfocenter, kio-extras, kipi-plugins, klinkstatus, kmail, kmenuedit, kmplot, kmymoney, kmymoney-dev, knode, knotes, kolourpaint4, konsolekalendar, kontact, kore, korganizer, kpat, kraft, kscreen, ktnef, ktuberling, kwalletmanager, kwordquiz, labplot, lcas-interface, lcmaps-globus-interface, lcmaps-openssl-interface, libace-inet-ssl-dev, libace-ssl-dev, libben-ocaml-dev, libbitcoin-dev, libboinc-app-dev, libbotan1.10-dev, libbroccoli-dev, libc-client2007e-dev, libcalendarsupport4, libcanl-c++1-dev, libclamav-dev, libclaws-mail-dev, libcpprest-dev, libdeal.ii-dev, libdkim-dev, libdolfin-dev, libecpg-dev, libecryptfs-dev, libeliom-ocaml-dev, libgazebo7-dev, libgdal-dev, libghc-blogliterately-dev, libghc-blogliterately-prof, libghc-haskelldb-hdbc-postgresql-dev, libghc-haskelldb-hdbc-postgresql-prof, libghc-haxr-dev, libghc-haxr-prof, libghc-hdbc-postgresql-dev, libghc-hdbc-postgresql-prof, libghc-hsopenssl-dev, libghc-hsopenssl-doc, libghc-hsopenssl-prof, libghc-http-streams-dev, libghc-http-streams-prof, libghc-openssl-streams-dev, libghc-openssl-streams-prof, libghc-persistent-postgresql-dev, libghc-persistent-postgresql-prof, libghc-postgresql-libpq-dev, libghc-postgresql-libpq-prof, libghc-postgresql-simple-dev, libghc-postgresql-simple-prof, libglobus-authz-dev, libglobus-ftp-client-dev, libglobus-ftp-control-dev, libglobus-gass-cache-dev, libglobus-gass-copy-dev, libglobus-gass-server-ez-dev, libglobus-gass-transfer-dev, libglobus-gram-client-dev, libglobus-gram-protocol-dev, libglobus-gridftp-server-control-dev, libglobus-gridftp-server-dev, libglobus-gridmap-callout-error-dev, libglobus-gsi-callback-dev, libglobus-gsi-cert-utils-dev, libglobus-gsi-credential-dev, libglobus-gsi-openssl-error-dev, libglobus-gsi-proxy-core-dev, libglobus-gsi-proxy-ssl-dev, libglobus-gsi-sysconfig-dev, libglobus-gss-assist-dev, libglobus-gssapi-error-dev, libglobus-gssapi-gsi-dev, libglobus-io-dev, libglobus-openssl-module-dev, libglobus-scheduler-event-generator-dev, libglobus-xio-gridftp-driver-dev, libglobus-xio-gridftp-multicast-dev, libglobus-xio-gsi-driver-dev, libincidenceeditorsng4, libkdepim4, libkdepimdbusinterfaces4, libkf5akonadi-dev, libkf5akonadicalendar-dev, libkf5akonadicalendar5, libkf5akonadicontact-dev, libkf5akonadimime-dev, libkf5akonadinotes-dev, libkf5akonadisearch-bin, libkf5akonadisearch-dev, libkf5akonadisocialutils-dev, libkf5alarmcalendar-dev, libkf5alarmcalendar5, libkf5blog-dev, libkf5blog5, libkf5calendarcore-dev, libkf5calendarcore5, libkf5calendarsupport-dev, libkf5calendarsupport5, libkf5calendarutils-dev, libkf5calendarutils5, libkf5composereditorng-dev, libkf5composereditorng5, libkf5eventviews-dev, libkf5eventviews5, libkf5followupreminder-dev, libkf5gapi-dev, libkf5gapicalendar5, libkf5gapitasks5, libkf5gravatar-dev, libkf5gravatar5, libkf5holidays-dev, libkf5incidenceeditor-bin, libkf5incidenceeditor-dev, libkf5incidenceeditor5, libkf5kaddressbookgrantlee-dev, libkf5kaddressbookgrantlee5, libkf5kdelibs4support-dev, libkf5kdelibs4support5, libkf5kdelibs4support5-bin, libkf5kdepimdbusinterfaces-dev, libkf5kontactinterface-dev, libkf5ksieve-dev, libkf5ksieveui5, libkf5libkdepim-dev, libkf5mailcommon-dev, libkf5mailcommon-plugins, libkf5mailcommon5, libkf5mailimporter-dev, libkf5mailtransport-dev, libkf5messagecomposer-dev, libkf5messagecomposer5, libkf5messagelist-dev, libkf5messagelist5, libkf5messageviewer-dev, libkf5messageviewer5, libkf5pimcommon-dev, libkf5pimcommon-plugins, libkf5pimcommon5, libkf5sendlater-dev, libkf5templateparser-dev, libkf5templateparser5, libkf5tnef-dev, libkf5tnef5, libkleo4, libkolab-dev, libkolab1, libkpeople-dev, libkpeople-plugins, libkpeople4, libkpeople4-dbg, libkpeoplewidgets4, liblas-c-dev, liblas-dev, liblasso3-dev, liblcas-dev, liblcmaps-dev, libldap-ocaml-dev, libldns-dev, liblwt-ssl-ocaml-dev, libmapnik-dev, libmessagecomposer4, libmessagecore4, libmessageviewer4, libmsn-dev, libmyproxy-dev, libneon27-dev, libnuclient-dev, libnussl-dev, libocsigenserver-ocaml-dev, libopkele-dev, libotb-dev, libpantomime1.2-dev, libpcl-conversions-dev, libpcl-dev, libpdal-dev, libpetsc-complex-3.7-dev, libpetsc-complex-3.7.3-dbg, libpetsc-complex-3.7.3-dev, libpetsc3.7-dev, libpetsc3.7.3-dbg, libpetsc3.7.3-dev, libpimcommon4, libpostgresql-ocaml-dev, libpq-dev, libpqtypes-dev, libpqxx-dev, libpqxx3-dev, libqgis-dev, librecon-1.10-dev, librem-dev, libresiprocate-1.10-dev, libresiprocate-turn-client-1.10-dev, libslepc-complex-3.7-dev, libslepc-complex-3.7.2-dev, libslepc3.7-dev, libslepc3.7.2-dev, libsnmp-dev, libspice-client-glib-2.0-dev, libspice-client-gtk-3.0-dev, libssl-dev, libssl-ocaml-dev, libssl1.0.2-dbg, libtemplateparser4, libtorrent-rasterbar-dev, libtspi-dev, libvtk6-dev, libvtk6-qt-dev, libwebsockets-dev, libwt-dev, libwtdbo-dev, libwtdbofirebird-dev, libwtdbomysql-dev, libwtdbopostgres-dev, libwtdbosqlite-dev, libwtext-dev, libwtfcgi-dev, libwthttp-dev, libwttest-dev, libxmlsec1-dev, live-task-kde, mapnik-vector-tile, nordugrid-arc-dev, openbox-kde-session, petsc-dev, php-all-dev, php-dev, php7.0-dev, pktools-dev, plasma-dataengines-addons, plasma-desktop, plasma-desktop-dev, plasma-mediacenter, plasma-nm, plasma-runners-addons, plasma-widgets-addons, plasma-workspace, plasma-workspace-dev, plasma-workspace-wayland, postgresql-all, postgresql-server-dev-9.5, postgresql-server-dev-9.6, postgresql-server-dev-all, powerdevil, powerdevil-dev, proftpd-mod-autohost, proftpd-mod-case, proftpd-mod-dnsbl, proftpd-mod-fsync, proftpd-mod-msg, proftpd-mod-tar, python-chef, python-dolfin, python-dolfin-dbg, python-kde4, python-kde4-dev, python-kolab, python3-kolab, python3-pykde4, qtcurve, ros-desktop-full-dev, ros-perception-dev, ros-simulators-dev, sddm-theme-breeze, showfoto, skrooge, slepc-dev, step, storageservicemanager, syncevolution-libs-kde, task-kde-desktop, trousers-dbg, urweb, user-manager, voms-dev, witty-dev, zanshin, znc-dev
+
+FAILED
+Trying easy from autohinter: ninix-aya/5.0.2-1 ruby-gnome2/3.1.0-1
+start: 23+0: a-23
+orig: 23+0: a-23
+easy: 37+0: a-37
+    * amd64: ruby-atk-dbg, ruby-cairo-gobject-dbg, ruby-gdk-pixbuf2-dbg, ruby-gio2-dbg, ruby-glib2-dbg, ruby-gobject-introspection-dbg, ruby-gstreamer-dbg, ruby-gtk2-dbg, ruby-gtk3-dbg, ruby-gtksourceview2-dbg, ruby-gtksourceview3-dbg, ruby-pango-dbg, ruby-poppler-dbg, ruby-rsvg2-dbg
+
+FAILED
+Trying easy from autohinter: aac-tactics/8.6.1-1 coq/8.6-4 ssreflect/1.6.1-2 why3/0.87.3-2
+start: 23+0: a-23
+orig: 23+0: a-23
+easy: 25+0: a-25
+    * amd64: libwhy3-ocaml-dev, why3-coq
+
+FAILED
+Trying easy from autohinter: bullet/2.83.7+dfsg-5 gazebo/7.3.1+dfsg-3 hkl/5.0.0.2173-2
+start: 23+0: a-23
+orig: 23+0: a-23
+easy: 38+0: a-38
+    * amd64: gazebo7, gazebo7-plugin-base, libgazebo7, libgazebo7-dev, libkido-dev, libkido-gui-dev, libkido-gui-osg-dev, libkido-optimizer-ipopt-dev, libkido-optimizer-nlopt-dev, libkido-planning-dev, libkido-utils-dev, ros-desktop-full, ros-desktop-full-dev, ros-simulators, ros-simulators-dev
+
+FAILED
+Trying easy from autohinter: kodi/2:17.0+dfsg1-3 kodi-pvr-argustv/2.5.0+git20160923-3 kodi-pvr-dvbviewer/2.4.6+dfsg1-1 kodi-pvr-hdhomerun/2.4.2+git20160820-2 kodi-pvr-hts/3.4.13-1 kodi-pvr-iptvsimple/2.4.4+git20161211-1 kodi-pvr-mediaportal-tvserver/2.4.14+dfsg1-1 kodi-pvr-mythtv/4.12.12+dfsg1-1 kodi-pvr-nextpvr/2.4.7+git20161017-2 kodi-pvr-njoy/2.4.0+git20160518-2 kodi-pvr-vdr-vnsi/2.6.12-1 kodi-pvr-vuplus/2.4.4+git20160820-2 kodi-pvr-wmc/1.4.4+git20160820-2
+start: 23+0: a-23
+orig: 23+0: a-23
+easy: 24+0: a-24
+    * amd64: xbmc-eventclients-j2me
+
+FAILED
+Trying easy from autohinter: 0ad/0.0.21-2 0ad-data/0.0.21-1
+start: 23+0: a-23
+orig: 23+0: a-23
+easy: 24+0: a-24
+    * amd64: 0ad
+trying: -libsuperlu4/amd64
+skipped: -libsuperlu4/amd64 (0, 33, 0)
+    got: 57+0: a-57
+    * amd64: code-aster, code-aster-mpi-engine, code-aster-test, dolfin-bin, dolfin-doc, fenics, getdp, libdeal.ii-8.4.1, libdeal.ii-dev, libdolfin-dev, libdolfin2016.1, libdolfin2016.1-dbg, libhypre-2.8.0b, libhypre-dev, libpetsc-complex-3.7-dev, libpetsc-complex-3.7.3-dbg, libpetsc-complex-3.7.3-dev, libpetsc3.6.4, libpetsc3.7-dev, libpetsc3.7.3, libpetsc3.7.3-dbg, libpetsc3.7.3-dev, libslepc-complex-3.7-dev, libslepc-complex-3.7.2-dev, libslepc3.6.3, libslepc3.7-dev, libslepc3.7.2, libslepc3.7.2-dev, petsc-dev, python-dolfin, python-dolfin-dbg, python-petsc4py, python-slepc4py, slepc-dev
+ finish: []
+endloop: 23+0: a-23
+    now: 23+0: a-23
+
+Apparently successful
+final:
+start: 23+0: a-23
+ orig: 23+0: a-23
+  end: 23+0: a-23
+SUCCESS (34/34)
+List of old libraries in testing (34):
+  libgtkdatabox-0.9.2-0: amd64
+  libqpol1: amd64
+  libgsoap9: amd64
+  libcgal11v5: amd64
+  libzorpll3.9-1: amd64
+  libxapian22v5: amd64
+  libtango8v5: amd64
+  liburdfdom-world0.4: amd64
+  libpari-gmp-tls4: amd64
+  libre2-2: amd64
+  libappstreamqt1: amd64
+  liburdfdom-model0.4: amd64
+  libicu55: amd64
+  libsuperlu4: amd64
+  libpetsc3.6.4: amd64
+  python-setools: amd64
+  libhdhomerun2: amd64
+  libpapi5.4.3: amd64
+  libapol4: amd64
+  libglew1.13: amd64
+  libbmusb1: amd64
+  libnova-0.14-0: amd64
+  libslepc3.6.3: amd64
+  libgeometric-shapes1d: amd64
+  libgeos-3.5.0: amd64
+  libqt5keychain0: amd64
+  libaubio4: amd64
+  libefivar27: amd64
+  libgtkdatabox-0.9.2-0-dev: amd64
+  docker.io: amd64
+  libcfitsio4: amd64
+  libsexplib-camlp4-dev: amd64
+  libxtables11: amd64
+  libx265-87: amd64

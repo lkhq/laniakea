@@ -28,10 +28,13 @@ void testExcusesFile (const string datadir)
     printTestInfo ("Spears.Excuses");
 
     immutable excusesFname = buildPath (datadir, "spears", "excuses.yml");
+    immutable logFname = buildPath (datadir, "spears", "output.txt");
 
-    auto ef = new ExcusesFile (excusesFname, "testSource", "testTarget");
+    auto ef = new ExcusesFile (excusesFname, logFname, "testSource", "testTarget");
 
-    ef.getExcuses ();
+    auto excuses = ef.getExcuses ();
+
+    assert ("0ad/0.0.21-2" in excuses);
 
 static if (0) {
     import laniakea.db;

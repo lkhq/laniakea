@@ -77,8 +77,11 @@ struct SpearsAgePolicy {
 struct SpearsReason {
     string[] blockedBy; /// packages this package depends on which might prevent migration
 
-    string[] migrateAfter; /// packages queued to migrate before this one
-    string[string] manualBlock;  /// manual explicit block hints given by machines and people
+    string[] migrateAfter;      /// packages queued to migrate before this one
+    string[string] manualBlock; /// manual explicit block hints given by machines and people
+
+    string[] other;    /// Other reasons for not migrating this package
+    string logExcerpt; /// an excerpt from the migration log that is relevant to this package
 }
 
 /**
