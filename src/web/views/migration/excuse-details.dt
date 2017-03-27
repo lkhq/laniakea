@@ -1,7 +1,7 @@
 extends base
 
 block head
-    - auto title = "Migration Excuse for #{excuse.sourcePackage} #{excuse.newVersion}";
+    - auto title = "Migration Excuse for " ~ excuse.sourcePackage ~ " " ~ excuse.newVersion;
 
 block contents
     h2 Migration excuse for: #{excuse.sourcePackage} #{excuse.newVersion}
