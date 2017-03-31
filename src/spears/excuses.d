@@ -134,9 +134,11 @@ public:
             excuse.newVersion = yentry["new-version"].as!string;
             excuse.oldVersion = yentry["old-version"].as!string;
 
-            auto ypolicy = yentry["policy_info"];
-            excuse.age.currentAge = ypolicy["age"]["current-age"].as!uint;
-            excuse.age.requiredAge = ypolicy["age"]["age-requirement"].as!uint;
+            if (yentry.containsKey ("policy_info")) {
+                auto ypolicy = yentry["policy_info"];
+                excuse.age.currentAge = ypolicy["age"]["current-age"].as!uint;
+                excuse.age.requiredAge = ypolicy["age"]["age-requirement"].as!uint;
+            }
 
             if (yentry.containsKey ("missing-builds")) {
                 auto ybuilds = yentry["missing-builds"];
