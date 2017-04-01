@@ -195,6 +195,25 @@ public:
             f.write ("");
             f.close ();
         }
+
+        // there is no support for Piuparts yet, but Britney crashes without these files
+        immutable piupartsFileU = buildPath (miWorkspace, "state", "piuparts-summary-unstable.json");
+        if (!std.file.exists (piupartsFileU)) {
+            logInfo ("Writing Piuparts summary file (source).");
+            // just make an empty file for now
+            auto f = File (piupartsFileU, "w");
+            f.write ("");
+            f.close ();
+        }
+
+        immutable piupartsFileT = buildPath (miWorkspace, "state", "piuparts-summary-testing.json");
+        if (!std.file.exists (piupartsFileT)) {
+            logInfo ("Writing Piuparts summary file (target).");
+            // just make an empty file for now
+            auto f = File (piupartsFileT, "w");
+            f.write ("");
+            f.close ();
+        }
     }
 
     private string postprocessHeidiFile (string miWorkspace)
