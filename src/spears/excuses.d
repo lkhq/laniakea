@@ -21,6 +21,7 @@ module spears.excuses;
 @safe:
 
 import std.array : appender;
+import std.algorithm : canFind;
 static import yaml;
 
 import laniakea.logging;
@@ -169,7 +170,13 @@ public:
             // other plaintext excuses
             if (yentry.containsKey ("excuses")) {
                 auto yn = yentry["excuses"];
-                excuse.reason.other = toStringArray (yn);
+
+                excuse.reason.other.reserve (yn.length);
+                foreach (ref yaml.Node n; yn) {
+                    auto s = n.as!string;
+                    if ((!s.canFind("Cannot be tested by piuparts")) && (!s.canFind("but ignoring cruft, so nevermind")))
+                        excuse.reason.other ~= s;
+                }
             }
 
             // add log information
