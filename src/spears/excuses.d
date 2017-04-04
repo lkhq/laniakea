@@ -24,6 +24,7 @@ import std.array : appender;
 import std.algorithm : canFind;
 static import yaml;
 
+import laniakea.db : currentTimeAsBsonDate;
 import laniakea.logging;
 import laniakea.db.schema.spears;
 
@@ -125,6 +126,7 @@ public:
         foreach(yaml.Node yentry; ysrc) {
             SpearsExcuse excuse;
 
+            excuse.date = currentTimeAsBsonDate ();
             excuse.sourceSuite = sourceSuite;
             excuse.targetSuite = targetSuite;
 

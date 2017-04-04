@@ -98,8 +98,12 @@ struct SpearsMissingBuilds {
 struct SpearsExcuse {
     @name("_id") BsonObjectID id;
 
+    BsonDate date;        /// Time when this excuse was created
+
     string sourceSuite;   /// Source suite of this package
     string targetSuite;   /// Target suite of this package
+
+    bool isCandidate;     /// True if the package is considered for migration at all
 
     string sourcePackage; /// source package that is affected by this excuse
     string maintainer;    /// name of the maintainer responsible for this package
@@ -115,5 +119,5 @@ struct SpearsExcuse {
 
     SpearsReason reason; /// reasoning on why this might not be allowed to migrate
 
-    bool isCandidate;
+
 }

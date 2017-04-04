@@ -76,11 +76,6 @@ private:
 
 public:
 
-    auto newBsonId ()
-    {
-        return BsonObjectID.generate ();
-    }
-
     auto getCollection (const string name)
     {
         return db[name];
@@ -221,4 +216,21 @@ public:
     {
         addEvent (kind, LocalConfig.get.currentModule, tag, title, null);
     }
+}
+
+/**
+ * Create a new Bson unique identifier for use with the database.
+ */
+auto newBsonId ()
+{
+    return BsonObjectID.generate ();
+}
+
+/**
+ * Read the current time and return it as BsonDate
+ */
+auto currentTimeAsBsonDate ()
+{
+    import std.datetime : Clock;
+    return BsonDate (Clock.currTime ());
 }

@@ -262,7 +262,7 @@ public:
         // day, it needs to be optimized to just update stuff that is needed.
         collExcuses.remove (["sourceSuite": fromSuite.name, "targetSuite": toSuite.name]);
         foreach (excuse; efile.getExcuses ().byValue) {
-            excuse.id = db.newBsonId ();
+            excuse.id = newBsonId ();
             collExcuses.insert (excuse);
         }
 
