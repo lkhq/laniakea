@@ -31,6 +31,7 @@ import laniakea.localconfig;
 import web.webconfig;
 
 import web.spearsweb;
+import web.syncweb;
 
 class LaniakeaWebService {
     GlobalInfo ginfo;
@@ -84,6 +85,7 @@ shared static this ()
 	// Register individual service classes to the router
 	router.registerWebInterface (new LaniakeaWebService (wconf));
     router.registerWebInterface (new SpearsWebService (wconf));
+    router.registerWebInterface (new SynchrotronWebService (wconf));
 
 	// All requests that haven't been handled by the web interface registered above
 	// will be handled by looking for a matching file in the public/ folder.

@@ -1,0 +1,47 @@
+extends base
+
+block head
+    - auto title = "Sync overview";
+
+block contents
+    h1 Synchronization information
+
+    .input-group
+        span.input-group-addon Filter
+        |
+        input#filter.form-control(type='text', placeholder='Type here...')
+    br
+    table.table
+        thead
+            tr
+                th Affected Package
+                th Direction
+                th Version in Target
+                th Version in Source
+                th Issue
+        tbody.searchable
+            - foreach (issue; issues)
+                tr
+                td= issue.packageName
+                td  #{issue.sourceSuite}
+                    font.fa.fa-arrow-right
+                    | #{issue.targetSuite}
+                td= issue.targetVersion
+                td= issue.sourceVersion
+                td !! Merge required !!
+
+block scripts
+    script(type='text/javascript').
+        $(window).load(function() {
+            $(document).ready(function () {
+                (function ($) {
+                    $('#filter').keyup(function () {
+                        var rex = new RegExp($(this).val(), 'i');
+                        $('.searchable tr').hide();
+                            $('.searchable tr').filter(function () {
+                                return rex.test($(this).text());
+                            }).show();
+                        })
+                    }(jQuery));
+                });
+            });

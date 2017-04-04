@@ -67,6 +67,10 @@ html(lang='en')
                         | #{item.sourceSuite}
                         font.fa.fa-arrow-right
                         | #{item.targetSuite}
+              li
+                a.active(href='/synchrotron')
+                  i.fa.fa-compress.fa-fw
+                  | Synchronization
       #page-wrapper
         .container-fluid
           .row
