@@ -118,6 +118,4 @@ struct SpearsExcuse {
     SpearsOldBinaries[] oldBinaries; /// Superseded cruft binaries that need to be garbage-collected
 
     SpearsReason reason; /// reasoning on why this might not be allowed to migrate
-
-
 }

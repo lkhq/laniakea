@@ -98,6 +98,13 @@ public:
         mixin("return db[\"" ~ collname ~ "\"];");
     }
 
+    auto getCollection (LkModule modname, string cname) ()
+    {
+        static if (modname == LkModule.UNKNOWN)
+            static assert (0, "Can not get collection for invalid module.");
+        mixin("return db[\"" ~ modname ~ "." ~ cname ~ "\"];");
+    }
+
     auto getConfig (T) () {
         import std.traits : fullyQualifiedName;
 

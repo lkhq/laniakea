@@ -257,7 +257,7 @@ public:
         }
 
         auto efile = new ExcusesFile (excusesYaml, logFile, fromSuite.name, toSuite.name);
-        auto collExcuses = db.getCollection ("spears.excuses");
+        auto collExcuses = db.getCollection! (LkModule.SPEARS, "excuses");
         // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
         // day, it needs to be optimized to just update stuff that is needed.
         collExcuses.remove (["sourceSuite": fromSuite.name, "targetSuite": toSuite.name]);

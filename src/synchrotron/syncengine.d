@@ -370,6 +370,19 @@ public:
         return ret;
     }
 
+    private auto newSyncIssue (DistroSuite sourceSuite, DistroSuite targetSuite)
+    {
+        SynchrotronIssue issue;
+
+        issue.id = newBsonId ();
+        issue.date = currentTimeAsBsonDate ();
+
+        issue.sourceSuite = sourceSuite.name;
+        issue.targetSuite = targetSuite.name;
+
+        return issue;
+    }
+
     /**
      * Synchronize all packages that are newer
      */
@@ -381,6 +394,11 @@ public:
         auto syncedSrcPkgs = appender!(SourcePackage[]);
 
         auto syncBlacklist = getPackageBlacklist ();
+
+        auto collIssues = db.getCollection! (LkModule.SYNCHROTRON, "issues");
+        // FIXME: we do the quick and dirty update here, removing everything and adding it back.
+        // Maybe we need to be smarter about this in future.
+        collIssues.remove (["sourceSuite": sourceSuite.name, "targetSuite": incomingSuite.name]);
 
         foreach (ref component; incomingSuite.components) {
             auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
@@ -421,6 +439,15 @@ public:
                     // indicated via its Debian revision, e.g. "1.0-0tanglu1"
                     if (dpkg.ver.getDebianRev.canFind (distroTag)) {
                         logInfo ("No syncing %s/%s: It has modifications.", spkg.name, spkg.ver);
+
+                        // add information that this package needs to be merged to the issue list
+                        auto issue = newSyncIssue (sourceSuite, targetSuite);
+                        issue.ignoreReason = SynchrotronIgnoreReason.MERGE_REQUIRED;
+                        issue.packageName = spkg.name;
+                        issue.targetVersion = dpkg.ver;
+                        issue.sourceVersion = spkg.ver;
+
+                        collIssues.insert (issue);
                         continue;
                     }
                 }

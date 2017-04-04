@@ -66,3 +66,35 @@ struct SynchrotronBlacklist {
     SynchrotronConfigKind kind = SynchrotronConfigKind.BLACKLIST;
     string[string] blacklist; // array of blacklisted package (key) and blacklist reasons (value)
 }
+
+/**
+ * Configuration kind.
+ **/
+enum SynchrotronIgnoreReason {
+    UNKNOWN,
+    NONE,
+    MERGE_REQUIRED,
+    BLACKLISTED,
+    SYNC_FAILED
+}
+
+/**
+ * Hints about why packages are not synchronized.
+ **/
+struct SynchrotronIssue {
+    @name("_id") BsonObjectID id;
+
+    BsonDate date;        /// Time when this excuse was created
+
+    SynchrotronIgnoreReason ignoreReason; /// Reason why we can not sync this package.
+
+    string packageName; /// Name of the source package that is to be synchronized
+
+    string sourceSuite;   /// Source suite of this package, usually the one in Debian
+    string targetSuite;   /// Target suite of this package, from the target distribution
+
+    string sourceVersion; /// package version to be synced
+    string targetVersion; /// version of the package in the target suite and repo, to be overriden
+
+    string issueDetails;  /// additional information text about the issue (usually a log excerpt)
+}
