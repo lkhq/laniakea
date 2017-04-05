@@ -24,11 +24,27 @@ block contents
                 tr
                 td= issue.packageName
                 td  #{issue.sourceSuite}
-                    font.fa.fa-arrow-right
+                    font.fa.fa-long-arrow-right
                     | #{issue.targetSuite}
                 td= issue.targetVersion
                 td= issue.sourceVersion
-                td !! Merge required !!
+                - import laniakea.db.schema : SynchrotronIgnoreReason;
+                - if (issue.ignoreReason == SynchrotronIgnoreReason.NONE)
+                    td -
+                - else if (issue.ignoreReason == SynchrotronIgnoreReason.MERGE_REQUIRED)
+                    td
+                        font.fa.fa-code-fork
+                        | Merge required
+                - else if (issue.ignoreReason == SynchrotronIgnoreReason.BLACKLISTED)
+                    td
+                        font.fa.fa-th-list
+                        | On blacklist
+                - else if (issue.ignoreReason == SynchrotronIgnoreReason.SYNC_FAILED)
+                    td
+                        font.fa.fa-bomb
+                        | Error
+                - else
+                    td= issue.ignoreReason
 
 block scripts
     script(type='text/javascript').
