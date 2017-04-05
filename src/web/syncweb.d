@@ -46,8 +46,8 @@ class SynchrotronWebService {
         ginfo = wconf.ginfo;
     }
 
-    @path("")
- 	void getMigrationExcuses (HTTPServerRequest req, HTTPServerResponse res)
+    @path("/")
+ 	void getMigrationExcuses ()
  	{
         auto collIssues = db.getCollection! (LkModule.SYNCHROTRON, "issues");
         auto issues = collIssues.find!SynchrotronIssue ();

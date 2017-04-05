@@ -68,7 +68,7 @@ html(lang='en')
                         font.fa.fa-arrow-right
                         | #{item.targetSuite}
               li
-                a.active(href='/synchrotron')
+                a.active(href='/synchrotron/')
                   i.fa.fa-compress.fa-fw
                   | Synchronization
       #page-wrapper
