@@ -54,7 +54,7 @@ class SpearsWebService {
 
         auto collExcuses = db.getCollection ("spears.excuses");
         auto excuses = collExcuses.find!SpearsExcuse (["sourceSuite": sourceSuite, "targetSuite": targetSuite]);
-        render!("migration/excuses.dt", ginfo, excuses);
+        render!("migration/excuses.dt", ginfo, sourceSuite, targetSuite, excuses);
  	}
 
     @path(":from/:to/excuses/:source/:version")
