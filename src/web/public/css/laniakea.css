@@ -31,6 +31,17 @@ body {
     }
 }
 
+.jumbotron {
+  text-align: left;
+  padding-left: 15px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.jumbotron .btn {
+  padding: 14px 24px;
+  font-size: 21px;
+}
+
 .navbar-header {
     float: left;
 }

@@ -3,7 +3,15 @@ extends base
 block head
     - auto title = "Overview";
 
-block contents
-    h1 Laniakea overview
+block pre_contents
+    .jumbotron
+        h1 Laniakea Web
+        p
+        | This is just a technical demo. It doesn't do much yet.
+        p
+        //a.btn.btn-primary.btn-lg(href='#', role='button') Learn more &raquo;
 
-    p This is just a technical demo. It doesn't do much yet.
+block contents
+    h1 Latest changes
+
+    p Not implemented.

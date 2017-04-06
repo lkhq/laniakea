@@ -76,11 +76,18 @@ html(lang='en')
                   i.fa.fa-puzzle-piece.fa-fw
                   | Dependency Check
       #page-wrapper
+        block pre_contents
         .container-fluid
           .row
             .col-lg-12
               br
               block contents
+          hr
+          footer
+            p
+              small
+                | Powered by
+                a(href='https://github.com/lkorigin/laniakea')laniakea-web
 
     //- Scripts
     script(src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js')
