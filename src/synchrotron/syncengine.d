@@ -484,7 +484,7 @@ public:
         // remove cruft packages
         foreach (ref pkgname, ref dpkg; targetPkgIndex) {
             // native packages are never removed
-            if (dpkg.ver.getDebianRev.empty)
+            if (dpkg.ver.getDebianRev (false).empty)
                 continue;
 
             // check if the package is intoduced as new in the distro, in which case we won't remove it
