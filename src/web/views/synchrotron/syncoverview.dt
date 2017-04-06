@@ -28,23 +28,23 @@ block contents
                     | #{issue.targetSuite}
                 td= issue.targetVersion
                 td= issue.sourceVersion
-                - import laniakea.db.schema : SynchrotronIgnoreReason;
-                - if (issue.ignoreReason == SynchrotronIgnoreReason.NONE)
+                - import laniakea.db.schema : SynchrotronIssueKind;
+                - if (issue.kind == SynchrotronIssueKind.NONE)
                     td -
-                - else if (issue.ignoreReason == SynchrotronIgnoreReason.MERGE_REQUIRED)
+                - else if (issue.kind == SynchrotronIssueKind.MERGE_REQUIRED)
                     td
                         font.fa.fa-code-fork
                         | Merge required
-                - else if (issue.ignoreReason == SynchrotronIgnoreReason.BLACKLISTED)
+                - else if (issue.kind == SynchrotronIssueKind.REMOVAL_FAILED)
                     td
-                        font.fa.fa-th-list
-                        | On blacklist
-                - else if (issue.ignoreReason == SynchrotronIgnoreReason.SYNC_FAILED)
+                        font.fa.fa-crosshairs
+                        | Package is cruft, but unable to remove it.
+                - else if (issue.kind == SynchrotronIssueKind.SYNC_FAILED)
                     td
                         font.fa.fa-bomb
                         | Error
                 - else
-                    td= issue.ignoreReason
+                    td= issue.kind
 
 block scripts
     script(type='text/javascript').

@@ -442,7 +442,7 @@ public:
 
                         // add information that this package needs to be merged to the issue list
                         auto issue = newSyncIssue (sourceSuite, targetSuite);
-                        issue.ignoreReason = SynchrotronIgnoreReason.MERGE_REQUIRED;
+                        issue.kind = SynchrotronIssueKind.MERGE_REQUIRED;
                         issue.packageName = spkg.name;
                         issue.targetVersion = dpkg.ver;
                         issue.sourceVersion = spkg.ver;

@@ -68,14 +68,14 @@ struct SynchrotronBlacklist {
 }
 
 /**
- * Configuration kind.
+ * Kind of a Synchrotron issue.
  **/
-enum SynchrotronIgnoreReason {
+enum SynchrotronIssueKind {
     UNKNOWN,
     NONE,
     MERGE_REQUIRED,
-    BLACKLISTED,
-    SYNC_FAILED
+    SYNC_FAILED,
+    REMOVAL_FAILED
 }
 
 /**
@@ -86,7 +86,7 @@ struct SynchrotronIssue {
 
     BsonDate date;        /// Time when this excuse was created
 
-    SynchrotronIgnoreReason ignoreReason; /// Reason why we can not sync this package.
+    SynchrotronIssueKind kind; /// Kind of this issue, and usually also the reason for it.
 
     string packageName; /// Name of the source package that is to be synchronized
 
