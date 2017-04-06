@@ -20,6 +20,7 @@
 module laniakea.repository.dak;
 
 import std.stdio : File;
+import std.string : format;
 import std.process;
 import std.array : appender, join, empty;
 import std.path : baseName;
@@ -137,16 +138,60 @@ public:
 
         logInfo ("Importing britney result from %s", heidiFile);
 
-        // run dak import command.
+        // run dak control-suite command.
         auto args = ["--set", suiteName, "--britney"];
         immutable res = executeDak ("control-suite", args, heidiData);
 
-        if (!res.success) {
-            logError ("Unable apply Britney result to '%s': %s", suiteName, res.data);
-            return false;
-        }
+        if (!res.success)
+            throw new Exception ("Unable apply Britney result to '%s': %s".format (suiteName, res.data));
 
         logInfo ("Updated packages in '%s' based on Britney result.", suiteName);
+        return true;
+    }
+
+    /**
+     * Check if a package can be removed without breaking reverse dependencies.
+     **/
+    bool packageIsRemovable (string packageName, string suiteName)
+    {
+        import std.algorithm : canFind;
+
+        logDebug ("Testing package '%s' remove from '%s'", packageName, suiteName);
+
+        // simulate package removal
+        auto args = ["-R",
+                     "-m", "'RID: Removed from Debian'",
+                     "-C", "janitor@dak",
+                     "-n",
+                     "-s", suiteName,
+                     packageName];
+        immutable res = executeDak ("rm", args);
+
+        if (!res.success)
+            throw new Exception ("Unable to check if package '%s' is removable from '%s': %s".format (packageName, suiteName, res.data));
+
+        return res.data.canFind ("No dependency problem found.");
+    }
+
+    /**
+     * Remove a package from a specified suite.
+     **/
+    bool removePackage (string packageName, string suiteName)
+    {
+        import std.algorithm : canFind;
+
+        logInfo ("Removing '%s' from '%s'", packageName, suiteName);
+
+        // actually remove a package
+        auto args = ["-m", "'RID: Removed from Debian'",
+                     "-C", "janitor@dak",
+                     "-s", suiteName,
+                     packageName];
+        immutable res = executeDak ("rm", args, "y\n");
+
+        if (!res.success)
+            throw new Exception ("Unable to remove package '%s' from '%s': %s".format (packageName, suiteName, res.data));
+
         return true;
     }
 

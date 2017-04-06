@@ -6,6 +6,7 @@ laniakea_lib_src = [
     'src/c/libarchive.d',
     'src/laniakea/localconfig.d',
     'src/laniakea/compressed.d',
+    'src/laniakea/debcheck.d',
     'src/laniakea/downloadmanager.d',
     'src/laniakea/git.d',
     'src/laniakea/pkgitems.d',
