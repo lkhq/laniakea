@@ -56,7 +56,7 @@ html(lang='en')
                   |  Overview
               li
                 a(href='#')
-                  i.fa.fa-exchange.fa-fw
+                  i.fa.fa-paper-plane.fa-fw
                   |  Migration
                   span.fa.arrow
                 ul.nav.nav-second-level
@@ -69,8 +69,12 @@ html(lang='en')
                         | #{item.targetSuite}
               li
                 a(href='/synchrotron/')
-                  i.fa.fa-compress.fa-fw
+                  i.fa.fa-exchange.fa-fw
                   | Synchronization
+              li.disabled
+                a(href='#')
+                  i.fa.fa-puzzle-piece.fa-fw
+                  | Dependency Check
       #page-wrapper
         .container-fluid
           .row
