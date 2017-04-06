@@ -74,6 +74,7 @@ enum SynchrotronIssueKind {
     UNKNOWN,
     NONE,
     MERGE_REQUIRED,
+    MAYBE_CRUFT,
     SYNC_FAILED,
     REMOVAL_FAILED
 }
@@ -96,5 +97,5 @@ struct SynchrotronIssue {
     string sourceVersion; /// package version to be synced
     string targetVersion; /// version of the package in the target suite and repo, to be overriden
 
-    string issueDetails;  /// additional information text about the issue (usually a log excerpt)
+    string details;  /// additional information text about the issue (usually a log excerpt)
 }

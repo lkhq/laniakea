@@ -20,7 +20,7 @@
 module synchrotron.syncengine;
 
 import std.array : empty;
-import std.string : endsWith, format;
+import std.string : endsWith, startsWith, format;
 import std.algorithm : canFind;
 import std.array : appender;
 import std.parallelism : parallel;
@@ -464,6 +464,72 @@ public:
             auto ret = importBinariesForSources (syncedSrcPkgs.data, component);
             if (!ret)
                 return false;
+        }
+
+        // test for cruft packages
+        SourcePackage[string] targetPkgIndex;
+        foreach (ref component; incomingSuite.components) {
+            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
+            foreach (ref pkgname, ref pkg; destPkgMap)
+                targetPkgIndex[pkgname] = pkg;
+        }
+
+        // check which packages are present in the target, but not in the source suite
+        foreach (ref component; incomingSuite.components) {
+            auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
+            foreach (ref pkgname; srcPkgMap.byKey)
+                targetPkgIndex.remove (pkgname);
+        }
+
+        // remove cruft packages
+        foreach (ref pkgname, ref dpkg; targetPkgIndex) {
+            // native packages are never removed
+            if (dpkg.ver.getDebianRev.empty)
+                continue;
+
+            // check if the package is intoduced as new in the distro, in which case we won't remove it
+            if (dpkg.ver.getDebianRev.startsWith ("0" ~ distroTag))
+                continue;
+
+            // if this package was modified in the target distro, we will also not remove it, but flag it as "potential cruft" for
+            // someone to look at.
+            if (dpkg.ver.getDebianRev.canFind (distroTag)) {
+                auto issue = newSyncIssue (sourceSuite, targetSuite);
+                issue.kind = SynchrotronIssueKind.MAYBE_CRUFT;
+                issue.packageName = dpkg.name;
+                issue.targetVersion = dpkg.ver;
+                issue.sourceVersion = null;
+
+                collIssues.insert (issue);
+                continue;
+            }
+
+            // check if we can remove this package without breaking stuff
+            if (dak.packageIsRemovable (dpkg.name, targetSuite.name)) {
+                // try to remove the package
+                try {
+                    dak.removePackage (dpkg.name, targetSuite.name);
+                } catch (Exception e) {
+                    auto issue = newSyncIssue (sourceSuite, targetSuite);
+                    issue.kind = SynchrotronIssueKind.REMOVAL_FAILED;
+                    issue.packageName = dpkg.name;
+                    issue.targetVersion = dpkg.ver;
+                    issue.sourceVersion = null;
+                    issue.details = "%s".format (e);
+
+                    collIssues.insert (issue);
+                }
+            } else {
+                // looks like we can not remove this
+                auto issue = newSyncIssue (sourceSuite, targetSuite);
+                issue.kind = SynchrotronIssueKind.REMOVAL_FAILED;
+                issue.packageName = dpkg.name;
+                issue.targetVersion = dpkg.ver;
+                issue.sourceVersion = null;
+                issue.details = "This package can not be removed without breaking other packages. It needs manual removal.";
+
+                collIssues.insert (issue);
+            }
         }
 
         return true;

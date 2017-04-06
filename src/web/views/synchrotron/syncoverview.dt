@@ -27,7 +27,12 @@ block contents
                     font.fa.fa-long-arrow-right
                     | #{issue.targetSuite}
                 td= issue.targetVersion
-                td= issue.sourceVersion
+                td
+                    - auto iconClass = "";
+                    - if (issue.sourceVersion.empty)
+                        - iconClass = "fa-trash";
+                    font(class='fa #{iconClass}')
+                    | #{issue.sourceVersion}
                 - import laniakea.db.schema : SynchrotronIssueKind;
                 - if (issue.kind == SynchrotronIssueKind.NONE)
                     td -
@@ -37,8 +42,12 @@ block contents
                         | Merge required
                 - else if (issue.kind == SynchrotronIssueKind.REMOVAL_FAILED)
                     td
+                        font.fa.fa-trash
+                        | Package is cruft, but we were unable to remove it.
+                - else if (issue.kind == SynchrotronIssueKind.MAYBE_CRUFT)
+                    td
                         font.fa.fa-crosshairs
-                        | Package is cruft, but unable to remove it.
+                        | This package can maybe be removed.
                 - else if (issue.kind == SynchrotronIssueKind.SYNC_FAILED)
                     td
                         font.fa.fa-bomb
