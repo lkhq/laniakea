@@ -30,8 +30,8 @@ block contents
                 td
                     - auto iconClass = "";
                     - if (issue.sourceVersion.empty)
-                        - iconClass = "fa-trash";
-                    font(class='fa #{iconClass}')
+                        - iconClass = "fa fa-trash";
+                    font(class='#{iconClass}')
                     | #{issue.sourceVersion}
                 - import laniakea.db.schema : SynchrotronIssueKind;
                 - if (issue.kind == SynchrotronIssueKind.NONE)
