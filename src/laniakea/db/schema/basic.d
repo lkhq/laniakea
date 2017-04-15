@@ -125,13 +125,22 @@ struct EventEntry {
 }
 
 /**
+ * Information about a distribution component.
+ */
+struct DistroComponent
+{
+    string name;
+    string[] dependencies;
+}
+
+/**
  * Information about a distribution suite.
  */
 struct DistroSuite
 {
     string name;
     string[] architectures;
-    string[] components;
+    DistroComponent[] components;
 }
 
 /**

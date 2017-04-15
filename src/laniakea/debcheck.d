@@ -87,7 +87,7 @@ class Debcheck
         auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
 
         foreach (ref component; suite.components) {
-            immutable indexFname = repo.getIndexFile (suite.name, buildPath (component, "source", "Sources.xz"));
+            immutable indexFname = repo.getIndexFile (suite.name, buildPath (component.name, "source", "Sources.xz"));
         }
 
         return null;

@@ -401,7 +401,7 @@ public:
         collIssues.remove (["sourceSuite": sourceSuite.name, "targetSuite": incomingSuite.name]);
 
         foreach (ref component; incomingSuite.components) {
-            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
+            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component.name);
 
             // The source package lists contains many different versions, some source package
             // versions are explicitly kept for GPL-compatibility.
@@ -414,9 +414,9 @@ public:
             // binary-sync-mode.
             SourcePackage[] srcPkgRange;
             if (syncConfig.syncBinaries) {
-                srcPkgRange = sourceRepo.getSourcePackages (sourceSuite.name, component);
+                srcPkgRange = sourceRepo.getSourcePackages (sourceSuite.name, component.name);
             } else {
-                auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
+                auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component.name);
                 srcPkgRange = srcPkgMap.values;
             }
 
@@ -454,14 +454,14 @@ public:
 
                 // sync source package
                 // the source package must always be known to dak first
-                auto ret = importSourcePackage (spkg, component);
+                auto ret = importSourcePackage (spkg, component.name);
                 if (!ret)
                     return false;
                 syncedSrcPkgs ~= spkg;
             }
 
             // import binaries as well, if necessary
-            auto ret = importBinariesForSources (syncedSrcPkgs.data, component);
+            auto ret = importBinariesForSources (syncedSrcPkgs.data, component.name);
             if (!ret)
                 return false;
         }
@@ -469,14 +469,14 @@ public:
         // test for cruft packages
         SourcePackage[string] targetPkgIndex;
         foreach (ref component; incomingSuite.components) {
-            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
+            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component.name);
             foreach (ref pkgname, ref pkg; destPkgMap)
                 targetPkgIndex[pkgname] = pkg;
         }
 
         // check which packages are present in the target, but not in the source suite
         foreach (ref component; incomingSuite.components) {
-            auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
+            auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component.name);
             foreach (ref pkgname; srcPkgMap.byKey)
                 targetPkgIndex.remove (pkgname);
         }

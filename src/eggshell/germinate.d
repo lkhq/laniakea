@@ -22,6 +22,7 @@ module eggshell.germinate;
 import std.stdio : File;
 import std.process;
 import std.array : appender, join;
+import std.algorithm : map;
 import std.string : format, toLower;
 import std.path : buildPath;
 static import std.file;
@@ -152,7 +153,7 @@ public:
                        "-s", devSuiteName, // suite name
                        "-d", devSuiteName, // suite / dist name
                        "-m", "file://" ~ localConf.archive.rootPath, // mirror
-                       "-c", develSuite.components.join (" "), // components to check
+                       "-c", develSuite.components.map!(c => c.name).join (" "), // components to check
                        "-a", develSuite.architectures[0]];
         // NOTE: Maybe we want to limit the seed to only stuff in the primary (main) component?
 

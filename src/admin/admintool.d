@@ -127,12 +127,23 @@ public:
 
         bool addSuite = true;
         while (addSuite) {
+            import std.algorithm : canFind;
+
             DistroSuite suite;
             writeQS ("Adding a new suite. Please set a name");
             suite.name = readString ();
 
             writeQS ("List of components for suite '%s'".format (suite.name));
-            suite.components = readList ();
+            auto componentsList = readList ();
+            auto addMainDep = false;
+            addMainDep = componentsList.canFind ("main");
+            foreach (ref cname; componentsList) {
+                DistroComponent c;
+                c.name = cname;
+                if (addMainDep)
+                    c.dependencies ~= "main";
+                suite.components ~= c;
+            }
 
             writeQS ("List of architectures for suite '%s'".format (suite.name));
             suite.architectures = readList ();
@@ -186,7 +197,11 @@ public:
             suite.name = readString ();
 
             writeQS ("List of components for suite '%s'".format (suite.name));
-            suite.components = readList ();
+            foreach (ref cname; readList ()) {
+                DistroComponent c;
+                c.name = cname;
+                suite.components ~= c;
+            }
 
             writeQS ("List of architectures for suite '%s'".format (suite.name));
             suite.architectures = readList ();
