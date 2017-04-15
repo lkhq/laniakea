@@ -36,7 +36,8 @@ enum LkModule
     SPEARS      = "spears",      /// Automatic package migration
     EGGSHELL    = "eggshell",    /// Interface to Germinate, a metapackage / default-package-selection generator
     ADMINCLI    = "admin-cli",   /// CLI interface to Laniakea settings and the database, useful debug tool
-    WEB         = "web"          /// Laniakea web view
+    WEB         = "web",         /// Laniakea web view
+    DEBCHECK    = "debcheck"     /// Package installability and dependency tests
 }
 
 /**

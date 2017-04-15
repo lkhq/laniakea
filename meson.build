@@ -26,6 +26,7 @@ laniakea_lib_src = [
     'src/laniakea/db/database.d',
     'src/laniakea/db/schema/package.d',
     'src/laniakea/db/schema/basic.d',
+    'src/laniakea/db/schema/debcheck.d',
     'src/laniakea/db/schema/synchrotron.d',
     'src/laniakea/db/schema/spears.d',
     'src/laniakea/db/schema/eggshell.d'
@@ -167,6 +168,7 @@ main_test_exe = executable ('main_test',
      eggshell_src],
     include_directories: [src_dir, tests_src_dir],
     dependencies: [base_deps, dyaml_dep],
+    build_by_default: false,
     d_args: meson.get_compiler('d').unittest_args()
 )
 test('laniakea_main_test', main_test_exe, args: [source_root + '/tests/data'])

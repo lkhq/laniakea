@@ -153,7 +153,13 @@ public:
         return ird;
     }
 
-    private string getIndexFile (string suite, string fname)
+    /**
+     * Retrieve a package list (index) file from the repository.
+     * The file will be downloaded if necessary:
+     *
+     * Returns: A file path to the index file.
+     */
+    public string getIndexFile (string suite, string fname)
     {
         auto ird = getRepoInformation (suite);
         immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, fname));
