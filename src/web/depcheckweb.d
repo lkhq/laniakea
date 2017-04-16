@@ -67,7 +67,7 @@ class DepcheckWebService {
         else
             return; // Not found
 
-        uint currentPage = 0;
+        uint currentPage = 1;
         immutable pageStr = req.params.get("page");
         if (!pageStr.empty) {
             try {
@@ -77,7 +77,7 @@ class DepcheckWebService {
             }
         }
 
-        auto query = ["suiteName": Bson(suiteName), "packageKind": Bson(cast(int) packageKind)];
+        auto query = ["suiteName": Bson(suiteName), "packageKind": Bson(packageKind.to!int)];
         auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
 
         auto pageCount = ceil (collIssues.count (query).to!real / issuesPerPage.to!real);
