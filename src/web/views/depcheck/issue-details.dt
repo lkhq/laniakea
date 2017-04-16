@@ -1,0 +1,79 @@
+extends base
+
+block head
+    - import laniakea.db.schema.debcheck;
+
+    - string title;
+    - if (packageKind == PackageKind.SOURCE)
+        - title = "Dependency Issues for source package " ~ issue.packageName ~ " " ~ issue.packageVersion;
+    - else
+        - title = "Dependency Issues for binary package " ~ issue.packageName ~ " " ~ issue.packageVersion;
+
+block contents
+    - if (packageKind == PackageKind.SOURCE)
+        h2 Build dependency issues for: #{issue.packageName} #{issue.packageVersion}
+    - else
+        h2 Dependency issues for: #{issue.packageName} #{issue.packageVersion}
+
+    br
+    p Architecture:
+        font.fa.fa-microchip
+        | #{issue.architecture}
+
+    .row
+        .col-md-8
+            - if (!issue.missing.empty)
+                h3 Missing dependencies
+                ul.list-group
+                - foreach (ref pkg; issue.missing)
+                    li.list-group-item
+                        h4.list-group-item-heading= pkg.unsatDependency
+                        p.list-group-item-text
+                        | Package: #{pkg.packageName}
+                        br
+                        | Version: #{pkg.packageVersion}
+                        br
+                        | Architecture:
+                        font.fa.fa-microchip
+                        | #{pkg.architecture}
+
+
+            - if (!issue.conflicts.empty)
+                h3 Conflicts in the dependency chain
+                ul.list-group
+                - foreach (ref conflict; issue.conflicts)
+                    h4= conflict.pkg1.packageName ~ " vs. " ~ conflict.pkg2.packageName
+                    .panel.panel-default
+                        .panel-body
+                            // Package 1
+                            h5 Package 1: #{conflict.pkg1.packageName} #{conflict.pkg1.packageVersion} on
+                                font.fa.fa-microchip
+                                | #{conflict.pkg1.architecture}
+                            - if (!conflict.pkg1.unsatConflict.empty)
+                                p Conflict: #{conflict.pkg1.unsatConflict}
+                            ul.list-group
+                                - foreach (ref pkg; conflict.depchain1)
+                                    li.list-group-item
+                                        | #{pkg.packageName} #{pkg.packageVersion}
+                                        small
+                                            font.fa.fa-microchip
+                                            | #{pkg.architecture}
+                                        br
+                                        | Depends: #{pkg.depends}
+
+
+                            // Package 2
+                            h5 Package 2: #{conflict.pkg2.packageName} #{conflict.pkg2.packageVersion} on
+                                font.fa.fa-microchip
+                                | #{conflict.pkg2.architecture}
+                            - if (!conflict.pkg2.unsatConflict.empty)
+                                p Conflict: #{conflict.pkg2.unsatConflict}
+                            ul.list-group
+                                - foreach (ref pkg; conflict.depchain1)
+                                    li.list-group-item
+                                        | #{pkg.packageName} #{pkg.packageVersion}
+                                        small
+                                            font.fa.fa-microchip
+                                            | #{pkg.architecture}
+                                        br
+                                        | Depends: #{pkg.depends}

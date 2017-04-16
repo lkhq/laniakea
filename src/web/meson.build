@@ -20,6 +20,7 @@ lk_web_src = [
     'webconfig.d',
     'spearsweb.d',
     'syncweb.d',
+    'depcheckweb.d',
     '/usr/include/d/vibe/appmain.d'
 ]
 

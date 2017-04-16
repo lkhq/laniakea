@@ -261,12 +261,17 @@ class Debcheck
 
                     issue.missing ~= pkgissue;
                 } else if (reason.containsKey ("conflict")) {
-                    // we have a comflict in the dependency chain
+                    // we have a conflict in the dependency chain
                     auto yconflict = reason["conflict"];
                     PackageConflict conflict;
 
                     setBasicPackageInfo!PackageIssue(conflict.pkg1, yconflict["pkg1"]);
+                    if (yconflict["pkg1"].containsKey ("unsat-conflict"))
+                        conflict.pkg1.unsatConflict = yconflict["pkg1"]["unsat-conflict"].as!string;
+
                     setBasicPackageInfo!PackageIssue(conflict.pkg2, yconflict["pkg2"]);
+                    if (yconflict["pkg2"].containsKey ("unsat-conflict"))
+                        conflict.pkg2.unsatConflict = yconflict["pkg2"]["unsat-conflict"].as!string;
 
                     // parse the depchain
                     if (yconflict.containsKey ("depchain1")) {

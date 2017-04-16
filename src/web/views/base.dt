@@ -54,6 +54,10 @@ html(lang='en')
                 a(href='/')
                   i.fa.fa-tasks.fa-fw
                   |  Overview
+              li.disabled
+                a(href='#')
+                  i.fa.fa-compass.fa-fw
+                  | Transitions
               li
                 a(href='#')
                   i.fa.fa-paper-plane.fa-fw
@@ -65,16 +69,27 @@ html(lang='en')
                       a(href='/migration/#{item.sourceSuite}/#{item.targetSuite}/excuses')
                         i.fa.fa-key.fa-fw
                         | #{item.sourceSuite}
-                        font.fa.fa-arrow-right
+                        font.fa.fa-long-arrow-right
                         | #{item.targetSuite}
               li
                 a(href='/synchrotron/')
                   i.fa.fa-exchange.fa-fw
                   | Synchronization
-              li.disabled
+              li
                 a(href='#')
                   i.fa.fa-puzzle-piece.fa-fw
                   | Dependency Check
+                  span.fa.arrow
+                ul.nav.nav-second-level
+                  - foreach (suite; ginfo.suites)
+                    li
+                      a(href='/depcheck/#{suite.name}/binary')
+                        i.fa.fa-bullseye.fa-fw
+                        | #{suite.name}
+              li.disabled
+                a(href='#')
+                  i.fa.fa-tags.fa-fw
+                  | Package Seeds
       #page-wrapper
         block pre_contents
         .container-fluid

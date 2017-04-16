@@ -39,6 +39,7 @@ struct GlobalInfo {
     string serviceName;
 
     MigrationsInfo[] migrations;
+    DistroSuite[] suites;
 }
 
 final class WebConfig
@@ -72,6 +73,7 @@ final class WebConfig
 
             ginfo.migrations ~= minfo;
         }
+        ginfo.suites = baseConf.suites;
     }
 
     @trusted

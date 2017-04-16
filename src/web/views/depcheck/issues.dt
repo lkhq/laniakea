@@ -1,0 +1,31 @@
+extends base
+
+block head
+    - auto title = "Depcheck Issues in " ~ suiteName;
+
+block contents
+    h1 Package Dependency Issues for #{suiteName}
+
+    - import laniakea.db.schema.debcheck;
+    - import std.array : empty, join;
+    - import std.algorithm : map;
+
+    ul.nav.nav-tabs
+        li(role='presentation', class='#\{ (packageKind == PackageKind.BINARY)? "active" : "" \}')
+            a(href='binary/') Binary Packages
+        li(role='presentation', class='#\{ (packageKind == PackageKind.SOURCE)? "active" : "" \}')
+            a(href='source/') Source Packages
+
+    br
+
+    .row
+        .col-md-8
+            .list-group
+                - foreach (issue; issues)
+                    a.list-group-item(href='#{packageKindStr}/#{issue.packageName}/#{issue.packageVersion}')
+                        h4.list-group-item-heading= issue.packageName
+                        p.list-group-item-text Architecture: #{issue.architecture}
+                        - if (!issue.missing.empty)
+                            p.list-group-item-text Missing: #{issue.missing.map!(p => p.packageName).join (" ")}
+                        - if (!issue.conflicts.empty)
+                            p.list-group-item-text Conflict: #{issue.conflicts.map!(c => c.pkg1.packageName ~ " vs. " ~ c.pkg2.packageName).join (", ")}
