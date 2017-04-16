@@ -23,15 +23,8 @@ module laniakea.db.schema.spears;
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
 
+import laniakea.db.schema.basic : LkModule;
 import laniakea.pkgitems : VersionPriority;
-
-/**
- * Spears configuration kind
- **/
-enum SpearsConfigKind {
-    UNKNOWN,
-    BASE
-}
 
 /**
  * Configuration specific for the spears tool.
@@ -50,7 +43,8 @@ struct SpearsConfigEntry
 struct SpearsConfig {
     @name("_id") BsonObjectID id;
 
-    SpearsConfigKind kind = SpearsConfigKind.BASE;
+    @name("module") string moduleName = LkModule.SPEARS;
+    string kind = SpearsConfig.stringof;
 
     SpearsConfigEntry[] migrations;
 }

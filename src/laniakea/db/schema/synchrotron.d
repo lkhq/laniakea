@@ -25,15 +25,6 @@ import vibe.data.serialization : name;
 import laniakea.db.schema.basic;
 
 /**
- * Configuration kind.
- **/
-enum SynchrotronConfigKind {
-    UNKNOWN,
-    BASE,
-    BLACKLIST
-}
-
-/**
  * Information about a Synchrotron data source
  */
 struct SyncSourceInfo {
@@ -49,7 +40,9 @@ struct SyncSourceInfo {
 struct SynchrotronConfig {
     @name("_id") BsonObjectID id;
 
-    SynchrotronConfigKind kind = SynchrotronConfigKind.BASE;
+    @name("module") string moduleName = LkModule.SYNCHROTRON;
+    string kind = SynchrotronConfig.stringof;
+
     string sourceName;     // Name of the source OS (usually "Debian")
     SyncSourceInfo source;
 
@@ -63,7 +56,9 @@ struct SynchrotronConfig {
 struct SynchrotronBlacklist {
     @name("_id") BsonObjectID id;
 
-    SynchrotronConfigKind kind = SynchrotronConfigKind.BLACKLIST;
+    @name("module") string moduleName = LkModule.SYNCHROTRON;
+    string kind = SynchrotronBlacklist.stringof;
+
     string[string] blacklist; // array of blacklisted package (key) and blacklist reasons (value)
 }
 

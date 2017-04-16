@@ -86,11 +86,9 @@ public:
         db.fsync ();
     }
 
-    auto collConfig (LkModule modname) ()
+    auto collConfig ()
     {
-        static if (modname == LkModule.UNKNOWN)
-            static assert (0, "Can not get config for invalid module name.");
-        mixin("return db[\"config." ~ modname ~ "\"];");
+        return db["config"];
     }
 
     auto getCollection (string collname) ()
@@ -105,39 +103,36 @@ public:
         mixin("return db[\"" ~ modname ~ "." ~ cname ~ "\"];");
     }
 
-    auto getConfig (T) () {
+    /**
+     * Get a configuration of type C for module "mod".
+     */
+    auto getConfigMaybe (LkModule mod, C) ()
+    {
+        Nullable!C conf;
+
+        auto collConf = collConfig ();
+        conf = collConf.findOne!C (["module": mod,
+                                    "kind": C.stringof]);
+        return conf;
+    }
+
+    auto getConfig (LkModule mod, C) ()
+    {
         import std.traits : fullyQualifiedName;
 
-        Nullable!T conf;
-        LkModule modname;
-
-        static if (is(T == SynchrotronConfig)) {
-            modname = LkModule.SYNCHROTRON;
-            auto dbColl = collConfig!(LkModule.SYNCHROTRON);
-            conf = dbColl.findOne!T (["kind": SynchrotronConfigKind.BASE]);
-
-        } else static if (is (T == EggshellConfig)) {
-            modname = LkModule.EGGSHELL;
-            auto dbColl = collConfig!(LkModule.EGGSHELL);
-            conf = dbColl.findOne!T (["kind": EggshellConfigKind.BASE]);
-
-        } else static if (is (T == SpearsConfig)) {
-            modname = LkModule.SPEARS;
-            auto dbColl = collConfig!(LkModule.SPEARS);
-            conf = dbColl.findOne!T (["kind": SpearsConfigKind.BASE]);
-
-        } else {
-            static assert (0, "Finding configuration for " ~ fullyQualifiedName!T ~ "is not implemented.");
-        }
-
+        auto conf = getConfigMaybe!(mod, C) ();
         if (conf.isNull)
-            throw new Exception ("No '%s' configuration was found in the database.".format (modname));
+            throw new Exception ("No '%s' configuration of type '%s' was found in the database.".format (mod,
+                                    fullyQualifiedName! (C)));
         return conf.get;
     }
 
     auto getBaseConfig ()
     {
-        auto bconf = collConfig!(LkModule.BASE).findOne!BaseConfig (["kind": BaseConfigKind.PROJECT]);
+        auto bconf = getConfigMaybe!(LkModule.BASE, BaseConfig);
+
+        if (bconf.isNull)
+            throw new Exception ("No base configuration was found in the database. Is Laniakea set up correctly?");
 
         // Sanity check
         DistroSuite develSuite;
@@ -151,9 +146,6 @@ public:
                 continue;
             }
         }
-
-        if (bconf.isNull)
-            throw new Exception ("No base configuration was found in the database. Is Laniakea set up correctly?");
 
         if (develSuite.name.empty)
             throw new Exception ("Could not find definition of development suite %s.".format (bconf.archive.develSuite));
@@ -176,11 +168,6 @@ public:
         }
 
         return result;
-    }
-
-    auto getSynchrotronBlacklist ()
-    {
-        return collConfig!(LkModule.SYNCHROTRON).findOne!SynchrotronBlacklist (["kind": SynchrotronConfigKind.BLACKLIST]);
     }
 
     auto collJobs ()

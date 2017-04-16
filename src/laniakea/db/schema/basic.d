@@ -145,14 +145,6 @@ struct DistroSuite
 }
 
 /**
- * Base configuration kind
- **/
-enum BaseConfigKind {
-    UNKNOWN,
-    PROJECT
-}
-
-/**
  * Basic archive configuration
  **/
 struct BaseArchiveConfig {
@@ -167,7 +159,8 @@ struct BaseArchiveConfig {
 struct BaseConfig {
     @name("_id") BsonObjectID id;
 
-    BaseConfigKind kind = BaseConfigKind.PROJECT;
+    @name("module") string moduleName = LkModule.BASE;
+    string kind = BaseConfig.stringof;
 
     string projectName;         // Name of the distrobution or project ("Tanglu", "PureOS", ...)
     BaseArchiveConfig archive;  // archive specific settings

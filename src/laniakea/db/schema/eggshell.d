@@ -22,14 +22,7 @@ module laniakea.db.schema.eggshell;
 
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
-
-/**
- * Germinator configuration kind
- **/
-enum EggshellConfigKind {
-    UNKNOWN,
-    BASE
-}
+import laniakea.db.schema.basic : LkModule;
 
 /**
 * Configuration specific for the germinate module.
@@ -37,7 +30,8 @@ enum EggshellConfigKind {
 struct EggshellConfig {
    @name("_id") BsonObjectID id;
 
-   EggshellConfigKind kind = EggshellConfigKind.BASE;
+   @name("module") string moduleName = LkModule.EGGSHELL;
+   string kind = EggshellConfig.stringof;
 
    string metaPackageGitSourceUrl;
 }

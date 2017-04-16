@@ -82,7 +82,7 @@ public:
         auto conf = LocalConfig.get;
 
         baseConfig = db.getBaseConfig;
-        syncConfig = db.getConfig!SynchrotronConfig;
+        syncConfig = db.getConfig!(LkModule.SYNCHROTRON, SynchrotronConfig);
 
         // the repository of the distribution we import stuff into
         targetRepo = new Repository (conf.archive.rootPath,
@@ -103,7 +103,7 @@ public:
 
     private auto getPackageBlacklist ()
     {
-        auto syncBlConf = db.getSynchrotronBlacklist;
+        auto syncBlConf = db.getConfigMaybe!(LkModule.SYNCHROTRON, SynchrotronBlacklist);
         string[string] syncBlacklist;
         if (!syncBlConf.isNull) {
             syncBlacklist = syncBlConf.blacklist;

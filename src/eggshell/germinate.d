@@ -63,7 +63,7 @@ public:
         germinateExe = "germinate";
 
         db = Database.get;
-        eggshellConf = db.getConfig!EggshellConfig;
+        eggshellConf = db.getConfig!(LkModule.EGGSHELL, EggshellConfig);
         baseConf = db.getBaseConfig;
 
         localConf = LocalConfig.get;

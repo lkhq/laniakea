@@ -163,11 +163,13 @@ public:
         writeQS ("Distribution version tag (commonly found in package versions, e.g. 'tanglu' for OS 'Tanglu' with versions like '1.0-0tanglu1'");
         bconf.archive.distroTag = readString ();
 
-        auto coll = db.collConfig!(LkModule.BASE);
+        auto coll = db.collConfig ();
 
         bconf.id = BsonObjectID.generate ();
-        coll.remove (["kind": bconf.kind]);
-        coll.update (["kind": bconf.kind], bconf, UpdateFlags.upsert);
+        coll.remove (["module": LkModule.BASE,
+                      "kind": bconf.kind]);
+        coll.update (["module": LkModule.BASE,
+                      "kind": bconf.kind], bconf, UpdateFlags.upsert);
 
         db.fsync;
         return true;
@@ -175,7 +177,7 @@ public:
 
     void baseDumpConfig ()
     {
-        writeln (db.collConfig!(LkModule.BASE).findOne (["kind": BaseConfigKind.PROJECT]).serializeToPrettyJson);
+        writeln (db.getConfig!(LkModule.BASE, BaseConfig).serializeToPrettyJson);
     }
 
     bool synchrotronInit ()
@@ -221,11 +223,11 @@ public:
         writeQB ("Synchronize binary packages?");
         syconf.syncBinaries = readBool ();
 
-        auto coll = db.collConfig!(LkModule.SYNCHROTRON);
+        auto coll = db.collConfig;
 
         syconf.id = BsonObjectID.generate ();
-        coll.remove (["kind": syconf.kind]);
-        coll.update (["kind": syconf.kind], syconf, UpdateFlags.upsert);
+        coll.remove (["module": LkModule.SYNCHROTRON, "kind": syconf.kind]);
+        coll.update (["module": LkModule.SYNCHROTRON, "kind": syconf.kind], syconf, UpdateFlags.upsert);
 
         db.fsync;
         return true;
@@ -233,24 +235,25 @@ public:
 
     void synchrotronDumpConfig ()
     {
-        auto collSyconf = db.collConfig!(LkModule.SYNCHROTRON);
         writeln ("Config:");
-        writeln (collSyconf.findOne (["kind": SynchrotronConfigKind.BASE]).serializeToPrettyJson);
+        writeln (db.getConfig!(LkModule.SYNCHROTRON, SynchrotronConfig).serializeToPrettyJson);
         writeln ("Blacklist:");
-        writeln (collSyconf.findOne (["kind": SynchrotronConfigKind.BLACKLIST]).serializeToPrettyJson);
+        writeln (db.getConfig!(LkModule.SYNCHROTRON, SynchrotronBlacklist).serializeToPrettyJson);
     }
 
     void synchrotronBlacklistAdd (string pkg, string reason)
     {
-        db.collConfig!(LkModule.SYNCHROTRON)
-                        .findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
+        db.collConfig.findAndModifyExt([
+                        "module": LkModule.SYNCHROTRON,
+                        "kind": SynchrotronBlacklist.stringof],
                          ["$set": ["blacklist." ~ pkg: reason]], ["upsert": true]);
     }
 
     void synchrotronBlacklistRemove (string pkg)
     {
-        db.collConfig!(LkModule.SYNCHROTRON)
-                        .findAndModifyExt(["kind": SynchrotronConfigKind.BLACKLIST],
+        db.collConfig.findAndModifyExt([
+                         "module": LkModule.SYNCHROTRON,
+                         "kind": SynchrotronBlacklist.stringof],
                          ["$unset": ["blacklist." ~ pkg: ""]], ["upsert": true]);
     }
 
@@ -283,11 +286,10 @@ public:
             addMigration = readBool ();
         }
 
-        auto coll = db.collConfig!(LkModule.SPEARS);
-
+        auto coll = db.collConfig;
         spconf.id = BsonObjectID.generate ();
-        coll.remove (["kind": spconf.kind]);
-        coll.update (["kind": spconf.kind], spconf, UpdateFlags.upsert);
+        coll.remove (["module": LkModule.SPEARS, "kind": spconf.kind]);
+        coll.update (["module": LkModule.SPEARS, "kind": spconf.kind], spconf, UpdateFlags.upsert);
 
         db.fsync;
         return true;
@@ -295,7 +297,7 @@ public:
 
     void spearsDumpConfig ()
     {
-        writeln (db.collConfig!(LkModule.SPEARS).findOne (["kind": SpearsConfigKind.BASE]).serializeToPrettyJson);
+        writeln (db.getConfig!(LkModule.SPEARS, SpearsConfig).serializeToPrettyJson);
     }
 
     bool eggshellInit ()
@@ -308,11 +310,11 @@ public:
         writeQS ("Git pull URL for the germinate metapackage sources");
         esconf.metaPackageGitSourceUrl = readString ();
 
-        auto coll = db.collConfig!(LkModule.EGGSHELL);
+        auto coll = db.collConfig;
 
         esconf.id = BsonObjectID.generate ();
-        coll.remove (["kind": esconf.kind]);
-        coll.update (["kind": esconf.kind], esconf, UpdateFlags.upsert);
+        coll.remove (["module": LkModule.EGGSHELL, "kind": esconf.kind]);
+        coll.update (["mdoule": LkModule.EGGSHELL, "kind": esconf.kind], esconf, UpdateFlags.upsert);
 
         db.fsync;
         return true;
@@ -320,7 +322,7 @@ public:
 
     void eggshellDumpConfig ()
     {
-        writeln (db.collConfig!(LkModule.EGGSHELL).findOne (["kind": EggshellConfigKind.BASE]).serializeToPrettyJson);
+        writeln (db.getConfig!(LkModule.EGGSHELL, EggshellConfig).serializeToPrettyJson);
     }
 
     bool setConfValue (string moduleName, string command)
@@ -337,31 +339,33 @@ public:
 
             return true;
         }
+
+        auto coll = db.collConfig ();
         switch (moduleName) {
             case "base":
-                auto coll = db.collConfig!(LkModule.BASE);
-                if (!updateData (coll, ["kind": BaseConfigKind.PROJECT], command))
+                if (!updateData (coll, ["module": LkModule.BASE,
+                                        "kind": BaseConfig.stringof], command))
                     return false;
                 break;
             case "synchrotron":
-                auto coll = db.collConfig!(LkModule.SYNCHROTRON);
-                if (!updateData (coll, ["kind": SynchrotronConfigKind.BASE], command))
+                if (!updateData (coll, ["module": LkModule.SYNCHROTRON,
+                                        "kind": SynchrotronConfig.stringof], command))
                     return false;
                 break;
             case "synchrotron.blacklist":
-                auto coll = db.collConfig!(LkModule.SYNCHROTRON);
-                if (!updateData (coll, ["kind": SynchrotronConfigKind.BLACKLIST], command))
+                if (!updateData (coll, ["module": LkModule.SYNCHROTRON,
+                                        "kind": SynchrotronBlacklist.stringof], command))
                     return false;
                 break;
             case "spears":
-                auto coll = db.collConfig!(LkModule.SPEARS);
-                if (!updateData (coll, ["kind": SpearsConfigKind.BASE], command))
+                if (!updateData (coll, ["module": LkModule.SPEARS,
+                                        "kind": SpearsConfig.stringof], command))
                     return false;
                 break;
             case "eggshell":
-                auto coll = db.collConfig!(LkModule.EGGSHELL);
-                if (!updateData (coll, ["kind": EggshellConfigKind.BASE], command))
-                    return false;
+                if (!updateData (coll, ["module": LkModule.EGGSHELL,
+                                        "kind": EggshellConfig.stringof], command))
+                return false;
                 break;
             default:
                 writeln ("Unknown module name: ", moduleName);
