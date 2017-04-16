@@ -20,11 +20,14 @@
 module web.depcheckweb;
 
 import std.exception : enforce;
+import std.array : empty;
+import std.conv : to;
 import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
 import vibe.web.web;
+import vibe.db.mongo.mongo;
 
 import laniakea.db;
 
@@ -39,6 +42,8 @@ class DepcheckWebService {
         Database db;
  	}
 
+    immutable issuesPerPage = 100;
+
     this (WebConfig conf)
     {
         wconf = conf;
@@ -46,10 +51,12 @@ class DepcheckWebService {
         ginfo = wconf.ginfo;
     }
 
-    @path(":suite/:type")
+    @path(":suite/:type/:page")
  	void getIssueList (HTTPServerRequest req, HTTPServerResponse res)
  	{
         import vibe.data.bson;
+        import std.math : ceil;
+
         immutable suiteName = req.params.get("suite");
         immutable packageKindStr = req.params.get("type");
         PackageKind packageKind;
@@ -60,12 +67,34 @@ class DepcheckWebService {
         else
             return; // Not found
 
-        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
-        auto issues = collIssues.find!DebcheckIssue (["suiteName": Bson(suiteName),
-                                                      "packageKind": Bson(cast(int) packageKind)]);
+        uint currentPage = 0;
+        immutable pageStr = req.params.get("page");
+        if (!pageStr.empty) {
+            try {
+                currentPage = pageStr.to!int;
+            } catch {
+                return; // not an integer, we can't continue
+            }
+        }
 
-        render!("depcheck/issues.dt", ginfo, suiteName, packageKind, packageKindStr, issues);
+        auto query = ["suiteName": Bson(suiteName), "packageKind": Bson(cast(int) packageKind)];
+        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+
+        auto pageCount = ceil (collIssues.count (query).to!real / issuesPerPage.to!real);
+        auto issues = collIssues.find!(DebcheckIssue) (query, null,
+                                                       QueryFlags.None,
+                                                       (currentPage - 1) * issuesPerPage).limit (issuesPerPage);
+
+        render!("depcheck/issues.dt", ginfo,
+                suiteName, packageKind, packageKindStr, issues,
+                pageCount, currentPage);
  	}
+
+    @path(":suite/:type")
+    void getIssueListNoPage (HTTPServerRequest req, HTTPServerResponse res)
+ 	{
+        getIssueList (req, res);
+    }
 
     @path(":suite/:type/:packageName/:packageVersion")
  	void getDependencyIssueDetails (HTTPServerRequest req, HTTPServerResponse res)
