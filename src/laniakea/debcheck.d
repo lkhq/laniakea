@@ -60,6 +60,21 @@ class Debcheck
         repo.setTrusted (true);
     }
 
+    private string getDefaultNativeArch (DistroSuite suite)
+    {
+        import std.algorithm : canFind;
+
+        // determine a default native architecture in case
+        // we are processing arch:all
+        auto defaultNativeArch = "amd64";
+        if (!suite.architectures.canFind (defaultNativeArch))
+            defaultNativeArch = suite.architectures[0];
+
+        if (defaultNativeArch.empty)
+            throw new Exception ("Unable to determine a valid default architecture.");
+        return defaultNativeArch;
+    }
+
     private DoseResult executeDose (const string dose_exe, const string[] args, const string[] files) @trusted
     {
         import std.process;
@@ -108,7 +123,7 @@ class Debcheck
      * ones of the dependencies are added as "background" (bg).
      */
     private Tuple!(string[], "fg", string[], "bg")
-    getFullIndexFileList (DistroSuite suite, string arch, bool sourcePackages, string binArch = "amd64")
+    getFullIndexFileList (DistroSuite suite, string arch, bool sourcePackages, string binArch)
     {
         Tuple!(string[], "fg", string[], "bg") res;
 
@@ -159,9 +174,10 @@ class Debcheck
     {
         string[string] archIssueMap;
 
+        immutable defaultNativeArch = getDefaultNativeArch (suite);
         foreach (ref arch; suite.architectures) {
             // fetch source-package-centric index list
-            auto indices = getFullIndexFileList (suite, arch, true);
+            auto indices = getFullIndexFileList (suite, arch, true, defaultNativeArch);
             if (indices.fg.empty) {
                 if (arch == "all")
                     continue;
@@ -174,7 +190,7 @@ class Debcheck
                              "-f",
                              "--summary",
                              "--deb-emulate-sbuild",
-                             "--deb-native-arch=%s".format (arch)];
+                             "--deb-native-arch=%s".format ((arch == "all")? defaultNativeArch : arch)];
 
             // run builddepcheck
             auto doseResult = executeDose ("dose-builddebcheck", doseArgs, indices.bg ~ indices.fg);
@@ -193,10 +209,12 @@ class Debcheck
     {
         string[string] archIssueMap;
 
+        immutable defaultNativeArch = getDefaultNativeArch (suite);
+
         auto allArchs = suite.architectures ~ ["all"];
         foreach (ref arch; allArchs) {
             // fetch binary-package index list
-            auto indices = getFullIndexFileList (suite, arch, false);
+            auto indices = getFullIndexFileList (suite, arch, false, defaultNativeArch);
             if (indices.fg.empty) {
                 if (arch == "all")
                     continue;
@@ -208,7 +226,7 @@ class Debcheck
                              "-e",
                              "-f",
                              "--summary",
-                             "--deb-native-arch=%s".format (arch)];
+                             "--deb-native-arch=%s".format ((arch == "all")? defaultNativeArch : arch)];
 
             // run builddepcheck
             auto doseResult = executeDose ("dose-debcheck",
