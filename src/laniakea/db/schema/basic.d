@@ -141,6 +141,7 @@ struct DistroSuite
     string name;
     string[] architectures;
     DistroComponent[] components;
+    string baseSuiteName;
 }
 
 /**

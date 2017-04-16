@@ -140,7 +140,7 @@ public:
             foreach (ref cname; componentsList) {
                 DistroComponent c;
                 c.name = cname;
-                if (addMainDep)
+                if (addMainDep && c.name != "main")
                     c.dependencies ~= "main";
                 suite.components ~= c;
             }

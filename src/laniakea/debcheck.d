@@ -20,16 +20,19 @@
 module laniakea.debcheck;
 @safe:
 
-import std.stdio;
-import std.string;
-import std.array : appender;
+import std.string : format;
+import std.array : appender, empty, array;
+import std.algorithm : startsWith, map;
 import std.conv : to;
 import std.path : buildPath;
+import std.typecons : Tuple;
+static import yaml;
 
 import laniakea.db;
 import laniakea.localconfig;
 import laniakea.pkgitems;
 import laniakea.repository;
+import laniakea.logging;
 
 class Debcheck
 {
@@ -57,9 +60,10 @@ class Debcheck
         repo.setTrusted (true);
     }
 
-    private DoseResult executeDose (const string dose_exe, const string[] args) @system
+    private DoseResult executeDose (const string dose_exe, const string[] args, const string[] files) @trusted
     {
         import std.process;
+        import std.stdio;
 
         string getOutput (File f)
         {
@@ -72,24 +76,305 @@ class Debcheck
             return output.data;
         }
 
-        auto doseArgs = [dose_exe] ~ args;
+        auto doseArgs = [dose_exe] ~ args ~ files;
         auto cmd = pipeProcess (doseArgs);
 
-        if (wait (cmd.pid) != 0) {
-            return DoseResult (false, getOutput (cmd.stdout) ~ "\n" ~ getOutput (cmd.stderr));
+        // wait for the command to exit, a non-null exit code indicates errors in
+        // the dependencies of the analyzed packages
+        wait (cmd.pid);
+
+        immutable yamlData = getOutput (cmd.stdout);
+        if (!yamlData.startsWith ("output-version")) {
+            // the output is weird, assume an error
+            return DoseResult (false, yamlData ~ "\n" ~ getOutput (cmd.stderr));
         }
 
-        return DoseResult (true, getOutput (cmd.stdout));
+        return DoseResult (true, yamlData);
     }
 
-    private string getBuildDepCheckYaml (DistroSuite suite)
+    /**
+     * Get a list of index files for the specific suite and architecture,
+     * for all components, as well as all the suites it depends on.
+     *
+     * The actual indices belonging to the suite are added as "foreground" (fg), the
+     * ones of the dependencies are added as "background" (bg).
+     */
+    private Tuple!(string[], "fg", string[], "bg")
+    getFullIndexFileList (DistroSuite suite, string arch, bool sourcePackages, string binArch = "amd64")
     {
-        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+        Tuple!(string[], "fg", string[], "bg") res;
 
         foreach (ref component; suite.components) {
-            immutable indexFname = repo.getIndexFile (suite.name, buildPath (component.name, "source", "Sources.xz"));
+            string fname;
+            if (sourcePackages) {
+                fname = repo.getIndexFile (suite.name, buildPath (component.name, "source", "Sources.xz"));
+                if (!fname.empty)
+                    res.fg ~= fname;
+
+                fname = repo.getIndexFile (suite.name, buildPath (component.name, "binary-%s".format (arch), "Packages.xz"));
+                if (!fname.empty)
+                    res.bg ~= fname;
+            } else {
+                fname = repo.getIndexFile (suite.name, buildPath (component.name, "binary-%s".format (arch), "Packages.xz"));
+                if (!fname.empty)
+                    res.fg ~= fname;
+            }
+
+            if (arch == "all")
+                res.bg ~= repo.getIndexFile (suite.name, buildPath (component.name, "binary-%s".format (binArch), "Packages.xz"));
         }
 
-        return null;
+        // add base suite packages
+        if (!suite.baseSuiteName.empty) {
+            auto baseSuite = db.getSuite (suite.baseSuiteName);
+            if (!baseSuite.isNull) {
+                foreach (ref component; baseSuite.components) {
+                    string fname;
+
+                    fname = repo.getIndexFile (baseSuite.name, buildPath (component.name, "binary-%s".format (arch), "Packages.xz"));
+                    if (!fname.empty)
+                        res.bg ~= fname;
+
+                    if (arch == "all")
+                        res.bg ~= repo.getIndexFile (baseSuite.name, buildPath (component.name, "binary-%s".format (binArch), "Packages.xz"));
+                }
+            }
+        }
+
+        return res;
+    }
+
+    /**
+     * Get Dose YAML data for build dependency issues in the selected suite.
+     */
+    private string[string] getBuildDepCheckYaml (DistroSuite suite)
+    {
+        string[string] archIssueMap;
+
+        foreach (ref arch; suite.architectures) {
+            // fetch source-package-centric index list
+            auto indices = getFullIndexFileList (suite, arch, true);
+            if (indices.fg.empty) {
+                if (arch == "all")
+                    continue;
+                throw new Exception ("Unable to get any indices for %s/%s to check for dependency issues.".format (suite.name, arch));
+            }
+
+            auto doseArgs = ["--quiet",
+                             "--latest=1",
+                             "-e",
+                             "-f",
+                             "--summary",
+                             "--deb-emulate-sbuild",
+                             "--deb-native-arch=%s".format (arch)];
+
+            // run builddepcheck
+            auto doseResult = executeDose ("dose-builddebcheck", doseArgs, indices.bg ~ indices.fg);
+            if (!doseResult.success)
+                throw new Exception ("Unable to run Dose for %s/%s: %s".format (suite.name, arch, doseResult.data));
+            archIssueMap[arch] = doseResult.data;
+        }
+
+        return archIssueMap;
+    }
+
+    /**
+     * Get Dose YAML data for build installability issues in the selected suite.
+     */
+    private string[string] getDepCheckYaml (DistroSuite suite)
+    {
+        string[string] archIssueMap;
+
+        auto allArchs = suite.architectures ~ ["all"];
+        foreach (ref arch; allArchs) {
+            // fetch binary-package index list
+            auto indices = getFullIndexFileList (suite, arch, false);
+            if (indices.fg.empty) {
+                if (arch == "all")
+                    continue;
+                throw new Exception ("Unable to get any indices for %s/%s to check for dependency issues.".format (suite.name, arch));
+            }
+
+            auto doseArgs = ["--quiet",
+                             "--latest=1",
+                             "-e",
+                             "-f",
+                             "--summary",
+                             "--deb-native-arch=%s".format (arch)];
+
+            // run builddepcheck
+            auto doseResult = executeDose ("dose-debcheck",
+                                doseArgs,
+                                indices.bg.map! (f => ("--bg=" ~ f)).array ~
+                                indices.fg.map! (f => ("--fg=" ~ f)).array);
+            if (!doseResult.success)
+                throw new Exception ("Unable to run Dose for %s/%s: %s".format (suite.name, arch, doseResult.data));
+            archIssueMap[arch] = doseResult.data;
+        }
+
+        return archIssueMap;
+    }
+
+    private DebcheckIssue[] doseYamlToDatabaseEntries (string yamlData, string suiteName, string arch) @trusted
+    {
+        auto res = appender!(DebcheckIssue[]);
+
+        void setBasicPackageInfo (T) (ref T v, yaml.Node entry) {
+            if (entry.containsKey ("type") && entry["type"].as!string == "src")
+                v.packageKind = PackageKind.SOURCE;
+            else
+                v.packageKind = PackageKind.BINARY;
+
+            v.packageName = entry["package"].as!string;
+            v.packageVersion = entry["version"].as!string;
+            v.architecture = entry["architecture"].as!string;
+        }
+
+        auto yroot = yaml.Loader.fromString (yamlData.to!(char[])).load ();
+        auto report = yroot["report"];
+        auto archAll = arch == "all";
+
+        foreach (ref yaml.Node entry; report) {
+            DebcheckIssue issue;
+
+            if (!archAll) {
+                // we ignore entries from "all" unless we are explicitly reading information
+                // for that fake architecture.
+                if (entry["architecture"].as!string == "all")
+                    continue;
+            }
+
+            issue.id = newBsonId;
+            issue.date = currentTimeAsBsonDate;
+            issue.suiteName = suiteName;
+
+            setBasicPackageInfo!DebcheckIssue (issue, entry);
+
+            auto reasons = entry["reasons"];
+            foreach (ref yaml.Node reason; reasons) {
+                if (reason.containsKey ("missing")) {
+                    // we have a missing package issue
+                    auto ymissing = reason["missing"]["pkg"];
+                    PackageIssue pkgissue;
+                    setBasicPackageInfo!PackageIssue(pkgissue, ymissing);
+                    pkgissue.unsatDependency = ymissing["unsat-dependency"].as!string;
+
+                    issue.missing ~= pkgissue;
+                } else if (reason.containsKey ("conflict")) {
+                    // we have a comflict in the dependency chain
+                    auto yconflict = reason["conflict"];
+                    PackageConflict conflict;
+
+                    setBasicPackageInfo!PackageIssue(conflict.pkg1, yconflict["pkg1"]);
+                    setBasicPackageInfo!PackageIssue(conflict.pkg2, yconflict["pkg2"]);
+
+                    // parse the depchain
+                    if (yconflict.containsKey ("depchain1")) {
+                        foreach (ref yaml.Node ypkg; yconflict["depchain1"][0]["depchain"]) {
+                            PackageIssue pkgissue;
+                            setBasicPackageInfo!PackageIssue(pkgissue, ypkg);
+                            pkgissue.depends = ypkg["depends"].as!string;
+                            conflict.depchain1 ~= pkgissue;
+                        }
+                    }
+                    if (yconflict.containsKey ("depchain2")) {
+                        foreach (ref yaml.Node ypkg; yconflict["depchain2"][0]["depchain"]) {
+                            PackageIssue pkgissue;
+                            setBasicPackageInfo!PackageIssue(pkgissue, ypkg);
+                            pkgissue.depends = ypkg["depends"].as!string;
+                            conflict.depchain2 ~= pkgissue;
+                        }
+                    }
+
+                    issue.conflicts ~= conflict;
+                } else {
+                    throw new Exception ("Found unknown dependency issue: " ~ reason.to!string);
+                }
+            }
+
+            res ~= issue;
+        }
+
+        return res.data;
+    }
+
+    public bool updateBuildDepCheckIssues (DistroSuite suite) @trusted
+    {
+        import vibe.data.bson;
+        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+
+        auto issuesYaml = getBuildDepCheckYaml (suite);
+        collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.SOURCE)]);
+        foreach (ref arch, ref yamlData; issuesYaml) {
+            auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
+
+            foreach (ref entry; entries)
+                collIssues.insert (entry);
+        }
+
+        return true;
+    }
+
+    public bool updateBuildDepCheckIssues (string suiteName)
+    {
+        return updateBuildDepCheckIssues (db.getSuite (suiteName));
+    }
+
+    public bool updateBuildDepCheckIssues ()
+    {
+        auto bconf = db.getBaseConfig ();
+        foreach (ref suite; bconf.suites) {
+            auto ret = updateBuildDepCheckIssues (suite);
+            if (!ret)
+                return false;
+        }
+        return true;
+    }
+
+    public bool updateDepCheckIssues (DistroSuite suite) @trusted
+    {
+        import vibe.data.bson;
+        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+
+        auto issuesYaml = getDepCheckYaml (suite);
+        foreach (ref arch, ref yamlData; issuesYaml) {
+            auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
+
+            collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.BINARY), "architecture": Bson(arch)]);
+            foreach (ref entry; entries)
+                collIssues.insert (entry);
+        }
+
+        return true;
+    }
+
+    public bool updateDepCheckIssues (string suiteName)
+    {
+        return updateDepCheckIssues (db.getSuite (suiteName));
+    }
+
+    public bool updateDepCheckIssues ()
+    {
+        auto bconf = db.getBaseConfig ();
+        foreach (ref suite; bconf.suites) {
+            auto ret = updateDepCheckIssues (suite);
+            if (!ret)
+                return false;
+        }
+        return true;
+    }
+
+    public auto getBinaryIssuesList (DistroSuite suite, string arch) @trusted
+    {
+        import vibe.data.bson;
+        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+        return collIssues.find (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.BINARY), "architecture": Bson(arch)]);
+    }
+
+    public auto getSourceIssuesList (DistroSuite suite, string arch) @trusted
+    {
+        import vibe.data.bson;
+        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+        return collIssues.find (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.SOURCE)]);
     }
 }

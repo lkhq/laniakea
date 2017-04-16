@@ -73,6 +73,7 @@ base_deps = [crypto_dep,
              ssl_dep,
              archive_dep,
              curl_dep,
+             dyaml_dep,
              vibe_core_dep,
              vibe_data_dep,
              vibe_mongo_dep]
@@ -117,8 +118,7 @@ spears_exe = executable ('spears',
      spears_src],
     include_directories: [src_dir],
     link_with: [laniakea_lib],
-    dependencies: [base_deps,
-                   dyaml_dep],
+    dependencies: [base_deps],
     install: true,
     install_dir: 'lib/laniakea/'
 )
@@ -126,6 +126,15 @@ spears_exe = executable ('spears',
 eggshell_exe = executable ('eggshell',
     ['src/eggshell/app.d',
      eggshell_src],
+    include_directories: [src_dir],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
+    install: true,
+    install_dir: 'lib/laniakea/'
+)
+
+debcheck_exe = executable ('debcheck',
+    ['src/debcheck/app.d'],
     include_directories: [src_dir],
     link_with: [laniakea_lib],
     dependencies: [base_deps],

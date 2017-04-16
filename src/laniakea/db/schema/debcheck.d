@@ -24,6 +24,7 @@ import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
 
 enum PackageKind {
+    UNKNOWN,
     SOURCE,
     BINARY
 }
@@ -31,10 +32,11 @@ enum PackageKind {
 /**
  * Information about the package issue reason.
  **/
-struct PackageInfo {
+struct PackageIssue {
+    PackageKind packageKind;
     string packageName;
     string packageVersion;
-    PackageKind packageKind;
+    string architecture;
 
     string depends;
     string unsatDependency;
@@ -44,12 +46,12 @@ struct PackageInfo {
 /**
  * Information about the conflicting packages issue reason.
  */
-struct ConflictInfo {
-    PackageInfo pkg1;
-    PackageInfo pkg2;
+struct PackageConflict {
+    PackageIssue pkg1;
+    PackageIssue pkg2;
 
-    PackageInfo[] depchain1;
-    PackageInfo[] depchain2;
+    PackageIssue[] depchain1;
+    PackageIssue[] depchain2;
 }
 
 /**
@@ -61,11 +63,11 @@ struct DebcheckIssue {
     BsonDate date;        /// Time when this excuse was created
 
     PackageKind packageKind; /// Kind of the examined package
-
+    string suiteName;
     string packageName;
     string packageVersion;
     string architecture;
 
-    PackageInfo[] missing;
-    ConflictInfo[] conflict;
+    PackageIssue[] missing;
+    PackageConflict[] conflicts;
 }
