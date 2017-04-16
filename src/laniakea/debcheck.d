@@ -80,10 +80,18 @@ class Debcheck
         auto cmd = pipeProcess (doseArgs);
 
         // wait for the command to exit, a non-null exit code indicates errors in
-        // the dependencies of the analyzed packages
-        wait (cmd.pid);
+        // the dependencies of the analyzed packages.
+        // Read stdout continuously
+        auto doseStdout = appender!string;
+        while (!tryWait (cmd.pid).terminated) {
+            char[1024] buf;
+            while (!cmd.stdout.eof) {
+                auto res = cmd.stdout.rawRead (buf);
+                doseStdout ~= res;
+            }
+        }
 
-        immutable yamlData = getOutput (cmd.stdout);
+        immutable yamlData = doseStdout.data;
         if (!yamlData.startsWith ("output-version")) {
             // the output is weird, assume an error
             return DoseResult (false, yamlData ~ "\n" ~ getOutput (cmd.stderr));
