@@ -11,9 +11,9 @@ block contents
     - import std.algorithm : map;
 
     ul.nav.nav-tabs
-        li(role='presentation', class='#\{ (packageKind == PackageKind.BINARY)? "active" : "" \}')
+        li(role='presentation', class='#{ (packageKind == PackageKind.BINARY)? "active" : "" }')
             a(href='binary/') Binary Packages
-        li(role='presentation', class='#\{ (packageKind == PackageKind.SOURCE)? "active" : "" \}')
+        li(role='presentation', class='#{ (packageKind == PackageKind.SOURCE)? "active" : "" }')
             a(href='source/') Source Packages
 
     br
@@ -39,15 +39,15 @@ block contents
             nav(aria-label='Page navigation')
                 ul.pagination
                     li(class='#{(currentPage == 1)? "disabled" : ""}')
-                        a(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
+                        a(href='#{(currentPage == 1)? "#" : packageKindStr ~ "/" ~ (currentPage - 1).to!string}', aria-label='Previous')
                             span(aria-hidden='true') &laquo;
                     - for (uint i = 1; i <= pageCount; i++)
                         - if (i == currentPage)
                             li.active
-                                a(href='#{i}')= i
+                                a(href='#{packageKindStr}/#{i}')= i
                         - else
                             li
-                                a(href='#{i}')= i
+                                a(href='#{packageKindStr}/#{i}')= i
                     li(class='#{(currentPage >= pageCount)? "disabled" : ""}')
-                        a(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
+                        a(href='#{(currentPage >= pageCount)? "#" : packageKindStr ~ "/" ~ (currentPage + 1).to!string}', aria-label='Next')
                             span(aria-hidden='true') &raquo;
