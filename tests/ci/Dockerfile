@@ -15,6 +15,7 @@ RUN apt-get install -yq --no-install-recommends \
     meson \
     libssl-dev \
     libcurl4-gnutls-dev \
+    libczmq-dev \
     libarchive-dev
 
 # install vibe.d
