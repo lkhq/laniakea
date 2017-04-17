@@ -4,6 +4,7 @@ source_root = meson.source_root()
 
 laniakea_lib_src = [
     'src/c/libarchive.d',
+    'src/c/zmq.d',
     'src/laniakea/localconfig.d',
     'src/laniakea/compressed.d',
     'src/laniakea/debcheck.d',
@@ -59,6 +60,7 @@ crypto_dep = dependency('libcrypto')
 ssl_dep = dependency('libssl')
 archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
+zmq_dep = dependency('libzmq')
 dyaml_dep = dependency('dyaml')
 
 # Vibe
@@ -73,6 +75,7 @@ base_deps = [crypto_dep,
              ssl_dep,
              archive_dep,
              curl_dep,
+             zmq_dep,
              dyaml_dep,
              vibe_core_dep,
              vibe_data_dep,
