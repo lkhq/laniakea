@@ -20,10 +20,13 @@
 module web.spearsweb;
 
 import std.exception : enforce;
+import std.conv : to;
+import std.array : empty;
 import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
+import vibe.db.mongo.mongo;
 import vibe.web.web;
 
 import laniakea.db;
@@ -37,6 +40,8 @@ class SpearsWebService {
     private {
         WebConfig wconf;
         Database db;
+
+        immutable excusesPerPage = 50;
  	}
 
     this (WebConfig conf)
@@ -46,16 +51,41 @@ class SpearsWebService {
         ginfo = wconf.ginfo;
     }
 
-    @path(":from/:to/excuses")
+    @path(":from/:to/excuses/:page")
  	void getMigrationExcuses (HTTPServerRequest req, HTTPServerResponse res)
  	{
+        import std.math : ceil;
         immutable sourceSuite = req.params["from"];
         immutable targetSuite = req.params["to"];
 
-        auto collExcuses = db.getCollection ("spears.excuses");
-        auto excuses = collExcuses.find!SpearsExcuse (["sourceSuite": sourceSuite, "targetSuite": targetSuite]);
-        render!("migration/excuses.dt", ginfo, sourceSuite, targetSuite, excuses);
+        uint currentPage = 1;
+        immutable pageStr = req.params.get("page");
+        if (!pageStr.empty) {
+            try {
+                currentPage = pageStr.to!int;
+            } catch {
+                return; // not an integer, we can't continue
+            }
+        }
+
+        auto query = ["sourceSuite": sourceSuite, "targetSuite": targetSuite];
+        auto collExcuses = db.getCollection! (LkModule.SPEARS, "excuses");
+
+        auto pageCount = ceil (collExcuses.count (query).to!real / excusesPerPage.to!real);
+        auto excuses = collExcuses.find!SpearsExcuse (query, null,
+                                                     QueryFlags.None,
+                                                     (currentPage - 1) * excusesPerPage).limit (excusesPerPage);
+
+        render!("migration/excuses.dt", ginfo,
+                currentPage, pageCount,
+                sourceSuite, targetSuite, excuses);
  	}
+
+    @path(":from/:to/excuses")
+ 	void getMigrationExcusesPageOne (HTTPServerRequest req, HTTPServerResponse res)
+ 	{
+        res.redirect ("excuses/1");
+    }
 
     @path(":from/:to/excuses/:source/:version")
     void getMigrationExcuseDetails (HTTPServerRequest req, HTTPServerResponse res)

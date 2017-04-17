@@ -25,8 +25,25 @@ block contents
                     - auto hlClass = "";
                     - if (!entry.isCandidate)
                         - hlClass = "list-group-item-warning";
-                    a.list-group-item(class='#{hlClass}', href='excuses/#{entry.sourcePackage}/#{entry.newVersion}')
+                    a.list-group-item(class='#{hlClass}', href='#{entry.sourcePackage}/#{entry.newVersion}')
                         h4.list-group-item-heading= entry.sourcePackage
                         p.list-group-item-text #{entry.oldVersion}
                             font.fa.fa-long-arrow-right
                             | #{entry.newVersion}
+
+
+    nav(aria-label='Page navigation')
+        ul.pagination
+            li(class='#{(currentPage == 1)? "disabled" : ""}')
+                a(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
+                    span(aria-hidden='true') &laquo;
+            - for (uint i = 1; i <= pageCount; i++)
+                - if (i == currentPage)
+                    li.active
+                        a(href='#{i}')= i
+                - else
+                    li
+                        a(href='#{i}')= i
+            li(class='#{(currentPage >= pageCount)? "disabled" : ""}')
+                a(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
+                    span(aria-hidden='true') &raquo;

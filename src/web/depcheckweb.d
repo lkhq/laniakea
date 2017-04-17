@@ -40,9 +40,9 @@ class DepcheckWebService {
     private {
         WebConfig wconf;
         Database db;
- 	}
 
-    immutable issuesPerPage = 100;
+        immutable issuesPerPage = 50;
+ 	}
 
     this (WebConfig conf)
     {
@@ -86,14 +86,14 @@ class DepcheckWebService {
                                                        (currentPage - 1) * issuesPerPage).limit (issuesPerPage);
 
         render!("depcheck/issues.dt", ginfo,
-                suiteName, packageKind, packageKindStr, issues,
+                suiteName, packageKind, issues,
                 pageCount, currentPage);
  	}
 
     @path(":suite/:type")
-    void getIssueListNoPage (HTTPServerRequest req, HTTPServerResponse res)
+    void getIssueListPageOne (HTTPServerRequest req, HTTPServerResponse res)
  	{
-        getIssueList (req, res);
+        res.redirect (req.params["type"] ~ "/1");
     }
 
     @path(":suite/:type/:packageName/:packageVersion")
