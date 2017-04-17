@@ -81,9 +81,12 @@ class DepcheckWebService {
         auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
 
         auto pageCount = ceil (collIssues.count (query).to!real / issuesPerPage.to!real);
-        auto issues = collIssues.find!(DebcheckIssue) (query, null,
+        static struct Order { int packageName; }
+        auto issues = collIssues.find!DebcheckIssue (query, null,
                                                        QueryFlags.None,
-                                                       (currentPage - 1) * issuesPerPage).limit (issuesPerPage);
+                                                       (currentPage - 1) * issuesPerPage)
+                                                       .limit (issuesPerPage)
+                                                       .sort(Order(1));
 
         render!("depcheck/issues.dt", ginfo,
                 suiteName, packageKind, issues,
