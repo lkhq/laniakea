@@ -12,9 +12,9 @@ block contents
 
     ul.nav.nav-tabs
         li(role='presentation', class='#{ (packageKind == PackageKind.BINARY)? "active" : "" }')
-            a(href='binary/') Binary Packages
+            a(href='binary') Binary Packages
         li(role='presentation', class='#{ (packageKind == PackageKind.SOURCE)? "active" : "" }')
-            a(href='source/') Source Packages
+            a(href='source') Source Packages
 
     br
 
