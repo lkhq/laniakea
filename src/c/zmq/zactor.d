@@ -24,7 +24,7 @@ extern (C):
 alias zactor_fn = void function (zsock_t* pipe, void* args);
 
 //  Create a new actor passing arbitrary arguments reference.
-zactor_t* zactor_new (void function () task, void* args);
+zactor_t* zactor_new (zactor_fn task, void* args);
 
 //  Destroy an actor.
 void zactor_destroy (zactor_t** self_p);
