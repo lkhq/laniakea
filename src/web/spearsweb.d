@@ -41,7 +41,7 @@ class SpearsWebService {
         WebConfig wconf;
         Database db;
 
-        immutable excusesPerPage = 50;
+        immutable excusesPerPage = 100;
  	}
 
     this (WebConfig conf)

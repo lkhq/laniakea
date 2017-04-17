@@ -41,7 +41,7 @@ class DepcheckWebService {
         WebConfig wconf;
         Database db;
 
-        immutable issuesPerPage = 50;
+        immutable issuesPerPage = 100;
  	}
 
     this (WebConfig conf)
