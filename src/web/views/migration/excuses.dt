@@ -21,7 +21,7 @@ block contents
                     |  No package is stuck in the migration process. Good job!
 
             .list-group
-                - foreach (entry; excuses)
+                - foreach (ref entry; excuses)
                     - auto hlClass = "";
                     - if (!entry.isCandidate)
                         - hlClass = "list-group-item-warning";

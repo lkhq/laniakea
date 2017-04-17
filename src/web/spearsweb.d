@@ -55,6 +55,7 @@ class SpearsWebService {
  	void getMigrationExcuses (HTTPServerRequest req, HTTPServerResponse res)
  	{
         import std.math : ceil;
+        import std.range : take;
         immutable sourceSuite = req.params["from"];
         immutable targetSuite = req.params["to"];
 
@@ -68,13 +69,17 @@ class SpearsWebService {
             }
         }
 
-        auto query = ["sourceSuite": sourceSuite, "targetSuite": targetSuite];
         auto collExcuses = db.getCollection! (LkModule.SPEARS, "excuses");
+        auto query = ["sourceSuite": sourceSuite, "targetSuite": targetSuite];
 
         auto pageCount = ceil (collExcuses.count (query).to!real / excusesPerPage.to!real);
-        auto excuses = collExcuses.find!SpearsExcuse (query, null,
-                                                     QueryFlags.None,
-                                                     (currentPage - 1) * excusesPerPage).limit (excusesPerPage);
+        auto excusesC = collExcuses.find!SpearsExcuse (query, null,
+                                                      QueryFlags.None,
+                                                      (currentPage - 1) * excusesPerPage).limit (excusesPerPage);
+
+        // FIXME: Workaround, for some reason .limit () does not work here on MongoDB, could
+        // be a bug in Mongo or Vibe.d (this exact same code works in DepcheckWeb, surprisingly...)
+        auto excuses = excusesC.take (excusesPerPage);
 
         render!("migration/excuses.dt", ginfo,
                 currentPage, pageCount,
