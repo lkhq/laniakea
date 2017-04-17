@@ -248,6 +248,8 @@ public:
     private bool updateDatabase (string miWorkspace, DistroSuite fromSuite, DistroSuite toSuite)
     {
         import std.file : exists;
+        import std.typecons : tuple;
+
         immutable excusesYaml = buildPath (miWorkspace, "output", "target", "excuses.yaml");
         immutable logFile = buildPath (miWorkspace, "output", "target", "output.txt");
 
@@ -258,6 +260,8 @@ public:
 
         auto efile = new ExcusesFile (excusesYaml, logFile, fromSuite.name, toSuite.name);
         auto collExcuses = db.getCollection! (LkModule.SPEARS, "excuses");
+        collExcuses.ensureIndex ([tuple("sourcePackage", 1)]);
+
         // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
         // day, it needs to be optimized to just update stuff that is needed.
         collExcuses.remove (["sourceSuite": fromSuite.name, "targetSuite": toSuite.name]);

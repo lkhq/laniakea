@@ -332,7 +332,10 @@ class Debcheck
     public bool updateBuildDepCheckIssues (DistroSuite suite) @trusted
     {
         import vibe.data.bson;
+        import std.typecons : tuple;
+
         auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+        collIssues.ensureIndex ([tuple("packageName", 1)]);
 
         auto issuesYaml = getBuildDepCheckYaml (suite);
         collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.SOURCE)]);
@@ -365,7 +368,10 @@ class Debcheck
     public bool updateDepCheckIssues (DistroSuite suite) @trusted
     {
         import vibe.data.bson;
+        import std.typecons : tuple;
+
         auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+        collIssues.ensureIndex ([tuple("packageName", 1)]);
 
         auto issuesYaml = getDepCheckYaml (suite);
         foreach (ref arch, ref yamlData; issuesYaml) {
