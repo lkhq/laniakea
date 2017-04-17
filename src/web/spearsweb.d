@@ -77,8 +77,8 @@ class SpearsWebService {
         auto excusesC = collExcuses.find!SpearsExcuse (query, null,
                                                       QueryFlags.None,
                                                       (currentPage - 1) * excusesPerPage)
-                                                      .limit (excusesPerPage);
-                                                    //  .sort(Order(1));
+                                                      .limit (excusesPerPage)
+                                                      .sort(Order(1));
 
         // FIXME: Workaround, for some reason .limit () does not work here on MongoDB, could
         // be a bug in Mongo or Vibe.d (this exact same code works in DepcheckWeb, surprisingly...)
