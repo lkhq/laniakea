@@ -2,9 +2,46 @@ project('Laniakea', 'd')
 
 source_root = meson.source_root()
 
-laniakea_lib_src = [
+cbind_src = [
     'src/c/libarchive.d',
-    'src/c/zmq.d',
+    'src/c/zmq/zframe.d',
+    'src/c/zmq/zclock.d',
+    'src/c/zmq/zgossip.d',
+    'src/c/zmq/zstr.d',
+    'src/c/zmq/zloop.d',
+    'src/c/zmq/zhashx.d',
+    'src/c/zmq/zcertstore.d',
+    'src/c/zmq/zlistx.d',
+    'src/c/zmq/zsock.d',
+    'src/c/zmq/czmq_library.d',
+    'src/c/zmq/czmq_prelude.d',
+    'src/c/zmq/zproxy.d',
+    'src/c/zmq/zrex.d',
+    'src/c/zmq/czmq.d',
+    'src/c/zmq/zchunk.d',
+    'src/c/zmq/zmsg.d',
+    'src/c/zmq/zcert.d',
+    'src/c/zmq/zarmour.d',
+    'src/c/zmq/zhash.d',
+    'src/c/zmq/zsys.d',
+    'src/c/zmq/zdigest.d',
+    'src/c/zmq/zauth.d',
+    'src/c/zmq/zfile.d',
+    'src/c/zmq/zdir_patch.d',
+    'src/c/zmq/zmonitor.d',
+    'src/c/zmq/ziflist.d',
+    'src/c/zmq/zbeacon.d',
+    'src/c/zmq/zlist.d',
+    'src/c/zmq/zmq.d',
+    'src/c/zmq/package.d',
+    'src/c/zmq/zpoller.d',
+    'src/c/zmq/zuuid.d',
+    'src/c/zmq/zactor.d',
+    'src/c/zmq/zconfig.d',
+    'src/c/zmq/zdir.d'
+]
+
+laniakea_lib_src = [
     'src/laniakea/localconfig.d',
     'src/laniakea/compressed.d',
     'src/laniakea/debcheck.d',
@@ -60,7 +97,7 @@ crypto_dep = dependency('libcrypto')
 ssl_dep = dependency('libssl')
 archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
-zmq_dep = dependency('libzmq')
+czmq_dep = dependency('libczmq')
 dyaml_dep = dependency('dyaml')
 
 # Vibe
@@ -75,15 +112,22 @@ base_deps = [crypto_dep,
              ssl_dep,
              archive_dep,
              curl_dep,
-             zmq_dep,
+             czmq_dep,
              dyaml_dep,
              vibe_core_dep,
              vibe_data_dep,
              vibe_mongo_dep]
 
+cbindings_lib = static_library ('lkcbind',
+    [cbind_src],
+    include_directories: [src_dir],
+    dependencies: [base_deps]
+)
+
 laniakea_lib = static_library ('laniakea',
     [laniakea_lib_src],
     include_directories: [src_dir],
+    link_with: [cbindings_lib],
     dependencies: [base_deps]
 )
 
@@ -179,6 +223,7 @@ main_test_exe = executable ('main_test',
      spears_src,
      eggshell_src],
     include_directories: [src_dir, tests_src_dir],
+    link_with: [cbindings_lib],
     dependencies: [base_deps, dyaml_dep],
     build_by_default: false,
     d_args: meson.get_compiler('d').unittest_args()
