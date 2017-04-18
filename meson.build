@@ -74,6 +74,10 @@ lkadmin_src = [
     'src/admin/admintool.d'
 ]
 
+keytool_src = [
+    'src/keytool/zcurveutils.d'
+]
+
 cthulhu_src = []
 
 frontend_src = ['src/frontend/source/app.d']
@@ -134,6 +138,16 @@ laniakea_lib = static_library ('laniakea',
 lkadmin_exe = executable ('lk-admin',
     ['src/admin/app.d',
      lkadmin_src],
+    include_directories: [src_dir],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
+    install: true,
+    install_dir : 'bin/'
+)
+
+keytool_exe = executable ('lk-keytool',
+    ['src/keytool/app.d',
+     keytool_src],
     include_directories: [src_dir],
     link_with: [laniakea_lib],
     dependencies: [base_deps],
