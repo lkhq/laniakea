@@ -32,6 +32,7 @@ enum LkModule
 {
     UNKNOWN     = "",
     BASE        = "base",        /// The Laniakea base platform
+    LIGHTHOUSE  = "lighthouse",  /// Message relay station
     SYNCHROTRON = "synchrotron", /// Syncs packages from a source distribution
     SPEARS      = "spears",      /// Automatic package migration
     EGGSHELL    = "eggshell",    /// Interface to Germinate, a metapackage / default-package-selection generator

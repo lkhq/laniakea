@@ -78,6 +78,8 @@ keytool_src = [
     'src/keytool/zcurveutils.d'
 ]
 
+lighthouse_src = []
+
 cthulhu_src = []
 
 frontend_src = ['src/frontend/source/app.d']
@@ -133,6 +135,16 @@ laniakea_lib = static_library ('laniakea',
     include_directories: [src_dir],
     link_with: [cbindings_lib],
     dependencies: [base_deps]
+)
+
+lighthouse_exe = executable ('lighthouse',
+    ['src/lighthouse/app.d',
+     lighthouse_src],
+    include_directories: [src_dir],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
+    install: true,
+    install_dir: 'lib/laniakea/'
 )
 
 lkadmin_exe = executable ('lk-admin',

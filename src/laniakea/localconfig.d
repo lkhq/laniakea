@@ -93,7 +93,11 @@ final class LocalConfig
         return instance_;
     }
 
-    private bool loaded;
+    private this () { currentModule = LkModule.UNKNOWN; }
+
+    private {
+        bool loaded;
+    }
 
     // Public properties
     string cacheDir;
@@ -105,9 +109,10 @@ final class LocalConfig
     LocalArchiveDetails archive;
     LocalSynchrotronConfig synchrotron;
 
-    LkModule currentModule;
+    string curveCertsDir;
+    string trustedCurveCertsDir;
 
-    private this () { currentModule = LkModule.UNKNOWN; }
+    LkModule currentModule;
 
     void init (LkModule mod)
     {
@@ -120,6 +125,8 @@ final class LocalConfig
     body
     {
         init (mod);
+
+        immutable configDir = fname.dirName;
 
         // read the configuration JSON file
         auto f = File (fname, "r");
@@ -160,6 +167,9 @@ final class LocalConfig
                 synchrotron.sourceKeyrings = findFilesBySuffix (syncConf["SourceKeyringDir"].str, ".gpg");
             }
         }
+
+        curveCertsDir = buildPath (configDir, "keys", "curve");
+        trustedCurveCertsDir = buildPath (curveCertsDir, "trusted");
 
         loaded = true;
     }
