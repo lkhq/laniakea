@@ -112,6 +112,45 @@ void main (string[] args)
             // create our new certificate
             createSavePrintCertificate (k_name, k_email, k_organization, args[2]);
             break;
+
+        case "install-service-cert":
+            bool force = false;
+            try {
+                getopt (args,
+                    "force", &force);
+            } catch (Exception e) {
+                writeln ("Unable to parse parameters: ", e.msg);
+                exit (1);
+            }
+
+            if (args.length != 3) {
+                writeln ("Invalid number of arguments: A filename to the secret cert file is required.");
+                exit (1);
+            }
+
+            if (!installServiceCert (args[2], force))
+                exit (2);
+            break;
+
+        case "install-client-cert":
+            bool force = false;
+            try {
+                getopt (args,
+                    "force", &force);
+            } catch (Exception e) {
+                writeln ("Unable to parse parameters: ", e.msg);
+                exit (1);
+            }
+
+            if (args.length != 3) {
+                writeln ("Invalid number of arguments: A filename to the public cert file is required.");
+                exit (1);
+            }
+
+            if (!installTrustedCert (args[2], force))
+                exit (2);
+            break;
+
         default:
             writeln ("The command '%s' is unknown.".format (command));
             exit (1);

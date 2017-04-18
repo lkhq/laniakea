@@ -109,7 +109,7 @@ final class LocalConfig
     LocalArchiveDetails archive;
     LocalSynchrotronConfig synchrotron;
 
-    string curveCertsDir;
+    string serviceCurveCertFname;
     string trustedCurveCertsDir;
 
     LkModule currentModule;
@@ -168,8 +168,9 @@ final class LocalConfig
             }
         }
 
-        curveCertsDir = buildPath (configDir, "keys", "curve");
+        immutable curveCertsDir = buildPath (configDir, "keys", "curve");
         trustedCurveCertsDir = buildPath (curveCertsDir, "trusted");
+        serviceCurveCertFname = buildPath (curveCertsDir, "service_private.sec");
 
         loaded = true;
     }

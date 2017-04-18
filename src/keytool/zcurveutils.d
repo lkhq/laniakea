@@ -22,6 +22,11 @@ import c.zmq.zclock;
 import std.string : toStringz, fromStringz, format;
 import std.array : empty;
 import core.stdc.stdlib : free;
+import std.stdio : writeln, writefln;
+
+import core.sys.posix.sys.stat : chmod;
+
+import laniakea.localconfig;
 
 /**
  * Create a new ZeroMQ ZAP curve certificate with the given details.
@@ -31,6 +36,11 @@ public auto newCertWithDetails (string name, string email, string organization)
     auto cert = zcert_new ();
     auto timestr = zclock_timestr ();
     scope(exit) free (timestr);
+
+    zcert_set_meta (cert, "name".toStringz, name.toStringz);
+    zcert_set_meta (cert, "email".toStringz, email.toStringz);
+    if (!organization.empty)
+        zcert_set_meta (cert, "organization".toStringz, organization.toStringz);
 
     zcert_set_meta (cert, "created-by".toStringz, "Laniakea Keytool".toStringz);
     zcert_set_meta (cert, "date-created".toStringz, "%s".toStringz, timestr);
@@ -69,4 +79,69 @@ public void createSavePrintCertificate (string name, string email, string organi
     saveCert (cert, base_fname);
 
     writeln ("Created new certificate with public key: %s".format (zcert_public_txt (cert).fromStringz));
+}
+
+/**
+ * Install a certificate for the current machine/service to use for encrypted
+ * communication.
+ */
+public bool installServiceCert (string fname, bool force = false)
+{
+    import std.file : exists, mkdirRecurse;
+    import std.path : dirName;
+    import std.conv : octal;
+
+    auto localConf = LocalConfig.get;
+    if (localConf.serviceCurveCertFname.exists && !force) {
+        writeln ("This machine already has a curve private key installed for encryption. Specify --force to override it.");
+        return false;
+    }
+
+    auto cert = zcert_load (fname.toStringz);
+    scope(exit) zcert_destroy (&cert);
+
+    mkdirRecurse (localConf.serviceCurveCertFname.dirName);
+    auto r = zcert_save_secret (cert, localConf.serviceCurveCertFname.toStringz);
+    if (r != 0) {
+        writefln ("Unable to install certificate (%s).", r);
+        return false;
+    } else {
+        // FIXME: We actually want the Laniakea service own this, instead of just granting the whole
+        // machine read access. The keyutil needs to grow a method to specify groups to have access to
+        // the key explicitly.
+        chmod (localConf.serviceCurveCertFname.toStringz, octal!644);
+    }
+
+    writefln ("Installed as '%s'.", localConf.serviceCurveCertFname);
+    return true;
+}
+
+/**
+ * Install certificate file into the directory of trusted certificates.
+ */
+public bool installTrustedCert (string fname, bool force = false)
+{
+    import std.file : exists, mkdirRecurse, copy;
+    import std.path : baseName, buildPath;
+    import std.conv : octal;
+    import std.typecons : Yes;
+
+    auto localConf = LocalConfig.get;
+
+    immutable targetFname = buildPath (localConf.trustedCurveCertsDir, fname.baseName);
+    if (targetFname.exists && !force) {
+        writeln ("This client certificate already exists in the trusted keyring. Specify --force to override it.");
+        return false;
+    }
+
+    mkdirRecurse (localConf.trustedCurveCertsDir);
+    copy (fname, targetFname, Yes.preserveAttributes);
+
+    // FIXME: We actually want the Laniakea service own this, instead of just granting the whole
+    // machine read access. The keyutil needs to grow a method to specify groups to have access to
+    // the key explicitly.
+    chmod (localConf.serviceCurveCertFname.toStringz, octal!644);
+
+    writefln ("Installed as '%s'.", targetFname);
+    return true;
 }
