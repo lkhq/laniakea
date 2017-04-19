@@ -80,7 +80,3 @@ void zstr_test (bool verbose);
 //  waiting, or if the context was terminated. Use zctx_interrupted to exit
 //  any loop that relies on this method.
 char* zstr_recv_nowait (void* source);
-
-//  Compiler hints
-int zstr_sendf (void* dest, const(char)* format, ...);
-

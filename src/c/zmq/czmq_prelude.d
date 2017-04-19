@@ -14,6 +14,7 @@
 import core.sys.posix.netinet.in_;
 
 public import c.zmq.czmq_library;
+import core.stdc.stdlib : RAND_MAX, rand;
 
 extern (C):
 
@@ -63,7 +64,7 @@ extern (D) auto strneq(T0, T1)(auto ref T0 s1, auto ref T1 s2)
 
 extern (D) auto randof(T)(auto ref T num)
 {
-    return cast(int) cast(float) num * (random() % RAND_MAX) / (RAND_MAX + 1.0);
+    return cast(int) cast(float) num * (rand() % RAND_MAX) / (RAND_MAX + 1.0);
 }
 
 // Windows MSVS doesn't have stdbool
