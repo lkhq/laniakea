@@ -29,7 +29,7 @@ block contents
                     li.list-group-item
                         h4.list-group-item-heading= pkg.unsatDependency
                         p.list-group-item-text
-                        | Package: #{pkg.packageName}
+                        | Required by: #{pkg.packageName}
                         br
                         | Version: #{pkg.packageVersion}
                         br
