@@ -24,6 +24,7 @@ import core.stdc.stdlib : exit;
 
 import laniakea.localconfig;
 import laniakea.logging;
+import lighthouse.server;
 
 
 private immutable helpText =
@@ -67,11 +68,6 @@ void main (string[] args)
         return;
     }
 
-    if (args.length < 2) {
-        writeln ("No subcommand specified!");
-        return;
-    }
-
     auto conf = LocalConfig.get;
     try {
         conf.load (LkModule.LIGHTHOUSE);
@@ -85,4 +81,6 @@ void main (string[] args)
         laniakea.logging.setVerbose (true);
     }
 
+    // start handling requests
+    runServer ();
 }

@@ -78,7 +78,11 @@ keytool_src = [
     'src/keytool/zcurveutils.d'
 ]
 
-lighthouse_src = []
+lighthouse_src = [
+    'src/lighthouse/server.d',
+    'src/lighthouse/utils.d',
+    'src/lighthouse/worker.d'
+]
 
 cthulhu_src = []
 
