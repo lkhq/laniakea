@@ -27,6 +27,7 @@ import std.array : appender, Appender;
 import std.conv : to;
 static import std.file;
 
+import laniakea.db.schema;
 import laniakea.logging;
 import laniakea.pkgitems;
 
@@ -40,6 +41,7 @@ private:
     immutable string baseDir;
 
     Appender!(string[]) contents;
+    Appender!(string[]) hintContents;
 
     bool pathsSet;
     bool componentsSet;
@@ -69,6 +71,9 @@ public:
         // (presumably) rarely changes.  Examples include "constraints".
         contents ~= "STATIC_INPUT_DIR = input/";
         contents ~= "HINTSDIR         = input/hints";
+
+        // allow Laniakea to set all hint types
+        contents ~= "HINTS_LANIAKEA   = ALL";
 
         // directory for input files that Britney will update herself
         // (e.g. aging information) or will need regular updates
@@ -163,14 +168,33 @@ public:
         delaysSet = true;
     }
 
+    void setHints (SpearsHint[] hints)
+    {
+        import std.array : replace;
+
+        hintContents.clear ();
+        hintContents ~= "##";
+        hintContents ~= "# Britney hints file for Laniakea";
+        hintContents ~= "# This file is managed automatically *DO NOT* edit it manually.";
+        hintContents ~= "##";
+        hintContents ~= "";
+
+        foreach (ref hint; hints) {
+            hintContents ~= "# " ~ hint.reason.replace ("\n", "\n# ");
+            hintContents ~= hint.hint;
+            hintContents ~= "";
+        }
+    }
+
     void save () @trusted
     {
         import std.stdio;
 
         // ensure essential directories exist
+        immutable hintsDir = buildPath (baseDir, "input", "hints");
         std.file.mkdirRecurse (buildPath (baseDir, "output", "target"));
-        std.file.mkdirRecurse (buildPath (baseDir, "input", "hints"));
         std.file.mkdirRecurse (buildPath (baseDir, "state"));
+        std.file.mkdirRecurse (hintsDir);
 
         // ensure essential settings are set (assert, only in debug mode!)
         assert (pathsSet);
@@ -189,9 +213,17 @@ public:
         immutable confFname = buildPath (baseDir, "britney.conf");
         logDebug ("Saving Britney config to '%s'", confFname);
 
-        auto f = File (confFname, "w");
+        auto cf = File (confFname, "w");
         foreach (ref line; contents.data) {
-            f.writeln (line);
+            cf.writeln (line);
+        }
+
+        if (!hintContents.data.empty) {
+            immutable hintsFname = buildPath (hintsDir, "laniakea");
+            auto hf = File (hintsFname, "w");
+            foreach (ref line; hintContents.data) {
+                hf.writeln (line);
+            }
         }
     }
 

@@ -125,6 +125,7 @@ public:
             bc.setComponents (map!(c => c.name)(toSuite.components).array);
             bc.setArchitectures (toSuite.architectures);
             bc.setDelays (mentry.delays);
+            bc.setHints (mentry.hints);
 
             bc.save ();
         }
