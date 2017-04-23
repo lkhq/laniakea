@@ -26,8 +26,22 @@ import vibe.data.serialization : name;
 import laniakea.db.schema.basic : LkModule;
 import laniakea.pkgitems : VersionPriority;
 
+
 /**
- * Configuration specific for the spears tool.
+ * User-defined hints for Britney.
+ */
+struct SpearsHint
+{
+    BsonDate date;
+
+    string hint;
+    string reason;
+
+    string user;
+}
+
+/**
+ * Configuration specific for the Spears tool.
  */
 struct SpearsConfigEntry
 {
@@ -35,6 +49,7 @@ struct SpearsConfigEntry
     string targetSuite; /// Name of the suite packages migrate to
 
     uint[VersionPriority] delays;
+    SpearsHint[] hints;
 }
 
 /**

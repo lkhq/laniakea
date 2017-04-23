@@ -209,6 +209,20 @@ private void processSpearsCommands (AdminTool tool, string[] args)
         case "dump":
             tool.spearsDumpConfig ();
             break;
+        case "add-hint":
+            if (args.length < 7) {
+                writeln ("Invalid number of parameters: You need to specify a source-suite, a target-suite, a hint and a hint-reason.");
+                exit (1);
+            }
+            tool.spearsAddHint (args[3], args[4], args[5], args[6]);
+            break;
+        case "remove-hint":
+            if (args.length < 6) {
+                writeln ("Invalid number of parameters: You need to specify a hint to remove.");
+                exit (1);
+            }
+            tool.spearsRemoveHint (args[3], args[4], args[5]);
+            break;
         default:
             writeln ("The command '%s' is unknown.".format (command));
             exit (1);

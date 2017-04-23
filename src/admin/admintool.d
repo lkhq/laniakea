@@ -19,7 +19,7 @@
 
 module admin.admintool;
 
-import std.stdio;
+import std.stdio : writeln, writefln, readln;
 import std.string : format;
 
 import vibe.db.mongo.mongo;
@@ -42,6 +42,7 @@ private:
     final string readString ()
     {
         import std.string;
+        import std.stdio;
         string s;
         do {
             s = readln ();
@@ -76,6 +77,7 @@ private:
 
     final int readInt ()
     {
+        import std.stdio;
         import std.conv : to;
 
         while (true) {
@@ -93,18 +95,21 @@ private:
 
     final void writeQS (string msg)
     {
+        import std.stdio;
         m_currentMsg = format ("%s: ", msg);
         write (m_currentMsg);
     }
 
     final void writeQB (string msg)
     {
+        import std.stdio;
         m_currentMsg = format ("%s [y/n]: ", msg);
         write (m_currentMsg);
     }
 
     final void writeQI (string msg)
     {
+        import std.stdio;
         m_currentMsg = format ("%s [number]: ", msg);
         write (m_currentMsg);
     }
@@ -298,6 +303,52 @@ public:
     void spearsDumpConfig ()
     {
         writeln (db.getConfig!(LkModule.SPEARS, SpearsConfig).serializeToPrettyJson);
+    }
+
+    void spearsAddHint (string sourceSuite, string targetSuite, string hint, string reason)
+    {
+        SpearsHint bhint;
+        bhint.hint = hint;
+        bhint.reason = reason;
+        bhint.date = currentTimeAsBsonDate ();
+
+        auto spearsConf = db.getConfig! (LkModule.SPEARS, SpearsConfig);
+        auto coll = db.collConfig;
+
+        foreach (ref migration; spearsConf.migrations) {
+            if ((migration.sourceSuite == sourceSuite) && (migration.targetSuite == targetSuite)) {
+                migration.hints ~= bhint;
+
+                coll.findAndModify (["module": LkModule.SPEARS, "kind": spearsConf.kind], spearsConf);
+                return;
+            }
+        }
+
+        writefln ("Hint was not added, %s-to-%s migration entry was not found.", sourceSuite, targetSuite);
+    }
+
+    void spearsRemoveHint (string sourceSuite, string targetSuite, string hint)
+    {
+        import std.algorithm : remove;
+
+        auto spearsConf = db.getConfig! (LkModule.SPEARS, SpearsConfig);
+        auto coll = db.collConfig;
+
+        foreach (ref migration; spearsConf.migrations) {
+            if ((migration.sourceSuite == sourceSuite) && (migration.targetSuite == targetSuite)) {
+                for (uint i; i < migration.hints.length; i++) {
+                    auto bhint = migration.hints[i];
+                    if (bhint.hint == hint) {
+                        migration.hints = migration.hints.remove (i);
+
+                        coll.findAndModify (["module": LkModule.SPEARS, "kind": spearsConf.kind], spearsConf);
+                        return;
+                    }
+                }
+            }
+        }
+
+        writeln ("Hint was not found.");
     }
 
     bool eggshellInit ()
