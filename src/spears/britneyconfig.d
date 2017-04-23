@@ -72,13 +72,13 @@ public:
         contents ~= "STATIC_INPUT_DIR = input/";
         contents ~= "HINTSDIR         = input/hints";
 
-        // allow Laniakea to set all hint types
-        contents ~= "HINTS_LANIAKEA   = ALL";
-
         // directory for input files that Britney will update herself
         // (e.g. aging information) or will need regular updates
         // (e.g. urgency information).
         contents ~= "STATE_DIR        = state/";
+
+        // allow Laniakea to set all hint types
+        contents ~= "HINTS_LANIAKEA   = ALL";
 
         // support for old libraries in testing (smooth update)
         // use ALL to enable smooth updates for all the sections
