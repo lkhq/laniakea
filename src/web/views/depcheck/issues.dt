@@ -31,7 +31,7 @@ block contents
                         h4.list-group-item-heading= issue.packageName
                         p.list-group-item-text Architecture: #{issue.architecture}
                         - if (!issue.missing.empty)
-                            p.list-group-item-text Required by: #{issue.missing.map!(p => p.unsatDependency).join (" ")}
+                            p.list-group-item-text Missing: #{issue.missing.map!(p => p.unsatDependency).join (" ")}
                         - if (!issue.conflicts.empty)
                             p.list-group-item-text Conflict: #{issue.conflicts.map!(c => c.pkg1.packageName ~ " vs. " ~ c.pkg2.packageName).join (", ")}
 
