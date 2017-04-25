@@ -170,7 +170,7 @@ final class LocalConfig
 
         immutable curveCertsDir = buildPath (configDir, "keys", "curve");
         trustedCurveCertsDir = buildPath (curveCertsDir, "trusted");
-        serviceCurveCertFname = buildPath (curveCertsDir, "service_private.sec");
+        serviceCurveCertFname = buildPath (curveCertsDir, "secret", "service_private.sec");
 
         loaded = true;
     }
