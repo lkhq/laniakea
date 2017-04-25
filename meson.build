@@ -1,4 +1,4 @@
-project('Laniakea', 'd')
+project('Laniakea', 'd', meson_version: '>=0.40.0')
 
 source_root = meson.source_root()
 
