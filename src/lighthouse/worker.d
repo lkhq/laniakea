@@ -21,6 +21,7 @@ module lighthouse.worker;
 
 import std.conv : to;
 import std.string : toStringz, fromStringz;
+import vibe.data.json;
 
 import c.zmq;
 import laniakea.logging;
@@ -35,6 +36,52 @@ class LighthouseWorker {
     this (zsock_t *sock)
     {
         socket = sock;
+    }
+
+    private string processJobRequest (Json jreq)
+    {
+        auto client_name = jreq["machine_name"].get!string;
+        auto client_id = jreq["machine_id"].get!string;
+
+        auto accepted_jobs = jreq["accepts"].get!(Json[]);
+
+        return ["error": "Not implemented yet."].serializeToJsonString;
+    }
+
+    private string processJobAcceptedRequest (Json jreq)
+    {
+        return ["status": "OK"].serializeToJsonString;
+    }
+
+    private string processJsonRequest (string json)
+    {
+        Json j;
+        try {
+            j = parseJsonString (json);
+        } catch (Exception e) {
+            logInfo ("Invalid request received: %s", e.to!string);
+            return ["error": e.to!string].serializeToJsonString;
+        }
+
+        if ("request" !in j) {
+            return ["error": "Request was malformed."].serializeToJsonString;
+        }
+
+        auto req = j["request"].to!string;
+
+        try {
+            switch (req) {
+                case "job":
+                    return processJobRequest (j);
+                case "job-accepted":
+                    return processJobAcceptedRequest (j);
+                default:
+                    return ["error": "Request type is unknown."].serializeToJsonString;
+            }
+        } catch (Exception e) {
+            logInfo ("Invalid request received: %s", e.to!string);
+            return ["error": "Request was malformed."].serializeToJsonString;
+        }
     }
 
     public void handleRequest (zmsg_t *msg)
@@ -52,9 +99,9 @@ class LighthouseWorker {
         auto json = to!string(frData.fromStringz);
         free (frData);
 
-        logInfo ("HANDLE: %s", json);
+        // process JSON query and send reply
+        auto rmsg = processJsonRequest (json);
 
-        auto rmsg = "{ \"NOOP\": true }";
         auto reply = frameForStr (rmsg);
         scope (exit) zframe_destroy (&reply);
 

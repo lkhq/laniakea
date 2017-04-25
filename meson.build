@@ -64,6 +64,7 @@ laniakea_lib_src = [
     'src/laniakea/db/database.d',
     'src/laniakea/db/schema/package.d',
     'src/laniakea/db/schema/basic.d',
+    'src/laniakea/db/schema/jobs.d',
     'src/laniakea/db/schema/debcheck.d',
     'src/laniakea/db/schema/synchrotron.d',
     'src/laniakea/db/schema/spears.d',
@@ -86,8 +87,6 @@ lighthouse_src = [
 
 cthulhu_src = []
 
-frontend_src = ['src/frontend/source/app.d']
-
 synchrotron_src = ['src/synchrotron/syncengine.d']
 
 spears_src = ['src/spears/spearsengine.d',
@@ -97,6 +96,8 @@ spears_src = ['src/spears/spearsengine.d',
 ]
 
 eggshell_src = ['src/eggshell/germinate.d']
+
+isotope_src = []
 
 src_dir = include_directories('src/')
 
@@ -212,6 +213,15 @@ eggshell_exe = executable ('eggshell',
 
 debcheck_exe = executable ('debcheck',
     ['src/debcheck/app.d'],
+    include_directories: [src_dir],
+    link_with: [laniakea_lib],
+    dependencies: [base_deps],
+    install: true,
+    install_dir: 'lib/laniakea/'
+)
+
+isotope_exe = executable ('isotope',
+    ['src/isotope/app.d'],
     include_directories: [src_dir],
     link_with: [laniakea_lib],
     dependencies: [base_deps],
