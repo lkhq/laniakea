@@ -23,6 +23,8 @@ module laniakea.db.schema.jobs;
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
 
+import laniakea.db.schema.basic;
+
 /**
  * Type of the particular job.
  **/
@@ -59,24 +61,27 @@ enum JobResult
 /**
  * A task pending to be performed.
  **/
-struct Job {
+template Job(LkModule mod, string jobKind) {
     @name("_id") BsonObjectID id;
 
-    JobMode mode;     // Type of the job
-    JobStatus status; // Status of this job
+    JobMode mode;     /// Type of the job
+    JobStatus status; /// Status of this job
 
-    @name("module") string moduleName; // the name of the module responsible for this job
-    string kind; // kind of the job
+    @name("module") string moduleName = mod; /// the name of the module responsible for this job
+    string kind = jobKind; /// kind of the job
 
-    string title;     // A human-readable title of this job
+    string title;     /// A human-readable title of this job
 
-    string trigger;      // System responsible for triggering this job's creation
-    string reason;       // Reson for this job's creation
-    BsonDate createdTime;  // Time when this job was created.
-    BsonDate finishedTime; // Time when this job was finished.
+    string trigger;   /// System responsible for triggering this job's creation
 
-    string worker;  // The person/system/tool this job is assigned to
-    string data;    // Machine-readable information for the system taking the job
+    BsonDate createdTime;  /// Time when this job was created.
+    BsonDate assignedTime; /// Time when this job was assigned to a worker.
+    BsonDate finishedTime; /// Time when this job was finished.
+
+    string worker;    /// The person/system/tool this job is assigned to
+    string workerId;  /// Unique ID of the entity the job is assigned to
+
+    string latestLogExcerpt;   /// An excerpt of the current job log
 
     JobResult result;
 }

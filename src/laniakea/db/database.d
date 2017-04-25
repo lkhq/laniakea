@@ -32,27 +32,19 @@ import laniakea.db.schema;
 
 /**
  * A connection to the Laniakea database.
+ * This singleton can be shared between fibers,
+ * but not threads.
  */
 final class Database
 {
     // Thread local
-    private static bool instantiated_;
-
-    // Thread global
-    private __gshared Database instance_;
+    private static Database instance_ = null;
 
     @trusted
     static Database get ()
     {
-        if (!instantiated_) {
-            synchronized (Database.classinfo) {
-                if (!instance_)
-                    instance_ = new Database ();
-
-                instantiated_ = true;
-            }
-        }
-
+        if (instance_ is null)
+            instance_ = new Database ();
         return instance_;
     }
 
@@ -170,15 +162,20 @@ public:
         return result;
     }
 
-    auto collJobs ()
+    auto collWorkers ()
     {
-        return db["jobs"];
+        import std.typecons : tuple;
+        auto workers = db["workers"];
+        workers.ensureIndex ([tuple("machine_id", 1)], IndexFlags.unique);
+        return workers;
     }
 
-    void addJob (ref Job job)
+    auto collJobs ()
     {
-        job.id = BsonObjectID.generate ();
-        collJobs.insert (job);
+        import std.typecons : tuple;
+        auto jobs = db["jobs"];
+        jobs.ensureIndex ([tuple("module", 1), tuple("kind", 1)]);
+        return jobs;
     }
 
     auto collEvents ()

@@ -22,35 +22,102 @@ module lighthouse.worker;
 import std.conv : to;
 import std.string : toStringz, fromStringz;
 import vibe.data.json;
+import vibe.db.mongo.mongo;
 
 import c.zmq;
 import laniakea.logging;
+import laniakea.db;
 
 import lighthouse.utils;
 
 class LighthouseWorker {
     private {
         zsock_t *socket;
+        MongoCollection collWorkers;
+        MongoCollection collJobs;
     }
 
     this (zsock_t *sock)
     {
         socket = sock;
+
+        auto db = Database.get;
+        collWorkers = db.collWorkers ();
+        collJobs = db.collJobs ();
     }
 
+    /**
+     * Read job request and return a job matching the request or
+     * JSON-null in case we couldn't find any job.
+     */
     private string processJobRequest (Json jreq)
     {
-        auto client_name = jreq["machine_name"].get!string;
-        auto client_id = jreq["machine_id"].get!string;
+        auto clientName = jreq["machine_name"].get!string;
+        auto clientId = jreq["machine_id"].get!string;
 
-        auto accepted_jobs = jreq["accepts"].get!(Json[]);
+        auto acceptedJobs = jreq["accepts"].get!(Json[]);
 
-        return ["error": "Not implemented yet."].serializeToJsonString;
+        // update information about this client
+        collWorkers.findAndModifyExt (["machineId": clientId],
+                                      ["$set": [
+                                            "machineId": Bson(clientId),
+                                            "machineName": Bson(clientName),
+                                            "lastPing": Bson(currentTimeAsBsonDate)
+                                            ]],
+                                      ["new": true, "upsert": true]);
+
+        auto job = collJobs.findAndModifyExt (["status": Bson(JobStatus.WAITING.to!int)],
+                                        ["$set": [
+                                            "status": Bson(JobStatus.SCHEDULED.to!int),
+                                            "worker": Bson(clientName),
+                                            "workerId": Bson(clientId),
+                                            "assignedTime": Bson(currentTimeAsBsonDate)
+                                            ]],
+                                        ["new": true]);
+
+        return job.serializeToJsonString;
     }
 
+    /**
+     * If the worker actually accepts a job we sent to it and starts
+     * working on it, this method is triggered.
+     * On success, we wend the job back again.
+     */
     private string processJobAcceptedRequest (Json jreq)
     {
-        return ["status": "OK"].serializeToJsonString;
+        auto jobId = jreq["_id"].get!string;
+        auto clientName = jreq["machine_name"].get!string;
+        auto clientId = jreq["machine_id"].get!string;
+
+        auto job = collJobs.findAndModifyExt (["status": Bson(JobStatus.SCHEDULED.to!int),
+                                               "_id": Bson(jobId)],
+                                        ["$set": [
+                                            "status": Bson(JobStatus.RUNNING.to!int)
+                                            ]],
+                                        ["new": true]);
+
+        return job.serializeToJsonString;
+    }
+
+    /**
+     * When a job is running, the worker will periodically send
+     * status information, which we collect here.
+     */
+    private string processJobStatusRequest (Json jreq)
+    {
+        auto jobId = jreq["_id"].get!string;
+        auto clientName = jreq["machine_name"].get!string;
+        auto clientId = jreq["machine_id"].get!string;
+        auto logExcerpt = jreq["log_excerpt"].get!string;
+
+        // update last seen data
+        collWorkers.findAndModify (["machineId": clientId],
+                                   ["$set": ["lastPing": Bson(currentTimeAsBsonDate)]]);
+
+        // update log & status data
+        collJobs.findAndModify (["_id": Bson(jobId)],
+                                ["$set": ["latestLogExcerpt": Bson(logExcerpt)]]);
+        return Json(null).serializeToJsonString;
     }
 
     private string processJsonRequest (string json)
@@ -75,12 +142,14 @@ class LighthouseWorker {
                     return processJobRequest (j);
                 case "job-accepted":
                     return processJobAcceptedRequest (j);
+                case "job-status":
+                    return processJobStatusRequest (j);
                 default:
                     return ["error": "Request type is unknown."].serializeToJsonString;
             }
         } catch (Exception e) {
-            logInfo ("Invalid request received: %s", e.to!string);
-            return ["error": "Request was malformed."].serializeToJsonString;
+            logInfo ("Failed to handle request: %s", e.to!string);
+            return ["error": "Failed to handle request."].serializeToJsonString;
         }
     }
 

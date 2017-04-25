@@ -68,7 +68,9 @@ laniakea_lib_src = [
     'src/laniakea/db/schema/debcheck.d',
     'src/laniakea/db/schema/synchrotron.d',
     'src/laniakea/db/schema/spears.d',
-    'src/laniakea/db/schema/eggshell.d'
+    'src/laniakea/db/schema/eggshell.d',
+    'src/laniakea/db/schema/workers.d',
+    'src/laniakea/db/schema/isotope.d'
 ]
 
 lkadmin_src = [
