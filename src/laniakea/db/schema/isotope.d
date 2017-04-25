@@ -31,4 +31,8 @@ import laniakea.db.schema.basic;
  */
 struct ImageBuildJob {
     mixin Job!(LkModule.ISOTOPE, "image-build");
+
+    string architecture;  /// The architecture to build the image for
+    string liveBuildGit;  /// Git repository URL with the live-build scripts
+    string[] commands;    /// Commands to execute in succession in order to perform the build
 }

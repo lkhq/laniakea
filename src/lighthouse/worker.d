@@ -56,6 +56,7 @@ class LighthouseWorker {
         auto clientId = jreq["machine_id"].get!string;
 
         auto acceptedJobs = jreq["accepts"].get!(Json[]);
+        auto architectures = jreq["architectures"].get!(Json[]);
 
         // update information about this client
         collWorkers.findAndModifyExt (["machineId": clientId],
@@ -66,14 +67,21 @@ class LighthouseWorker {
                                             ]],
                                       ["new": true, "upsert": true]);
 
-        auto job = collJobs.findAndModifyExt (["status": Bson(JobStatus.WAITING.to!int)],
-                                        ["$set": [
-                                            "status": Bson(JobStatus.SCHEDULED.to!int),
-                                            "worker": Bson(clientName),
-                                            "workerId": Bson(clientId),
-                                            "assignedTime": Bson(currentTimeAsBsonDate)
-                                            ]],
-                                        ["new": true]);
+        Bson job;
+        foreach (ref arch; architectures) {
+            job = collJobs.findAndModifyExt (["status": Bson(JobStatus.WAITING.to!int),
+                                              "architecture": Bson(arch)],
+                                            ["$set": [
+                                                "status": Bson(JobStatus.SCHEDULED.to!int),
+                                                "worker": Bson(clientName),
+                                                "workerId": Bson(clientId),
+                                                "assignedTime": Bson(currentTimeAsBsonDate)
+                                                ]],
+                                            ["new": true]);
+            // use the first job with a matching architecture
+            if (job.type != Json.Type.null_)
+                break;
+        }
 
         return job.serializeToJsonString;
     }
@@ -97,6 +105,26 @@ class LighthouseWorker {
                                         ["new": true]);
 
         return job.serializeToJsonString;
+    }
+
+    /**
+     * If the worker rejects a job that we gave to it (for example because
+     * it ran out of resources and can't process it), we reset the
+     * status of the respectice job in the database.
+     */
+    private string processJobDeniedRequest (Json jreq)
+    {
+        auto jobId = jreq["_id"].get!string;
+        auto clientName = jreq["machine_name"].get!string;
+        auto clientId = jreq["machine_id"].get!string;
+
+        collJobs.findAndModify (["status": Bson(JobStatus.SCHEDULED.to!int),
+                                "_id": Bson(jobId)],
+                                ["$set": [
+                                    "status": Bson(JobStatus.WAITING.to!int)
+                                ]]);
+
+        return Json(null).serializeToJsonString;
     }
 
     /**
@@ -142,6 +170,8 @@ class LighthouseWorker {
                     return processJobRequest (j);
                 case "job-accepted":
                     return processJobAcceptedRequest (j);
+                case "job-denied":
+                    return processJobDeniedRequest (j);
                 case "job-status":
                     return processJobStatusRequest (j);
                 default:
