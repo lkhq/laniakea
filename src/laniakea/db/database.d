@@ -178,6 +178,17 @@ public:
         return jobs;
     }
 
+    void addJob (J) (J job)
+    {
+        auto coll = collJobs ();
+        job.id = newBsonId;
+        job.createdTime = currentTimeAsBsonDate;
+        job.status = JobStatus.WAITING;
+
+        logInfo ("Adding job");
+        coll.insert (job);
+    }
+
     auto collEvents ()
     {
         return db["events"];

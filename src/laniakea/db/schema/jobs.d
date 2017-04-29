@@ -26,16 +26,6 @@ import vibe.data.serialization : name;
 import laniakea.db.schema.basic;
 
 /**
- * Type of the particular job.
- **/
-enum JobMode
-{
-    UNKNOWN,
-    ONESHOT,
-    PERIODIC
-}
-
-/**
  * State this job is in.
  **/
 enum JobStatus
@@ -64,7 +54,6 @@ enum JobResult
 template Job(LkModule mod, string jobKind) {
     @name("_id") BsonObjectID id;
 
-    JobMode mode;     /// Type of the job
     JobStatus status; /// Status of this job
 
     @name("module") string moduleName = mod; /// the name of the module responsible for this job

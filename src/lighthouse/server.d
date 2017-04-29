@@ -47,7 +47,7 @@ serverWorkerThread (int threadId)
         // receive reply envelope and message
         auto msg = zmsg_recv (workerSock);
         if (msg is null) {
-            logWarning ("Received NULL message.");
+            logDebug ("Received NULL message.");
             continue;
         }
         scope (exit) zmsg_destroy (&msg);

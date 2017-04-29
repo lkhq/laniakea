@@ -146,7 +146,6 @@ class LighthouseWorker {
         // update log & status data
         collJobs.findAndModify (["_id": BsonObjectID.fromString(jobId)],
                                 ["$set": ["latestLogExcerpt": Bson(logExcerpt)]]);
-        logInfo (jobId);
     }
 
     private Nullable!string processJsonRequest (string json)
@@ -179,7 +178,7 @@ class LighthouseWorker {
                     break;
                 case "job-status":
                     processJobStatusRequest (j);
-                    res = null;
+                    res.nullify ();
                     break;
                 default:
                     return Nullable!string (["error": "Request type is unknown."].serializeToJsonString);
