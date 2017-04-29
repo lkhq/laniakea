@@ -24,6 +24,7 @@ import std.stdio : File, writeln;
 import std.string : split, strip, toLower;
 import std.digest.sha : isDigest;
 import std.array : appender, empty;
+import std.datetime : SysTime;
 
 /**
  * Check if string contains a remote URI.
@@ -97,6 +98,18 @@ string[] findFilesBySuffix (string dir, string suffix) @trusted
     }
 
     return files.data;
+}
+
+public auto getPastEventAge (SysTime eventTime)
+{
+    import std.datetime;
+    import core.time : Duration;
+
+    auto currentTime = Clock.currTime();
+    currentTime.fracSecs = Duration.zero;
+    eventTime.fracSecs = Duration.zero;
+
+    return currentTime - eventTime;
 }
 
 unittest

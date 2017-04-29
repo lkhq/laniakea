@@ -17,41 +17,45 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module laniakea.db.schema.workers;
-@safe:
+module web.workersweb;
 
+import std.exception : enforce;
+import std.conv : to;
+import std.array : empty;
+import vibe.core.log;
+import vibe.http.router;
+import vibe.http.server;
+import vibe.utils.validation;
 import vibe.db.mongo.mongo;
-import vibe.data.serialization : name, optional;
+import vibe.web.web;
 
-/**
- * State this worker is in.
- **/
-enum WorkerStatus
-{
-    UNKNOWN,
-    ACTIVE,
-    IDLE,
-    MISSING,
-    DEAD
-}
+import laniakea.db;
 
-/**
- * An external machine/service that takes tasks from a Lighthouse server.
- **/
-struct SparkWorker {
-    @name("_id") BsonObjectID id;
+import web.webconfig;
 
-    string machineName; /// The machine/worker name
-    string machineId;   /// The machine-id as defined in /etc/machine-id for this system
+@path("/workers")
+class WorkersWebService {
+    GlobalInfo ginfo;
 
-    @optional
-    WorkerStatus status; /// Status/health of this machine
+    private {
+        WebConfig wconf;
+        Database db;
+ 	}
 
-    @optional
-    string owner; /// Owner of this worker
+    this (WebConfig conf)
+    {
+        wconf = conf;
+        db = wconf.db;
+        ginfo = wconf.ginfo;
+    }
 
-    BsonDate lastPing;
+    @path("/")
+ 	void getWorkers (HTTPServerRequest req, HTTPServerResponse res)
+ 	{
+        auto collWorkers = db.collWorkers ();
+        auto workers = collWorkers.find!SparkWorker;
 
-    @optional
-    BsonObjectID lastJob; /// The last job that was assigned to this worker
+        render!("workers/workers.dt", ginfo, workers);
+ 	}
+
 }

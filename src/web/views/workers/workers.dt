@@ -1,0 +1,33 @@
+extends base
+
+block head
+    - auto title = "Job Runners";
+
+block contents
+    h1 Spark Workers
+
+    br
+
+    .row
+        .col-md-8
+            - if (workers.empty)
+                .alert.alert-warning(role='alert')
+                    span.fa.fa-check(aria-hidden='true')
+                    |  No worker machines have contacted master yet.
+
+            - import laniakea.utils : getPastEventAge;
+            - foreach (ref worker; workers)
+                .panel.panel-default
+                    .panel-heading
+                        h3.panel-title
+                            i.fa.fa-server(aria-hidden='true')
+                            |  #{worker.machineName}
+                    .panel-body
+                        b ID:
+                        | #{worker.machineId}
+                        br
+                        b Owner:
+                        | #{worker.owner.empty? "None set." : worker.owner}
+                        br
+                        b Last Ping:
+                        | #{worker.lastPing.toSysTime.getPastEventAge} ago

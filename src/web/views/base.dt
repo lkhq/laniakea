@@ -90,6 +90,10 @@ html(lang='en')
                 a(href='#')
                   i.fa.fa-tags.fa-fw
                   | Package Seeds
+              li
+                a(href='/workers')
+                  i.fa.fa-server.fa-fw
+                  | Workers
       #page-wrapper
         block pre_contents
         .container-fluid

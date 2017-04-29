@@ -33,6 +33,7 @@ import web.webconfig;
 import web.spearsweb;
 import web.syncweb;
 import web.depcheckweb;
+import web.workersweb;
 
 class LaniakeaWebService {
     GlobalInfo ginfo;
@@ -88,6 +89,7 @@ shared static this ()
     router.registerWebInterface (new SpearsWebService (wconf));
     router.registerWebInterface (new SynchrotronWebService (wconf));
     router.registerWebInterface (new DepcheckWebService (wconf));
+    router.registerWebInterface (new WorkersWebService (wconf));
 
 	// All requests that haven't been handled by the web interface registered above
 	// will be handled by looking for a matching file in the public/ folder.
