@@ -32,7 +32,10 @@ import laniakea.db.schema.basic;
 struct ImageBuildJob {
     mixin Job!(LkModule.ISOTOPE, "image-build");
 
+    string distribution;   /// Name of the distribution, e.g. "Tanglu"
+    string suite;          /// Suite of the distribution to build an image for
     string architecture;  /// The architecture to build the image for
+
     string liveBuildGit;  /// Git repository URL with the live-build scripts
     string[] commands;    /// Commands to execute in succession in order to perform the build
 }

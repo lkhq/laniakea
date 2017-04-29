@@ -21,6 +21,7 @@ module lighthouse.worker;
 
 import std.conv : to;
 import std.string : toStringz, fromStringz;
+import std.typecons : Nullable;
 import vibe.data.json;
 import vibe.db.mongo.mongo;
 
@@ -98,7 +99,7 @@ class LighthouseWorker {
         auto clientId = jreq["machine_id"].get!string;
 
         auto job = collJobs.findAndModifyExt (["status": Bson(JobStatus.SCHEDULED.to!int),
-                                               "_id": Bson(jobId)],
+                                               "_id": Bson(BsonObjectID.fromString(jobId))],
                                         ["$set": [
                                             "status": Bson(JobStatus.RUNNING.to!int)
                                             ]],
@@ -112,14 +113,14 @@ class LighthouseWorker {
      * it ran out of resources and can't process it), we reset the
      * status of the respectice job in the database.
      */
-    private string processJobDeniedRequest (Json jreq)
+    private string processJobRejectedRequest (Json jreq)
     {
         auto jobId = jreq["_id"].get!string;
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
         collJobs.findAndModify (["status": Bson(JobStatus.SCHEDULED.to!int),
-                                "_id": Bson(jobId)],
+                                "_id": Bson(BsonObjectID.fromString(jobId))],
                                 ["$set": [
                                     "status": Bson(JobStatus.WAITING.to!int)
                                 ]]);
@@ -131,7 +132,7 @@ class LighthouseWorker {
      * When a job is running, the worker will periodically send
      * status information, which we collect here.
      */
-    private string processJobStatusRequest (Json jreq)
+    private void processJobStatusRequest (Json jreq)
     {
         auto jobId = jreq["_id"].get!string;
         auto clientName = jreq["machine_name"].get!string;
@@ -143,44 +144,52 @@ class LighthouseWorker {
                                    ["$set": ["lastPing": Bson(currentTimeAsBsonDate)]]);
 
         // update log & status data
-        collJobs.findAndModify (["_id": Bson(jobId)],
+        collJobs.findAndModify (["_id": BsonObjectID.fromString(jobId)],
                                 ["$set": ["latestLogExcerpt": Bson(logExcerpt)]]);
-        return Json(null).serializeToJsonString;
+        logInfo (jobId);
     }
 
-    private string processJsonRequest (string json)
+    private Nullable!string processJsonRequest (string json)
     {
         Json j;
         try {
             j = parseJsonString (json);
         } catch (Exception e) {
             logInfo ("Invalid request received: %s", e.to!string);
-            return ["error": e.to!string].serializeToJsonString;
+            return Nullable!string (["error": e.to!string].serializeToJsonString);
         }
 
         if ("request" !in j) {
-            return ["error": "Request was malformed."].serializeToJsonString;
+            return Nullable!string (["error": "Request was malformed."].serializeToJsonString);
         }
 
         auto req = j["request"].to!string;
 
+        Nullable!string res;
         try {
             switch (req) {
                 case "job":
-                    return processJobRequest (j);
+                    res = processJobRequest (j);
+                    break;
                 case "job-accepted":
-                    return processJobAcceptedRequest (j);
-                case "job-denied":
-                    return processJobDeniedRequest (j);
+                    res = processJobAcceptedRequest (j);
+                    break;
+                case "job-rejected":
+                    res = processJobRejectedRequest (j);
+                    break;
                 case "job-status":
-                    return processJobStatusRequest (j);
+                    processJobStatusRequest (j);
+                    res = null;
+                    break;
                 default:
-                    return ["error": "Request type is unknown."].serializeToJsonString;
+                    return Nullable!string (["error": "Request type is unknown."].serializeToJsonString);
             }
         } catch (Exception e) {
-            logInfo ("Failed to handle request: %s", e.to!string);
-            return ["error": "Failed to handle request."].serializeToJsonString;
+            logError ("Failed to handle request: %s :: %s", e.to!string, json);
+            return Nullable!string (["error": "Failed to handle request."].serializeToJsonString);
         }
+
+        return res;
     }
 
     public void handleRequest (zmsg_t *msg)
@@ -200,8 +209,10 @@ class LighthouseWorker {
 
         // process JSON query and send reply
         auto rmsg = processJsonRequest (json);
+        if (rmsg.isNull)
+            return;
 
-        auto reply = frameForStr (rmsg);
+        auto reply = frameForStr (rmsg.get);
         scope (exit) zframe_destroy (&reply);
 
         // send reply back
