@@ -44,6 +44,8 @@ struct SparkWorker {
     string machineName; /// The machine/worker name
     string machineId;   /// The machine-id as defined in /etc/machine-id for this system
 
+    string[] accepts;   /// Modules this worker will accept jobs for
+
     @optional
     WorkerStatus status; /// Status/health of this machine
 

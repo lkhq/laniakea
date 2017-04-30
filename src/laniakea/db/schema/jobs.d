@@ -63,7 +63,7 @@ template Job(LkModule mod, string jobKind) {
 
     string title;     /// A human-readable title of this job
 
-    string trigger;   /// System responsible for triggering this job's creation
+    BsonObjectID trigger;   /// ID of the entity responsible for triggering this job's creation
 
     BsonDate createdTime;  /// Time when this job was created.
     BsonDate assignedTime; /// Time when this job was assigned to a worker.

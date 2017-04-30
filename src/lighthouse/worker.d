@@ -58,20 +58,22 @@ class LighthouseWorker {
 
         auto acceptedJobs = jreq["accepts"].get!(Json[]);
         auto architectures = jreq["architectures"].get!(Json[]);
+        auto accepted = jreq["accepts"].get!(Json[]);
 
         // update information about this client
         collWorkers.findAndModifyExt (["machineId": clientId],
                                       ["$set": [
                                             "machineId": Bson(clientId),
                                             "machineName": Bson(clientName),
-                                            "lastPing": Bson(currentTimeAsBsonDate)
+                                            "lastPing": Bson(currentTimeAsBsonDate),
+                                            "accepts": Bson.fromJson(jreq["accepts"])
                                             ]],
                                       ["new": true, "upsert": true]);
 
         Bson job;
         foreach (ref arch; architectures) {
             job = collJobs.findAndModify (["status": Bson(JobStatus.WAITING.to!int),
-                                              "architecture": Bson(arch)],
+                                           "architecture": Bson(arch)],
                                             ["$set": [
                                                 "status": Bson(JobStatus.SCHEDULED.to!int),
                                                 "worker": Bson(clientName),
@@ -103,7 +105,7 @@ class LighthouseWorker {
                                             "status": Bson(JobStatus.RUNNING.to!int)
                                             ]]);
 
-        return job.serializeToJsonString;
+        return Json(null).serializeToJsonString;
     }
 
     /**

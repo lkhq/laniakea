@@ -175,6 +175,7 @@ public:
         import std.typecons : tuple;
         auto jobs = db["jobs"];
         jobs.ensureIndex ([tuple("module", 1), tuple("kind", 1)]);
+        jobs.ensureIndex ([tuple("trigger", 1)]);
         return jobs;
     }
 
