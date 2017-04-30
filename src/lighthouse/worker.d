@@ -70,15 +70,14 @@ class LighthouseWorker {
 
         Bson job;
         foreach (ref arch; architectures) {
-            job = collJobs.findAndModifyExt (["status": Bson(JobStatus.WAITING.to!int),
+            job = collJobs.findAndModify (["status": Bson(JobStatus.WAITING.to!int),
                                               "architecture": Bson(arch)],
                                             ["$set": [
                                                 "status": Bson(JobStatus.SCHEDULED.to!int),
                                                 "worker": Bson(clientName),
                                                 "workerId": Bson(clientId),
                                                 "assignedTime": Bson(currentTimeAsBsonDate)
-                                                ]],
-                                            ["new": true]);
+                                                ]]);
             // use the first job with a matching architecture
             if (job.type != Json.Type.null_)
                 break;
@@ -98,12 +97,11 @@ class LighthouseWorker {
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
-        auto job = collJobs.findAndModifyExt (["status": Bson(JobStatus.SCHEDULED.to!int),
+        auto job = collJobs.findAndModify (["status": Bson(JobStatus.SCHEDULED.to!int),
                                                "_id": Bson(BsonObjectID.fromString(jobId))],
                                         ["$set": [
                                             "status": Bson(JobStatus.RUNNING.to!int)
-                                            ]],
-                                        ["new": true]);
+                                            ]]);
 
         return job.serializeToJsonString;
     }
@@ -119,10 +117,53 @@ class LighthouseWorker {
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
-        collJobs.findAndModify (["status": Bson(JobStatus.SCHEDULED.to!int),
+        auto res = collJobs.findAndModify (["status": Bson(JobStatus.SCHEDULED.to!int),
+                                            "_id": Bson(BsonObjectID.fromString(jobId))],
+                                            ["$set": [
+                                                "status": Bson(JobStatus.WAITING.to!int),
+                                                "worker": Bson(null),
+                                                "workerId": Bson(null)
+                                            ]]);
+        if (res.isNull) {
+            // we also want to allow workers to reject a job that they have already accepted - if the workers
+            // change their mind that late, it's usually a sign that something broke. In this case, we don't want
+            // to block a possibly important job though, and rather have another worker take it instead.
+            // NOTE: Should we log this behavior?
+            collJobs.findAndModify (["status": Bson(JobStatus.RUNNING.to!int),
+                                     "_id": Bson(BsonObjectID.fromString(jobId))],
+                                     ["$set": [
+                                        "status": Bson(JobStatus.WAITING.to!int),
+                                        "worker": Bson(null),
+                                        "workerId": Bson(null)
+                                    ]]);
+        }
+
+        return Json(null).serializeToJsonString;
+    }
+
+    /**
+     * Run if the job has finished and we are expecting results from the worker
+     * to be uploaded.
+     */
+    private string processJobFinishedRequest (Json jreq, bool success)
+    {
+        auto jobId = jreq["_id"].get!string;
+        auto clientName = jreq["machine_name"].get!string;
+        auto clientId = jreq["machine_id"].get!string;
+
+        // we use the maybe values here, as we can only be really sure as soon as
+        // the worker has uploaded the job artifacts and the responsible Laniakea
+        // module has verified them.
+        auto jobResult = JobResult.MAYBE_SUCCESS;
+        if (!success)
+            jobResult = JobResult.MAYBE_FAILED;
+
+        collJobs.findAndModify (["status": Bson(JobStatus.RUNNING.to!int),
                                 "_id": Bson(BsonObjectID.fromString(jobId))],
                                 ["$set": [
-                                    "status": Bson(JobStatus.WAITING.to!int)
+                                    "status": Bson(JobStatus.DONE.to!int),
+                                    "result": Bson(jobResult.to!int),
+                                    "finishedTime": Bson(currentTimeAsBsonDate)
                                 ]]);
 
         return Json(null).serializeToJsonString;
@@ -179,6 +220,12 @@ class LighthouseWorker {
                 case "job-status":
                     processJobStatusRequest (j);
                     res.nullify ();
+                    break;
+                case "job-success":
+                    res = processJobFinishedRequest (j, true);
+                    break;
+                case "job-failed":
+                    res = processJobFinishedRequest (j, false);
                     break;
                 default:
                     return Nullable!string (["error": "Request type is unknown."].serializeToJsonString);

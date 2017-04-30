@@ -37,5 +37,4 @@ struct ImageBuildJob {
     string architecture;  /// The architecture to build the image for
 
     string liveBuildGit;  /// Git repository URL with the live-build scripts
-    string[] commands;    /// Commands to execute in succession in order to perform the build
 }

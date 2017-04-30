@@ -45,7 +45,9 @@ enum JobResult
 {
     UNKNOWN,
     SUCCESS,
-    FAILURE
+    FAILURE,
+    MAYBE_SUCCESS,
+    MAYBE_FAILED
 }
 
 /**

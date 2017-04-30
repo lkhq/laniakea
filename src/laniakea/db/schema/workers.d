@@ -50,6 +50,9 @@ struct SparkWorker {
     @optional
     string owner; /// Owner of this worker
 
+    @optional
+    bool enabled; /// Whether this worker should receive jobs or not
+
     BsonDate lastPing;
 
     @optional
