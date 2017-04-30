@@ -74,7 +74,11 @@ laniakea_lib_src = [
 ]
 
 lkadmin_src = [
-    'src/admin/admintool.d'
+    'src/admin/admintool.d',
+    'src/admin/baseadmin.d',
+    'src/admin/eggshelladmin.d',
+    'src/admin/spearsadmin.d',
+    'src/admin/syncadmin.d'
 ]
 
 keytool_src = [

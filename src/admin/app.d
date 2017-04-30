@@ -26,6 +26,10 @@ import laniakea.localconfig;
 import laniakea.logging;
 
 import admin.admintool;
+import admin.baseadmin;
+import admin.eggshelladmin;
+import admin.spearsadmin;
+import admin.syncadmin;
 
 private immutable helpText =
 "Usage:
@@ -88,171 +92,47 @@ void main (string[] args)
         laniakea.logging.setVerbose (true);
     }
 
-    auto tool = new AdminTool ();
+    // list of tools that we have - needs to be initialized after
+    // the global local configuration has been set up, so the database
+    // connection can be initialized.
+    AdminTool[] tools = [
+        new BaseAdmin,
+        new EggshellAdmin,
+        new SpearsAdmin,
+        new SyncAdmin
+    ];
+
     immutable command = args[1];
     switch (command) {
         case "init":
-            if (!tool.baseInit ())
-                exit (2);
-            if (!tool.synchrotronInit ())
-                exit (2);
-            if (!tool.spearsInit ())
-                exit (2);
-            if (!tool.eggshellInit ())
-                exit (2);
+            foreach (ref tool; tools) {
+                if (!tool.initDb ())
+                    exit (2);
+            }
             break;
         case "config-set":
             if (args.length < 4) {
                 writeln ("Invalid number of parameters: You need to specify a module and an update command.");
                 exit (1);
             }
-            if (!tool.setConfValue (args[2], args[3]))
+            if (!setLaniakeaDbConfValue (args[2], args[3]))
                 exit (2);
             break;
-        case "base":
-            processBaseCommands (tool, args);
-            break;
-        case "synchrotron":
-            processSynchrotronCommands (tool, args);
-            break;
-        case "spears":
-            processSpearsCommands (tool, args);
-            break;
-        case "eggshell":
-            processEggshellCommands (tool, args);
-            break;
         default:
-            writeln ("The command '%s' is unknown.".format (command));
-            exit (1);
-            break;
-    }
-}
+            foreach (ref tool; tools) {
+                if (command == tool.toolId) {
+                    if (args.length < 3) {
+                        writeln ("Invalid number of parameters: You need to specify an action.");
+                        exit (1);
+                    }
 
-private void processBaseCommands (AdminTool tool, string[] args)
-{
-    if (args.length < 3) {
-        writeln ("Invalid number of parameters: You need to specify an action.");
-        exit (1);
-    }
-    immutable command = args[2];
-
-    bool ret = true;
-    switch (command) {
-        case "init":
-            ret = tool.baseInit ();
-            break;
-        case "dump":
-            tool.baseDumpConfig ();
-            break;
-        default:
-            writeln ("The command '%s' is unknown.".format (command));
-            exit (1);
-        break;
-    }
-    if (!ret)
-        exit (2);
-}
-
-private void processSynchrotronCommands (AdminTool tool, string[] args)
-{
-    if (args.length < 3) {
-        writeln ("Invalid number of parameters: You need to specify an action.");
-        exit (1);
-    }
-    immutable command = args[2];
-
-    bool ret = true;
-    switch (command) {
-        case "init":
-            ret = tool.synchrotronInit ();
-            break;
-        case "dump":
-            tool.synchrotronDumpConfig ();
-            break;
-        case "blacklist-add":
-            if (args.length < 5) {
-                writeln ("Invalid number of parameters: You need to specify a package to add and a reason to ignore it.");
-                exit (1);
+                    exit (tool.run (args[2..$]));
+                }
             }
-            tool.synchrotronBlacklistAdd (args[3], args[4]);
-            break;
-        case "blacklist-remove":
-            if (args.length < 4) {
-                writeln ("Invalid number of parameters: You need to specify a package to remove.");
-                exit (1);
-            }
-            tool.synchrotronBlacklistRemove (args[3]);
-            break;
-        default:
+
+            // if we get here, we have no tool that can handle this command
             writeln ("The command '%s' is unknown.".format (command));
             exit (1);
-        break;
+            break;
     }
-
-    if (!ret)
-        exit (2);
-}
-
-private void processSpearsCommands (AdminTool tool, string[] args)
-{
-    if (args.length < 3) {
-        writeln ("Invalid number of parameters: You need to specify an action.");
-        exit (1);
-    }
-    immutable command = args[2];
-
-    bool ret = true;
-    switch (command) {
-        case "init":
-            ret = tool.spearsInit ();
-            break;
-        case "dump":
-            tool.spearsDumpConfig ();
-            break;
-        case "add-hint":
-            if (args.length < 7) {
-                writeln ("Invalid number of parameters: You need to specify a source-suite, a target-suite, a hint and a hint-reason.");
-                exit (1);
-            }
-            tool.spearsAddHint (args[3], args[4], args[5], args[6]);
-            break;
-        case "remove-hint":
-            if (args.length < 6) {
-                writeln ("Invalid number of parameters: You need to specify a hint to remove.");
-                exit (1);
-            }
-            tool.spearsRemoveHint (args[3], args[4], args[5]);
-            break;
-        default:
-            writeln ("The command '%s' is unknown.".format (command));
-            exit (1);
-        break;
-    }
-    if (!ret)
-        exit (2);
-}
-
-private void processEggshellCommands (AdminTool tool, string[] args)
-{
-    if (args.length < 3) {
-        writeln ("Invalid number of parameters: You need to specify an action.");
-        exit (1);
-    }
-    immutable command = args[2];
-
-    bool ret = true;
-    switch (command) {
-        case "init":
-            ret = tool.eggshellInit ();
-            break;
-        case "dump":
-            tool.eggshellDumpConfig ();
-            break;
-        default:
-            writeln ("The command '%s' is unknown.".format (command));
-            exit (1);
-        break;
-    }
-    if (!ret)
-        exit (2);
 }
