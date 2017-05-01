@@ -12,7 +12,7 @@ block contents
         .col-md-8
             - if (workers.empty)
                 .alert.alert-warning(role='alert')
-                    span.fa.fa-check(aria-hidden='true')
+                    span.fa.fa-exclamation(aria-hidden='true')
                     |  No worker machines have contacted master yet.
 
             - import laniakea.utils : getPastEventAge;

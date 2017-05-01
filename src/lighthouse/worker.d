@@ -123,8 +123,8 @@ class LighthouseWorker {
                                             "_id": Bson(BsonObjectID.fromString(jobId))],
                                             ["$set": [
                                                 "status": Bson(JobStatus.WAITING.to!int),
-                                                "worker": Bson(null),
-                                                "workerId": Bson(null)
+                                                "worker": Bson(""),
+                                                "workerId": Bson("")
                                             ]]);
         if (res.isNull) {
             // we also want to allow workers to reject a job that they have already accepted - if the workers
@@ -158,7 +158,7 @@ class LighthouseWorker {
         // module has verified them.
         auto jobResult = JobResult.MAYBE_SUCCESS;
         if (!success)
-            jobResult = JobResult.MAYBE_FAILED;
+            jobResult = JobResult.MAYBE_FAILURE;
 
         collJobs.findAndModify (["status": Bson(JobStatus.RUNNING.to!int),
                                 "_id": Bson(BsonObjectID.fromString(jobId))],

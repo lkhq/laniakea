@@ -91,6 +91,10 @@ html(lang='en')
                   i.fa.fa-tags.fa-fw
                   | Package Seeds
               li
+                a(href='/isoimages')
+                  i.fa.fa-hdd-o.fa-fw
+                  | Image Build
+              li
                 a(href='/workers')
                   i.fa.fa-server.fa-fw
                   | Workers

@@ -1,0 +1,22 @@
+extends jobs/details
+
+block head
+    - auto title = "Image build job " ~ job.id.to!string;
+
+block job_header
+    h1 Image build job #{job.id.to!string}
+
+block pre_log
+    h3 Details
+
+    b Distribution:
+    | #{job.distribution}
+    br
+
+    b Suite:
+    | #{job.suite}
+    br
+
+    b Architecture:
+    | #{job.architecture}
+    br

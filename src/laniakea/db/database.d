@@ -180,6 +180,7 @@ public:
         auto jobs = db["jobs"];
         jobs.ensureIndex ([tuple("module", 1), tuple("kind", 1)]);
         jobs.ensureIndex ([tuple("trigger", 1)]);
+        jobs.ensureIndex ([tuple("createdTime", 1)]);
         return jobs;
     }
 
@@ -199,6 +200,17 @@ public:
 
         logInfo ("Adding job '%s'", newBsonId.to!string);
         coll.insert (job);
+    }
+
+    auto getJobsByTrigger (J) (BsonObjectID trigger)
+    {
+        auto coll = collJobs ();
+
+        static struct Order { int createdTime; }
+        return coll.find!J (["trigger": trigger],
+                            null,
+                            QueryFlags.None)
+                            .sort(Order(1));
     }
 
     auto collEvents ()

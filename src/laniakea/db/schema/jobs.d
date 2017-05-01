@@ -31,11 +31,11 @@ import laniakea.db.schema.basic;
 enum JobStatus
 {
     UNKNOWN,
-    WAITING,   // waiting for someone to take the job
-    SCHEDULED, // job has been assigned,
+    WAITING,   /// waiting for someone to take the job
+    SCHEDULED, /// job has been assigned,
     RUNNING,
     DONE,
-    STARVING   // the job was left abandoned for too long
+    STARVING   /// the job was left abandoned for too long
 }
 
 /**
@@ -47,7 +47,7 @@ enum JobResult
     SUCCESS,
     FAILURE,
     MAYBE_SUCCESS,
-    MAYBE_FAILED
+    MAYBE_FAILURE
 }
 
 /**

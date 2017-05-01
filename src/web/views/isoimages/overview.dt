@@ -1,0 +1,52 @@
+extends base
+
+block head
+    - auto title = "Live Image Builds";
+
+block contents
+    - import laniakea.db;
+    h1 Live Image Building
+
+    br
+
+    .row
+        .col-md-8
+            - if (images.empty)
+                .alert.alert-warning(role='alert')
+                    span.fa.fa-exclamation(aria-hidden='true')
+                    |  No image build recipes were found.
+
+            - import laniakea.utils : getPastEventAge;
+            - foreach (ref image; images)
+                .panel.panel-default
+                    .panel-heading
+                        h3.panel-title
+                            i.fa.fa-hdd-o(aria-hidden='true')
+                            |  #{image.recipe.distribution} #{image.recipe.suite}
+                    .panel-body
+                        b Architectures:
+                        | #{image.recipe.architectures.join (" ")}
+                        br
+                        b Source:
+                        | #{image.recipe.liveBuildGit}
+                        br
+                        b Jobs:
+                        br
+                        br
+
+                        .list-group
+                            - foreach (ref job; image.jobs)
+                                - auto hlClass = "";
+                                - if (job.status > JobStatus.SCHEDULED)
+                                    - hlClass = "list-group-item-warning";
+                                - if (job.status == JobStatus.DONE)
+                                    - if (job.result == JobResult.SUCCESS)
+                                        - hlClass = "list-group-item-success";
+                                    - else if (job.result == JobResult.FAILURE)
+                                        - hlClass = "list-group-item-danger";
+                                    - else
+                                        - hlClass = "list-group-item-info";
+                                a.list-group-item(class='#{hlClass}', href='/jobs/#{job.id}')
+                                    h4.list-group-item-heading
+                                    | [#{job.architecture}] - #{job.createdTime}
+                                    p.list-group-item-text #{job.title}
