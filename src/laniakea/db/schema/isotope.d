@@ -27,6 +27,20 @@ import laniakea.db.schema.basic;
 
 
 /**
+ * Instructions on how to do an automatic ISO image build.
+ */
+struct ImageBuildRecipe {
+    @name("_id") BsonObjectID id;
+
+    string distribution;    /// Name of the distribution, e.g. "Tanglu"
+    string suite;           /// Suite of the distribution to build an image for
+    string[] architectures; /// Architectures to build the image for
+
+    string liveBuildGit;    /// Git repository URL with the live-build scripts
+    string resultMoveTo;    /// Local or remote URL to copy the resulting build articats to
+}
+
+/**
  * A job containing an iso-image build task.
  */
 struct ImageBuildJob {

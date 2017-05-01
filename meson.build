@@ -78,7 +78,8 @@ lkadmin_src = [
     'src/admin/baseadmin.d',
     'src/admin/eggshelladmin.d',
     'src/admin/spearsadmin.d',
-    'src/admin/syncadmin.d'
+    'src/admin/syncadmin.d',
+    'src/admin/isotopeadmin.d'
 ]
 
 keytool_src = [
@@ -103,7 +104,7 @@ spears_src = ['src/spears/spearsengine.d',
 
 eggshell_src = ['src/eggshell/germinate.d']
 
-isotope_src = []
+rubicon_src = []
 
 src_dir = include_directories('src/')
 
@@ -226,8 +227,9 @@ debcheck_exe = executable ('debcheck',
     install_dir: 'lib/laniakea/'
 )
 
-isotope_exe = executable ('isotope',
-    ['src/isotope/app.d'],
+rubicon_exe = executable ('rubicon',
+    ['src/rubicon/app.d',
+     rubicon_src],
     include_directories: [src_dir],
     link_with: [laniakea_lib],
     dependencies: [base_deps],

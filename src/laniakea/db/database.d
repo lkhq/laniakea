@@ -23,6 +23,7 @@ module laniakea.db.database;
 import std.typecons : Nullable;
 import std.string : format;
 import std.array : empty;
+import std.conv : to;
 
 import vibe.db.mongo.mongo;
 import laniakea.localconfig;
@@ -92,7 +93,10 @@ public:
     {
         static if (modname == LkModule.UNKNOWN)
             static assert (0, "Can not get collection for invalid module.");
-        mixin("return db[\"" ~ modname ~ "." ~ cname ~ "\"];");
+        static if (cname.empty)
+            mixin("return db[\"" ~ modname ~ "\"];");
+        else
+            mixin("return db[\"" ~ modname ~ "." ~ cname ~ "\"];");
     }
 
     /**
@@ -179,14 +183,21 @@ public:
         return jobs;
     }
 
-    void addJob (J) (J job)
+    void addJob (J) (J job, BsonObjectID trigger)
     {
         auto coll = collJobs ();
         job.id = newBsonId;
         job.createdTime = currentTimeAsBsonDate;
         job.status = JobStatus.WAITING;
+        job.trigger = trigger;
 
-        logInfo ("Adding job");
+        // set a dummy titke for displaying information in UIs which do not
+        // have knowledge of all Laniakea modules
+        if (job.title.empty) {
+            job.title = "%s %s job".format (job.moduleName, job.kind);
+        }
+
+        logInfo ("Adding job '%s'", newBsonId.to!string);
         coll.insert (job);
     }
 

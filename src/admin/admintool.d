@@ -101,6 +101,13 @@ protected:
         write (m_currentMsg);
     }
 
+    final void writeQL (string msg)
+    {
+        import std.stdio;
+        m_currentMsg = format ("%s [list]: ", msg);
+        write (m_currentMsg);
+    }
+
     final void writeQB (string msg)
     {
         import std.stdio;

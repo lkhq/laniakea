@@ -30,6 +30,7 @@ import admin.baseadmin;
 import admin.eggshelladmin;
 import admin.spearsadmin;
 import admin.syncadmin;
+import admin.isotopeadmin;
 
 private immutable helpText =
 "Usage:
@@ -99,7 +100,8 @@ void main (string[] args)
         new BaseAdmin,
         new EggshellAdmin,
         new SpearsAdmin,
-        new SyncAdmin
+        new SyncAdmin,
+        new IsotopeAdmin
     ];
 
     immutable command = args[1];
