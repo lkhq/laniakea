@@ -122,6 +122,7 @@ archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
 czmq_dep = dependency('libczmq')
 dyaml_dep = dependency('dyaml')
+systemd_dep = dependency('systemd')
 
 # Vibe
 vibe_core_dep = dependency('vibe-core')
