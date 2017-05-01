@@ -57,6 +57,7 @@ void main (string[] args)
     // parse command-line options
     try {
         getopt (args,
+            std.getopt.config.passThrough,
             "help|h", &showHelp,
             "verbose", &verbose,
             "version", &showVersion);
@@ -119,6 +120,25 @@ void main (string[] args)
             }
             if (!setLaniakeaDbConfValue (args[2], args[3]))
                 exit (2);
+            break;
+        case "random-name":
+            import laniakea.utils.namegen : generateName, RandomNameStyle;
+            import std.conv : to;
+
+            bool animals = false;
+            try {
+                getopt (args,
+                    "animal", &animals);
+            } catch (Exception e) {
+                writeln ("Unable to parse parameters: ", e.msg);
+                exit (1);
+            }
+
+            int amount = 1;
+            if (args.length >= 3)
+                amount = args[2].to!int;
+            for (int i = 0; i < amount; i++)
+                writeln (generateName (animals? RandomNameStyle.ANIMAL : RandomNameStyle.RANDOM));
             break;
         default:
             foreach (ref tool; tools) {

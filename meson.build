@@ -60,6 +60,7 @@ laniakea_lib_src = [
     'src/laniakea/utils/package.d',
     'src/laniakea/utils/utils.d',
     'src/laniakea/utils/versioncmp.d',
+    'src/laniakea/utils/namegen.d',
     'src/laniakea/db/package.d',
     'src/laniakea/db/database.d',
     'src/laniakea/db/schema/package.d',
@@ -146,7 +147,8 @@ laniakea_lib = static_library ('laniakea',
     [laniakea_lib_src],
     include_directories: [src_dir],
     link_with: [cbindings_lib],
-    dependencies: [base_deps]
+    dependencies: [base_deps],
+    d_args: '-J' + source_root + '/data/'
 )
 
 lighthouse_exe = executable ('lighthouse',
@@ -274,7 +276,8 @@ main_test_exe = executable ('main_test',
     link_with: [cbindings_lib],
     dependencies: [base_deps, dyaml_dep],
     build_by_default: false,
-    d_args: meson.get_compiler('d').unittest_args()
+    d_args: meson.get_compiler('d').unittest_args() +
+             ['-J' + source_root + '/data/']
 )
 test('laniakea_main_test', main_test_exe, args: [source_root + '/tests/data'])
 
