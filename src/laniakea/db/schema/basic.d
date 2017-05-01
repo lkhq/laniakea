@@ -40,7 +40,8 @@ enum LkModule
     KEYTOOL     = "keytool",     /// Small CLI tool to handle encryption keys and certificates
     WEB         = "web",         /// Laniakea web view
     DEBCHECK    = "debcheck",    /// Package installability and dependency tests
-    ISOTOPE     = "isotope"      /// ISO image build scheduling and data import
+    ISOTOPE     = "isotope",     /// ISO image build scheduling and data import
+    RUBICON     = "rubicon"      /// Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place
 }
 
 /**
