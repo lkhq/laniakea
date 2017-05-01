@@ -112,6 +112,22 @@ public auto getPastEventAge (SysTime eventTime)
     return currentTime - eventTime;
 }
 
+public auto randomString (uint len)
+{
+    import std.ascii;
+    import std.range : iota;
+    import std.conv : to;
+    import std.algorithm : map;
+    import std.random : uniform;
+    assert (len > 0);
+
+    auto pickOne(R)(R range) {
+        return range[uniform(0, range.length)];
+    }
+
+    return iota (len).map! ((_) => pickOne (letters)).to!string;
+}
+
 unittest
 {
     // remote checks

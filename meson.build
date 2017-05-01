@@ -105,7 +105,10 @@ spears_src = ['src/spears/spearsengine.d',
 
 eggshell_src = ['src/eggshell/germinate.d']
 
-rubicon_src = []
+rubicon_src = [
+    'src/rubicon/fileimport.d',
+    'src/rubicon/rubiconfig.d'
+]
 
 src_dir = include_directories('src/')
 

@@ -31,7 +31,7 @@ import laniakea.logging;
 /**
  * Thrown on an error with GnuPG.
  */
-class GPGError: Error
+class GPGError: Exception
 {
     @safe pure nothrow
     this (string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
@@ -43,7 +43,7 @@ class GPGError: Error
 /**
  * Thrown on an error which sets errno.
  */
-class SysError: Error
+class SysError: Exception
 {
     @trusted
     this (string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)

@@ -112,6 +112,8 @@ final class LocalConfig
     string serviceCurveCertFname;
     string trustedCurveCertsDir;
 
+    string[] trustedGpgKeyrings;
+
     LkModule currentModule;
 
     void init (LkModule mod)
@@ -166,6 +168,10 @@ final class LocalConfig
             if ("SourceKeyringDir" in syncConf) {
                 synchrotron.sourceKeyrings = findFilesBySuffix (syncConf["SourceKeyringDir"].str, ".gpg");
             }
+        }
+
+        if ("TrustedGpgKeyringDir" in root) {
+            trustedGpgKeyrings = findFilesBySuffix (root["TrustedGpgKeyringDir"].str, ".gpg");
         }
 
         immutable curveCertsDir = buildPath (configDir, "keys", "curve");

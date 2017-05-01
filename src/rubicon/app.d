@@ -25,6 +25,9 @@ import core.stdc.stdlib : exit;
 import laniakea.localconfig;
 import laniakea.logging;
 
+import rubicon.fileimport;
+import rubicon.rubiconfig;
+
 
 private immutable helpText =
 "Usage:
@@ -85,6 +88,10 @@ void main (string[] args)
         laniakea.logging.setVerbose (true);
     }
 
+    // load local settings
+    auto rConf = new RubiConfig (LocalConfig.get);
+    rConf.load ();
+
     // start the data import process
-    //! importFilesFrom (args[1]);
+    importFilesFrom (rConf, args[1]);
 }

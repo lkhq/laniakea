@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -25,6 +25,7 @@ import std.string;
 import std.array : appender;
 import std.conv : to;
 import std.path : buildPath;
+import std.typecons : Flag, Yes;
 
 import laniakea.utils : splitStrip;
 import laniakea.compressed;
@@ -40,17 +41,35 @@ private:
     string[] content;
     uint pos;
 
+    string _fname;
+
 public:
 
     this ()
     {
     }
 
-    void open (string fname)
+    void open (string fname, Flag!"compressed" compressed = Yes.compressed) @trusted
     {
-        auto data = decompressFile (fname);
-        load (data);
+        _fname = fname;
+
+        if (compressed) {
+            auto data = decompressFile (fname);
+            load (data);
+        } else {
+            import std.stdio;
+
+            auto f = File (fname, "r");
+            auto data = appender!string;
+            string line;
+            while ((line = f.readln ()) !is null)
+                data ~= line;
+            load (data.data);
+        }
     }
+
+    @property
+    const string fname () { return _fname; }
 
     void load (string data)
     {
