@@ -20,6 +20,7 @@
 import c.zmq;
 import c.zmq.zproxy;
 import core.thread : Thread;
+import std.array : empty;
 import std.string : toStringz, fromStringz, format;
 import std.parallelism : totalCPUs;
 
@@ -33,7 +34,7 @@ import lighthouse.worker;
  * to handle requests.
  */
 void
-serverWorkerThread (int threadId)
+serverWorkerThread ()
 {
     auto workerSock = zsock_new (ZMQ_DEALER);
     scope (exit) zsock_destroy (&workerSock);
@@ -108,10 +109,16 @@ zcert_t *loadServiceCertificate ()
 /**
  * Spawn server proxy and worker threads.
  */
-void runServer (bool verbose)
+int runServer (bool verbose)
 {
     import c.zmq.zsys;
     import c.zmq.zmonitor;
+    auto conf = LocalConfig.get;
+
+    if (conf.lighthouseEndpoint.empty) {
+        logError ("No endpoint for Lighthouse is defined to connect to. Can not continue.");
+        return 3;
+    }
 
     // make CTRL+C work - maybe we want our own interrupt handler in future?
     zsys_handler_set (null);
@@ -139,7 +146,7 @@ void runServer (bool verbose)
     zsock_wait (proxy);
 
     //  connect backend to frontend via a proxy
-    zstr_sendx (proxy, "FRONTEND".toStringz, "ROUTER".toStringz, "tcp://*:5570".toStringz, null);
+    zstr_sendx (proxy, "FRONTEND".toStringz, "ROUTER".toStringz, conf.lighthouseEndpoint.toStringz, null);
     zsock_wait (proxy);
     zstr_sendx (proxy, "BACKEND".toStringz, "DEALER".toStringz, "inproc://backend".toStringz, null);
     zsock_wait (proxy);
@@ -148,6 +155,9 @@ void runServer (bool verbose)
     auto maxThreads = totalCPUs - 1;
     if (maxThreads <= 0)
         maxThreads = 1;
-    for (auto i = 0; i < maxThreads; i++)
-        new Thread ({ serverWorkerThread (i); }).start ();
+    for (auto i = 1; i < maxThreads; i++)
+        new Thread ({ serverWorkerThread (); }).start ();
+    serverWorkerThread ();
+
+    return 0;
 }

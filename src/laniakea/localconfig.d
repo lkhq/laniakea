@@ -114,6 +114,8 @@ final class LocalConfig
 
     string[] trustedGpgKeyrings;
 
+    string lighthouseEndpoint;
+
     LkModule currentModule;
 
     void init (LkModule mod)
@@ -170,9 +172,11 @@ final class LocalConfig
             }
         }
 
-        if ("TrustedGpgKeyringDir" in root) {
+        if ("TrustedGpgKeyringDir" in root)
             trustedGpgKeyrings = findFilesBySuffix (root["TrustedGpgKeyringDir"].str, ".gpg");
-        }
+
+        if ("LighthouseEndpoint" in root)
+            lighthouseEndpoint = root["LighthouseEndpoint"].str;
 
         immutable curveCertsDir = buildPath (configDir, "keys", "curve");
         trustedCurveCertsDir = buildPath (curveCertsDir, "trusted");

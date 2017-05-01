@@ -82,5 +82,6 @@ void main (string[] args)
     }
 
     // start handling requests
-    runServer (verbose);
+    auto ret = runServer (verbose);
+    exit (ret);
 }
