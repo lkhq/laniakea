@@ -22,12 +22,14 @@ module rubicon.fileimport;
 
 import std.conv : to;
 import std.array : empty;
-import std.string : format;
+import std.string : format, endsWith;
 import std.path : baseName, buildPath;
 import std.datetime : SysTime, parseRFC822DateTime;
 import std.digest.sha : SHA256;
 import std.typecons : No;
+import vibe.data.bson : Bson, BsonObjectID;
 
+import laniakea.db;
 import laniakea.logging;
 import laniakea.tagfile;
 import laniakea.pkgitems : ArchiveFile;
@@ -59,8 +61,51 @@ struct DudData
 /**
  * Accept the upload and move its data to the right places.
  */
-private void acceptUpload (RubiConfig conf, DudData dud)
+private void acceptUpload (RubiConfig conf, DudData dud) @trusted
 {
+    import std.file;
+    auto db = Database.get;
+    auto collJobs = db.collJobs ();
+
+    // mark job as accepted and done
+    auto jobResult = dud.success? JobResult.SUCCESS : JobResult.FAILURE;
+    auto job = collJobs.findAndModify (["_id": Bson(BsonObjectID.fromString(dud.jobId))],
+                                    ["$set": [
+                                        "result": Bson(jobResult.to!int)
+                                        ]]);
+    if (job.isNull) {
+        logError ("Unable to mark job '%s' as done: The Job was not found.", dud.jobId);
+
+        // this is a weird situation, there is no proper way to handle it as this indicates a bug
+        // in the Laniakea setup or some other oddity.
+        // The least harmful thing to do is to just leave the upload alone and try again later.
+        return;
+    }
+
+    // move the log file to the log storage
+    foreach (ref af; dud.files) {
+        if (!af.fname.endsWith (".log"))
+            continue;
+
+        auto targetDir = buildPath (conf.logStorageDir, dud.jobId[0..2]);
+        mkdirRecurse (targetDir);
+
+        // move the logfile to its destination
+        auto targetFname = buildPath (targetDir, dud.jobId ~ ".log");
+        af.fname.rename (targetFname);
+        break;
+    }
+
+    // some modules get special treatment
+    if (jobResult == JobResult.SUCCESS) {
+        import rubicon.importisotope;
+
+        if (job["module"].get!string == LkModule.ISOTOPE)
+            handleIsotopeUpload (conf, dud, job);
+    }
+
+    // remove the upload description file from incoming
+    dud.fname.remove ();
     logInfo ("Upload %s accepted.",  dud.fname.baseName);
 }
 
@@ -87,6 +132,10 @@ private void rejectUpload (RubiConfig conf, DudData dud) @trusted
     if (targetFname.exists)
         targetFname = targetFname ~ "+" ~ randomString (4);
     dud.fname.rename (targetFname);
+
+    // also store the reject reason for future reference
+    auto rejectReasonFile = targetFname ~ ".reason";
+    rejectReasonFile.write (dud.rejectReason ~ "\n");
 
     logInfo ("Upload %s rejected.", dud.fname.baseName);
 }

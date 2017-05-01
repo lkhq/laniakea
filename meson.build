@@ -107,7 +107,8 @@ eggshell_src = ['src/eggshell/germinate.d']
 
 rubicon_src = [
     'src/rubicon/fileimport.d',
-    'src/rubicon/rubiconfig.d'
+    'src/rubicon/rubiconfig.d',
+    'src/rubicon/importisotope.d'
 ]
 
 src_dir = include_directories('src/')

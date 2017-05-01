@@ -37,8 +37,10 @@ final class RubiConfig
     }
 
     public {
-        string logStoreDir;
+        string logStorageDir;
         string rejectedDir;
+
+        string isotopeRootDir;
 
         string[] trustedGpgKeyrings;
     }
@@ -65,7 +67,7 @@ final class RubiConfig
 
         if ("LogStorage" !in jroot)
             throw new Exception ("No 'LogStorage' entry in Rubicon configuration: We need to know where to store log files.");
-        logStoreDir = jroot["LogStorage"].get!string;
+        logStorageDir = jroot["LogStorage"].get!string;
 
         if ("RejectedDir" !in jroot)
             throw new Exception ("No 'RejectedDir' entry in Rubicon configuration: We need to know where to place rejected files.");
@@ -74,6 +76,9 @@ final class RubiConfig
         trustedGpgKeyrings = localConf.trustedGpgKeyrings;
         if (trustedGpgKeyrings.empty)
             throw new Exception ("No trusted GPG keyrings were found. Ensure 'TrustedGpgKeyringDir' entry in the general configuration is set properly.");
+
+        if ("IsotopeRootDir" in jroot)
+            isotopeRootDir = jroot["IsotopeRootDir"].get!string;
 
         m_loaded = true;
     }
