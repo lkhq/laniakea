@@ -80,6 +80,7 @@ final class IsotopeAdmin : AdminTool
     {
         writeHeader ("Add new ISO image build recipe");
         ImageBuildRecipe recipe;
+        recipe.id = newBsonId;
 
         writeQS ("Name of the distribution to build the image for");
         recipe.distribution = readString ();
