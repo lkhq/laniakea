@@ -94,7 +94,7 @@ final class IsotopeAdmin : AdminTool
         writeQS ("Git repository URL containing the live-build configuration");
         recipe.liveBuildGit = readString ();
 
-        writeQS ("Place to move the build result to (can be an absolute directory or a remote location)");
+        writeQS ("Place to move the build result to (placeholders like %{DATE} are allowed)");
         recipe.resultMoveTo = readString ();
 
         auto coll = db.getCollection!(LkModule.ISOTOPE, null);
