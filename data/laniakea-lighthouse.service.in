@@ -1,14 +1,14 @@
 [Unit]
 Description=Laniakea Job Server
 After=syslog.target network.target
-ConditionPathExists=/etc/laniakea/web-config.json
+ConditionPathExists=/etc/laniakea/base-config.json
 
 [Service]
 Type=simple
 Restart=on-failure
 ProtectSystem=full
 User=lklighthouse
-Group=lklighthouse
+Group=nogroup
 ExecStart=@LIGHTHOUSE_INSTALL_BIN@
 
 [Install]

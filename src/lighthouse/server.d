@@ -78,7 +78,7 @@ zactor_t *createAuthEngine (bool verbose)
     }
 
     // allow connections from all IPs
-    zstr_sendx (auth, "ALLOW".toStringz, "*".toStringz, null);
+    zstr_sendx (auth, "ALLOW".toStringz, null, null);
     zsock_wait (auth);
 
     // tell the authenticator to use the certificate store in trustedCurveCertsDir
