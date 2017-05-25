@@ -59,6 +59,21 @@ struct DudData
 }
 
 /**
+ * First, try to rename the file (which might fail, e.g. in cross-device-link situations),
+ * in case of an error, fall back to copy & delete.
+ */
+public void safeRename (const string from, const string to) @trusted
+{
+    import std.file;
+    try {
+        from.rename (to);
+    } catch {
+        from.copy (to);
+        from.remove ();
+    }
+}
+
+/**
  * Accept the upload and move its data to the right places.
  */
 private void acceptUpload (RubiConfig conf, DudData dud) @trusted
@@ -92,7 +107,7 @@ private void acceptUpload (RubiConfig conf, DudData dud) @trusted
 
         // move the logfile to its destination
         auto targetFname = buildPath (targetDir, dud.jobId ~ ".log");
-        af.fname.rename (targetFname);
+        af.fname.safeRename (targetFname);
         break;
     }
 
@@ -124,14 +139,14 @@ private void rejectUpload (RubiConfig conf, DudData dud) @trusted
             targetFname = targetFname ~ "+" ~ randomString (4);
 
         // move the file to the rejected dir
-        af.fname.rename (targetFname);
+        af.fname.safeRename (targetFname);
     }
 
     // move the .dud file itself
     auto targetFname = buildPath (conf.rejectedDir, dud.fname.baseName);
     if (targetFname.exists)
         targetFname = targetFname ~ "+" ~ randomString (4);
-    dud.fname.rename (targetFname);
+    dud.fname.safeRename (targetFname);
 
     // also store the reject reason for future reference
     auto rejectReasonFile = targetFname ~ ".reason";

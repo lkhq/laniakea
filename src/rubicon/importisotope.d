@@ -63,6 +63,6 @@ public void handleIsotopeUpload (RubiConfig conf, DudData dud, Bson jobB) @trust
             continue; // logs are handled already by the generic tool
 
         immutable targetFname = buildPath (imageDir, af.fname.baseName);
-        af.fname.rename (targetFname);
+        af.fname.safeRename (targetFname);
     }
 }
