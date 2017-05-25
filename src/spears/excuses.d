@@ -22,7 +22,7 @@ module spears.excuses;
 
 import std.array : appender;
 import std.algorithm : canFind;
-static import yaml;
+static import dyaml;
 
 import laniakea.db : currentTimeAsBsonDate;
 import laniakea.logging;
@@ -36,7 +36,7 @@ class ExcusesFile
 {
 
 private:
-    yaml.Node yroot;
+    dyaml.Node yroot;
 
     string sourceSuite;
     string targetSuite;
@@ -52,7 +52,7 @@ public:
         sourceSuite = source;
         targetSuite = target;
 
-        yroot = yaml.Loader (excusesFname).load ();
+        yroot = dyaml.Loader (excusesFname).load ();
 
         auto f = File (logFname, "r");
         auto lData = appender!string;
@@ -62,11 +62,11 @@ public:
         logContent = lData.data;
     }
 
-    private auto toStringArray (yaml.Node node)
+    private auto toStringArray (dyaml.Node node)
     {
         string[] res;
         res.reserve (node.length);
-        foreach (ref yaml.Node n; node)
+        foreach (ref dyaml.Node n; node)
             res ~= n.as!string;
 
         return res;
@@ -123,7 +123,7 @@ public:
         auto logInfo = processLogData ();
 
         auto ysrc = yroot["sources"];
-        foreach(yaml.Node yentry; ysrc) {
+        foreach(dyaml.Node yentry; ysrc) {
             SpearsExcuse excuse;
 
             excuse.date = currentTimeAsBsonDate ();
@@ -150,7 +150,7 @@ public:
             }
 
             if (yentry.containsKey ("old-binaries")) {
-                foreach (yaml.Node yver, yaml.Node ybins; yentry["old-binaries"]) {
+                foreach (dyaml.Node yver, dyaml.Node ybins; yentry["old-binaries"]) {
                     SpearsOldBinaries oldBin;
 
                     oldBin.pkgVersion = yver.as!string;
@@ -174,7 +174,7 @@ public:
                 auto yn = yentry["excuses"];
 
                 excuse.reason.other.reserve (yn.length);
-                foreach (ref yaml.Node n; yn) {
+                foreach (ref dyaml.Node n; yn) {
                     auto s = n.as!string;
                     if ((!s.canFind("Cannot be tested by piuparts")) && (!s.canFind("but ignoring cruft, so nevermind")))
                         excuse.reason.other ~= s;

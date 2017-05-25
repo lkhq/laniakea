@@ -26,7 +26,7 @@ import std.algorithm : startsWith, map;
 import std.conv : to;
 import std.path : buildPath;
 import std.typecons : Tuple;
-static import yaml;
+static import dyaml;
 
 import laniakea.db;
 import laniakea.localconfig;
@@ -245,7 +245,7 @@ class Debcheck
     {
         auto res = appender!(DebcheckIssue[]);
 
-        void setBasicPackageInfo (T) (ref T v, yaml.Node entry) {
+        void setBasicPackageInfo (T) (ref T v, dyaml.Node entry) {
             if (entry.containsKey ("type") && entry["type"].as!string == "src")
                 v.packageKind = PackageKind.SOURCE;
             else
@@ -256,11 +256,11 @@ class Debcheck
             v.architecture = entry["architecture"].as!string;
         }
 
-        auto yroot = yaml.Loader.fromString (yamlData.to!(char[])).load ();
+        auto yroot = dyaml.Loader.fromString (yamlData.to!(char[])).load ();
         auto report = yroot["report"];
         auto archAll = arch == "all";
 
-        foreach (ref yaml.Node entry; report) {
+        foreach (ref dyaml.Node entry; report) {
             DebcheckIssue issue;
 
             if (!archAll) {
@@ -277,7 +277,7 @@ class Debcheck
             setBasicPackageInfo!DebcheckIssue (issue, entry);
 
             auto reasons = entry["reasons"];
-            foreach (ref yaml.Node reason; reasons) {
+            foreach (ref dyaml.Node reason; reasons) {
                 if (reason.containsKey ("missing")) {
                     // we have a missing package issue
                     auto ymissing = reason["missing"]["pkg"];
@@ -301,7 +301,7 @@ class Debcheck
 
                     // parse the depchain
                     if (yconflict.containsKey ("depchain1")) {
-                        foreach (ref yaml.Node ypkg; yconflict["depchain1"][0]["depchain"]) {
+                        foreach (ref dyaml.Node ypkg; yconflict["depchain1"][0]["depchain"]) {
                             PackageIssue pkgissue;
                             setBasicPackageInfo!PackageIssue(pkgissue, ypkg);
                             pkgissue.depends = ypkg["depends"].as!string;
@@ -309,7 +309,7 @@ class Debcheck
                         }
                     }
                     if (yconflict.containsKey ("depchain2")) {
-                        foreach (ref yaml.Node ypkg; yconflict["depchain2"][0]["depchain"]) {
+                        foreach (ref dyaml.Node ypkg; yconflict["depchain2"][0]["depchain"]) {
                             PackageIssue pkgissue;
                             setBasicPackageInfo!PackageIssue(pkgissue, ypkg);
                             pkgissue.depends = ypkg["depends"].as!string;
