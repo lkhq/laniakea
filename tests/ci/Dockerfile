@@ -38,14 +38,8 @@ RUN mkdir vibe.d/b
 RUN cd vibe.d/b/ && meson --prefix=/usr ..
 RUN cd vibe.d/b/ && ninja && ninja install
 
-# Tinyendian
-RUN git clone --depth 1 https://github.com/ximion/tinyendian.git tinyendian
-RUN mkdir tinyendian/b
-RUN cd tinyendian/b/ && meson --prefix=/usr ..
-RUN cd tinyendian/b/ && ninja && ninja install
-
 # D-YAML
-RUN git clone --depth 1 https://github.com/lkorigin/D-YAML.git dyaml
+RUN git clone --depth 1 https://github.com/dlang-community/D-YAML.git dyaml
 RUN mkdir dyaml/b
 RUN cd dyaml/b/ && meson --prefix=/usr ..
 RUN cd dyaml/b/ && ninja && ninja install
