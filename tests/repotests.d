@@ -81,13 +81,13 @@ void validateSourcePackages (SourcePackage[] srcPkgs)
         assertEq (spkg.binaries.length, 2);
         foreach (ref bin; spkg.binaries) {
             if (bin.name == "0ad") {
-                assertEq (bin.type, DebType.DEB);
+                assertEq (bin.debType, DebType.DEB);
                 assertEq (bin.ver, spkg.ver);
                 assertEq (bin.section, "games");
                 assertEq (bin.priority, PackagePriority.OPTIONAL);
                 assertEq (bin.architectures, ["amd64", "arm64", "armhf", "i386", "kfreebsd-amd64", "kfreebsd-i386"]);
             } else if (bin.name == "0ad-dbg") {
-                assertEq (bin.type, DebType.DEB);
+                assertEq (bin.debType, DebType.DEB);
                 assertEq (bin.ver, spkg.ver);
                 assertEq (bin.section, "debug");
                 assertEq (bin.priority, PackagePriority.EXTRA);

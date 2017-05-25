@@ -166,7 +166,7 @@ public PackageInfo[] parsePackageListString (const string pkgListRaw, const stri
         PackageInfo pi;
         pi.name = parts[0];
         pi.ver = defaultVersion;
-        pi.type = debTypeFromString (parts[1]);
+        pi.debType = debTypeFromString (parts[1]);
         pi.section = parts[2];
         pi.priority = packagePriorityFromString (parts[3]);
 

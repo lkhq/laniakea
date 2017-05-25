@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -19,6 +19,21 @@
 
 module laniakea.pkgitems;
 @safe:
+
+import vibe.db.mongo.mongo;
+static import vibe.data.serialization;
+
+private alias vdname = vibe.data.serialization.name;
+
+/**
+ * Type of the package.
+ */
+enum PackageType
+{
+    UNKNOWN,
+    SOURCE,
+    BINARY
+}
 
 /**
  * Type of the Debian archive item.
@@ -123,7 +138,7 @@ struct ArchiveFile
  */
 struct PackageInfo
 {
-    DebType type;
+    DebType debType;
     string name;
     string ver;
 
@@ -137,8 +152,11 @@ struct PackageInfo
  */
 struct SourcePackage
 {
+    @vdname("_id") BsonObjectID id;
+    PackageType type = PackageType.SOURCE;
+
     string name;
-    string ver;
+    @vdname("version") string ver;
     string[] architectures;
     PackageInfo[] binaries;
 
@@ -161,9 +179,12 @@ struct SourcePackage
  */
 struct BinaryPackage
 {
-    DebType type;
+    @vdname("_id") BsonObjectID id;
+    PackageType type = PackageType.BINARY;
+
+    DebType debType;
     string name;
-    string ver;
+    @vdname("version") string ver;
     string architecture;
     size_t installedSize;
 

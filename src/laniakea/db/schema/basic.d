@@ -41,7 +41,8 @@ enum LkModule
     WEB         = "web",         /// Laniakea web view
     DEBCHECK    = "debcheck",    /// Package installability and dependency tests
     ISOTOPE     = "isotope",     /// ISO image build scheduling and data import
-    RUBICON     = "rubicon"      /// Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place
+    RUBICON     = "rubicon",     /// Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place
+    ARCHIVE     = "archive"      /// Lists packages in the database
 }
 
 /**

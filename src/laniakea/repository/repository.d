@@ -227,7 +227,7 @@ public:
             if (rawPkgList is null) {
                 foreach (bin; tf.readField ("Binary", "").splitStrip (",")) {
                     PackageInfo pi;
-                    pi.type = DebType.DEB;
+                    pi.debType = DebType.DEB;
                     pi.name = bin;
                     pi.ver = pkg.ver;
                     pkg.binaries ~= pi;
@@ -296,9 +296,9 @@ public:
                 pkg.file.size = to!size_t (tf.readField ("Size"));
             pkg.file.sha256sum = tf.readField ("SHA256");
 
-            pkg.type = DebType.DEB;
+            pkg.debType = DebType.DEB;
             if (pkg.file.fname.endsWith (".udeb"))
-                pkg.type = DebType.UDEB;
+                pkg.debType = DebType.UDEB;
 
             // Do some issue-reporting
             if (pkg.file.fname.empty)
