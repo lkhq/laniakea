@@ -156,7 +156,7 @@ public:
     {
         import std.algorithm : canFind;
 
-        logDebug ("Testing package '%s' remove from '%s'", packageName, suiteName);
+        logDebug ("Testing package '%s' removal from '%s'", packageName, suiteName);
 
         // simulate package removal
         auto args = ["-R",
