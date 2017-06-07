@@ -292,7 +292,7 @@ public:
                     if (ebinPkgP !is null) {
                         auto ebinPkg = *ebinPkgP;
                         if (compareVersions (ebinPkg.ver, binPkg.ver) >= 0) {
-                            logInfo ("Not syncing binary package '%s/%s': Existing binary package with bigger/equal version '%s' found.",
+                            logDebug ("Not syncing binary package '%s/%s': Existing binary package with bigger/equal version '%s' found.",
                                         binPkg.name, binPkg.ver, ebinPkg.ver);
                             existingPackages = true;
                             continue;
@@ -391,7 +391,7 @@ public:
         checkSyncReady ();
 
         auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
-        auto syncedSrcPkgs = appender!(SourcePackage[]);
+        auto activeSrcPkgs = appender!(SourcePackage[]); // source packages which should have their binary packages updated
 
         auto syncBlacklist = getPackageBlacklist ();
 
@@ -429,12 +429,6 @@ public:
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
 
-                    if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
-                        logDebug ("Skipped sync of %s: Target version '%s' is equal/newer than source version '%s'.",
-                                  spkg.name, (*dpkgP).ver, spkg.ver);
-                        continue;
-                    }
-
                     // check if we have a modified target package,
                     // indicated via its Debian revision, e.g. "1.0-0tanglu1"
                     if (dpkg.ver.getDebianRev.canFind (distroTag)) {
@@ -449,7 +443,18 @@ public:
 
                         collIssues.insert (issue);
                         continue;
+                    } else {
+                        // no modifications mean we can check if an update of the binary packages of this source package
+                        // makes sense.
+                        activeSrcPkgs ~= spkg;
                     }
+
+                    if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
+                        logDebug ("Skipped sync of %s: Target version '%s' is equal/newer than source version '%s'.",
+                                  spkg.name, (*dpkgP).ver, spkg.ver);
+                        continue;
+                    }
+
                 }
 
                 // sync source package
@@ -457,11 +462,16 @@ public:
                 auto ret = importSourcePackage (spkg, component.name);
                 if (!ret)
                     return false;
-                syncedSrcPkgs ~= spkg;
+
+                // a new source package is always active and needs it's binary packages synced, in
+                // case we do binary syncs.
+                activeSrcPkgs ~= spkg;
             }
 
-            // import binaries as well, if necessary
-            auto ret = importBinariesForSources (syncedSrcPkgs.data, component.name);
+            // import binaries as well. We test for binary updates for all available active source packages,
+            // as binNMUs might have happened in the source distribution.
+            // (an active package in this context is any source package which doesn't have modifications in the target distribution)
+            auto ret = importBinariesForSources (activeSrcPkgs.data, component.name);
             if (!ret)
                 return false;
         }
