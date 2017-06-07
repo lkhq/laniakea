@@ -288,13 +288,32 @@ public:
                         continue;
                     }
 
+                    if (binI.ver.getDebianRev.canFind (distroTag)) {
+                        // safety measure, we should never get here as packages with modifications were
+                        // filtered out previously.
+                        logDebug ("Can not sync binary package %s/%s: It has modifications.", binI.name, binI.ver);
+                        continue;
+                    }
+
                     auto ebinPkgP = binPkg.name in destBinPkgMap;
                     if (ebinPkgP !is null) {
+                        import std.regex : ctRegex, matchAll;
+
                         auto ebinPkg = *ebinPkgP;
                         if (compareVersions (ebinPkg.ver, binPkg.ver) >= 0) {
                             logDebug ("Not syncing binary package '%s/%s': Existing binary package with bigger/equal version '%s' found.",
                                         binPkg.name, binPkg.ver, ebinPkg.ver);
                             existingPackages = true;
+                            continue;
+                        }
+
+                        // filter out manual rebuild uploads matching the pattern XbY.
+                        // sometimes rebuild uploads of not-modified packages happen, and if the source
+                        // distro did a binNMU, we don't want to sync that, even if it's bigger
+                        auto rbRE = ctRegex!(`([0-9]+)b([0-9]+)`);
+                        if (!ebinPkg.ver.matchAll (rbRE).empty) {
+                            logDebug ("Not syncing binary package '%s/%s': Existing binary package with rebuild upload '%s' found.",
+                                        binPkg.name, binPkg.ver, ebinPkg.ver);
                             continue;
                         }
                     }
@@ -443,10 +462,6 @@ public:
 
                         collIssues.insert (issue);
                         continue;
-                    } else {
-                        // no modifications mean we can check if an update of the binary packages of this source package
-                        // makes sense.
-                        activeSrcPkgs ~= spkg;
                     }
 
                     if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
@@ -466,6 +481,15 @@ public:
                 // a new source package is always active and needs it's binary packages synced, in
                 // case we do binary syncs.
                 activeSrcPkgs ~= spkg;
+            }
+
+            // all packages in the target distribution are considered active, as long as they don't
+            // have modifications.
+            // we explicitly use the destPkgMap here, because it always contains only the newest
+            // package versions.
+            foreach (ref spkg; destPkgMap.byValue) {
+                if (!spkg.ver.getDebianRev.canFind (distroTag))
+                    activeSrcPkgs ~= spkg;
             }
 
             // import binaries as well. We test for binary updates for all available active source packages,
