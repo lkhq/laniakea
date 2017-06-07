@@ -184,6 +184,14 @@ public:
         return jobs;
     }
 
+    auto collRepoPackages (string repoName = "master")
+    {
+        import std.typecons : tuple;
+        auto repoPkgs = db["repo." ~ repoName ~ ".packages"];
+        repoPkgs.ensureIndex ([tuple("type", 1), tuple("name", 1), tuple("version", 1)], IndexFlags.unique);
+        return repoPkgs;
+    }
+
     void addJob (J) (J job, BsonObjectID trigger)
     {
         auto coll = collJobs ();

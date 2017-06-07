@@ -287,6 +287,9 @@ public:
             pkg.homepage = tf.readField ("Homepage");
             pkg.section = tf.readField ("Section");
 
+            pkg.description = tf.readField ("Description");
+            pkg.descriptionMd5 = tf.readField ("Description-md5");
+
             pkg.priority = packagePriorityFromString (tf.readField ("Priority"));
 
             pkg.file.fname = tf.readField ("Filename");

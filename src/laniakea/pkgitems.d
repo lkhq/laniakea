@@ -188,6 +188,9 @@ struct BinaryPackage
     string architecture;
     size_t installedSize;
 
+    string description;
+    string descriptionMd5;
+
     string sourceName;
     string sourceVersion;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -28,7 +28,7 @@ import laniakea.logging;
 
 private immutable helpText =
 "Usage:
-  cthulhu <subcommand> [OPTION...] - Internal job scheduler and cleanup daemon.
+  cthulhu <subcommand> [OPTION...] - Internal automated maintenance services.
 
 Laniakea module for automating background tasks and running housekeeping jobs.
 
