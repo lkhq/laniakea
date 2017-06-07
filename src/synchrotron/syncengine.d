@@ -272,8 +272,11 @@ public:
                 auto existingPackages = false;
                 auto binFiles = appender!(string[]);
                 foreach (ref binI; parallel (spkg.binaries)) {
-                    if (binI.name !in binPkgMap)
+                    if (binI.name !in binPkgMap) {
+                        if (binI.name in destBinPkgMap)
+                            existingPackages = true; // package only exists in target
                         continue;
+                    }
                     auto binPkg = binPkgMap[binI.name];
 
                     if (binPkg.sourceName != spkg.name) {
@@ -285,13 +288,6 @@ public:
                     if (binI.ver != binPkg.sourceVersion) {
                         logDebug ("Not syncing binary package '%s': Version number '%s' does not match source package version '%s'.",
                                   binPkg.name, binI.ver, binPkg.sourceVersion);
-                        continue;
-                    }
-
-                    if (binI.ver.getDebianRev.canFind (distroTag)) {
-                        // safety measure, we should never get here as packages with modifications were
-                        // filtered out previously.
-                        logDebug ("Can not sync binary package %s/%s: It has modifications.", binI.name, binI.ver);
                         continue;
                     }
 
@@ -314,8 +310,16 @@ public:
                         if (!ebinPkg.ver.matchAll (rbRE).empty) {
                             logDebug ("Not syncing binary package '%s/%s': Existing binary package with rebuild upload '%s' found.",
                                         binPkg.name, binPkg.ver, ebinPkg.ver);
+                            existingPackages = true;
                             continue;
                         }
+                    }
+
+                    if (binI.ver.getDebianRev.canFind (distroTag)) {
+                        // safety measure, we should never get here as packages with modifications were
+                        // filtered out previously.
+                        logDebug ("Can not sync binary package %s/%s: It has modifications.", binI.name, binI.ver);
+                        continue;
                     }
 
                     auto fname = sourceRepo.getFile (binPkg.file);
