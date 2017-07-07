@@ -227,7 +227,7 @@ public:
         return coll.find!J (["trigger": trigger],
                             null,
                             QueryFlags.None)
-                            .sort(Order(0));
+                            .sort(Order(-1));
     }
 
     auto collEvents ()
