@@ -93,7 +93,7 @@ lighthouse_src = [
     'src/lighthouse/worker.d'
 ]
 
-cthulhu_src = []
+datasync_src = ['src/datasync/repodbsync.d']
 
 synchrotron_src = ['src/synchrotron/syncengine.d']
 
@@ -186,9 +186,9 @@ keytool_exe = executable ('lk-keytool',
     install_dir : 'bin/'
 )
 
-cthulhu_exe = executable ('cthulhu',
-    ['src/cthulhu/app.d',
-     cthulhu_src],
+datasync_exe = executable ('lk-datasync',
+    ['src/datasync/app.d',
+     datasync_src],
     include_directories: [src_dir],
     link_with: [laniakea_lib],
     dependencies: [base_deps],
