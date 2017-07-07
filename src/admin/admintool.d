@@ -129,6 +129,16 @@ protected:
         writeln ();
     }
 
+    final void writeDone (string msg)
+    {
+        writeln ("-> ", msg,);
+    }
+
+    final void writeNote (string msg)
+    {
+        writeln ("! ", msg,);
+    }
+
 public:
 
     this ()

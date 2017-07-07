@@ -166,6 +166,9 @@ public:
         return result;
     }
 
+    /**
+     * The collection holding information about workers (machines of the autobuild cluster)
+     */
     auto collWorkers ()
     {
         import std.typecons : tuple;
@@ -174,6 +177,9 @@ public:
         return workers;
     }
 
+    /**
+     * Collection of jobs (long tasks that are run by arbitrary parts of Laniakea (but usually Spark workers))
+     */
     auto collJobs ()
     {
         import std.typecons : tuple;
@@ -210,6 +216,9 @@ public:
         coll.insert (job);
     }
 
+    /**
+     * Get a range of registered jobs by the entity that triggered them.
+     */
     auto getJobsByTrigger (J) (BsonObjectID trigger)
     {
         auto coll = collJobs ();
@@ -218,7 +227,7 @@ public:
         return coll.find!J (["trigger": trigger],
                             null,
                             QueryFlags.None)
-                            .sort(Order(1));
+                            .sort(Order(0));
     }
 
     auto collEvents ()

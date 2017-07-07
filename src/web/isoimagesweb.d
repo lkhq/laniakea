@@ -59,7 +59,10 @@ class IsoImagesWebService {
  	void getRecipes (HTTPServerRequest req, HTTPServerResponse res)
  	{
         import std.range : take;
+        import std.typecons : tuple;
+
         auto collIsotope = db.getCollection!(LkModule.ISOTOPE, null);
+        collIsotope.ensureIndex ([tuple("name", 1)], IndexFlags.unique);
 
         auto recipes = collIsotope.find!ImageBuildRecipe ();
 

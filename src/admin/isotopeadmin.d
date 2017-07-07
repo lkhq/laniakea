@@ -52,11 +52,11 @@ final class IsotopeAdmin : AdminTool
                 addRecipe ();
                 break;
             case "trigger-build":
-                if (args.length < 3) {
-                    writeln ("Invalid number of parameters: You need to specify a distribution and suite to identify the recipe to trigger the build for.");
+                if (args.length < 2) {
+                    writeln ("Invalid number of parameters: You need to specify a recipe name (usually {distro}-{suite}-{flavor}).");
                     return 1;
                 }
-                ret = triggerBuild (args[1], args[2]);
+                ret = triggerBuild (args[1]);
                 break;
             default:
                 writeln ("The command '%s' is unknown.".format (command));
@@ -78,6 +78,9 @@ final class IsotopeAdmin : AdminTool
 
     void addRecipe ()
     {
+        import std.uni : toLower;
+        import std.typecons : tuple;
+
         writeHeader ("Add new ISO image build recipe");
         ImageBuildRecipe recipe;
         recipe.id = newBsonId;
@@ -88,6 +91,9 @@ final class IsotopeAdmin : AdminTool
         writeQS ("Name of the suite to build the image for");
         recipe.suite = readString ();
 
+        writeQS ("Flavor to build");
+        recipe.flavor = readString ();
+
         writeQL ("List of architectures to build for");
         recipe.architectures = readList ();
 
@@ -97,16 +103,25 @@ final class IsotopeAdmin : AdminTool
         writeQS ("Place to move the build result to (placeholders like %{DATE} are allowed)");
         recipe.resultMoveTo = readString ();
 
+        // ensure we have a name
+        recipe.name = "%s-%s-%s".format (recipe.distribution, recipe.suite, recipe.flavor).toLower;
+
         auto coll = db.getCollection!(LkModule.ISOTOPE, null);
+        coll.ensureIndex ([tuple("name", 1)], IndexFlags.unique);
         coll.insert (recipe);
         db.fsync;
+
+        writeDone ("Created recipe with name: %s".format (recipe.name));
     }
 
-    bool triggerBuild (string distro, string suite)
+    bool triggerBuild (string name)
     {
-        auto coll = db.getCollection!(LkModule.ISOTOPE, null);
+        import std.typecons : tuple;
 
-        auto recipe = coll.findOne!ImageBuildRecipe (["distribution": distro, "suite": suite]);
+        auto coll = db.getCollection!(LkModule.ISOTOPE, null);
+        coll.ensureIndex ([tuple("name", 1)], IndexFlags.unique);
+
+        auto recipe = coll.findOne!ImageBuildRecipe (["name": name]);
         if (recipe.isNull) {
             writeln ("No build recipe matching these parameters has been found.");
             return false;

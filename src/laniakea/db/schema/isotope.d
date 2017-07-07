@@ -25,19 +25,23 @@ import vibe.data.serialization : name;
 import laniakea.db.schema.jobs;
 import laniakea.db.schema.basic;
 
+alias mongoName = name;
+
 
 /**
  * Instructions on how to do an automatic ISO image build.
  */
 struct ImageBuildRecipe {
-    @name("_id") BsonObjectID id;
+    @mongoName("_id") BsonObjectID id;
 
+    string name;            /// A unique name identifying this recipe
     string distribution;    /// Name of the distribution, e.g. "Tanglu"
     string suite;           /// Suite of the distribution to build an image for
+    string flavor;          /// The flavor to build
     string[] architectures; /// Architectures to build the image for
 
     string liveBuildGit;    /// Git repository URL with the live-build scripts
-    string resultMoveTo;    /// Local or remote URL to copy the resulting build articats to
+    string resultMoveTo;    /// Local or remote URL to copy the resulting build artifacts to
 }
 
 /**
@@ -46,8 +50,9 @@ struct ImageBuildRecipe {
 struct ImageBuildJob {
     mixin Job!(LkModule.ISOTOPE, "image-build");
 
-    string distribution;   /// Name of the distribution, e.g. "Tanglu"
-    string suite;          /// Suite of the distribution to build an image for
+    string distribution;  /// Name of the distribution, e.g. "Tanglu"
+    string suite;         /// Suite of the distribution to build an image for
+    string flavor;        /// The flavor to build
     string architecture;  /// The architecture to build the image for
 
     string liveBuildGit;  /// Git repository URL with the live-build scripts
