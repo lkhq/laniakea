@@ -22,8 +22,11 @@ block contents
                     .panel-heading
                         h3.panel-title
                             i.fa.fa-hdd-o(aria-hidden='true')
-                            |  #{image.recipe.distribution} #{image.recipe.suite}
+                            |  #{image.recipe.distribution} #{image.recipe.suite} (#{image.recipe.flavor})
                     .panel-body
+                        b ID:
+                        | #{image.recipe.name}
+                        br
                         b Architectures:
                         | #{image.recipe.architectures.join (" ")}
                         br
