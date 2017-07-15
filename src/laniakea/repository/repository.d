@@ -207,6 +207,8 @@ public:
 
             SourcePackage pkg;
             pkg.name = pkgname;
+            pkg.suite = suite;
+            pkg.component = component;
 
             pkg.ver = tf.readField ("Version");
             pkg.architectures = tf.readField ("Architecture").split (" ");
@@ -250,7 +252,7 @@ public:
      * Internal
      */
     @safe
-    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf)
+    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string component)
     {
         auto pkgs = appender!(BinaryPackage[]);
         do {
@@ -260,6 +262,8 @@ public:
 
             BinaryPackage pkg;
             pkg.name = pkgname;
+            pkg.suite = suiteName;
+            pkg.component = component;
 
             pkg.ver = tf.readField ("Version");
             pkg.architecture = tf.readField ("Architecture");
@@ -326,7 +330,7 @@ public:
         auto tf = new TagFile;
         tf.open (indexFname);
 
-        return readBinaryPackagesFromData (tf);
+        return readBinaryPackagesFromData (tf, suite, component);
     }
 
     /**
@@ -344,7 +348,7 @@ public:
         auto tf = new TagFile;
         tf.open (indexFname);
 
-        return readBinaryPackagesFromData (tf);
+        return readBinaryPackagesFromData (tf, suite, component);
     }
 
     /**

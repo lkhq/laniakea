@@ -17,7 +17,62 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module cthulhu.repodbsync;
+module datasync.repodbsync;
 @safe:
 
+import laniakea.logging;
+import laniakea.localconfig;
 import laniakea.repository;
+import laniakea.db;
+
+bool syncRepoData (string suiteName, string archiveName = "master") @trusted
+{
+    auto db = Database.get;
+
+    auto suite = db.getSuite (suiteName);
+    if (suite.isNull) {
+        logError ("Unable to find suite: %s", suiteName);
+        return false;
+    }
+
+    Repository repo;
+    if (archiveName == "master") {
+        repo = new Repository (LocalConfig.get.archive.rootPath,
+                                     db.getBaseConfig.projectName);
+        repo.setTrusted (true);
+    } else {
+        assert (0, "The multiple repositories feature is not yet implemented.");
+    }
+
+    // the collection containing package data for this repository
+    auto pkgColl = db.collRepoPackages (archiveName);
+
+    // quick & dirty replacement of existing data in this collection: remove the old stuff and add the new stuff
+    pkgColl.remove (["suite": suite.name]);
+
+    foreach (ref component; suite.components) {
+        // Source packages
+        foreach (ref pkg; repo.getSourcePackages (suite.name, component.name)) {
+            pkg.id = newBsonId ();
+            pkgColl.insert (pkg);
+        }
+
+        foreach (ref arch; suite.architectures) {
+            // binary packages
+            foreach (ref pkg; repo.getBinaryPackages (suite.name, component.name, arch)) {
+                pkg.id = newBsonId ();
+                pkgColl.insert (pkg);
+            }
+
+            // binary packages of the debian-installer
+            foreach (ref pkg; repo.getInstallerPackages (suite.name, component.name, arch)) {
+                pkg.id = newBsonId ();
+                pkgColl.insert (pkg);
+            }
+        }
+    }
+
+    db.fsync;
+
+    return true;
+}

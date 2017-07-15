@@ -42,7 +42,8 @@ enum LkModule
     DEBCHECK    = "debcheck",    /// Package installability and dependency tests
     ISOTOPE     = "isotope",     /// ISO image build scheduling and data import
     RUBICON     = "rubicon",     /// Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place
-    ARCHIVE     = "archive"      /// Lists packages in the database
+    ARCHIVE     = "archive",     /// Lists packages in the database
+    DATASYNC    = "datasync"     /// Import various data from other sources into the database
 }
 
 /**

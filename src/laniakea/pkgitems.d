@@ -155,8 +155,11 @@ struct SourcePackage
     @vdname("_id") BsonObjectID id;
     PackageType type = PackageType.SOURCE;
 
-    string name;
-    @vdname("version") string ver;
+    string name;       /// Source package name
+    @vdname("version") string ver; /// Version of this package
+    string suite;     /// Suite this package is in
+    string component; /// Component this package is in
+
     string[] architectures;
     PackageInfo[] binaries;
 
@@ -182,9 +185,12 @@ struct BinaryPackage
     @vdname("_id") BsonObjectID id;
     PackageType type = PackageType.BINARY;
 
-    DebType debType;
-    string name;
-    @vdname("version") string ver;
+    DebType debType;   /// Deb package type
+    string name;       /// Package name
+    @vdname("version") string ver; /// Version of this package
+    string suite;     /// Suite this package is in
+    string component; /// Component this package is in
+
     string architecture;
     size_t installedSize;
 

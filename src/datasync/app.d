@@ -25,6 +25,8 @@ import core.stdc.stdlib : exit;
 import laniakea.localconfig;
 import laniakea.logging;
 
+import datasync.repodbsync : syncRepoData;
+
 
 private immutable helpText =
 "Usage:
@@ -76,7 +78,7 @@ void main (string[] args)
 
     auto conf = LocalConfig.get;
     try {
-        conf.load (LkModule.UNKNOWN);
+        conf.load (LkModule.DATASYNC);
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);
@@ -87,4 +89,16 @@ void main (string[] args)
         laniakea.logging.setVerbose (true);
     }
 
+    immutable command = args[1];
+    if (command == "repo") {
+        if (args.length < 3) {
+            writeln ("You need to specify a suite name.");
+            exit (2);
+        }
+        if (!syncRepoData (args[2]))
+            exit (1);
+    } else {
+        writeln ("Command ", command, " is unknown.");
+        exit (2);
+    }
 }
