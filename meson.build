@@ -250,6 +250,7 @@ rubicon_exe = executable ('rubicon',
 opt_webgui = get_option('webgui')
 if (opt_webgui)
     subdir('src/web')
+    subdir('src/webswview')
 endif
 
 #

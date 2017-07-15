@@ -1,0 +1,13 @@
+extends base
+
+block head
+  - auto title = "Overview";
+
+block contents
+  h1 Software Search
+
+  .input-group
+    form(action="/search", method="GET")
+      input#term(type="text", name="term", autofocus=true, class="form-control", placeholder="Search for...")
+      |
+      button(type="submit", class="btn btn-default") Find

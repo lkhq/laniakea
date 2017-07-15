@@ -1,0 +1,11 @@
+extends base
+
+block head
+  - auto title = "Search Results";
+
+block contents
+  h1 Results for search for '#{search_term}'
+
+  - foreach (ref res; results)
+    p
+      a(href='/package/binary/#{res.suite}/#{res.component}/#{res.name}') #{res.name} - #{res.ver} [#{res.suite}/#{res.component}] [#{res.architecture}]

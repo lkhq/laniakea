@@ -39,6 +39,7 @@ enum LkModule
     ADMINCLI    = "admin-cli",   /// CLI interface to Laniakea settings and the database, useful debug tool
     KEYTOOL     = "keytool",     /// Small CLI tool to handle encryption keys and certificates
     WEB         = "web",         /// Laniakea web view
+    WEBSWVIEW   = "webswview",   /// Packages / software web view
     DEBCHECK    = "debcheck",    /// Package installability and dependency tests
     ISOTOPE     = "isotope",     /// ISO image build scheduling and data import
     RUBICON     = "rubicon",     /// Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place

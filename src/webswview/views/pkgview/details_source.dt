@@ -1,0 +1,30 @@
+extends base
+
+block head
+  - auto title = pkg.name ~ " source package";
+
+block contents
+  .col-md-3
+    p.lead Suites
+    |
+    .list-group
+      a.list-group-item.active= pkg.suite
+      |
+      a.list-group-item(href="#") Suite 2
+      |
+      a.list-group-item(href="#") Suite 3
+  |
+  .col-md-9
+    .thumbnail
+      .caption-full
+        h3 #{pkg.name} - #{pkg.ver}
+        |
+        p Homepage: #{pkg.homepage}
+        |
+        p VCS Browser: #{pkg.vcsBrowser}
+        |
+        h4 Build Dependencies
+        ul
+          - foreach (ref dep; pkg.buildDepends)
+            li= dep
+    |

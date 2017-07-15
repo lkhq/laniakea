@@ -195,6 +195,8 @@ public:
         import std.typecons : tuple;
         auto repoPkgs = db["repo." ~ repoName ~ ".packages"];
         repoPkgs.ensureIndex ([tuple("type", 1), tuple("name", 1), tuple("version", 1)], IndexFlags.unique);
+        repoPkgs.ensureIndex ([tuple("name", 1)]);
+        repoPkgs.ensureIndex ([tuple("description", 1)]);
         return repoPkgs;
     }
 
