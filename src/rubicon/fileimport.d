@@ -67,7 +67,7 @@ public void safeRename (const string from, const string to) @trusted
     import std.file;
     try {
         from.rename (to);
-    } catch {
+    } catch (Throwable) {
         from.copy (to);
         from.remove ();
     }
