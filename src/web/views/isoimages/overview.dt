@@ -5,6 +5,7 @@ block head
 
 block contents
     - import laniakea.db;
+    - import std.array : join;
     h1 Live Image Building
 
     br

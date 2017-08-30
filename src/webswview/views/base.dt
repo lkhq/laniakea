@@ -50,7 +50,7 @@ html(lang='en')
             p
               small
                 | Powered by
-                a(href='https://github.com/lkorigin/laniakea')laniakea-web-swview
+                a(href='https://github.com/lkorigin/laniakea') laniakea-web-swview
 
     //- Scripts
     script(src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js')

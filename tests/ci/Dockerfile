@@ -25,7 +25,7 @@ RUN apt-get install -yq --no-install-recommends \
     dlang-libevent \
     dlang-openssl \
     libevent-dev \
-    libssl1.0-dev \
+    libssl-dev \
     zlib1g-dev
 
 # build & install 3rd-party libraries
@@ -33,7 +33,7 @@ RUN mkdir -p /build/extra
 WORKDIR /build/extra
 
 # Vibe.d
-RUN git clone --depth 1 -b 0.7.x https://github.com/ximion/vibe.d.git vibe.d
+RUN git clone -b v0.8.1 --depth 1 https://github.com/rejectedsoftware/vibe.d.git vibe.d
 RUN mkdir vibe.d/b
 RUN cd vibe.d/b/ && meson --prefix=/usr ..
 RUN cd vibe.d/b/ && ninja && ninja install

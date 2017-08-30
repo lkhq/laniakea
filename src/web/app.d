@@ -25,6 +25,7 @@ import vibe.http.router;
 import vibe.http.server;
 import vibe.web.web;
 import vibe.http.fileserver;
+import diet.html;
 
 import laniakea.localconfig;
 
