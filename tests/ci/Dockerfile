@@ -1,7 +1,7 @@
 #
 # Docker file for Laniakea CI
 #
-FROM debian:sid
+FROM debian:testing
 
 # prepare
 RUN apt-get update -qq
