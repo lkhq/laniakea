@@ -10,6 +10,7 @@ block head
         - title = "Dependency Issues for binary package " ~ issue.packageName ~ " " ~ issue.packageVersion;
 
 block contents
+    - import std.array : empty;
     - if (packageKind == PackageKind.SOURCE)
         h2 Build dependency issues for: #{issue.packageName} #{issue.packageVersion}
     - else

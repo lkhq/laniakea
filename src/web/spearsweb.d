@@ -64,7 +64,7 @@ class SpearsWebService {
         if (!pageStr.empty) {
             try {
                 currentPage = pageStr.to!int;
-            } catch {
+            } catch (Throwable) {
                 return; // not an integer, we can't continue
             }
         }

@@ -4,6 +4,7 @@ block head
     - auto title = "Migration Excuse for " ~ excuse.sourcePackage ~ " " ~ excuse.newVersion;
 
 block contents
+    - import std.array : empty;
     h2 Migration excuse for: #{excuse.sourcePackage} #{excuse.newVersion}
 
     br

@@ -4,6 +4,7 @@ block head
     - auto title = "Job Runners";
 
 block contents
+    - import std.array : empty;
     h1 Spark Workers
 
     br

@@ -4,6 +4,7 @@ block head
   - auto title = pkg.name ~ " package";
 
 block contents
+  - import std.array : empty;
   .col-md-3
     p.lead Suites
     |

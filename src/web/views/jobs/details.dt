@@ -4,6 +4,7 @@ block head
     - auto title = "Spark job " ~ job.id.to!string;
 
 block contents
+    - import std.array : empty;
     block job_header
         h1 #{job.title} (#{job.id})
 
