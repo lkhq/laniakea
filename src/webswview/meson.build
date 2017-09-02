@@ -18,9 +18,7 @@ lk_swview_src = [
 
 lkswview_exe = executable ('laniakea-web-swview',
     [lk_swview_src],
-    include_directories: [src_dir],
-    link_with: [laniakea_lib],
-    dependencies: [base_deps,
+    dependencies: [laniakea_shared_dep,
                    vibe_http_dep,
                    vibe_web_dep],
     d_args: ['-J' + current_src_dir + '/views/', '-d-version=VibeDefaultMain', '-d-version=Have_diet_ng'],

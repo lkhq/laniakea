@@ -25,7 +25,7 @@ static import std.file;
 import repotests;
 import gpgtests;
 
-static import test_spears;
+//! static import test_spears;
 
 void main (string[] args)
 {
@@ -52,7 +52,7 @@ void main (string[] args)
     testGnuPG (testDataDir);
 
     // Spears
-    test_spears.testExcusesFile (testDataDir);
+    //! test_spears.testExcusesFile (testDataDir);
 
     writeln ("Done.");
 }

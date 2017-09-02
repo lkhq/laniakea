@@ -11,8 +11,7 @@ configure_file(input: 'laniakea-lighthouse.service.in',
 install_data(current_build_dir + '/laniakea-lighthouse.service',
              install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 
-opt_webgui = get_option('webgui')
-if (opt_webgui)
+if (get_option('enable-webgui'))
     sd_data = configuration_data()
     sd_data.set('LKWEB_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/web/laniakea-web')
 
