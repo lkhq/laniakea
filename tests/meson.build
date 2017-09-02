@@ -14,4 +14,7 @@ lk_main_test_exe = executable ('lk-test_integration',
     [lk_tests_src],
     dependencies: [laniakea_shared_dep]
 )
-test('lk-test_integration', lk_main_test_exe, args: [source_root + '/data'])
+test('lk-test_integration',
+    lk_main_test_exe,
+    args: [join_paths(source_root, 'tests', 'data')]
+)

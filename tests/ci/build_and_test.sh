@@ -15,7 +15,7 @@ meson ..
 ninja
 
 # Test
-./main_test ../tests/data/
+ninja test -v
 
 # Test Install
-DESTDIR=/tmp/lk-root ninja install
+DESTDIR=/tmp/lk-install-root ninja install
