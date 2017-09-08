@@ -1,0 +1,4 @@
+[wrap-git]
+directory=vibe-postgresql
+url=https://github.com/lkorigin/vibe.d.db.postgresql.git
+revision=head

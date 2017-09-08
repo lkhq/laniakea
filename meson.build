@@ -1,4 +1,9 @@
-project('Laniakea', 'd', meson_version: '>=0.40.0')
+project('Laniakea', 'd',
+    meson_version: '>=0.40.0',
+    subproject_dir: 'contrib/subprojects',
+    license: 'GPL-3.0+',
+    version: '0.1'
+)
 
 source_root = meson.source_root()
 
@@ -17,6 +22,7 @@ systemd_dep = dependency('systemd')
 vibe_core_dep = dependency('vibe-core')
 vibe_data_dep = dependency('vibe-data')
 vibe_mongo_dep = dependency('vibe-mongodb')
+vibe_pgsql_dep = dependency('vibe-postgresql', version: '>= 0.3', fallback: ['vibe-postgresql', 'vibe_postgresql_dep'])
 
 #
 # Common D Features

@@ -1,0 +1,4 @@
+[wrap-git]
+directory=dpq2
+url=https://github.com/lkorigin/dpq2.git
+revision=head
