@@ -39,10 +39,10 @@ class DepcheckWebService {
 
     private {
         WebConfig wconf;
-        Database db;
+        MongoLegacyDatabase db;
 
         immutable issuesPerPage = 100;
- 	}
+    }
 
     this (WebConfig conf)
     {

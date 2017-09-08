@@ -46,7 +46,7 @@ private:
     Britney britney;
     Dak dak;
 
-    Database db;
+    MongoLegacyDatabase db;
     BaseConfig baseConf;
     SpearsConfig spearsConf;
     LocalConfig localConf;
@@ -60,7 +60,7 @@ public:
         britney = new Britney ();
         dak = new Dak ();
 
-        db = Database.get;
+        db = MongoLegacyDatabase.get;
         baseConf = db.getBaseConfig;
         spearsConf = db.getConfig!(LkModule.SPEARS, SpearsConfig);
 

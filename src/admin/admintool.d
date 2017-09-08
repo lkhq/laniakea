@@ -36,9 +36,7 @@ private:
     string m_currentMsg;
 
 protected:
-    Database db;
-
-
+    MongoLegacyDatabase db;
 
     final string readString ()
     {
@@ -143,7 +141,7 @@ public:
 
     this ()
     {
-        db = Database.get ();
+        db = MongoLegacyDatabase.get ();
     }
 
     @property
@@ -165,7 +163,7 @@ public:
  */
 bool setLaniakeaDbConfValue (string moduleName, string command)
 {
-    auto db = Database.get;
+    auto db = MongoLegacyDatabase.get;
 
     bool updateData (T) (MongoCollection coll, T selector, string setExpr)
     {

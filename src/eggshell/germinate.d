@@ -50,7 +50,7 @@ private:
     string metaSrcDir;
     string resultsBaseDir;
 
-    Database db;
+    MongoLegacyDatabase db;
     EggshellConfig eggshellConf;
     BaseConfig baseConf;
     LocalConfig localConf;
@@ -62,7 +62,7 @@ public:
         // default to system germinator (usually /usr/bin/germinate)
         germinateExe = "germinate";
 
-        db = Database.get;
+        db = MongoLegacyDatabase.get;
         eggshellConf = db.getConfig!(LkModule.EGGSHELL, EggshellConfig);
         baseConf = db.getBaseConfig;
 

@@ -42,7 +42,7 @@ class LighthouseWorker {
     {
         socket = sock;
 
-        auto db = Database.get;
+        auto db = MongoLegacyDatabase.get;
         collWorkers = db.collWorkers ();
         collJobs = db.collJobs ();
     }

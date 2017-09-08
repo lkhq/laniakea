@@ -53,7 +53,7 @@ final class WebConfig
     public {
         GlobalInfo ginfo;
         BaseConfig baseConf;
-        Database db;
+        MongoLegacyDatabase db;
 
         ushort port;
     }
@@ -61,7 +61,7 @@ final class WebConfig
     this (LocalConfig lconf)
     {
         localConf = lconf;
-        db = Database.get;
+        db = MongoLegacyDatabase.get;
 
         baseConf = db.getBaseConfig;
 

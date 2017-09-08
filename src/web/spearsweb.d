@@ -39,10 +39,10 @@ class SpearsWebService {
 
     private {
         WebConfig wconf;
-        Database db;
+        MongoLegacyDatabase db;
 
         immutable excusesPerPage = 100;
- 	}
+    }
 
     this (WebConfig conf)
     {

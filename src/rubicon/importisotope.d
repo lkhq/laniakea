@@ -36,7 +36,7 @@ import rubicon.fileimport;
 public void handleIsotopeUpload (RubiConfig conf, DudData dud, Bson jobB) @trusted
 {
     import std.file;
-    auto db = Database.get;
+    auto db = MongoLegacyDatabase.get;
     auto job = jobB.deserializeBson!ImageBuildJob;
 
     string resultMoveTo;

@@ -79,7 +79,7 @@ public void safeRename (const string from, const string to) @trusted
 private void acceptUpload (RubiConfig conf, DudData dud) @trusted
 {
     import std.file;
-    auto db = Database.get;
+    auto db = MongoLegacyDatabase.get;
     auto collJobs = db.collJobs ();
 
     // mark job as accepted and done

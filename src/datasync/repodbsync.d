@@ -27,7 +27,7 @@ import laniakea.db;
 
 bool syncRepoData (string suiteName, string archiveName = "master") @trusted
 {
-    auto db = Database.get;
+    auto db = MongoLegacyDatabase.get;
 
     auto suite = db.getSuite (suiteName);
     if (suite.isNull) {

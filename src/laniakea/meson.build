@@ -22,6 +22,7 @@ laniakea_lib_src = [
     'utils/namegen.d',
     'db/package.d',
     'db/database.d',
+    'db/mongo_old.d',
     'db/schema/package.d',
     'db/schema/basic.d',
     'db/schema/jobs.d',
@@ -41,6 +42,7 @@ lk_base_deps = [crypto_dep,
                 dyaml_dep,
                 vibe_core_dep,
                 vibe_data_dep,
+                vibe_pgsql_dep,
                 vibe_mongo_dep
 ]
 

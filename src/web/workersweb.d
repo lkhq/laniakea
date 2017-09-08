@@ -39,8 +39,8 @@ class WorkersWebService {
 
     private {
         WebConfig wconf;
-        Database db;
- 	}
+        MongoLegacyDatabase db;
+    }
 
     this (WebConfig conf)
     {

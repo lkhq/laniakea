@@ -44,13 +44,13 @@ class Debcheck
             string data;
         }
 
-        Database db;
+        MongoLegacyDatabase db;
         Repository repo;
     }
 
     this ()
     {
-        db = Database.get;
+        db = MongoLegacyDatabase.get;
 
         auto conf = LocalConfig.get;
         auto baseConfig = db.getBaseConfig;

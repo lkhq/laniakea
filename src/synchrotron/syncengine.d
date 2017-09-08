@@ -28,7 +28,7 @@ import std.typecons : Nullable;
 
 import vibe.db.mongo.mongo;
 
-import laniakea.db.database;
+import laniakea.db;
 import laniakea.db.schema.basic;
 import laniakea.db.schema.synchrotron;
 import laniakea.repository;
@@ -59,7 +59,7 @@ class SyncEngine
 private:
 
     Dak dak;
-    Database db;
+    MongoLegacyDatabase db;
     bool m_importsTrusted;
 
     Repository sourceRepo;
@@ -78,7 +78,7 @@ public:
     this ()
     {
         dak = new Dak;
-        db = Database.get;
+        db = MongoLegacyDatabase.get;
         auto conf = LocalConfig.get;
 
         baseConfig = db.getBaseConfig;
