@@ -60,7 +60,7 @@ private:
 
     private this ()
     {
-        auto conf = LocalConfig.get;
+        const conf = LocalConfig.get;
         assert (conf.currentModule != LkModule.UNKNOWN, "A module without identifier tried to access the database.");
 
         dbHost = conf.databaseHost;
