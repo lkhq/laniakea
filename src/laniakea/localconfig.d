@@ -107,6 +107,7 @@ final class LocalConfig
     ushort databasePort;
     string databaseName;
     string databaseUser;
+    string databasePassword;
     string databaseExtraOpts;
     string mongoUrl;
 
@@ -161,19 +162,22 @@ final class LocalConfig
         mongoUrl = "mongodb://localhost/";
         if ("Database" in jroot) {
             // read database properties
-            if ("mongoUrl" in jroot["Database"])
-                mongoUrl = jroot["Database"]["mongoUrl"].to!string;
+            const dbroot = jroot["Database"];
+            if ("mongoUrl" in dbroot)
+                mongoUrl = dbroot["mongoUrl"].to!string;
 
-            if ("host" in jroot["Database"])
-                databaseHost = jroot["Database"]["host"].to!string;
-            if ("port" in jroot["Database"])
-                databasePort = jroot["Database"]["port"].to!ushort;
-            if ("db" in jroot["Database"])
-                databaseName = jroot["Database"]["db"].to!string;
-            if ("user" in jroot["Database"])
-                databaseUser = jroot["Database"]["user"].to!string;
-            if ("extra" in jroot["Database"])
-                databaseExtraOpts = jroot["Database"]["extra"].to!string;
+            if ("host" in dbroot)
+                databaseHost = dbroot["host"].to!string;
+            if ("port" in dbroot)
+                databasePort = dbroot["port"].to!ushort;
+            if ("db" in dbroot)
+                databaseName = dbroot["db"].to!string;
+            if ("user" in dbroot)
+                databaseUser = dbroot["user"].to!string;
+            if ("password" in dbroot)
+                databasePassword = dbroot["password"].to!string;
+            if ("extra" in dbroot)
+                databaseExtraOpts = dbroot["extra"].to!string;
         }
 
         workspace = jroot["Workspace"].to!string;

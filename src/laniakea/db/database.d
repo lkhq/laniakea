@@ -29,7 +29,10 @@ import vibe.db.postgresql;
 import laniakea.localconfig;
 import laniakea.logging;
 
-import laniakea.db.schema;
+import laniakea.db.basic;
+
+public import dpq2 : QueryParams, ValueFormat;
+public import vibe.data.json : Json, serializeToJsonString;
 
 /**
  * A connection to the Laniakea database.
@@ -56,6 +59,7 @@ private:
     immutable ushort dbPort;
     immutable string dbName;
     immutable string dbUser;
+    immutable string dbPassword;
     immutable string dbExtraOptions;
 
     private this ()
@@ -67,26 +71,55 @@ private:
         dbPort = conf.databasePort;
         dbName = conf.databaseName;
         dbUser = conf.databaseUser;
+        dbPassword = conf.databasePassword;
         dbExtraOptions = conf.databaseExtraOpts;
 
         client = new PostgresClient("host=" ~ dbHost ~
                                     " port=" ~ dbPort.to!string ~
                                     " dbname=" ~ dbName ~
                                     " user=" ~ dbUser ~
-                                    " " ~ dbExtraOptions, 4);
+                                    " password=" ~ dbPassword ~
+                                    " " ~ dbExtraOptions, 8);
     }
 
 public:
 
+    /**
+     * Retrieve a new connection to the database.
+     */
     auto getConnection ()
     {
-        return client.lockConnection();
+        try {
+            return client.lockConnection();
+        } catch (Exception e) {
+            throw new Exception("Unable to get database connection: %s".format (e.msg));
+        }
     }
 
+    /**
+     * Explicitly close a database connection and return its slot.
+     */
     void dropConnection (ref LockedConnection!__Conn conn)
     {
         delete conn;
     }
 
-}
+    void updateConfigEntry (LockedConnection!__Conn conn, LkModule mod, string key, string json)
+    {
+        QueryParams p;
+        p.sqlCommand = "INSERT INTO config (id, data)
+                        VALUES ($1, $2::jsonb)
+                        ON CONFLICT (id) DO UPDATE SET
+                        data = $2::jsonb";
+        p.argsFromArray = [mod ~ "." ~ key, json];
+        conn.execParams (p);
+    }
 
+    void updateConfigEntry (LkModule mod, string key, string json)
+    {
+        auto conn = getConnection ();
+        scope (exit) dropConnection (conn);
+        updateConfigEntry (conn, mod, key, json);
+    }
+
+}
