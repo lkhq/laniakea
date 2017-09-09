@@ -25,8 +25,8 @@ import std.array : appender, empty;
 import std.string : format, toLower, startsWith;
 import std.path : dirName, getcwd, buildPath, buildNormalizedPath;
 import std.conv : to;
-import std.json;
 import std.typecons : Nullable;
+import vibe.data.json : parseJsonString;
 static import std.file;
 
 public import laniakea.db.schema.basic;
@@ -103,7 +103,11 @@ final class LocalConfig
     string cacheDir;
     string workspace;
 
+    string databaseHost;
+    ushort databasePort;
     string databaseName;
+    string databaseUser;
+    string databaseExtraOpts;
     string mongoUrl;
 
     LocalArchiveDetails archive;
@@ -139,44 +143,56 @@ final class LocalConfig
         while ((line = f.readln ()) !is null)
             jsonData ~= line;
 
-        JSONValue root = parseJSON (jsonData.data);
+        auto jroot = parseJsonString (jsonData.data);
 
         cacheDir = "/var/tmp/laniakea";
-        if ("CacheLocation" in root)
-            cacheDir = root["CacheLocation"].str;
+        if ("CacheLocation" in jroot)
+            cacheDir = jroot["CacheLocation"].to!string;
 
-        if ("Archive" !in root)
+        if ("Archive" !in jroot)
             throw new Exception ("Configuration must define an archive location via 'Archive'.");
-        if ("Workspace" !in root)
+        if ("Workspace" !in jroot)
             throw new Exception ("Configuration must define a persistent working directory via 'Workspace'.");
 
+        databaseHost = "localhost";
+        databasePort = 5432;
         databaseName = "laniakea";
+        databaseUser = "laniakea-user";
         mongoUrl = "mongodb://localhost/";
-        if ("Database" in root) {
+        if ("Database" in jroot) {
             // read database properties
-            if ("mongoUrl" in root["Database"].object)
-                mongoUrl = root["Database"]["mongoUrl"].str;
-            if ("db" in root["Database"].object)
-                databaseName = root["Database"]["db"].str;
+            if ("mongoUrl" in jroot["Database"])
+                mongoUrl = jroot["Database"]["mongoUrl"].to!string;
+
+            if ("host" in jroot["Database"])
+                databaseHost = jroot["Database"]["host"].to!string;
+            if ("port" in jroot["Database"])
+                databasePort = jroot["Database"]["port"].to!ushort;
+            if ("db" in jroot["Database"])
+                databaseName = jroot["Database"]["db"].to!string;
+            if ("user" in jroot["Database"])
+                databaseUser = jroot["Database"]["user"].to!string;
+            if ("extra" in jroot["Database"])
+                databaseExtraOpts = jroot["Database"]["extra"].to!string;
         }
 
-        workspace = root["Workspace"].str;
-        archive.rootPath = root["Archive"]["path"].str;
+        workspace = jroot["Workspace"].to!string;
+        archive.rootPath = jroot["Archive"]["path"].to!string;
 
         // Local synchrotron configuration
-        if ("Synchrotron" in root) {
-            auto syncConf = root["Synchrotron"];
+        if ("Synchrotron" in jroot) {
+            auto syncConf = jroot["Synchrotron"];
 
             if ("SourceKeyringDir" in syncConf) {
-                synchrotron.sourceKeyrings = findFilesBySuffix (syncConf["SourceKeyringDir"].str, ".gpg");
+                synchrotron.sourceKeyrings = findFilesBySuffix (syncConf["SourceKeyringDir"].to!string, ".gpg");
             }
         }
 
-        if ("TrustedGpgKeyringDir" in root)
-            trustedGpgKeyrings = findFilesBySuffix (root["TrustedGpgKeyringDir"].str, ".gpg");
+        if ("TrustedGpgKeyringDir" in jroot)
+            trustedGpgKeyrings = findFilesBySuffix (jroot["TrustedGpgKeyringDir"].to!string, ".gpg");
 
-        if ("LighthouseEndpoint" in root)
-            lighthouseEndpoint = root["LighthouseEndpoint"].str;
+        if ("LighthouseEndpoint" in jroot)
+            lighthouseEndpoint = jroot["LighthouseEndpoint"].to!string;
 
         immutable curveCertsDir = buildPath (configDir, "keys", "curve");
         trustedCurveCertsDir = buildPath (curveCertsDir, "trusted");
