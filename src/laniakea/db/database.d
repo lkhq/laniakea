@@ -50,19 +50,43 @@ final class Database
     }
 
 private:
-    immutable string databaseName;
-    immutable string mongoUrl;
+    PostgresClient client;
+
+    immutable string dbHost;
+    immutable ushort dbPort;
+    immutable string dbName;
+    immutable string dbUser;
+    immutable string dbExtraOptions;
 
     private this ()
     {
         auto conf = LocalConfig.get;
         assert (conf.currentModule != LkModule.UNKNOWN, "A module without identifier tried to access the database.");
 
-        databaseName = conf.databaseName;
-        mongoUrl = conf.mongoUrl;
+        dbHost = conf.databaseHost;
+        dbPort = conf.databasePort;
+        dbName = conf.databaseName;
+        dbUser = conf.databaseUser;
+        dbExtraOptions = conf.databaseExtraOpts;
+
+        client = new PostgresClient("host=" ~ dbHost ~
+                                    " port=" ~ dbPort.to!string ~
+                                    " dbname=" ~ dbName ~
+                                    " user=" ~ dbUser ~
+                                    " " ~ dbExtraOptions, 4);
     }
 
 public:
+
+    auto getConnection ()
+    {
+        return client.lockConnection();
+    }
+
+    void dropConnection (ref LockedConnection!__Conn conn)
+    {
+        delete conn;
+    }
 
 }
 
