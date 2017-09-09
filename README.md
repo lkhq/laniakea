@@ -1,26 +1,46 @@
 Laniakea
 ========
 
+Laniakea is a software suite to manage Debian derivatives. It integrates tightly with `dak`, the [Debian Archive Kit](https://wiki.debian.org/DebianDak).
+Laniakea is built using experience from prior solutions used to maintain the Tanglu Debian derivative, which uses a full
+fork of the Debian archive and therefore needed to replicate a large portion of Debian's own infrastructure, including
+multiple QA tools.
+
+This software is currently in early development, and used by the PureOS Debian derivative. It's development is supported
+by [Purism](https://puri.sm/).
+
+Laniakea is based on the following principles:
+ * Have one source for all confguration
+ * Integrate components tightly, by making them speak the same protocols
+ * Minimize human interventions when maintaining a derivative
+ * Allow to manage most (all?) functions via a web interface
+ * Fine-grained permissions for project members
+ * No shell script glue
+ * Reuse existing tools whenever possible, via wrappers
+
+It's tasks include, but are not limited to:
+ * Synchronizing packages from the source distribution with the target derivative
+ * Migrating packages between suites using Britney2
+ * Building disk images for the derivative
+ * Validating installavility of packages
+ * Managing default package selections
+ * Building packages
+ * Automatically taking maintenance action on the archive (e.g. rebuilding packages)
+ * Propagate information between the archive repository, bugtrackers and other websites
+ * etc.
+
+Laniakea uses a lot of tools already common in the workflow of a derivative's archive maintainer, but integrates them in a nice way.
+
+![Laniakea Overview](docs/src/graphics/laniakea-overview.svg "Laniakea Overview")
+
+##  Development
+
 [![Build Status](https://travis-ci.org/lkorigin/laniakea.svg?branch=master)](https://travis-ci.org/lkorigin/laniakea)
 
-A new tool to manage (Debian) derivatives.
-
-This software is currently under development. Its tasks include:
- * Synchronizing the source distribution with the target derivative
- * Centralizing information from other tools (Britney, Ben, ...) under one frontend
- * Automatically taking maintenance action on the archive (e.g. rebuilding packages)
- * Provide an interactive web frontend to perform archive management tasks
- * Propagate information between the archive repository, bugtrackers and other websites
- * Pull information about the state of packages from other distributions and check the CVE
-   databases for security issues. Present all of this information (patches, bugs, issue data, ...)
-   to developers in a nice way.
- * Possibly more related tasks
-
-In order to achieve these tasks and stay maintainable, Laniakea is split into multiple parts which can act independently
-(but all connect to the same database).
+Laniakea is split into multiple parts which can act independently (but all speak the same protocols and share data).
 That way, more security-sensitive bits can also be isolated out and run on different machines.
 
-At time, only the Synchrotron part is under development, as soon as it is working and the concept has proven to work, more modules will
-be added.
-Until then, this is an experimental project. Please take a look at "rapidumo", which is the predecessor of this project and currently in
-active use at Tanglu if you want to have something working right now.
+At the moment, not much documentation for Laniakea exists, and the project is used and tested internally. This is supposed to change
+though, and at that point we will also have better information on how to contribute to the project.
+
+That, of course, should not stop you from filing bugs or pull-requests right now.
