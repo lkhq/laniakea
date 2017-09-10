@@ -29,7 +29,7 @@ import std.typecons : Nullable;
 import vibe.db.mongo.mongo;
 
 import laniakea.db;
-import laniakea.db.schema.basic;
+import laniakea.db.schema.core;
 import laniakea.db.schema.synchrotron;
 import laniakea.repository;
 import laniakea.repository.dak;

@@ -22,7 +22,7 @@ module laniakea.db.schema.synchrotron;
 
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
-import laniakea.db.schema.basic;
+import laniakea.db.schema.core;
 
 /**
  * Information about a Synchrotron data source

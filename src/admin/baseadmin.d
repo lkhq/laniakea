@@ -110,6 +110,7 @@ final class BaseAdmin : AdminTool
         writeQS ("Distribution version tag (commonly found in package versions, e.g. 'tanglu' for OS 'Tanglu' with versions like '1.0-0tanglu1'");
         bconf.archive.distroTag = readString ();
 
+/* FIXME:
         auto coll = db.collConfig ();
 
         bconf.id = BsonObjectID.generate ();
@@ -117,6 +118,7 @@ final class BaseAdmin : AdminTool
                       "kind": bconf.kind]);
         coll.update (["module": LkModule.BASE,
                       "kind": bconf.kind], bconf, UpdateFlags.upsert);
+*/
 
         db.fsync;
         return true;

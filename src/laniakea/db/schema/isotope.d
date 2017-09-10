@@ -23,7 +23,7 @@ module laniakea.db.schema.isotope;
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
 import laniakea.db.schema.jobs;
-import laniakea.db.schema.basic;
+import laniakea.db.schema.core;
 
 alias mongoName = name;
 

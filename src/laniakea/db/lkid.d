@@ -19,7 +19,7 @@
 
 module laniakea.db.lkid;
 
-import laniakea.db.basic;
+import laniakea.db.schema.core;
 @safe:
 
 // NOTE: All of this should be @nogc, unfortunately there is no @nogc random functionality in

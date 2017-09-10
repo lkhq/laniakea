@@ -22,7 +22,7 @@ module laniakea.db.schema.eggshell;
 
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
-import laniakea.db.schema.basic : LkModule;
+import laniakea.db.schema.core : LkModule;
 
 /**
 * Configuration specific for the germinate module.

@@ -29,10 +29,11 @@ import vibe.db.postgresql;
 import laniakea.localconfig;
 import laniakea.logging;
 
-import laniakea.db.basic;
+import laniakea.db.schema.core;
 
 public import dpq2 : QueryParams, ValueFormat;
 public import vibe.data.json : Json, serializeToJsonString;
+public import vibe.data.bson : Bson, deserializeBson;
 
 /**
  * A connection to the Laniakea database.
@@ -94,7 +95,7 @@ public:
     /**
      * Retrieve a new connection to the database.
      */
-    auto getConnection ()
+    auto getConnection () @trusted
     {
         try {
             return client.lockConnection();
@@ -106,27 +107,85 @@ public:
     /**
      * Explicitly close a database connection and return its slot.
      */
-    void dropConnection (ref LockedConnection!__Conn conn)
+    void dropConnection (ref LockedConnection!__Conn conn) @trusted
     {
         delete conn;
     }
 
-    void updateConfigEntry (LockedConnection!__Conn conn, LkModule mod, string key, string json)
+    /**
+     * Call functions on a module with this database as parameter.
+     */
+    void callSchemaFunction (string fun, string mod_name) ()
+    {
+        static import laniakea.db.schema;
+        mixin("alias mod = laniakea.db.schema." ~ mod_name ~ ";");
+
+        foreach (m; __traits(derivedMembers, mod)) {
+        static if (__traits(isStaticFunction, __traits(getMember, mod, m)))
+            static if (m == fun)
+                __traits(getMember, mod, m) (this);
+        }
+    }
+
+    /**
+     * Create database and all tables
+     */
+    void initializeDatabase ()
+    {
+        import laniakea.db.schema : __laniakea_db_schema_names;
+
+        foreach (ref schemaMod; __laniakea_db_schema_names) {
+            callSchemaFunction! ("createTables", schemaMod);
+        }
+    }
+
+    /**
+     * Update a configuration entry for s specific module.
+     */
+    void updateConfigEntry (T) (LockedConnection!__Conn conn, LkModule mod, string key, T data) @trusted
     {
         QueryParams p;
         p.sqlCommand = "INSERT INTO config (id, data)
                         VALUES ($1, $2::jsonb)
                         ON CONFLICT (id) DO UPDATE SET
                         data = $2::jsonb";
-        p.argsFromArray = [mod ~ "." ~ key, json];
+        p.argsFromArray = [mod ~ "." ~ key, data.serializeToJsonString];
         conn.execParams (p);
     }
 
-    void updateConfigEntry (LkModule mod, string key, string json)
+    /**
+     * Update a configuration entry using an internal database connection.
+     */
+    void updateConfigEntry (T) (LkModule mod, string key, T data) @trusted
     {
         auto conn = getConnection ();
         scope (exit) dropConnection (conn);
-        updateConfigEntry (conn, mod, key, json);
+        updateConfigEntry (conn, mod, key, data);
     }
 
+    /**
+     * Get configuration entry of the selected type T.
+     */
+    auto getConfigEntry (T) (LockedConnection!__Conn conn, LkModule mod, string key) @trusted
+    {
+        QueryParams p;
+        p.sqlCommand = "SELECT * FROM config WHERE id=$1";
+        p.argsFromArray = [mod ~ "." ~ key];
+        auto r = conn.execParams(p);
+
+        T d;
+        if (r.length == 0)
+            return d;
+        if (r[0].length < 2)
+            return d;
+        immutable bson = r[0][1].as!Bson;
+
+        // special-case some easy types
+        static if (is(T == string)) {
+            return bson.get!string;
+        } else {
+            // generic Bson deserialization
+            return bson.deserializeBson!T;
+        }
+    }
 }

@@ -23,7 +23,7 @@ module laniakea.db.schema.spears;
 import vibe.db.mongo.mongo;
 import vibe.data.serialization : name;
 
-import laniakea.db.schema.basic : LkModule;
+import laniakea.db.schema.core : LkModule;
 import laniakea.pkgitems : VersionPriority;
 
 

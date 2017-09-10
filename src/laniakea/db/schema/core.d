@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -17,11 +17,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module laniakea.db.schema.basic;
+module laniakea.db.schema.core;
 @safe:
-
-import vibe.db.mongo.mongo;
-import vibe.data.serialization : name;
 
 /**
  * A list of all modules integrated into the Laniakea suite,
@@ -31,7 +28,7 @@ import vibe.data.serialization : name;
 enum LkModule
 {
     UNKNOWN     = "",
-    BASE        = "base",        /// The Laniakea base platform
+    BASE        = "core",        /// The Laniakea base platform
     LIGHTHOUSE  = "lighthouse",  /// Message relay station
     SYNCHROTRON = "synchrotron", /// Syncs packages from a source distribution
     SPEARS      = "spears",      /// Automatic package migration
@@ -71,21 +68,65 @@ struct DistroSuite
  * Basic archive configuration
  **/
 struct BaseArchiveConfig {
-    string develSuite;     // Development target suite ("testing", "green", ...)
-    string incomingSuite;  // Suite where new packages typically arrive ("unstable", "staging", ...)
-    string distroTag;      // Version tag for this distribution ("pureos", "tanglu", ...) - will usually be part of a package version, e.g. "1.0-0tanglu1"
+    string develSuite;     /// Development target suite ("testing", "green", ...)
+    string incomingSuite;  /// Suite where new packages typically arrive ("unstable", "staging", ...)
+    string distroTag;      /// Version tag for this distribution ("pureos", "tanglu", ...) - will usually be part of a package version, e.g. "1.0-0tanglu1"
 }
 
 /**
  * Basic project configuration
  **/
 struct BaseConfig {
-    @name("_id") BsonObjectID id;
+    string projectName;         /// Name of the distrobution or project ("Tanglu", "PureOS", ...)
+    BaseArchiveConfig archive;  /// archive specific settings
+    DistroSuite[] suites;       /// suites this OS contains
+}
 
-    @name("module") string moduleName = LkModule.BASE;
-    string kind = BaseConfig.stringof;
+import laniakea.db.database;
 
-    string projectName;         // Name of the distrobution or project ("Tanglu", "PureOS", ...)
-    BaseArchiveConfig archive;  // archive specific settings
-    DistroSuite[] suites;       // suites this OS contains
+/**
+ * Create initial tables for this module.
+ */
+void createTables (Database db) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS config (
+          id text PRIMARY KEY,
+          data jsonb NOT NULL
+        )"
+    );
+}
+
+/**
+ * Add/update basic configuration.
+ */
+void update (Database db, BaseConfig conf)
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    db.updateConfigEntry (conn, LkModule.BASE, "projectName", conf.projectName);
+    db.updateConfigEntry (conn, LkModule.BASE, "suites", conf.suites);
+
+    db.updateConfigEntry (conn, LkModule.BASE, "archive.develSuite", conf.archive.develSuite);
+    db.updateConfigEntry (conn, LkModule.BASE, "archive.incomingSuite", conf.archive.incomingSuite);
+    db.updateConfigEntry (conn, LkModule.BASE, "archive.distroTag", conf.archive.distroTag);
+}
+
+auto getBaseConfig (Database db)
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    BaseConfig conf;
+    conf.projectName = db.getConfigEntry!string (conn, LkModule.BASE, "projectName");
+    conf.suites = db.getConfigEntry!(DistroSuite[]) (conn, LkModule.BASE, "suites");
+    conf.archive.develSuite = db.getConfigEntry!string (conn, LkModule.BASE, "archive.develSuite");
+    conf.archive.incomingSuite = db.getConfigEntry!string (conn, LkModule.BASE, "archive.incomingSuite");
+    conf.archive.distroTag = db.getConfigEntry!string (conn, LkModule.BASE, "archive.distroTag");
+
+    return conf;
 }

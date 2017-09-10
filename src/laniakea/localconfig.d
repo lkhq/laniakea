@@ -29,11 +29,10 @@ import std.typecons : Nullable;
 import vibe.data.json : parseJsonString;
 static import std.file;
 
-public import laniakea.db.schema.basic;
+public import laniakea.db.schema.core : LkModule;
 
 import laniakea.logging;
 import laniakea.utils : findFilesBySuffix;
-import laniakea.db.schema.basic;
 
 public immutable laniakeaVersion = "0.1";
 
