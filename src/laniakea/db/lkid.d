@@ -33,6 +33,10 @@ enum LkidType
     JOB = "JOB"
 }
 
+/// A database object ID used within Laniakea to refer to objects in the database
+alias LkId = char[LKID_LENGTH];
+
+
 private enum LKID_LENGTH = 32;
 
 private auto getRandomAlphanum (uint len) ()
@@ -55,13 +59,13 @@ private auto getRandomAlphanum (uint len) ()
 /**
  * Generate a unique Laniakea ID to identify an object in the database.
  */
-auto newLkid (LkidType lkt) ()
+LkId newLkid (LkidType lkt) ()
 {
     import std.conv : to;
     static assert (lkt.length <= 4, "Laniakea ID prefix must be no longer than 4 characters.");
 
     immutable uniqLen = LKID_LENGTH - lkt.length - 1;
-    immutable res = lkt ~ "-" ~ to!string (getRandomAlphanum!uniqLen);
+    immutable LkId res = lkt ~ "-" ~ to!string (getRandomAlphanum!uniqLen);
 
     return res;
 }
