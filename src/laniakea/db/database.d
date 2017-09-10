@@ -35,6 +35,9 @@ public import dpq2 : QueryParams, ValueFormat;
 public import vibe.data.json : Json, serializeToJsonString;
 public import vibe.data.bson : Bson, deserializeBson;
 
+private import dpq2 : toValue;
+public alias toPGValue = toValue;
+
 /**
  * A connection to the Laniakea database.
  * This singleton can be shared between fibers,
@@ -187,5 +190,30 @@ public:
             // generic Bson deserialization
             return bson.deserializeBson!T;
         }
+    }
+}
+
+public void setParams (A...) (ref QueryParams p, A args)
+{
+    import laniakea.db.lkid;
+    import std.datetime : SysTime;
+    import std.conv : to;
+    import std.traits : OriginalType, isArray;
+    import dpq2.oids : OidType;
+
+    p.args.length = args.length;
+    foreach (i, c; args) {
+        alias T = typeof(c);
+
+        static if (is(T == char[32])) // for LkidType
+            p.args[i] = Value (cast(ubyte[])c, OidType.Text, false, ValueFormat.BINARY);
+        else static if (is(T == SysTime))
+            p.args[i] = c.toUnixTime.toPGValue;
+        else static if (is(OriginalType!T == int))
+            p.args[i] = (cast(int)c).toPGValue;
+        else static if ((is(OriginalType!T == struct)) || (isArray!T))
+            p.args[i] = c.serializeToJsonString.toPGValue;
+        else
+            p.args[i] = c.toPGValue;
     }
 }

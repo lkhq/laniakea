@@ -4,14 +4,14 @@ block head
     - import laniakea.db.schema.debcheck;
 
     - string title;
-    - if (packageKind == PackageKind.SOURCE)
+    - if (packageKind == PackageType.SOURCE)
         - title = "Dependency Issues for source package " ~ issue.packageName ~ " " ~ issue.packageVersion;
     - else
         - title = "Dependency Issues for binary package " ~ issue.packageName ~ " " ~ issue.packageVersion;
 
 block contents
     - import std.array : empty;
-    - if (packageKind == PackageKind.SOURCE)
+    - if (packageKind == PackageType.SOURCE)
         h2 Build dependency issues for: #{issue.packageName} #{issue.packageVersion}
     - else
         h2 Dependency issues for: #{issue.packageName} #{issue.packageVersion}

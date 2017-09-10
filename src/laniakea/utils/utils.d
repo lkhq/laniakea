@@ -128,6 +128,16 @@ public auto randomString (uint len)
     return iota (len).map! ((_) => pickOne (letters)).to!string;
 }
 
+/**
+ * Read the current time and return it as DateTime
+ */
+auto currentTime ()
+{
+    import std.datetime : Clock;
+    return Clock.currTime ();
+}
+
+
 unittest
 {
     // remote checks

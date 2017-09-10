@@ -30,7 +30,8 @@ import laniakea.db.schema.core;
  */
 enum LkidType
 {
-    JOB = "JOB"
+    JOB      = "JOB",
+    DEBCHECK = "DEBC"
 }
 
 /// A database object ID used within Laniakea to refer to objects in the database

@@ -29,6 +29,7 @@ import std.typecons : Tuple;
 static import dyaml;
 
 import laniakea.db;
+import laniakea.utils : currentTime;
 import laniakea.localconfig;
 import laniakea.pkgitems;
 import laniakea.repository;
@@ -247,9 +248,9 @@ class Debcheck
 
         void setBasicPackageInfo (T) (ref T v, dyaml.Node entry) {
             if (entry.containsKey ("type") && entry["type"].as!string == "src")
-                v.packageKind = PackageKind.SOURCE;
+                v.packageKind = PackageType.SOURCE;
             else
-                v.packageKind = PackageKind.BINARY;
+                v.packageKind = PackageType.BINARY;
 
             v.packageName = entry["package"].as!string;
             v.packageVersion = entry["version"].as!string;
@@ -270,8 +271,8 @@ class Debcheck
                     continue;
             }
 
-            issue.id = newBsonId;
-            issue.date = currentTimeAsBsonDate;
+            issue.lkid = newLkid! (LkidType.DEBCHECK);
+            issue.date = currentTime ();
             issue.suiteName = suiteName;
 
             setBasicPackageInfo!DebcheckIssue (issue, entry);
@@ -338,7 +339,7 @@ class Debcheck
         collIssues.ensureIndex ([tuple("packageName", 1)]);
 
         auto issuesYaml = getBuildDepCheckYaml (suite);
-        collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.SOURCE)]);
+        collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageType.SOURCE)]);
         foreach (ref arch, ref yamlData; issuesYaml) {
             auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
 
@@ -377,7 +378,7 @@ class Debcheck
         foreach (ref arch, ref yamlData; issuesYaml) {
             auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
 
-            collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.BINARY), "architecture": Bson(arch)]);
+            collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageType.BINARY), "architecture": Bson(arch)]);
             foreach (ref entry; entries)
                 collIssues.insert (entry);
         }
@@ -405,13 +406,13 @@ class Debcheck
     {
         import vibe.data.bson;
         auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
-        return collIssues.find (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.BINARY), "architecture": Bson(arch)]);
+        return collIssues.find (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageType.BINARY), "architecture": Bson(arch)]);
     }
 
     public auto getSourceIssuesList (DistroSuite suite, string arch) @trusted
     {
         import vibe.data.bson;
         auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
-        return collIssues.find (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageKind.SOURCE)]);
+        return collIssues.find (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageType.SOURCE)]);
     }
 }

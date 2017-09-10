@@ -11,9 +11,9 @@ block contents
     - import std.algorithm : map;
 
     ul.nav.nav-tabs
-        li(role='presentation', class='#{ (packageKind == PackageKind.BINARY)? "active" : "" }')
+        li(role='presentation', class='#{ (packageKind == PackageType.BINARY)? "active" : "" }')
             a(href='../binary') Binary Packages
-        li(role='presentation', class='#{ (packageKind == PackageKind.SOURCE)? "active" : "" }')
+        li(role='presentation', class='#{ (packageKind == PackageType.SOURCE)? "active" : "" }')
             a(href='../source') Source Packages
 
     br

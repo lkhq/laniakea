@@ -59,11 +59,11 @@ class DepcheckWebService {
 
         immutable suiteName = req.params.get("suite");
         immutable packageKindStr = req.params.get("type");
-        PackageKind packageKind;
+        PackageType packageKind;
         if (packageKindStr == "binary")
-            packageKind = PackageKind.BINARY;
+            packageKind = PackageType.BINARY;
         else if (packageKindStr == "source")
-            packageKind = PackageKind.SOURCE;
+            packageKind = PackageType.SOURCE;
         else
             return; // Not found
 
@@ -107,11 +107,11 @@ class DepcheckWebService {
         immutable packageName = req.params.get("packageName");
         immutable packageVersion = req.params.get("packageVersion");
         immutable packageKindStr = req.params.get("type");
-        PackageKind packageKind;
+        PackageType packageKind;
         if (packageKindStr == "binary")
-            packageKind = PackageKind.BINARY;
+            packageKind = PackageType.BINARY;
         else if (packageKindStr == "source")
-            packageKind = PackageKind.SOURCE;
+            packageKind = PackageType.SOURCE;
         else
             return; // Not found
 

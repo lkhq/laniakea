@@ -18,22 +18,17 @@
  */
 
 module laniakea.db.schema.debcheck;
+
+import std.datetime : SysTime;
+public import laniakea.pkgitems : PackageType;
+import laniakea.db.lkid;
 @safe:
-
-import vibe.db.mongo.mongo;
-import vibe.data.serialization : name;
-
-enum PackageKind {
-    UNKNOWN,
-    SOURCE,
-    BINARY
-}
 
 /**
  * Information about the package issue reason.
  **/
 struct PackageIssue {
-    PackageKind packageKind;
+    PackageType packageKind;
     string packageName;
     string packageVersion;
     string architecture;
@@ -58,11 +53,11 @@ struct PackageConflict {
  * Dependency issue information
  **/
 struct DebcheckIssue {
-    @name("_id") BsonObjectID id;
+    LkId lkid;
 
-    BsonDate date;        /// Time when this excuse was created
+    SysTime date;        /// Time when this excuse was created
 
-    PackageKind packageKind; /// Kind of the examined package
+    PackageType packageKind; /// Kind of the examined package
     string suiteName;
     string packageName;
     string packageVersion;
@@ -70,4 +65,75 @@ struct DebcheckIssue {
 
     PackageIssue[] missing;
     PackageConflict[] conflicts;
+}
+
+
+import laniakea.db.database;
+
+/**
+ * Create initial tables for this module.
+ */
+void createTables (Database db) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS debcheck (
+          lkid VARCHAR(32) PRIMARY KEY,
+          date             TIMESTAMP NOT NULL,
+          package_kind     SMALLINT,
+          suite_name       TEXT NOT NULL,
+          package_name     TEXT NOT NULL,
+          package_version  TEXT NOT NULL,
+          architecture     TEXT NOT NULL,
+          missing          JSONB,
+          conflicts        JSONB
+        )"
+    );
+}
+
+/**
+ * Add/update basic configuration.
+ */
+void update (Database db, DebcheckIssue issue, bool isNew = false) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    if (isNew)
+        issue.lkid = newLkid! (LkidType.DEBCHECK);
+
+    QueryParams p;
+    p.sqlCommand = "INSERT INTO debcheck
+                    VALUES ($1,
+                            to_timestamp($2),
+                            $3,
+                            $4,
+                            $5,
+                            $6,
+                            $7,
+                            $8::jsonb,
+                            $9::jsonb)
+                    ON CONFLICT (lkid) DO UPDATE SET
+                      date            = to_timestamp($2),
+                      package_kind    = $3,
+                      suite_name      = $4,
+                      package_name    = $5,
+                      package_version = $6,
+                      architecture    = $7,
+                      missing         = $8::jsonb,
+                      conflicts       = $9::jsonb";
+
+    p.setParams (issue.lkid,
+                 issue.date,
+                 issue.packageKind,
+                 issue.suiteName,
+                 issue.packageName,
+                 issue.packageVersion,
+                 issue.architecture,
+                 issue.missing,
+                 issue.conflicts
+    );
+    conn.execParams (p);
 }
