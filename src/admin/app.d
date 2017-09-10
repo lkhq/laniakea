@@ -91,7 +91,8 @@ void main (string[] args)
 
     // globally enable verbose mode, if requested
     if (verbose) {
-        laniakea.logging.setVerbose (true);
+        laniakea.logging.setVerboseLog (true);
+    }
     }
 
     // list of tools that we have - needs to be initialized after

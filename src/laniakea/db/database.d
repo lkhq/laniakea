@@ -80,6 +80,13 @@ private:
                                     " user=" ~ dbUser ~
                                     " password=" ~ dbPassword ~
                                     " " ~ dbExtraOptions, 8);
+
+        if (!loggingIsVerbose) {
+            // disable excess log messages unless we are in verbose mode
+            auto conn = getConnection ();
+            scope (exit) dropConnection (conn);
+            conn.exec ("SET client_min_messages = warning;");
+        }
     }
 
 public:

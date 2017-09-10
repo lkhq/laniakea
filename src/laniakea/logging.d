@@ -82,7 +82,13 @@ void logVerbose (T) (const T msg)
 }
 
 @trusted
-void setVerbose (const bool enabled)
+void setVerboseLog (const bool enabled)
 {
     __verbose = enabled;
+}
+
+@trusted
+bool loggingIsVerbose ()
+{
+    return __verbose;
 }

@@ -69,12 +69,11 @@ void createTables (Database db)
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
-    conn.execStatement(
+    conn.exec (
         "CREATE TABLE IF NOT EXISTS config (
           id text PRIMARY KEY,
           data jsonb NOT NULL
-        )",
-        ValueFormat.BINARY
+        )"
     );
 }
 

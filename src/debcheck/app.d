@@ -86,7 +86,7 @@ void main (string[] args)
 
     // globally enable verbose mode, if requested
     if (verbose) {
-        laniakea.logging.setVerbose (true);
+        laniakea.logging.setVerboseLog (true);
     }
 
     auto dck = new Debcheck;
