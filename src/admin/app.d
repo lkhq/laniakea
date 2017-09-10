@@ -93,7 +93,6 @@ void main (string[] args)
     if (verbose) {
         laniakea.logging.setVerboseLog (true);
     }
-    }
 
     // list of tools that we have - needs to be initialized after
     // the global local configuration has been set up, so the database
