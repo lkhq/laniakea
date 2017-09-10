@@ -16,7 +16,9 @@ RUN apt-get install -yq --no-install-recommends \
     libssl-dev \
     libcurl4-gnutls-dev \
     libczmq-dev \
-    libarchive-dev
+    libarchive-dev \
+    libpq-dev \
+    postgresql
 
 # install vibe.d
 RUN apt-get install -yq --no-install-recommends \
@@ -43,6 +45,12 @@ RUN git clone --depth 1 https://github.com/dlang-community/D-YAML.git dyaml
 RUN mkdir dyaml/b
 RUN cd dyaml/b/ && meson --prefix=/usr ..
 RUN cd dyaml/b/ && ninja && ninja install
+
+# D PostgreSQL
+RUN git clone --depth 1 https://github.com/lkorigin/vibe.d.db.postgresql.git vibe-pgsql
+RUN mkdir vibe-pgsql/b
+RUN cd vibe-pgsql/b/ && meson --prefix=/usr ..
+RUN cd vibe-pgsql/b/ && ninja && ninja install
 
 # finish
 WORKDIR /build
