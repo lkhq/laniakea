@@ -52,7 +52,7 @@ laniakea_lib = static_library ('laniakea',
     include_directories: [src_dir],
     link_with: [lk_cbind_lib],
     dependencies: [lk_base_deps],
-    d_args: '-J' + source_root + '/data/'
+    d_args: ['-J' + source_root + '/data/']
 )
 
 laniakea_shared_dep = declare_dependency(

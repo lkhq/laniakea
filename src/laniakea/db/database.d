@@ -31,12 +31,14 @@ import laniakea.logging;
 
 import laniakea.db.schema.core;
 
+public import laniakea.db.schema.core : LkModule;
+public import laniakea.db.lkid : LkId, LkidType;
 public import dpq2 : QueryParams, ValueFormat;
 public import vibe.data.json : Json, serializeToJsonString;
 public import vibe.data.bson : Bson, deserializeBson;
 
-private import dpq2 : toValue;
-public alias toPGValue = toValue;
+
+alias PgConnection = LockedConnection!__Conn;
 
 /**
  * A connection to the Laniakea database.
@@ -70,6 +72,7 @@ private:
     {
         const conf = LocalConfig.get;
         assert (conf.currentModule != LkModule.UNKNOWN, "A module without identifier tried to access the database.");
+        //! assert (PQlibVersion() >= 9_5000);
 
         dbHost = conf.databaseHost;
         dbPort = conf.databasePort;
@@ -110,9 +113,9 @@ public:
     /**
      * Explicitly close a database connection and return its slot.
      */
-    void dropConnection (ref LockedConnection!__Conn conn) @trusted
+    void dropConnection (ref PgConnection conn) @trusted
     {
-        delete conn;
+        //conn.destroy ();
     }
 
     /**
@@ -145,7 +148,7 @@ public:
     /**
      * Update a configuration entry for s specific module.
      */
-    void updateConfigEntry (T) (LockedConnection!__Conn conn, LkModule mod, string key, T data) @trusted
+    void updateConfigEntry (T) (PgConnection conn, LkModule mod, string key, T data) @trusted
     {
         QueryParams p;
         p.sqlCommand = "INSERT INTO config (id, data)
@@ -169,7 +172,7 @@ public:
     /**
      * Get configuration entry of the selected type T.
      */
-    auto getConfigEntry (T) (LockedConnection!__Conn conn, LkModule mod, string key) @trusted
+    auto getConfigEntry (T) (PgConnection conn, LkModule mod, string key) @trusted
     {
         QueryParams p;
         p.sqlCommand = "SELECT * FROM config WHERE id=$1";
@@ -199,21 +202,27 @@ public void setParams (A...) (ref QueryParams p, A args)
     import std.datetime : SysTime;
     import std.conv : to;
     import std.traits : OriginalType, isArray;
-    import dpq2.oids : OidType;
+    import std.array : empty;
+    import dpq2 : OidType, toValue;
 
     p.args.length = args.length;
     foreach (i, c; args) {
         alias T = typeof(c);
 
-        static if (is(T == char[32])) // for LkidType
-            p.args[i] = Value (cast(ubyte[])c, OidType.Text, false, ValueFormat.BINARY);
-        else static if (is(T == SysTime))
-            p.args[i] = c.toUnixTime.toPGValue;
-        else static if (is(OriginalType!T == int))
-            p.args[i] = (cast(int)c).toPGValue;
-        else static if ((is(OriginalType!T == struct)) || (isArray!T))
-            p.args[i] = c.serializeToJsonString.toPGValue;
-        else
-            p.args[i] = c.toPGValue;
+        static if (is(T == LkId)) {
+            if (c[0] == '\0') {
+                p.args[i] = Value (ValueFormat.BINARY, OidType.Void);
+            } else
+                p.args[i] = Value (cast(ubyte[])c, OidType.FixedString, false, ValueFormat.BINARY);
+        } else {
+            static if (is(T == SysTime))
+                p.args[i] = c.toUnixTime.toValue;
+            else static if (is(OriginalType!T == int))
+                p.args[i] = (cast(int)c).toValue;
+            else static if ((is(OriginalType!T == struct)) || (isArray!T))
+                p.args[i] = c.serializeToJsonString.toValue;
+            else
+                p.args[i] = c.toValue;
+        }
     }
 }

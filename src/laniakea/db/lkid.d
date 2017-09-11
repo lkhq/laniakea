@@ -31,7 +31,10 @@ import laniakea.db.schema.core;
 enum LkidType
 {
     JOB      = "JOB",
-    DEBCHECK = "DEBC"
+    WORKER   = "WRK",
+    USER     = "USR",
+    DEBCHECK = "DEBC",
+    ISOTOPE  = "ISOT"
 }
 
 /// A database object ID used within Laniakea to refer to objects in the database
@@ -53,7 +56,7 @@ private auto getRandomAlphanum (uint len) ()
 
     dchar[len] data;
     fill (data[], randomCover (chain (asciiLetters, asciiDigits), rndGen));
-    
+
     return data;
 }
 
@@ -75,7 +78,7 @@ unittest
 {
     import std.stdio : writeln;
     writeln ("TEST: LkID");
-    
+
     immutable id1 = newLkid!(LkidType.JOB);
     immutable id2 = newLkid!(LkidType.JOB);
     immutable id3 = newLkid!(LkidType.JOB);

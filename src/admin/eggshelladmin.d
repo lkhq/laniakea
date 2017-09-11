@@ -74,9 +74,9 @@ final class EggshellAdmin : AdminTool
 
         auto coll = db.collConfig;
 
-        esconf.id = BsonObjectID.generate ();
-        coll.remove (["module": LkModule.EGGSHELL, "kind": esconf.kind]);
-        coll.update (["mdoule": LkModule.EGGSHELL, "kind": esconf.kind], esconf, UpdateFlags.upsert);
+       //! esconf.id = BsonObjectID.generate ();
+       //! coll.remove (["module": LkModule.EGGSHELL, "kind": esconf.kind]);
+       //! coll.update (["mdoule": LkModule.EGGSHELL, "kind": esconf.kind], esconf, UpdateFlags.upsert);
 
         db.fsync;
         return true;

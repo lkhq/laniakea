@@ -50,7 +50,7 @@ block contents
                                         - hlClass = "list-group-item-danger";
                                     - else
                                         - hlClass = "list-group-item-info";
-                                a.list-group-item(class='#{hlClass}', href='/jobs/#{job.id}')
+                                a.list-group-item(class='#{hlClass}', href='/jobs/#{job.lkid}')
                                     h4.list-group-item-heading
                                     | [#{job.architecture}] - #{job.createdTime}
                                     p.list-group-item-text #{job.title}

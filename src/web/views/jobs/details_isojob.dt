@@ -1,10 +1,10 @@
 extends jobs/details
 
 block head
-    - auto title = "Image build job " ~ job.id.to!string;
+    - auto title = "Image build job " ~ job.lkid.to!string;
 
 block job_header
-    h1 Image build job #{job.id.to!string}
+    h1 Image build job #{job.lkid.to!string}
 
 block pre_log
     h3 Details

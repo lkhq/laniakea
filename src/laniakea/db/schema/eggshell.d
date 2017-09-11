@@ -20,18 +20,33 @@
 module laniakea.db.schema.eggshell;
 @safe:
 
-import vibe.db.mongo.mongo;
-import vibe.data.serialization : name;
-import laniakea.db.schema.core : LkModule;
-
 /**
 * Configuration specific for the germinate module.
 **/
 struct EggshellConfig {
-   @name("_id") BsonObjectID id;
+   string metaPackageGitSourceUrl; /// Git URL of a Germinator seed
+}
 
-   @name("module") string moduleName = LkModule.EGGSHELL;
-   string kind = EggshellConfig.stringof;
+import laniakea.db.database;
 
-   string metaPackageGitSourceUrl;
+/**
+ * Add/update configuration.
+ */
+void update (Database db, EggshellConfig conf)
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    db.updateConfigEntry (conn, LkModule.EGGSHELL, "metaPackageGitSourceUrl", conf.metaPackageGitSourceUrl);
+}
+
+auto getEggshellConfig (Database db)
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    EggshellConfig conf;
+    conf.metaPackageGitSourceUrl = db.getConfigEntry!string (conn, LkModule.EGGSHELL, "metaPackageGitSourceUrl");
+
+    return conf;
 }

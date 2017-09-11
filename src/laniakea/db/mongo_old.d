@@ -203,10 +203,10 @@ public:
     void addJob (J) (J job, BsonObjectID trigger)
     {
         auto coll = collJobs ();
-        job.id = newBsonId;
-        job.createdTime = currentTimeAsBsonDate;
+        //job.id = newBsonId;
+        //job.createdTime = currentTimeAsBsonDate;
         job.status = JobStatus.WAITING;
-        job.trigger = trigger;
+       //! job.trigger = trigger;
 
         // set a dummy titke for displaying information in UIs which do not
         // have knowledge of all Laniakea modules
@@ -241,9 +241,9 @@ public:
     {
         import std.datetime : Clock;
         EventEntry entry;
-        entry.id = BsonObjectID.generate ();
+        //! entry.id = BsonObjectID.generate ();
 
-        entry.time = BsonDate (Clock.currTime);
+        //! entry.time = BsonDate (Clock.currTime);
         entry.kind = kind;
         entry.moduleName = origin;
         entry.title = title;

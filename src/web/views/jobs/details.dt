@@ -1,12 +1,12 @@
 extends base
 
 block head
-    - auto title = "Spark job " ~ job.id.to!string;
+    - auto title = "Spark job " ~ job.lkid.to!string;
 
 block contents
     - import std.array : empty;
     block job_header
-        h1 #{job.title} (#{job.id})
+        h1 #{job.title} (#{job.lkid})
 
     br
 
@@ -14,17 +14,17 @@ block contents
     - import laniakea.db;
 
     b Created:
-    | #{job.createdTime.toSysTime.getPastEventAge} ago
+    | #{job.createdTime.getPastEventAge} ago
     br
 
     - if (!job.worker.empty)
         b Assigned:
-        | #{job.assignedTime.toSysTime.getPastEventAge} ago
+        | #{job.assignedTime.getPastEventAge} ago
         br
 
     - if (job.result != JobResult.UNKNOWN)
         b Finished:
-        | #{job.finishedTime.toSysTime.getPastEventAge} ago
+        | #{job.finishedTime.getPastEventAge} ago
         br
 
     - if (!job.worker.empty)
