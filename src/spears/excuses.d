@@ -24,7 +24,7 @@ import std.array : appender;
 import std.algorithm : canFind;
 static import dyaml;
 
-import laniakea.db : currentTimeAsBsonDate;
+import laniakea.utils : currentDateTime;
 import laniakea.logging;
 import laniakea.db.schema.spears;
 
@@ -126,7 +126,7 @@ public:
         foreach(dyaml.Node yentry; ysrc) {
             SpearsExcuse excuse;
 
-            excuse.date = currentTimeAsBsonDate ();
+            excuse.date = currentDateTime ();
             excuse.sourceSuite = sourceSuite;
             excuse.targetSuite = targetSuite;
 

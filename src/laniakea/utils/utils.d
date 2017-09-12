@@ -24,7 +24,7 @@ import std.stdio : File, writeln;
 import std.string : split, strip, toLower;
 import std.digest.sha : isDigest;
 import std.array : appender, empty;
-import std.datetime : SysTime;
+import std.datetime : SysTime, DateTime;
 
 /**
  * Check if string contains a remote URI.
@@ -110,6 +110,11 @@ public auto getPastEventAge (SysTime eventTime)
     eventTime.fracSecs = Duration.zero;
 
     return currentTime - eventTime;
+}
+
+public auto getPastEventAge (DateTime eventTime)
+{
+    return getPastEventAge (SysTime (eventTime));
 }
 
 public auto randomString (uint len)

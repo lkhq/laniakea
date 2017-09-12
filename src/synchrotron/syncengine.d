@@ -34,7 +34,7 @@ import laniakea.db.schema.synchrotron;
 import laniakea.repository;
 import laniakea.repository.dak;
 import laniakea.pkgitems;
-import laniakea.utils : compareVersions, getDebianRev;
+import laniakea.utils : compareVersions, getDebianRev, currentDateTime;
 import laniakea.localconfig;
 import laniakea.logging;
 
@@ -397,8 +397,8 @@ public:
     {
         SynchrotronIssue issue;
 
-        issue.id = newBsonId ();
-        issue.date = currentTimeAsBsonDate ();
+        issue.lkid = generateNewLkid! (LkidType.SYNCHROTRON_ISSUE);
+        issue.date = currentDateTime ();
 
         issue.sourceSuite = sourceSuite.name;
         issue.targetSuite = targetSuite.name;

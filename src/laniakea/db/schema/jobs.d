@@ -75,6 +75,13 @@ template Job(LkModule mod, string jobKind) {
     string latestLogExcerpt;   /// An excerpt of the current job log
 
     JobResult result;
+
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid
+        );
+    }
 }
 
 /**
@@ -225,4 +232,17 @@ void addJob (J) (Database db, J job, LkId trigger)
 
     logInfo ("Adding job '%s'", job.lkid);
     db.updateJob (job);
+}
+
+/**
+ * Find jobs of type T by their trigger ID.
+ */
+auto findJobsByTrigger (T) (PgConnection conn, LkId triggerId, long limit, long offset = 0) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 LIMIT $2 OFFSET $3 ORDER BY time_created DESC";
+    p.setParams (triggerId, limit, offset);
+
+    auto ans = conn.execParams(p);
+    return rowsTo!T (ans);
 }

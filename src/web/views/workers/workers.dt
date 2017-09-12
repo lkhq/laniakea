@@ -31,4 +31,4 @@ block contents
                         | #{worker.owner.empty? "None set." : worker.owner}
                         br
                         b Last Ping:
-                        | #{worker.lastPing.toSysTime.getPastEventAge} ago
+                        | #{worker.lastPing.getPastEventAge} ago

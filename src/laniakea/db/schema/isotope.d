@@ -142,7 +142,7 @@ void update (Database db, ImageBuildRecipe recipe) @trusted
 auto getBuildRecipes (PgConnection conn, long limit, long offset = 0) @trusted
 {
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM isotope_recipes LIMIT $1 OFFSET $2";
+    p.sqlCommand = "SELECT * FROM isotope_recipes LIMIT $1 OFFSET $2 ORDER BY name";
     p.setParams (limit, offset);
 
     auto ans = conn.execParams(p);

@@ -59,6 +59,8 @@ class IsoImagesWebService {
  	void getRecipes (HTTPServerRequest req, HTTPServerResponse res)
  	{
         import std.range : take;
+        //! auto conn = db.getConnection ();
+        //! scope (exit) db.dropConnection (conn);
 
         auto collIsotope = db.getCollection!(LkModule.ISOTOPE, null);
         auto recipes = collIsotope.find!ImageBuildRecipe ();
@@ -67,7 +69,7 @@ class IsoImagesWebService {
         foreach (ref recipe; recipes) {
             IsoImageEntry entry;
             entry.recipe = recipe;
-            entry.jobs = db.getJobsByTrigger!ImageBuildJob (recipe.id).limit (10);
+            //! entry.jobs = db.findJobsByTrigger!ImageBuildJob (recipe.id).limit (10);
 
             entries ~= entry;
         }
