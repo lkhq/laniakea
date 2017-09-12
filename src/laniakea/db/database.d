@@ -287,15 +287,19 @@ public auto dbValueTo (T) (immutable(Value) v)
     import laniakea.db.lkid;
     import std.datetime : SysTime, DateTime;
     import std.traits : OriginalType, isArray;
+    import std.conv : to;
+    import dpq2.conv.to_d_types : TimeStampWithoutTZ;
 
     static if (is(T == LkId))
         return (cast(const(char[])) v.data).to!string;
     else static if (is(T == DateTime))
-        return (v.as!TimeStampWithoutTZ).dateTime;
+        return (as! (TimeStampWithoutTZ) (v)).dateTime;
     else static if (is(T == SysTime))
         return SysTime((v.as!TimeStampWithoutTZ).dateTime);
     else static if ((is(OriginalType!T == struct)) || (isArray!T))
         return deserializeBson!T (v.as!Bson);
+    else static if (is(OriginalType!T == int))
+        return to!T (v.as!int);
     else {
         if (v.oidType == OidType.VariableString)
             return (cast(const(char[])) v.data).to!string;

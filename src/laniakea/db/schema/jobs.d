@@ -79,7 +79,20 @@ template Job(LkModule mod, string jobKind) {
     this (PgRow r) @trusted
     {
         r.unpackRowValues (
-                 &lkid
+                 &lkid,
+                 &status,
+                 &moduleName,
+                 &kind,
+                 &title,
+                 &trigger,
+                 &createdTime,
+                 &assignedTime,
+                 &finishedTime,
+                 &worker,
+                 &workerId,
+                 &latestLogExcerpt,
+                 &result,
+                 &data
         );
     }
 }
