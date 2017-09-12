@@ -131,10 +131,11 @@ public auto randomString (uint len)
 /**
  * Read the current time and return it as DateTime
  */
-auto currentTime ()
+auto currentDateTime ()
 {
-    import std.datetime : Clock;
-    return Clock.currTime ();
+    import std.conv : to;
+    import std.datetime : Clock, DateTime;
+    return Clock.currTime.to!DateTime;
 }
 
 

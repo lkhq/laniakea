@@ -22,8 +22,8 @@ module admin.admintool;
 import std.stdio : writeln, writefln, readln;
 import std.string : format;
 
-import vibe.db.mongo.mongo;
 import laniakea.db;
+public import laniakea.utils : currentDateTime;
 
 
 /**
@@ -36,7 +36,7 @@ private:
     string m_currentMsg;
 
 protected:
-    MongoLegacyDatabase db;
+    Database db;
 
     final string readString ()
     {
@@ -141,7 +141,7 @@ public:
 
     this ()
     {
-        db = MongoLegacyDatabase.get ();
+        db = Database.get ();
     }
 
     @property
@@ -161,54 +161,10 @@ public:
 /**
  * Change arbitrary values in the database.
  */
-bool setLaniakeaDbConfValue (string moduleName, string command)
+bool setLaniakeaDbConfValue (string id, string value)
 {
-    auto db = MongoLegacyDatabase.get;
-
-    bool updateData (T) (MongoCollection coll, T selector, string setExpr)
-    {
-        try {
-            auto json = parseJsonString ("{ " ~ setExpr ~ " }");
-            coll.findAndModifyExt (selector, ["$set": json], ["new": true]);
-        } catch (Exception e) {
-            writeln ("Update failed: ", e);
-            return false;
-        }
-
-        return true;
-    }
-
-    auto coll = db.collConfig ();
-    switch (moduleName) {
-        case "base":
-            if (!updateData (coll, ["module": LkModule.BASE,
-                                    "kind": BaseConfig.stringof], command))
-                return false;
-            break;
-        case "synchrotron":
-            if (!updateData (coll, ["module": LkModule.SYNCHROTRON,
-                                    "kind": SynchrotronConfig.stringof], command))
-                return false;
-            break;
-        case "synchrotron.blacklist":
-            if (!updateData (coll, ["module": LkModule.SYNCHROTRON,
-                                    "kind": SynchrotronBlacklist.stringof], command))
-                return false;
-            break;
-        case "spears":
-            if (!updateData (coll, ["module": LkModule.SPEARS,
-                                    "kind": SpearsConfig.stringof], command))
-                return false;
-            break;
-        case "eggshell":
-            if (!updateData (coll, ["module": LkModule.EGGSHELL,
-                                    "kind": EggshellConfig.stringof], command))
-            return false;
-            break;
-        default:
-            writeln ("Unknown module name: ", moduleName);
-            return false;
-    }
+    auto db = Database.get;
+    db.modifyConfigEntry (id, value);
 
     return true;
 }

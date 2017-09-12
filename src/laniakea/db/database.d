@@ -36,9 +36,11 @@ public import laniakea.db.lkid : LkId, LkidType;
 public import dpq2 : QueryParams, ValueFormat;
 public import vibe.data.json : Json, serializeToJsonString;
 public import vibe.data.bson : Bson, deserializeBson;
+public import std.typecons : Nullable;
 
 
 alias PgConnection = LockedConnection!__Conn;
+alias PgRow = immutable(Row);
 
 /**
  * A connection to the Laniakea database.
@@ -115,7 +117,7 @@ public:
      */
     void dropConnection (ref PgConnection conn) @trusted
     {
-        //conn.destroy ();
+        delete conn;
     }
 
     /**
@@ -170,6 +172,21 @@ public:
     }
 
     /**
+     * Modify an existing config entry
+     */
+    void modifyConfigEntry (string id, string value) @trusted
+    {
+        auto conn = getConnection ();
+        scope (exit) dropConnection (conn);
+        QueryParams p;
+        p.sqlCommand = "UPDATE config SET
+                          data = $2::jsonb
+                        WHERE id=$1";
+        p.argsFromArray = [id, value];
+        conn.execParams (p);
+    }
+
+    /**
      * Get configuration entry of the selected type T.
      */
     auto getConfigEntry (T) (PgConnection conn, LkModule mod, string key) @trusted
@@ -199,7 +216,7 @@ public:
 public void setParams (A...) (ref QueryParams p, A args)
 {
     import laniakea.db.lkid;
-    import std.datetime : SysTime;
+    import std.datetime : SysTime, DateTime;
     import std.conv : to;
     import std.traits : OriginalType, isArray;
     import std.array : empty;
@@ -217,6 +234,8 @@ public void setParams (A...) (ref QueryParams p, A args)
         } else {
             static if (is(T == SysTime))
                 p.args[i] = c.toUnixTime.toValue;
+            else static if (is(T == DateTime))
+                p.args[i] = SysTime(c).toUnixTime.toValue;
             else static if (is(OriginalType!T == int))
                 p.args[i] = (cast(int)c).toValue;
             else static if ((is(OriginalType!T == struct)) || (isArray!T))
@@ -224,5 +243,72 @@ public void setParams (A...) (ref QueryParams p, A args)
             else
                 p.args[i] = c.toValue;
         }
+    }
+}
+
+/**
+ * Convert rows of a database reply to the selected type.
+ */
+auto rowsTo (T) (immutable Answer ans)
+{
+    import std.traits : OriginalType;
+    static assert (is(OriginalType!T == struct));
+
+    T[] res;
+    res.length = ans.length;
+
+    uint i = 0;
+    foreach (r; rangify (ans)) {
+        res[i] = T(r);
+        i++;
+    }
+
+    return res;
+}
+
+/**
+ * Convert first row of a database reply to the selected type.
+ */
+auto rowsToOne (T) (immutable Answer ans)
+{
+    import std.traits : OriginalType;
+    static assert (is(OriginalType!T == struct));
+
+    Nullable!T res;
+    if (ans.length > 0) {
+        res = T(ans[0]);
+    }
+
+    return res;
+}
+
+public auto dbValueTo (T) (immutable(Value) v)
+{
+    import laniakea.db.lkid;
+    import std.datetime : SysTime, DateTime;
+    import std.traits : OriginalType, isArray;
+
+    static if (is(T == LkId))
+        return (cast(const(char[])) v.data).to!string;
+    else static if (is(T == DateTime))
+        return (v.as!TimeStampWithoutTZ).dateTime;
+    else static if (is(T == SysTime))
+        return SysTime((v.as!TimeStampWithoutTZ).dateTime);
+    else static if ((is(OriginalType!T == struct)) || (isArray!T))
+        return deserializeBson!T (v.as!Bson);
+    else {
+        if (v.oidType == OidType.VariableString)
+            return (cast(const(char[])) v.data).to!string;
+        else
+            return v.as!T;
+    }
+}
+
+public void unpackRowValues (A...) (PgRow row, A args)
+{
+    assert (row.length == args.length);
+
+    foreach (i, a; args) {
+        (*a) = row[i].dbValueTo! (typeof((*a)));
     }
 }

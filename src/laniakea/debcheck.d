@@ -29,7 +29,7 @@ import std.typecons : Tuple;
 static import dyaml;
 
 import laniakea.db;
-import laniakea.utils : currentTime;
+import laniakea.utils : currentDateTime;
 import laniakea.localconfig;
 import laniakea.pkgitems;
 import laniakea.repository;
@@ -271,8 +271,8 @@ class Debcheck
                     continue;
             }
 
-            issue.lkid = newLkid! (LkidType.DEBCHECK);
-            issue.date = currentTime ();
+            issue.lkid = generateNewLkid! (LkidType.DEBCHECK);
+            issue.date = currentDateTime ();
             issue.suiteName = suiteName;
 
             setBasicPackageInfo!DebcheckIssue (issue, entry);

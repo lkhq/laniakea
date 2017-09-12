@@ -19,39 +19,39 @@ subdir('laniakea')
 subdir('admin')
 
 # Key management cli tool
-subdir('keytool')
+#! subdir('keytool')
 
 # Lighthouse relay
-subdir('lighthouse')
+#! subdir('lighthouse')
 
 # Datasync
-subdir('datasync')
+#! subdir('datasync')
 
 # Debcheck
-subdir('debcheck')
+#! subdir('debcheck')
 
 # Rubicon data importer
-subdir('rubicon')
+#! subdir('rubicon')
 
 # Eggshell
 if (get_option('enable-eggshell'))
-    subdir('eggshell')
+    #! subdir('eggshell')
 endif
 
 # Spears
 if (get_option('enable-spears'))
-    subdir('spears')
+    #! subdir('spears')
 endif
 
 # Synchrotron
 if (get_option('enable-synchrotron'))
-    subdir('synchrotron')
+    #! subdir('synchrotron')
 endif
 
 # web frontends
 if (get_option('enable-webgui'))
     # admin & technical overview
-    subdir('web')
+    #! subdir('web')
     # software view
-    subdir('webswview')
+    #! subdir('webswview')
 endif

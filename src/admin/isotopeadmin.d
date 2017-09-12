@@ -70,7 +70,8 @@ final class IsotopeAdmin : AdminTool
 
     void dumpRecipes ()
     {
-        foreach (ref rawRecipe; db.getCollection!(LkModule.ISOTOPE, null).find) {
+        auto conn = db.getConnection;
+        foreach (ref rawRecipe; conn.getBuildRecipes (0)) {
             writeln (rawRecipe.serializeToPrettyJson);
             writeln ();
         }
@@ -83,7 +84,7 @@ final class IsotopeAdmin : AdminTool
 
         writeHeader ("Add new ISO image build recipe");
         ImageBuildRecipe recipe;
-        recipe.id = newBsonId;
+        recipe.lkid = generateNewLkid! (LkidType.ISOTOPE_RECIPE);
 
         writeQS ("Name of the distribution to build the image for");
         recipe.distribution = readString ();
@@ -106,10 +107,8 @@ final class IsotopeAdmin : AdminTool
         // ensure we have a name
         recipe.name = "%s-%s-%s".format (recipe.distribution, recipe.suite, recipe.flavor).toLower;
 
-        auto coll = db.getCollection!(LkModule.ISOTOPE, null);
-        coll.ensureIndex ([tuple("name", 1)], IndexFlags.unique);
-        coll.insert (recipe);
-        db.fsync;
+        // add recipe to the database
+        db.update (recipe);
 
         writeDone ("Created recipe with name: %s".format (recipe.name));
     }
@@ -118,10 +117,9 @@ final class IsotopeAdmin : AdminTool
     {
         import std.typecons : tuple;
 
-        auto coll = db.getCollection!(LkModule.ISOTOPE, null);
-        coll.ensureIndex ([tuple("name", 1)], IndexFlags.unique);
+        auto conn = db.getConnection;
 
-        auto recipe = coll.findOne!ImageBuildRecipe (["name": name]);
+        auto recipe = conn.findRecipeByName (name);
         if (recipe.isNull) {
             writeln ("No build recipe matching these parameters has been found.");
             return false;
@@ -135,10 +133,9 @@ final class IsotopeAdmin : AdminTool
             isojob.liveBuildGit = recipe.liveBuildGit;
             isojob.flavor       = recipe.flavor;
 
-            db.addJob (isojob, recipe.id);
+            db.addJob (isojob, recipe.lkid);
         }
 
-        db.fsync;
         return true;
     }
 }

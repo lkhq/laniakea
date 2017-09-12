@@ -19,7 +19,7 @@
 
 module laniakea.db.schema.debcheck;
 
-import std.datetime : SysTime;
+import std.datetime : DateTime;
 public import laniakea.pkgitems : PackageType;
 import laniakea.db.lkid;
 @safe:
@@ -55,7 +55,7 @@ struct PackageConflict {
 struct DebcheckIssue {
     LkId lkid;
 
-    SysTime date;        /// Time when this excuse was created
+    DateTime date;           /// Time when this excuse was created
 
     PackageType packageKind; /// Kind of the examined package
     string suiteName;
@@ -102,7 +102,7 @@ void update (Database db, DebcheckIssue issue, bool isNew = false) @trusted
     scope (exit) db.dropConnection (conn);
 
     if (isNew)
-        issue.lkid = newLkid! (LkidType.DEBCHECK);
+        issue.lkid = generateNewLkid! (LkidType.DEBCHECK);
 
     QueryParams p;
     p.sqlCommand = "INSERT INTO debcheck
@@ -114,7 +114,8 @@ void update (Database db, DebcheckIssue issue, bool isNew = false) @trusted
                             $6,
                             $7,
                             $8::jsonb,
-                            $9::jsonb)
+                            $9::jsonb
+                        )
                     ON CONFLICT (lkid) DO UPDATE SET
                       date            = to_timestamp($2),
                       package_kind    = $3,

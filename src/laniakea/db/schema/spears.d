@@ -20,10 +20,9 @@
 module laniakea.db.schema.spears;
 @safe:
 
-import vibe.db.mongo.mongo;
-import vibe.data.serialization : name;
+import std.datetime : DateTime;
 
-import laniakea.db.schema.core : LkModule;
+import laniakea.db.schema.core;
 import laniakea.pkgitems : VersionPriority;
 
 
@@ -32,7 +31,7 @@ import laniakea.pkgitems : VersionPriority;
  */
 struct SpearsHint
 {
-    BsonDate date;
+    DateTime date;
 
     string hint;
     string reason;
@@ -56,11 +55,6 @@ struct SpearsConfigEntry
  * Basic project configuration
  **/
 struct SpearsConfig {
-    @name("_id") BsonObjectID id;
-
-    @name("module") string moduleName = LkModule.SPEARS;
-    string kind = SpearsConfig.stringof;
-
     SpearsConfigEntry[] migrations;
 }
 
@@ -105,9 +99,9 @@ struct SpearsMissingBuilds {
  * Data for a package migration excuse, as emitted by Britney
  **/
 struct SpearsExcuse {
-    @name("_id") BsonObjectID id;
+    LkId lkid;
 
-    BsonDate date;        /// Time when this excuse was created
+    DateTime date;        /// Time when this excuse was created
 
     string sourceSuite;   /// Source suite of this package
     string targetSuite;   /// Target suite of this package
@@ -127,4 +121,112 @@ struct SpearsExcuse {
     SpearsOldBinaries[] oldBinaries; /// Superseded cruft binaries that need to be garbage-collected
 
     SpearsReason reason; /// reasoning on why this might not be allowed to migrate
+}
+
+
+import laniakea.db.database;
+
+/**
+ * Create initial tables for this module.
+ */
+void createTables (Database db) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS spears_excuses (
+          lkid VARCHAR(32) PRIMARY KEY,
+          date             TIMESTAMP NOT NULL,
+          source_suite     TEXT NOT NULL,
+          target_suite     TEXT NOT NULL,
+          candidate        BOOLEAN,
+          source_package   TEXT NOT NULL,
+          maintainer       TEXT,
+          age              JSONB,
+          version_new      TEXT NOT NULL,
+          version_old      TEXT NOT NULL,
+          missing_builds   JSONB,
+          old_binaries     JSONB,
+          reason           JSONB
+        )"
+    );
+}
+
+/**
+ * Add/update Spears excuse.
+ */
+void update (Database db, SpearsExcuse excuse) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    QueryParams p;
+    p.sqlCommand = "INSERT INTO spears_excuses
+                    VALUES ($1,
+                            to_timestamp($2),
+                            $3,
+                            $4,
+                            $5,
+                            $6,
+                            $7,
+                            $8::jsonb,
+                            $9,
+                            $10,
+                            $11::jsonb,
+                            $12::jsonb,
+                            $13::jsonb
+                        )
+                    ON CONFLICT (lkid) DO UPDATE SET
+                      date            = to_timestamp($2),
+                      source_suite    = $3,
+                      target_suite    = $4,
+                      candidate       = $5,
+                      source_package  = $6,
+                      maintainer      = $7,
+                      age             = $8::jsonb,
+                      version_new     = $9,
+                      version_old     = $10,
+                      missing_builds  = $11::jsonb,
+                      old_binaries    = $12::jsonb,
+                      reason          = $13::jsonb";
+
+    p.setParams (excuse.lkid,
+                 excuse.date,
+                 excuse.sourceSuite,
+                 excuse.targetSuite,
+                 excuse.isCandidate,
+                 excuse.sourcePackage,
+                 excuse.maintainer,
+                 excuse.age,
+                 excuse.newVersion,
+                 excuse.oldVersion,
+                 excuse.missingBuilds,
+                 excuse.oldBinaries,
+                 excuse.reason
+
+    );
+    conn.execParams (p);
+}
+
+/**
+ * Add/update Spears configuration.
+ */
+void update (Database db, SpearsConfig conf)
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    db.updateConfigEntry (conn, LkModule.SPEARS, "migrations", conf.migrations);
+}
+
+auto getSpearsConfig (Database db)
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    SpearsConfig conf;
+    conf.migrations = db.getConfigEntry!(SpearsConfigEntry[]) (conn, LkModule.BASE, "migrations");
+
+    return conf;
 }

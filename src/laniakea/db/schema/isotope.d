@@ -20,19 +20,15 @@
 module laniakea.db.schema.isotope;
 @safe:
 
-import vibe.db.mongo.mongo;
-import vibe.data.serialization : name;
 import laniakea.db.schema.jobs;
 import laniakea.db.schema.core;
-
-alias mongoName = name;
 
 
 /**
  * Instructions on how to do an automatic ISO image build.
  */
 struct ImageBuildRecipe {
-    @mongoName("_id") BsonObjectID id;
+    LkId lkid;              /// Laniakea object ID
 
     string name;            /// A unique name identifying this recipe
     string distribution;    /// Name of the distribution, e.g. "Tanglu"
@@ -42,6 +38,21 @@ struct ImageBuildRecipe {
 
     string liveBuildGit;    /// Git repository URL with the live-build scripts
     string resultMoveTo;    /// Local or remote URL to copy the resulting build artifacts to
+
+
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid,
+                 &name,
+                 &distribution,
+                 &suite,
+                 &flavor,
+                 &architectures,
+                 &liveBuildGit,
+                 &resultMoveTo
+        );
+    }
 }
 
 /**
@@ -61,4 +72,89 @@ struct ImageBuildJob {
 
     Data data;
     alias data this;
+}
+
+
+import laniakea.db.database;
+
+/**
+ * Create initial tables for this module.
+ */
+void createTables (Database db) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS isotope_recipes (
+          lkid VARCHAR(32) PRIMARY KEY,
+          name             TEXT NOT NULL UNIQUE,
+          distribution     TEXT NOT NULL,
+          suite            TEXT NOT NULL,
+          flavor           TEXT,
+          architectures    JSONB,
+          livebuild_git    TEXT NOT NULL,
+          result_move_to   TEXT
+        )"
+    );
+}
+
+/**
+ * Add/update image build recipe.
+ */
+void update (Database db, ImageBuildRecipe recipe) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    QueryParams p;
+    p.sqlCommand = "INSERT INTO isotope_recipes
+                    VALUES ($1,
+                            $2,
+                            $3,
+                            $4,
+                            $5,
+                            $6::jsonb,
+                            $7,
+                            $8
+                        )
+                    ON CONFLICT (lkid) DO UPDATE SET
+                      name           = $2,
+                      distribution   = $3,
+                      suite          = $4,
+                      flavor         = $5,
+                      architectures  = $6::jsonb,
+                      livebuild_git  = $7,
+                      result_move_to = $8";
+
+    p.setParams (recipe.lkid,
+                 recipe.name,
+                 recipe.distribution,
+                 recipe.suite,
+                 recipe.flavor,
+                 recipe.architectures,
+                 recipe.liveBuildGit,
+                 recipe.resultMoveTo
+    );
+    conn.execParams (p);
+}
+
+auto getBuildRecipes (PgConnection conn, long limit, long offset = 0) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM isotope_recipes LIMIT $1 OFFSET $2";
+    p.setParams (limit, offset);
+
+    auto ans = conn.execParams(p);
+    return rowsTo!ImageBuildRecipe (ans);
+}
+
+auto findRecipeByName (PgConnection conn, string name) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM isotope_recipes WHERE name=$1";
+    p.setParams (name);
+
+    auto ans = conn.execParams(p);
+    return rowsToOne!ImageBuildRecipe (ans);
 }

@@ -119,38 +119,34 @@ final class SyncAdmin : AdminTool
         writeQB ("Synchronize binary packages?");
         syconf.syncBinaries = readBool ();
 
-        auto coll = db.collConfig;
+        // update database
+        db.update (syconf);
 
-        syconf.id = BsonObjectID.generate ();
-        coll.remove (["module": LkModule.SYNCHROTRON, "kind": syconf.kind]);
-        coll.update (["module": LkModule.SYNCHROTRON, "kind": syconf.kind], syconf, UpdateFlags.upsert);
-
-        db.fsync;
         return true;
     }
 
     void synchrotronDumpConfig ()
     {
         writeln ("Config:");
-        writeln (db.getConfig!(LkModule.SYNCHROTRON, SynchrotronConfig).serializeToPrettyJson);
+        writeln (db.getSynchrotronConfig ().serializeToPrettyJson);
         writeln ("Blacklist:");
-        writeln (db.getConfig!(LkModule.SYNCHROTRON, SynchrotronBlacklist).serializeToPrettyJson);
+        writeln (db.getSynchrotronBlacklist ().serializeToPrettyJson);
     }
 
     void synchrotronBlacklistAdd (string pkg, string reason)
     {
-        db.collConfig.findAndModifyExt([
-                        "module": LkModule.SYNCHROTRON,
-                        "kind": SynchrotronBlacklist.stringof],
-                         ["$set": ["blacklist." ~ pkg: reason]], ["upsert": true]);
+        // TODO: this is quick and dirty - we can do better SQL here
+        auto blist = db.getSynchrotronBlacklist;
+        blist.blacklist[pkg] = reason;
+        db.update (blist);
     }
 
     void synchrotronBlacklistRemove (string pkg)
     {
-        db.collConfig.findAndModifyExt([
-                         "module": LkModule.SYNCHROTRON,
-                         "kind": SynchrotronBlacklist.stringof],
-                         ["$unset": ["blacklist." ~ pkg: ""]], ["upsert": true]);
+        // TODO: this is quick and dirty - we can do better SQL here
+        auto blist = db.getSynchrotronBlacklist;
+        blist.blacklist.remove (pkg);
+        db.update (blist);
     }
 
 }

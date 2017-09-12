@@ -267,7 +267,7 @@ public:
         // day, it needs to be optimized to just update stuff that is needed.
         collExcuses.remove (["sourceSuite": fromSuite.name, "targetSuite": toSuite.name]);
         foreach (excuse; efile.getExcuses ().byValue) {
-            excuse.id = newBsonId ();
+            excuse.lkid = generateNewLkid! (LkidType.SPEARS_EXCUSE);
             collExcuses.insert (excuse);
         }
 

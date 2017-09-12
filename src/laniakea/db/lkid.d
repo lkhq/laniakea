@@ -30,11 +30,13 @@ import laniakea.db.schema.core;
  */
 enum LkidType
 {
-    JOB      = "JOB",
-    WORKER   = "WRK",
-    USER     = "USR",
-    DEBCHECK = "DEBC",
-    ISOTOPE  = "ISOT"
+    JOB               = "JOB",  /// Prefix for a generic Laniakea job
+    WORKER            = "WRK",  /// Prefix for a generic Laniakea worker
+    USER              = "USR",  /// Prefix for a human user
+    DEBCHECK          = "DEBC", /// Debcheck issue entry prefix
+    ISOTOPE_RECIPE    = "ISOR", /// Isotope ISO image recipe prefix
+    SPEARS_EXCUSE     = "SPRE", /// Spears excuse prefix
+    SYNCHROTRON_ISSUE = "SYNI"  /// Synchrotron issue prefix
 }
 
 /// A database object ID used within Laniakea to refer to objects in the database
@@ -63,7 +65,7 @@ private auto getRandomAlphanum (uint len) ()
 /**
  * Generate a unique Laniakea ID to identify an object in the database.
  */
-LkId newLkid (LkidType lkt) ()
+LkId generateNewLkid (LkidType lkt) ()
 {
     import std.conv : to;
     static assert (lkt.length <= 4, "Laniakea ID prefix must be no longer than 4 characters.");
@@ -79,9 +81,9 @@ unittest
     import std.stdio : writeln;
     writeln ("TEST: LkID");
 
-    immutable id1 = newLkid!(LkidType.JOB);
-    immutable id2 = newLkid!(LkidType.JOB);
-    immutable id3 = newLkid!(LkidType.JOB);
+    immutable id1 = generateNewLkid!(LkidType.JOB);
+    immutable id2 = generateNewLkid!(LkidType.JOB);
+    immutable id3 = generateNewLkid!(LkidType.JOB);
 
     assert (id1 != id2);
     assert (id2 != id3);

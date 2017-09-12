@@ -20,8 +20,7 @@
 module laniakea.db.schema.workers;
 @safe:
 
-import vibe.db.mongo.mongo;
-import vibe.data.serialization : name, optional;
+import std.datetime : DateTime;
 
 /**
  * State this worker is in.
@@ -39,24 +38,90 @@ enum WorkerStatus
  * An external machine/service that takes tasks from a Lighthouse server.
  **/
 struct SparkWorker {
-    @name("_id") BsonObjectID id;
+    LkId lkid;
 
-    string machineName; /// The machine/worker name
-    string machineId;   /// The machine-id as defined in /etc/machine-id for this system
+    string machineName;  /// The machine/worker name
+    string machineId;    /// The machine-id as defined in /etc/machine-id for this system
+    string owner;        /// Owner of this worker
+    DateTime createdTime; /// Time when this worker was created
 
     string[] accepts;   /// Modules this worker will accept jobs for
-
-    @optional
     WorkerStatus status; /// Status/health of this machine
-
-    @optional
-    string owner; /// Owner of this worker
-
-    @optional
     bool enabled; /// Whether this worker should receive jobs or not
 
-    BsonDate lastPing;
+    DateTime lastPing;
+    LkId lastJob; /// The last job that was assigned to this worker
+}
 
-    @optional
-    BsonObjectID lastJob; /// The last job that was assigned to this worker
+
+import laniakea.db.database;
+
+/**
+ * Create initial tables for this module.
+ */
+void createTables (Database db) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS workers (
+          lkid VARCHAR(32) PRIMARY KEY,
+          name             TEXT NOT NULL,
+          identifier       TEXT NOT NULL UNIQUE,
+          owner            TEXT,
+          time_created     TIMESTAMP,
+          accepts          JSONB,
+          status           SMALLINT,
+          enabled          BOOLEAN,
+          last_ping        TIMESTAMP,
+          last_job         VARCHAR(32)
+        )"
+    );
+}
+
+/**
+ * Add/update a worker.
+ */
+void updateWorker (Database db, SparkWorker worker) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    QueryParams p;
+    p.sqlCommand = "INSERT INTO workers
+                    VALUES ($1,
+                            $2,
+                            $3,
+                            $4,
+                            to_timestamp($5),
+                            $6::jsonb,
+                            $7,
+                            $8,
+                            to_timestamp($9),
+                            $10
+                        )
+                    ON CONFLICT (lkid) DO UPDATE SET
+                      name = $2,
+                      identifier = $3,
+                      owner      = $4,
+                      accepts    = $6::jsonb,
+                      status     = $7,
+                      enabled    = $8,
+                      last_ping  = to_timestamp($9),
+                      last_job   = $10";
+
+    p.setParams (worker.lkid,
+                 worker.machineName,
+                 worker.machineId,
+                 worker.owner,
+                 worker.createdTime,
+                 worker.accepts,
+                 worker.status,
+                 worker.enabled,
+                 worker.lastPing,
+                 worker.lastJob
+    );
+
+    conn.execParams (p);
 }

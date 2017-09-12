@@ -106,18 +106,15 @@ final class SpearsAdmin : AdminTool
             addMigration = readBool ();
         }
 
-        auto coll = db.collConfig;
-        spconf.id = BsonObjectID.generate ();
-        coll.remove (["module": LkModule.SPEARS, "kind": spconf.kind]);
-        coll.update (["module": LkModule.SPEARS, "kind": spconf.kind], spconf, UpdateFlags.upsert);
+        // update database contents
+        db.update (spconf);
 
-        db.fsync;
         return true;
     }
 
     void spearsDumpConfig ()
     {
-        writeln (db.getConfig!(LkModule.SPEARS, SpearsConfig).serializeToPrettyJson);
+        writeln (db.getSpearsConfig ().serializeToPrettyJson);
     }
 
     void spearsAddHint (string sourceSuite, string targetSuite, string hint, string reason)
@@ -125,16 +122,14 @@ final class SpearsAdmin : AdminTool
         SpearsHint bhint;
         bhint.hint = hint;
         bhint.reason = reason;
-        bhint.date = currentTimeAsBsonDate ();
+        bhint.date = currentDateTime ();
 
-        auto spearsConf = db.getConfig! (LkModule.SPEARS, SpearsConfig);
-        auto coll = db.collConfig;
-
+        auto spearsConf = db.getSpearsConfig ();
         foreach (ref migration; spearsConf.migrations) {
             if ((migration.sourceSuite == sourceSuite) && (migration.targetSuite == targetSuite)) {
                 migration.hints ~= bhint;
 
-                coll.findAndModify (["module": LkModule.SPEARS, "kind": spearsConf.kind], spearsConf);
+                db.update (spearsConf);
                 return;
             }
         }
@@ -146,9 +141,7 @@ final class SpearsAdmin : AdminTool
     {
         import std.algorithm : remove;
 
-        auto spearsConf = db.getConfig! (LkModule.SPEARS, SpearsConfig);
-        auto coll = db.collConfig;
-
+        auto spearsConf = db.getSpearsConfig ();
         foreach (ref migration; spearsConf.migrations) {
             if ((migration.sourceSuite == sourceSuite) && (migration.targetSuite == targetSuite)) {
                 for (uint i; i < migration.hints.length; i++) {
@@ -156,7 +149,7 @@ final class SpearsAdmin : AdminTool
                     if (bhint.hint == hint) {
                         migration.hints = migration.hints.remove (i);
 
-                        coll.findAndModify (["module": LkModule.SPEARS, "kind": spearsConf.kind], spearsConf);
+                        db.update (spearsConf);
                         return;
                     }
                 }

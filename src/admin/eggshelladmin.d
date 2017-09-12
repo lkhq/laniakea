@@ -72,18 +72,14 @@ final class EggshellAdmin : AdminTool
         writeQS ("Git pull URL for the germinate metapackage sources");
         esconf.metaPackageGitSourceUrl = readString ();
 
-        auto coll = db.collConfig;
+        // update database
+        db.update (esconf);
 
-       //! esconf.id = BsonObjectID.generate ();
-       //! coll.remove (["module": LkModule.EGGSHELL, "kind": esconf.kind]);
-       //! coll.update (["mdoule": LkModule.EGGSHELL, "kind": esconf.kind], esconf, UpdateFlags.upsert);
-
-        db.fsync;
         return true;
     }
 
     void eggshellDumpConfig ()
     {
-        writeln (db.getConfig!(LkModule.EGGSHELL, EggshellConfig).serializeToPrettyJson);
+        writeln (db.getEggshellConfig ().serializeToPrettyJson);
     }
 }

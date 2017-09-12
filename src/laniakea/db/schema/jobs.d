@@ -22,7 +22,7 @@ module laniakea.db.schema.jobs;
 
 import laniakea.logging;
 import laniakea.db.schema.core;
-public import std.datetime : SysTime;
+public import std.datetime : DateTime;
 public import laniakea.db.lkid : LkId, LkidType;
 
 /**
@@ -65,9 +65,9 @@ template Job(LkModule mod, string jobKind) {
 
     LkId trigger = "";     /// ID of the entity responsible for triggering this job's creation
 
-    SysTime createdTime;  /// Time when this job was created.
-    SysTime assignedTime; /// Time when this job was assigned to a worker.
-    SysTime finishedTime; /// Time when this job was finished.
+    DateTime createdTime;  /// Time when this job was created.
+    DateTime assignedTime; /// Time when this job was assigned to a worker.
+    DateTime finishedTime; /// Time when this job was finished.
 
     string worker;        /// The person/system/tool this job is assigned to
     LkId   workerId = ""; /// Unique ID of the entity the job is assigned to
@@ -97,7 +97,7 @@ struct EventEntry {
 
     EventKind kind;     // Type of this event
     string moduleName; // the name of the module responsible for this event
-    SysTime time;  // Time when this issue was created.
+    DateTime time;  // Time when this issue was created.
 
     string title;     // A human-readable title of this issue
     string content;   // content of this issue
@@ -135,7 +135,7 @@ void createTables (Database db) @trusted
 }
 
 /**
- * Add/update basic configuration.
+ * Add/update a job.
  */
 void updateJob (T) (Database db, T job) @trusted
 {
@@ -170,7 +170,6 @@ void updateJob (T) (Database db, T job) @trusted
                       kind             = $4,
                       title            = $5,
                       trigger          = $6,
-                      time_created     = to_timestamp($7),
                       time_assigned    = to_timestamp($8),
                       time_finished    = to_timestamp($9),
                       worker_name      = $10,
@@ -208,13 +207,13 @@ void updateJob (T) (Database db, T job) @trusted
  */
 void addJob (J) (Database db, J job, LkId trigger)
 {
-    import laniakea.db.lkid : newLkid;
-    import laniakea.utils : currentTime;
+    import laniakea.db.lkid : generateNewLkid;
+    import laniakea.utils : currentDateTime;
     import std.array : empty;
     import std.string : format;
 
-    job.lkid = newLkid! (LkidType.JOB);
-    job.createdTime = currentTime;
+    job.lkid = generateNewLkid! (LkidType.JOB);
+    job.createdTime = currentDateTime;
     job.status = JobStatus.WAITING;
     job.trigger = trigger;
 
