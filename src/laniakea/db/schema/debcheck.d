@@ -65,6 +65,21 @@ struct DebcheckIssue {
 
     PackageIssue[] missing;
     PackageConflict[] conflicts;
+
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid,
+                 &date,
+                 &packageKind,
+                 &suiteName,
+                 &packageName,
+                 &packageVersion,
+                 &architecture,
+                 &missing,
+                 &conflicts
+        );
+    }
 }
 
 
@@ -79,7 +94,7 @@ void createTables (Database db) @trusted
     scope (exit) db.dropConnection (conn);
 
     conn.exec (
-        "CREATE TABLE IF NOT EXISTS debcheck (
+        "CREATE TABLE IF NOT EXISTS debcheck_issues (
           lkid VARCHAR(32) PRIMARY KEY,
           date             TIMESTAMP NOT NULL,
           package_kind     SMALLINT,
@@ -91,21 +106,19 @@ void createTables (Database db) @trusted
           conflicts        JSONB
         )"
     );
+    conn.exec ("CREATE INDEX ON debcheck_issues IF NOT EXISTS (package_name)");
 }
 
 /**
  * Add/update basic configuration.
  */
-void update (Database db, DebcheckIssue issue, bool isNew = false) @trusted
+void update (PgConnection conn, DebcheckIssue issue, bool isNew = false) @trusted
 {
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
-
     if (isNew)
         issue.lkid = generateNewLkid! (LkidType.DEBCHECK);
 
     QueryParams p;
-    p.sqlCommand = "INSERT INTO debcheck
+    p.sqlCommand = "INSERT INTO debcheck_issues
                     VALUES ($1,
                             to_timestamp($2),
                             $3,
@@ -137,4 +150,43 @@ void update (Database db, DebcheckIssue issue, bool isNew = false) @trusted
                  issue.conflicts
     );
     conn.execParams (p);
+}
+
+void removeDebcheckIssues (PgConnection conn, string suiteName, PackageType pkind, string architecture = null) @trusted
+{
+    import std.array : empty;
+    QueryParams p;
+
+    if (architecture.empty) {
+        p.sqlCommand = "DELETE FROM debcheck_issues WHERE suite_name=$1 AND package_kind=$2";
+        p.setParams (suiteName, pkind);
+    } else {
+        p.sqlCommand = "DELETE FROM debcheck_issues WHERE suite_name=$1 AND package_kind=$2 AND architecture=$3";
+        p.setParams (suiteName, pkind, architecture);
+    }
+
+    conn.execParams(p);
+}
+
+auto getDebcheckIssues (PgConnection conn, string suiteName, PackageType pkind, string architecture = null, long limit = 0, long offset = 0) @trusted
+{
+    import std.array : empty;
+    QueryParams p;
+
+    if (architecture.empty) {
+        p.sqlCommand = "SELECT * FROM debcheck_issues LIMIT $1 OFFSET $2 ORDER BY date WHERE suite_name=$3 AND package_kind=$4";
+        if (limit == 0)
+            p.setParams ("ALL", offset, suiteName, pkind);
+        else
+            p.setParams (limit, offset, suiteName, pkind);
+    } else {
+        p.sqlCommand = "SELECT * FROM debcheck_issues LIMIT $1 OFFSET $2 ORDER BY date WHERE suite_name=$3 AND package_kind=$4 AND architecture=$5";
+        if (limit == 0)
+            p.setParams ("ALL", offset, suiteName, pkind, architecture);
+        else
+            p.setParams (limit, offset, suiteName, pkind, architecture);
+    }
+
+    auto ans = conn.execParams(p);
+    return rowsTo!DebcheckIssue (ans);
 }

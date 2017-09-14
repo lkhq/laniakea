@@ -23,28 +23,32 @@ import std.conv : to;
 import std.string : toStringz, fromStringz;
 import std.typecons : Nullable;
 import vibe.data.json;
-import vibe.db.mongo.mongo;
 
 import c.zmq;
 import laniakea.logging;
 import laniakea.db;
+import laniakea.utils : currentDateTime;
 
 import lighthouse.utils;
 
 class LighthouseWorker {
     private {
         zsock_t *socket;
-        MongoCollection collWorkers;
-        MongoCollection collJobs;
+        PgConnection conn;
+        Database db;
     }
 
     this (zsock_t *sock)
     {
         socket = sock;
 
-        auto db = MongoLegacyDatabase.get;
-        collWorkers = db.collWorkers ();
-        collJobs = db.collJobs ();
+        db = Database.get;
+        conn = db.getConnection ();
+    }
+
+    ~this ()
+    {
+        db.dropConnection (conn);
     }
 
     /**
@@ -61,31 +65,38 @@ class LighthouseWorker {
         auto accepted = jreq["accepts"].get!(Json[]);
 
         // update information about this client
-        collWorkers.findAndModifyExt (["machineId": clientId],
-                                      ["$set": [
-                                            "machineId": Bson(clientId),
-                                            "machineName": Bson(clientName),
-                                            "lastPing": Bson(currentTimeAsBsonDate),
-                                            "accepts": Bson.fromJson(jreq["accepts"])
-                                            ]],
-                                      ["new": true, "upsert": true]);
+        auto worker = conn.getWorkerByMachineId (clientId);
+        // we might have a new machine, so set the ID again to create an empty new worker
+        worker.machineId = clientId;
+        worker.machineName = clientName;
+        worker.lastPing = currentDateTime;
+        worker.accepts = jreq["accepts"].deserializeJson!(string[]);
+        conn.update (worker);
 
-        Bson job;
+        string jobData;
         foreach (ref arch; architectures) {
-            job = collJobs.findAndModify (["status": Bson(JobStatus.WAITING.to!int),
-                                           "architecture": Bson(arch)],
-                                            ["$set": [
-                                                "status": Bson(JobStatus.SCHEDULED.to!int),
-                                                "worker": Bson(clientName),
-                                                "workerId": Bson(clientId),
-                                                "assignedTime": Bson(currentTimeAsBsonDate)
-                                                ]]);
+            auto ans = conn.executeSQL ("UPDATE jobs SET
+                                           status=$1
+                                           worker_name=$2,
+                                           worker_id=$3,
+                                           time_assigned=now()
+                                         WHERE
+                                           status=$4 AND architecture=$5
+                                         RETURNING *",
+                                        JobStatus.SCHEDULED,
+                                        clientName,
+                                        clientId,
+                                        JobStatus.WAITING,
+                                        arch);
+
             // use the first job with a matching architecture
-            if (job.type != Json.Type.null_)
+            if (ans.length > 0) {
+                jobData = ans[0].serializeToJsonString;
                 break;
+            }
         }
 
-        return job.serializeToJsonString;
+        return jobData;
     }
 
     /**
@@ -95,16 +106,11 @@ class LighthouseWorker {
      */
     private string processJobAcceptedRequest (Json jreq)
     {
-        auto jobId = jreq["_id"].get!string;
+        LkId jobId = jreq["lkid"].get!string;
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
-        auto job = collJobs.findAndModify (["status": Bson(JobStatus.SCHEDULED.to!int),
-                                               "_id": Bson(BsonObjectID.fromString(jobId))],
-                                        ["$set": [
-                                            "status": Bson(JobStatus.RUNNING.to!int)
-                                            ]]);
-
+        conn.setJobStatus (jobId, JobStatus.RUNNING);
         return Json(null).serializeToJsonString;
     }
 
@@ -115,29 +121,40 @@ class LighthouseWorker {
      */
     private string processJobRejectedRequest (Json jreq)
     {
-        auto jobId = jreq["_id"].get!string;
+        auto jobId = jreq["lkid"].get!string;
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
-        auto res = collJobs.findAndModify (["status": Bson(JobStatus.SCHEDULED.to!int),
-                                            "_id": Bson(BsonObjectID.fromString(jobId))],
-                                            ["$set": [
-                                                "status": Bson(JobStatus.WAITING.to!int),
-                                                "worker": Bson(""),
-                                                "workerId": Bson("")
-                                            ]]);
-        if (res.isNull) {
+        auto res = conn.executeSQL ("UPDATE jobs SET
+                                           status=$1
+                                           worker_name=$2,
+                                           worker_id=$3
+                                         WHERE
+                                           lkid=$4 AND status=$5
+                                         RETURNING *",
+                                    JobStatus.WAITING,
+                                    "",
+                                    "",
+                                    jobId,
+                                    JobStatus.SCHEDULED);
+
+        if (res.length == 0) {
             // we also want to allow workers to reject a job that they have already accepted - if the workers
             // change their mind that late, it's usually a sign that something broke. In this case, we don't want
             // to block a possibly important job though, and rather have another worker take it instead.
             // NOTE: Should we log this behavior?
-            collJobs.findAndModify (["status": Bson(JobStatus.RUNNING.to!int),
-                                     "_id": Bson(BsonObjectID.fromString(jobId))],
-                                     ["$set": [
-                                        "status": Bson(JobStatus.WAITING.to!int),
-                                        "worker": Bson(null),
-                                        "workerId": Bson(null)
-                                    ]]);
+            conn.executeSQL ("UPDATE jobs SET
+                                     status=$1
+                                     worker_name=$2,
+                                     worker_id=$3
+                                   WHERE
+                                     lkid=$4 AND status=$5
+                                   RETURNING *",
+                              JobStatus.WAITING,
+                              "",
+                              "",
+                              jobId,
+                              JobStatus.RUNNING);
         }
 
         return Json(null).serializeToJsonString;
@@ -149,7 +166,7 @@ class LighthouseWorker {
      */
     private string processJobFinishedRequest (Json jreq, bool success)
     {
-        auto jobId = jreq["_id"].get!string;
+        auto jobId = jreq["lkid"].get!string;
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
@@ -160,13 +177,17 @@ class LighthouseWorker {
         if (!success)
             jobResult = JobResult.MAYBE_FAILURE;
 
-        collJobs.findAndModify (["status": Bson(JobStatus.RUNNING.to!int),
-                                "_id": Bson(BsonObjectID.fromString(jobId))],
-                                ["$set": [
-                                    "status": Bson(JobStatus.DONE.to!int),
-                                    "result": Bson(jobResult.to!int),
-                                    "finishedTime": Bson(currentTimeAsBsonDate)
-                                ]]);
+        conn.executeSQL ("UPDATE jobs SET
+                                 status=$1
+                                 result=$2,
+                                 time_finished=now()
+                               WHERE
+                                 lkid=$4 AND status=$5
+                               RETURNING *",
+                          JobStatus.DONE,
+                          jobResult,
+                          jobId,
+                          JobStatus.RUNNING);
 
         return Json(null).serializeToJsonString;
     }
@@ -177,18 +198,16 @@ class LighthouseWorker {
      */
     private void processJobStatusRequest (Json jreq)
     {
-        auto jobId = jreq["_id"].get!string;
+        LkId jobId = jreq["lkid"].get!string;
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
         auto logExcerpt = jreq["log_excerpt"].get!string;
 
         // update last seen data
-        collWorkers.findAndModify (["machineId": clientId],
-                                   ["$set": ["lastPing": Bson(currentTimeAsBsonDate)]]);
+        conn.updateWorkerPing (clientId);
 
         // update log & status data
-        collJobs.findAndModify (["_id": BsonObjectID.fromString(jobId)],
-                                ["$set": ["latestLogExcerpt": Bson(logExcerpt)]]);
+        conn.setJobLogExcerpt (jobId, logExcerpt);
     }
 
     private Nullable!string processJsonRequest (string json)

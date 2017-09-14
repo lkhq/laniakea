@@ -51,6 +51,22 @@ struct SparkWorker {
 
     DateTime lastPing;
     LkId lastJob; /// The last job that was assigned to this worker
+
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid,
+                 &machineName,
+                 &machineId,
+                 &owner,
+                 &createdTime,
+                 &accepts,
+                 &status,
+                 &enabled,
+                 &lastPing,
+                 &lastJob
+        );
+    }
 }
 
 
@@ -83,11 +99,8 @@ void createTables (Database db) @trusted
 /**
  * Add/update a worker.
  */
-void updateWorker (Database db, SparkWorker worker) @trusted
+void update (PgConnection conn, SparkWorker worker) @trusted
 {
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
-
     QueryParams p;
     p.sqlCommand = "INSERT INTO workers
                     VALUES ($1,
@@ -124,4 +137,19 @@ void updateWorker (Database db, SparkWorker worker) @trusted
     );
 
     conn.execParams (p);
+}
+
+auto getWorkerByMachineId (PgConnection conn, string machineId) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM workers WHERE identifier=$1";
+    p.setParams (machineId);
+
+    auto ans = conn.execParams(p);
+    return rowsToOne!SparkWorker (ans);
+}
+
+void updateWorkerPing (PgConnection conn, string workerId) @trusted
+{
+    conn.exec ("UPDATE workers SET last_ping=now() WHERE identifier=workerId");
 }

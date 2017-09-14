@@ -22,7 +22,6 @@ module admin.syncadmin;
 import std.stdio : writeln;
 import std.string : format;
 
-import vibe.db.mongo.mongo;
 import laniakea.db;
 import admin.admintool;
 

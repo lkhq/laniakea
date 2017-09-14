@@ -45,13 +45,13 @@ class Debcheck
             string data;
         }
 
-        MongoLegacyDatabase db;
+        Database db;
         Repository repo;
     }
 
     this ()
     {
-        db = MongoLegacyDatabase.get;
+        db = Database.get;
 
         auto conf = LocalConfig.get;
         auto baseConfig = db.getBaseConfig;
@@ -335,16 +335,16 @@ class Debcheck
         import vibe.data.bson;
         import std.typecons : tuple;
 
-        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
-        collIssues.ensureIndex ([tuple("packageName", 1)]);
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
         auto issuesYaml = getBuildDepCheckYaml (suite);
-        collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageType.SOURCE)]);
+        conn.removeDebcheckIssues (suite.name, PackageType.SOURCE);
         foreach (ref arch, ref yamlData; issuesYaml) {
             auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
 
             foreach (ref entry; entries)
-                collIssues.insert (entry);
+                conn.update (entry);
         }
 
         return true;
@@ -371,16 +371,16 @@ class Debcheck
         import vibe.data.bson;
         import std.typecons : tuple;
 
-        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
-        collIssues.ensureIndex ([tuple("packageName", 1)]);
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
         auto issuesYaml = getDepCheckYaml (suite);
         foreach (ref arch, ref yamlData; issuesYaml) {
             auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
 
-            collIssues.remove (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageType.BINARY), "architecture": Bson(arch)]);
+            conn.removeDebcheckIssues (suite.name, PackageType.BINARY, arch);
             foreach (ref entry; entries)
-                collIssues.insert (entry);
+                conn.update (entry);
         }
 
         return true;
@@ -404,15 +404,15 @@ class Debcheck
 
     public auto getBinaryIssuesList (DistroSuite suite, string arch) @trusted
     {
-        import vibe.data.bson;
-        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
-        return collIssues.find (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageType.BINARY), "architecture": Bson(arch)]);
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+        return conn.getDebcheckIssues (suite.name, PackageType.BINARY, arch);
     }
 
     public auto getSourceIssuesList (DistroSuite suite, string arch) @trusted
     {
-        import vibe.data.bson;
-        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
-        return collIssues.find (["suiteName": Bson(suite.name), "packageKind": Bson(cast(int) PackageType.SOURCE)]);
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+        return conn.getDebcheckIssues (suite.name, PackageType.SOURCE);
     }
 }

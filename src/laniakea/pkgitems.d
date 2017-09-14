@@ -19,11 +19,7 @@
 
 module laniakea.pkgitems;
 @safe:
-
-import vibe.db.mongo.mongo;
-static import vibe.data.serialization;
-
-private alias vdname = vibe.data.serialization.name;
+public import laniakea.db.lkid : LkId, LkidType;
 
 /**
  * Type of the package.
@@ -152,11 +148,11 @@ struct PackageInfo
  */
 struct SourcePackage
 {
-    @vdname("_id") BsonObjectID id;
+    LkId lkid;
     PackageType type = PackageType.SOURCE;
 
     string name;       /// Source package name
-    @vdname("version") string ver; /// Version of this package
+    string ver; /// Version of this package
     string suite;     /// Suite this package is in
     string component; /// Component this package is in
 
@@ -182,12 +178,12 @@ struct SourcePackage
  */
 struct BinaryPackage
 {
-    @vdname("_id") BsonObjectID id;
+    LkId lkid;
     PackageType type = PackageType.BINARY;
 
     DebType debType;   /// Deb package type
     string name;       /// Package name
-    @vdname("version") string ver; /// Version of this package
+    string ver; /// Version of this package
     string suite;     /// Suite this package is in
     string component; /// Component this package is in
 

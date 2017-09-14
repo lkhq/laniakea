@@ -98,6 +98,16 @@ template Job(LkModule mod, string jobKind) {
 }
 
 /**
+ * A generic job type.
+ */
+struct GenericJob {
+    mixin Job!(LkModule.UNKNOWN, "generic");
+
+    Bson data;
+    alias data this;
+}
+
+/**
  * Type of an incident.
  **/
 enum EventKind
@@ -115,12 +125,24 @@ enum EventKind
 struct EventEntry {
     LkId lkid;
 
-    EventKind kind;     // Type of this event
-    string moduleName; // the name of the module responsible for this event
-    DateTime time;  // Time when this issue was created.
+    EventKind kind;    /// Type of this event
+    string moduleName; /// the name of the module responsible for this event
+    DateTime time;     /// Time when this issue was created.
 
-    string title;     // A human-readable title of this issue
-    string content;   // content of this issue
+    string title;      /// A human-readable title of this issue
+    string text;       /// content of this issue
+
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid,
+                 &kind,
+                 &moduleName,
+                 &time,
+                 &title,
+                 &text
+        );
+    }
 }
 
 
@@ -134,6 +156,7 @@ void createTables (Database db) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
+    // Jobs table
     conn.exec (
         "CREATE TABLE IF NOT EXISTS jobs (
           lkid VARCHAR(32) PRIMARY KEY,
@@ -148,8 +171,20 @@ void createTables (Database db) @trusted
           worker_name      TEXT,
           worker_id        VARCHAR(32),
           result           SMALLINT,
-          latest_log_excerpt TEXT NOT NULL,
+          latest_log_excerpt TEXT,
           data             JSONB
+        )"
+    );
+
+    // Events table
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS events (
+          lkid VARCHAR(32) PRIMARY KEY,
+          kind             SMALLINT,
+          module           TEXT NOT NULL,
+          time             TIMESTAMP NOT NULL,
+          title            TEXT NOT NULL,
+          text             TEXT
         )"
     );
 }
@@ -157,15 +192,12 @@ void createTables (Database db) @trusted
 /**
  * Add/update a job.
  */
-void updateJob (T) (Database db, T job) @trusted
+void updateJob (T) (PgConnection conn, T job) @trusted
 {
     import std.traits : hasMember;
     static assert (hasMember!(T, "lkid"));
     static assert (hasMember!(T, "status"));
     static assert (hasMember!(T, "result"));
-
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
 
     QueryParams p;
     p.sqlCommand = "INSERT INTO jobs
@@ -225,7 +257,7 @@ void updateJob (T) (Database db, T job) @trusted
 /**
  * Add a new job to the database.
  */
-void addJob (J) (Database db, J job, LkId trigger)
+void addJob (J) (PgConnection conn, J job, LkId trigger)
 {
     import laniakea.db.lkid : generateNewLkid;
     import laniakea.utils : currentDateTime;
@@ -244,13 +276,13 @@ void addJob (J) (Database db, J job, LkId trigger)
     }
 
     logInfo ("Adding job '%s'", job.lkid);
-    db.updateJob (job);
+    conn.updateJob (job);
 }
 
 /**
  * Find jobs of type T by their trigger ID.
  */
-auto findJobsByTrigger (T) (PgConnection conn, LkId triggerId, long limit, long offset = 0) @trusted
+auto getJobsByTrigger (T) (PgConnection conn, LkId triggerId, long limit, long offset = 0) @trusted
 {
     QueryParams p;
     p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 LIMIT $2 OFFSET $3 ORDER BY time_created DESC";
@@ -258,4 +290,80 @@ auto findJobsByTrigger (T) (PgConnection conn, LkId triggerId, long limit, long 
 
     auto ans = conn.execParams(p);
     return rowsTo!T (ans);
+}
+
+/**
+ * Change result of job.
+ */
+auto setJobResult (T) (PgConnection conn, LkId jobId, JobResult result) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "UPDATE jobs SET result=$1 WHERE lkid=$2 RETURNING *";
+    p.setParams (result, jobId);
+
+    auto ans = conn.execParams (p);
+    return rowsToOne!T (ans);
+}
+
+/**
+ * Change status of job.
+ */
+bool setJobStatus (PgConnection conn, LkId jobId, JobStatus status) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "UPDATE jobs SET status=$1 WHERE lkid=$2";
+    p.setParams (status, jobId);
+
+    conn.execParams (p);
+    return true;
+}
+
+/**
+ * Set the latest log excerpt
+ */
+bool setJobLogExcerpt (PgConnection conn, LkId jobId, string excerpt) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "UPDATE jobs SET latest_log_excerpt=$1 WHERE lkid=$2";
+    p.setParams (excerpt, jobId);
+    conn.execParams (p);
+    return true;
+}
+
+/**
+ * Add a new event to the database (using a DB connection)
+ */
+void addEvent (PgConnection conn, EventKind kind, string title, string text) @trusted
+{
+    import laniakea.db.lkid;
+    import laniakea.localconfig : LocalConfig;
+    const conf = LocalConfig.get;
+
+    QueryParams p;
+    p.sqlCommand = "INSERT INTO events
+                    VALUES ($1,
+                            $2,
+                            $3,
+                            now(),
+                            $4,
+                            $5
+                        )";
+
+    p.setParams (generateNewLkid! (LkidType.EVENT),
+                 kind,
+                 conf.currentModule,
+                 title,
+                 text
+    );
+    conn.execParams (p);
+}
+
+/**
+ * Add a new event (creating a new temporary connection)
+ */
+void addEvent (Database db, EventKind kind, string title, string text) @trusted
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+    addEvent (conn, kind, title, text);
 }

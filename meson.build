@@ -21,7 +21,6 @@ systemd_dep = dependency('systemd')
 # Vibe
 vibe_core_dep = dependency('vibe-core')
 vibe_data_dep = dependency('vibe-data')
-vibe_mongo_dep = dependency('vibe-mongodb')
 vibe_pgsql_dep = dependency('vibe-postgresql', version: '>= 0.3', fallback: ['vibe-postgresql', 'vibe_postgresql_dep'])
 
 #

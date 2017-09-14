@@ -130,3 +130,18 @@ auto getBaseConfig (Database db)
 
     return conf;
 }
+
+auto getSuite (Database db, string name)
+{
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
+
+    Nullable!DistroSuite suite;
+    foreach (ref s; db.getConfigEntry!(DistroSuite[]) (conn, LkModule.BASE, "suites")) {
+        if (s.name == name) {
+            suite = s;
+            break;
+        }
+    }
+    return suite;
+}

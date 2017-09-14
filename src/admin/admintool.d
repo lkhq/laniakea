@@ -24,6 +24,7 @@ import std.string : format;
 
 import laniakea.db;
 public import laniakea.utils : currentDateTime;
+public import vibe.data.json : serializeToPrettyJson;
 
 
 /**

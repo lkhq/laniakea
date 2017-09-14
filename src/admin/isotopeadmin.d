@@ -22,7 +22,6 @@ module admin.isotopeadmin;
 import std.stdio : writeln;
 import std.string : format;
 
-import vibe.db.mongo.mongo;
 import laniakea.db;
 import admin.admintool;
 
@@ -108,7 +107,9 @@ final class IsotopeAdmin : AdminTool
         recipe.name = "%s-%s-%s".format (recipe.distribution, recipe.suite, recipe.flavor).toLower;
 
         // add recipe to the database
-        db.update (recipe);
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+        conn.update (recipe);
 
         writeDone ("Created recipe with name: %s".format (recipe.name));
     }
@@ -119,7 +120,7 @@ final class IsotopeAdmin : AdminTool
 
         auto conn = db.getConnection;
 
-        auto recipe = conn.findRecipeByName (name);
+        auto recipe = conn.getRecipeByName (name);
         if (recipe.isNull) {
             writeln ("No build recipe matching these parameters has been found.");
             return false;
@@ -133,7 +134,7 @@ final class IsotopeAdmin : AdminTool
             isojob.liveBuildGit = recipe.liveBuildGit;
             isojob.flavor       = recipe.flavor;
 
-            db.addJob (isojob, recipe.lkid);
+            conn.addJob (isojob, recipe.lkid);
         }
 
         return true;

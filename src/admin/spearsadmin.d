@@ -22,7 +22,6 @@ module admin.spearsadmin;
 import std.stdio : writeln, writefln;
 import std.string : format;
 
-import vibe.db.mongo.mongo;
 import laniakea.db;
 import laniakea.pkgitems;
 import admin.admintool;

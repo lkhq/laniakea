@@ -102,11 +102,8 @@ void createTables (Database db) @trusted
 /**
  * Add/update image build recipe.
  */
-void update (Database db, ImageBuildRecipe recipe) @trusted
+void update (PgConnection conn, ImageBuildRecipe recipe) @trusted
 {
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
-
     QueryParams p;
     p.sqlCommand = "INSERT INTO isotope_recipes
                     VALUES ($1,
@@ -149,11 +146,21 @@ auto getBuildRecipes (PgConnection conn, long limit, long offset = 0) @trusted
     return rowsTo!ImageBuildRecipe (ans);
 }
 
-auto findRecipeByName (PgConnection conn, string name) @trusted
+auto getRecipeByName (PgConnection conn, string name) @trusted
 {
     QueryParams p;
     p.sqlCommand = "SELECT * FROM isotope_recipes WHERE name=$1";
     p.setParams (name);
+
+    auto ans = conn.execParams(p);
+    return rowsToOne!ImageBuildRecipe (ans);
+}
+
+auto getRecipeById (PgConnection conn, LkId lkid) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM isotope_recipes WHERE lkid=$1";
+    p.setParams (lkid);
 
     auto ans = conn.execParams(p);
     return rowsToOne!ImageBuildRecipe (ans);

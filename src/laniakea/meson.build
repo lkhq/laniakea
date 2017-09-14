@@ -23,7 +23,6 @@ laniakea_lib_src = [
     'db/package.d',
     'db/lkid.d',
     'db/database.d',
-    'db/mongo_old.d',
     'db/schema/package.d',
     'db/schema/core.d',
     'db/schema/jobs.d',
@@ -43,8 +42,7 @@ lk_base_deps = [crypto_dep,
                 dyaml_dep,
                 vibe_core_dep,
                 vibe_data_dep,
-                vibe_pgsql_dep,
-                vibe_mongo_dep
+                vibe_pgsql_dep
 ]
 
 laniakea_lib = static_library ('laniakea',

@@ -33,15 +33,15 @@ import rubicon.rubiconfig;
 import rubicon.fileimport;
 
 
-public void handleIsotopeUpload (RubiConfig conf, DudData dud, Bson jobB) @trusted
+public void handleIsotopeUpload (RubiConfig conf, DudData dud, GenericJob job) @trusted
 {
     import std.file;
-    auto db = MongoLegacyDatabase.get;
-    auto job = jobB.deserializeBson!ImageBuildJob;
+    auto db = Database.get;
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
 
     string resultMoveTo;
-    auto isotopeColl = db.getCollection (LkModule.ISOTOPE);
-    auto recipe = isotopeColl.findOne!ImageBuildRecipe (["_id": job.trigger]);
+    const recipe = conn.getRecipeById (job.trigger);
     if (!recipe.isNull) {
         resultMoveTo = recipe.resultMoveTo;
     }

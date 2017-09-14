@@ -115,11 +115,8 @@ void createTables (Database db) @trusted
 /**
  * Add/update Synchrotron issue.
  */
-void update (Database db, SynchrotronIssue issue) @trusted
+void update (PgConnection conn, SynchrotronIssue issue) @trusted
 {
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
-
     QueryParams p;
     p.sqlCommand = "INSERT INTO " ~ synchrotronIssuesTableName ~ "
                     VALUES ($1,
@@ -204,4 +201,12 @@ auto getSynchrotronBlacklist (Database db)
     blist.blacklist = db.getConfigEntry!(string[string]) (conn, LkModule.SYNCHROTRON, "blacklist");
 
     return blist;
+}
+
+void removeSynchrotronIssuesForSuites (PgConnection conn, string sourceSuite, string targetSuite) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "DELETE FROM " ~ synchrotronIssuesTableName ~ " WHERE source_suite=$1 AND target_suite=$2";
+    p.setParams (sourceSuite, targetSuite);
+    conn.execParams(p);
 }

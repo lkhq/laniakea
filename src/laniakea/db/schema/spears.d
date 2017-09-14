@@ -121,6 +121,25 @@ struct SpearsExcuse {
     SpearsOldBinaries[] oldBinaries; /// Superseded cruft binaries that need to be garbage-collected
 
     SpearsReason reason; /// reasoning on why this might not be allowed to migrate
+
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid,
+                 &date,
+                 &sourceSuite,
+                 &targetSuite,
+                 &isCandidate,
+                 &sourcePackage,
+                 &maintainer,
+                 &age,
+                 &newVersion,
+                 &oldVersion,
+                 &missingBuilds,
+                 &oldBinaries,
+                 &reason
+        );
+    }
 }
 
 
@@ -156,11 +175,8 @@ void createTables (Database db) @trusted
 /**
  * Add/update Spears excuse.
  */
-void update (Database db, SpearsExcuse excuse) @trusted
+void update (PgConnection conn, SpearsExcuse excuse) @trusted
 {
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
-
     QueryParams p;
     p.sqlCommand = "INSERT INTO spears_excuses
                     VALUES ($1,
@@ -229,4 +245,13 @@ auto getSpearsConfig (Database db)
     conf.migrations = db.getConfigEntry!(SpearsConfigEntry[]) (conn, LkModule.BASE, "migrations");
 
     return conf;
+}
+
+void removeSpearsExcusesForSuites (PgConnection conn, string sourceSuite, string targetSuite) @trusted
+{
+    QueryParams p;
+
+    p.sqlCommand = "DELETE FROM spears_excuses WHERE source_suite=$1 AND target_suite=$2";
+    p.setParams (sourceSuite, targetSuite);
+    conn.execParams(p);
 }

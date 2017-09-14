@@ -108,7 +108,6 @@ final class LocalConfig
     string databaseUser;
     string databasePassword;
     string databaseExtraOpts;
-    string mongoUrl;
 
     LocalArchiveDetails archive;
     LocalSynchrotronConfig synchrotron;
@@ -158,13 +157,9 @@ final class LocalConfig
         databasePort = 5432;
         databaseName = "laniakea";
         databaseUser = "laniakea-user";
-        mongoUrl = "mongodb://localhost/";
         if ("Database" in jroot) {
             // read database properties
             const dbroot = jroot["Database"];
-            if ("mongoUrl" in dbroot)
-                mongoUrl = dbroot["mongoUrl"].to!string;
-
             if ("host" in dbroot)
                 databaseHost = dbroot["host"].to!string;
             if ("port" in dbroot)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -25,8 +25,6 @@ import std.algorithm : canFind;
 import std.array : appender;
 import std.parallelism : parallel;
 import std.typecons : Nullable;
-
-import vibe.db.mongo.mongo;
 
 import laniakea.db;
 import laniakea.db.schema.core;
@@ -59,7 +57,7 @@ class SyncEngine
 private:
 
     Dak dak;
-    MongoLegacyDatabase db;
+    Database db;
     bool m_importsTrusted;
 
     Repository sourceRepo;
@@ -78,11 +76,11 @@ public:
     this ()
     {
         dak = new Dak;
-        db = MongoLegacyDatabase.get;
+        db = Database.get;
         auto conf = LocalConfig.get;
 
         baseConfig = db.getBaseConfig;
-        syncConfig = db.getConfig!(LkModule.SYNCHROTRON, SynchrotronConfig);
+        syncConfig = db.getSynchrotronConfig;
 
         // the repository of the distribution we import stuff into
         targetRepo = new Repository (conf.archive.rootPath,
@@ -103,13 +101,8 @@ public:
 
     private auto getPackageBlacklist ()
     {
-        auto syncBlConf = db.getConfigMaybe!(LkModule.SYNCHROTRON, SynchrotronBlacklist);
-        string[string] syncBlacklist;
-        if (!syncBlConf.isNull) {
-            syncBlacklist = syncBlConf.blacklist;
-        }
-
-        return syncBlacklist;
+        auto syncBlConf = db.getSynchrotronBlacklist;
+        return syncBlConf.blacklist;
     }
 
     @property
@@ -412,16 +405,17 @@ public:
     bool autosync ()
     {
         checkSyncReady ();
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
         auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
         auto activeSrcPkgs = appender!(SourcePackage[]); // source packages which should have their binary packages updated
 
         auto syncBlacklist = getPackageBlacklist ();
 
-        auto collIssues = db.getCollection! (LkModule.SYNCHROTRON, "issues");
         // FIXME: we do the quick and dirty update here, removing everything and adding it back.
         // Maybe we need to be smarter about this in future.
-        collIssues.remove (["sourceSuite": sourceSuite.name, "targetSuite": incomingSuite.name]);
+        conn.removeSynchrotronIssuesForSuites (sourceSuite.name, incomingSuite.name);
 
         foreach (ref component; incomingSuite.components) {
             auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component.name);
@@ -464,7 +458,7 @@ public:
                         issue.targetVersion = dpkg.ver;
                         issue.sourceVersion = spkg.ver;
 
-                        collIssues.insert (issue);
+                        conn.update (issue);
                         continue;
                     }
 
@@ -538,7 +532,7 @@ public:
                 issue.targetVersion = dpkg.ver;
                 issue.sourceVersion = null;
 
-                collIssues.insert (issue);
+                conn.update (issue);
                 continue;
             }
 
@@ -555,7 +549,7 @@ public:
                     issue.sourceVersion = null;
                     issue.details = "%s".format (e);
 
-                    collIssues.insert (issue);
+                    conn.update (issue);
                 }
             } else {
                 // looks like we can not remove this
@@ -566,7 +560,7 @@ public:
                 issue.sourceVersion = null;
                 issue.details = "This package can not be removed without breaking other packages. It needs manual removal.";
 
-                collIssues.insert (issue);
+                conn.update (issue);
             }
         }
 

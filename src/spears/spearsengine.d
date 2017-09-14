@@ -46,7 +46,7 @@ private:
     Britney britney;
     Dak dak;
 
-    MongoLegacyDatabase db;
+    Database db;
     BaseConfig baseConf;
     SpearsConfig spearsConf;
     LocalConfig localConf;
@@ -60,9 +60,9 @@ public:
         britney = new Britney ();
         dak = new Dak ();
 
-        db = MongoLegacyDatabase.get;
+        db = Database.get;
         baseConf = db.getBaseConfig;
-        spearsConf = db.getConfig!(LkModule.SPEARS, SpearsConfig);
+        spearsConf = db.getSpearsConfig;
 
         localConf = LocalConfig.get;
         workspace = buildPath (localConf.workspace, "spears");
@@ -250,25 +250,24 @@ public:
     {
         import std.file : exists;
         import std.typecons : tuple;
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
         immutable excusesYaml = buildPath (miWorkspace, "output", "target", "excuses.yaml");
         immutable logFile = buildPath (miWorkspace, "output", "target", "output.txt");
 
         if ((!excusesYaml.exists) || (!logFile.exists)) {
-            db.addEvent (EventKind.ERROR, "no-excuses-data", "Unable to find and process the excuses information. Spears data will be outdated.");
+            conn.addEvent (EventKind.ERROR, "no-excuses-data", "Unable to find and process the excuses information. Spears data will be outdated.");
             return false;
         }
 
         auto efile = new ExcusesFile (excusesYaml, logFile, fromSuite.name, toSuite.name);
-        auto collExcuses = db.getCollection! (LkModule.SPEARS, "excuses");
-        collExcuses.ensureIndex ([tuple("sourcePackage", 1)]);
-
         // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
         // day, it needs to be optimized to just update stuff that is needed.
-        collExcuses.remove (["sourceSuite": fromSuite.name, "targetSuite": toSuite.name]);
+        conn.removeSpearsExcusesForSuites (fromSuite.name, toSuite.name);
         foreach (excuse; efile.getExcuses ().byValue) {
             excuse.lkid = generateNewLkid! (LkidType.SPEARS_EXCUSE);
-            collExcuses.insert (excuse);
+            conn.update (excuse);
         }
 
         return true;

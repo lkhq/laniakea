@@ -31,6 +31,7 @@ import laniakea.db.schema.core;
 enum LkidType
 {
     JOB               = "JOB",  /// Prefix for a generic Laniakea job
+    EVENT             = "EVNT", /// A (log) event
     WORKER            = "WRK",  /// Prefix for a generic Laniakea worker
     USER              = "USR",  /// Prefix for a human user
     DEBCHECK          = "DEBC", /// Debcheck issue entry prefix
@@ -74,6 +75,17 @@ LkId generateNewLkid (LkidType lkt) ()
     immutable LkId res = lkt ~ "-" ~ to!string (getRandomAlphanum!uniqLen);
 
     return res;
+}
+
+/**
+ * Helper to cast a regular string into a Laniakea ID.
+ */
+auto to (LkId) (string s)
+{
+    if (s.length != LKID_LENGTH)
+        assert (0, "Can not cast string into LkId, size does not match.");
+    LkId id = s;
+    return id;
 }
 
 unittest

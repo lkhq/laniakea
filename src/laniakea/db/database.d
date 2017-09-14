@@ -289,6 +289,8 @@ public auto dbValueTo (T) (immutable(Value) v)
     import std.traits : OriginalType, isArray;
     import std.conv : to;
     import dpq2.conv.to_d_types : TimeStampWithoutTZ;
+    import dpq2.oids : OidType;
+    import dpq2 : as;
 
     static if (is(T == LkId))
         return (cast(const(char[])) v.data).to!string;
@@ -301,10 +303,7 @@ public auto dbValueTo (T) (immutable(Value) v)
     else static if (is(OriginalType!T == int))
         return to!T (v.as!int);
     else {
-        if (v.oidType == OidType.VariableString)
-            return (cast(const(char[])) v.data).to!string;
-        else
-            return v.as!T;
+        return v.as!T;
     }
 }
 
@@ -315,4 +314,16 @@ public void unpackRowValues (A...) (PgRow row, A args)
     foreach (i, a; args) {
         (*a) = row[i].dbValueTo! (typeof((*a)));
     }
+}
+
+/**
+ * Run arbitrary SQL command.
+ */
+auto executeSQL (A...) (PgConnection conn, string sql, A args) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = sql;
+    p.setParams (args);
+
+    return conn.execParams (p);
 }

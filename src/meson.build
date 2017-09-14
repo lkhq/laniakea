@@ -25,7 +25,7 @@ subdir('keytool')
 subdir('lighthouse')
 
 # Datasync
-subdir('datasync')
+#! subdir('datasync')
 
 # Debcheck
 subdir('debcheck')
@@ -51,7 +51,7 @@ endif
 # web frontends
 if (get_option('enable-webgui'))
     # admin & technical overview
-    subdir('web')
+    #! subdir('web')
     # software view
-    subdir('webswview')
+    #! subdir('webswview')
 endif

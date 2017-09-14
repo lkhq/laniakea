@@ -79,15 +79,14 @@ public void safeRename (const string from, const string to) @trusted
 private void acceptUpload (RubiConfig conf, DudData dud) @trusted
 {
     import std.file;
-    auto db = MongoLegacyDatabase.get;
-    auto collJobs = db.collJobs ();
+    import laniakea.db.lkid : to;
+    auto db = Database.get;
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
 
     // mark job as accepted and done
     auto jobResult = dud.success? JobResult.SUCCESS : JobResult.FAILURE;
-    auto job = collJobs.findAndModify (["_id": Bson(BsonObjectID.fromString(dud.jobId))],
-                                    ["$set": [
-                                        "result": Bson(jobResult.to!int)
-                                        ]]);
+    auto job = conn.setJobResult!GenericJob (dud.jobId.to!LkId, jobResult);
     if (job.isNull) {
         logError ("Unable to mark job '%s' as done: The Job was not found.", dud.jobId);
 
