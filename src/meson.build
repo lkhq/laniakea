@@ -51,7 +51,7 @@ endif
 # web frontends
 if (get_option('enable-webgui'))
     # admin & technical overview
-    #! subdir('web')
+    subdir('web')
     # software view
     #! subdir('webswview')
 endif

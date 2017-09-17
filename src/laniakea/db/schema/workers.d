@@ -153,3 +153,11 @@ void updateWorkerPing (PgConnection conn, string workerId) @trusted
 {
     conn.exec ("UPDATE workers SET last_ping=now() WHERE identifier=workerId");
 }
+
+auto getWorkers (PgConnection conn) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM workers ORDER BY name";
+    auto ans = conn.execParams(p);
+    return rowsTo!SparkWorker (ans);
+}

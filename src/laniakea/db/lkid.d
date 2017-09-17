@@ -44,7 +44,7 @@ enum LkidType
 alias LkId = char[LKID_LENGTH];
 
 
-private enum LKID_LENGTH = 32;
+public enum LKID_LENGTH = 32;
 
 private auto getRandomAlphanum (uint len) ()
 {

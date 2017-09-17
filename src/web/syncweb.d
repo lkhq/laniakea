@@ -36,7 +36,7 @@ class SynchrotronWebService {
 
     private {
         WebConfig wconf;
-        MongoLegacyDatabase db;
+        Database db;
     }
 
     this (WebConfig conf)
@@ -49,8 +49,10 @@ class SynchrotronWebService {
     @path("/")
  	void getMigrationExcuses ()
  	{
-        auto collIssues = db.getCollection! (LkModule.SYNCHROTRON, "issues");
-        auto issues = collIssues.find!SynchrotronIssue ();
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+
+        auto issues = conn.getSynchrotronIssues (0);
         render!("synchrotron/syncoverview.dt", ginfo, issues);
  	}
 

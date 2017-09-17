@@ -26,7 +26,6 @@ import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
-import vibe.db.mongo.mongo;
 import vibe.web.web;
 
 import laniakea.db;
@@ -39,7 +38,7 @@ class WorkersWebService {
 
     private {
         WebConfig wconf;
-        MongoLegacyDatabase db;
+        Database db;
     }
 
     this (WebConfig conf)
@@ -52,9 +51,10 @@ class WorkersWebService {
     @path("/")
  	void getWorkers (HTTPServerRequest req, HTTPServerResponse res)
  	{
-        auto collWorkers = db.collWorkers ();
-        auto workers = collWorkers.find!SparkWorker;
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
+        const workers = conn.getWorkers;
         render!("workers/workers.dt", ginfo, workers);
  	}
 

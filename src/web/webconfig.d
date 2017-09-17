@@ -53,7 +53,7 @@ final class WebConfig
     public {
         GlobalInfo ginfo;
         BaseConfig baseConf;
-        MongoLegacyDatabase db;
+        Database db;
 
         ushort port;
     }
@@ -61,19 +61,17 @@ final class WebConfig
     this (LocalConfig lconf)
     {
         localConf = lconf;
-        db = MongoLegacyDatabase.get;
+        db = Database.get;
 
         baseConf = db.getBaseConfig;
 
-        auto spearsConf = db.getConfigMaybe!(LkModule.SPEARS, SpearsConfig);
-        if (!spearsConf.isNull) {
-            foreach (item; spearsConf.migrations) {
-                GlobalInfo.MigrationsInfo minfo;
-                minfo.sourceSuite = item.sourceSuite;
-                minfo.targetSuite = item.targetSuite;
+        auto spearsConf = db.getSpearsConfig;
+        foreach (item; spearsConf.migrations) {
+            GlobalInfo.MigrationsInfo minfo;
+            minfo.sourceSuite = item.sourceSuite;
+            minfo.targetSuite = item.targetSuite;
 
-                ginfo.migrations ~= minfo;
-            }
+            ginfo.migrations ~= minfo;
         }
         ginfo.suites = baseConf.suites;
     }

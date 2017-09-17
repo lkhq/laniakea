@@ -27,7 +27,6 @@ import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
 import vibe.web.web;
-import vibe.db.mongo.mongo;
 
 import laniakea.db;
 
@@ -39,7 +38,7 @@ class DepcheckWebService {
 
     private {
         WebConfig wconf;
-        MongoLegacyDatabase db;
+        Database db;
 
         immutable issuesPerPage = 100;
     }
@@ -54,7 +53,6 @@ class DepcheckWebService {
     @path(":suite/:type/:page")
  	void getIssueList (HTTPServerRequest req, HTTPServerResponse res)
  	{
-        import vibe.data.bson;
         import std.math : ceil;
 
         immutable suiteName = req.params.get("suite");
@@ -77,16 +75,16 @@ class DepcheckWebService {
             }
         }
 
-        auto query = ["suiteName": Bson(suiteName), "packageKind": Bson(packageKind.to!int)];
-        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+        const issuesCount = conn.countDebcheckIssues (suiteName, packageKind);
 
-        auto pageCount = ceil (collIssues.count (query).to!real / issuesPerPage.to!real);
-        static struct Order { int packageName; }
-        auto issues = collIssues.find!DebcheckIssue (query, null,
-                                                       QueryFlags.None,
-                                                       (currentPage - 1) * issuesPerPage)
-                                                       .limit (issuesPerPage)
-                                                       .sort(Order(1));
+        auto pageCount = ceil (issuesCount.to!real / issuesPerPage.to!real);
+        const issues = conn.getDebcheckIssues (suiteName,
+                                               packageKind,
+                                               null, // all architectures
+                                               issuesPerPage,
+                                               (currentPage - 1) * issuesPerPage);
 
         render!("depcheck/issues.dt", ginfo,
                 suiteName, packageKind, issues,
@@ -102,7 +100,6 @@ class DepcheckWebService {
     @path(":suite/:type/:packageName/:packageVersion")
  	void getDependencyIssueDetails (HTTPServerRequest req, HTTPServerResponse res)
  	{
-        import vibe.data.bson;
         immutable suiteName = req.params.get("suite");
         immutable packageName = req.params.get("packageName");
         immutable packageVersion = req.params.get("packageVersion");
@@ -115,11 +112,10 @@ class DepcheckWebService {
         else
             return; // Not found
 
-        auto collIssues = db.getCollection! (LkModule.DEBCHECK, "issues");
-        auto issue = collIssues.findOne!DebcheckIssue (["suiteName": Bson(suiteName),
-                                                        "packageKind": Bson(cast(int) packageKind),
-                                                        "packageName": Bson(packageName),
-                                                        "packageVersion": Bson(packageVersion)]);
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+
+        auto issue = conn.getDebcheckIssue (suiteName, packageKind, packageName, packageVersion);
         if (issue.isNull)
             return;
 

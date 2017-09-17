@@ -26,7 +26,6 @@ import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
-import vibe.db.mongo.mongo;
 import vibe.web.web;
 
 import laniakea.db;
@@ -39,7 +38,7 @@ class SpearsWebService {
 
     private {
         WebConfig wconf;
-        MongoLegacyDatabase db;
+        Database db;
 
         immutable excusesPerPage = 100;
     }
@@ -69,20 +68,15 @@ class SpearsWebService {
             }
         }
 
-        auto collExcuses = db.getCollection! (LkModule.SPEARS, "excuses");
-        auto query = ["sourceSuite": sourceSuite, "targetSuite": targetSuite];
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
-        auto pageCount = ceil (collExcuses.count (query).to!real / excusesPerPage.to!real);
-        static struct Order { int sourcePackage; }
-        auto excusesC = collExcuses.find!SpearsExcuse (query, null,
-                                                      QueryFlags.None,
-                                                      (currentPage - 1) * excusesPerPage)
-                                                      .limit (excusesPerPage)
-                                                      .sort(Order(1));
-
-        // FIXME: Workaround, for some reason .limit () does not work here on MongoDB, could
-        // be a bug in Mongo or Vibe.d (this exact same code works in DepcheckWeb, surprisingly...)
-        auto excuses = excusesC.take (excusesPerPage);
+        const excusesCount = conn.countSpearsExcusesForSuites (sourceSuite, targetSuite);
+        immutable pageCount = ceil (excusesCount.to!real / excusesPerPage.to!real);
+        auto excuses = conn.getSpearsExcusesForSuites (sourceSuite,
+                                                       targetSuite,
+                                                       excusesPerPage,
+                                                       (currentPage - 1) * excusesPerPage);
 
         render!("migration/excuses.dt", ginfo,
                 currentPage, pageCount,
@@ -104,8 +98,9 @@ class SpearsWebService {
         immutable sourcePackage = req.params["source"];
         immutable newVersion = req.params["version"];
 
-        auto collExcuses = db.getCollection ("spears.excuses");
-        auto excuse = collExcuses.findOne!SpearsExcuse (["sourcePackage": sourcePackage, "newVersion": newVersion]);
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+        auto excuse = conn.getSpearsExcuse (sourceSuite, targetSuite, sourcePackage, newVersion);
         if (excuse.isNull) {
             res.statusCode = 404;
             res.writeBody("");

@@ -26,7 +26,6 @@ import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
-import vibe.db.mongo.mongo;
 import vibe.web.web;
 
 import laniakea.db;
@@ -36,7 +35,7 @@ import web.webconfig;
 struct IsoImageEntry
 {
     ImageBuildRecipe recipe;
-    MongoCursor!(BsonObjectID[string], ImageBuildJob, typeof(null)) jobs;
+    ImageBuildJob[] jobs;
 }
 
 @path("/isoimages")
@@ -45,7 +44,7 @@ class IsoImagesWebService {
 
     private {
         WebConfig wconf;
-        MongoLegacyDatabase db;
+        Database db;
     }
 
     this (WebConfig conf)
@@ -59,17 +58,15 @@ class IsoImagesWebService {
  	void getRecipes (HTTPServerRequest req, HTTPServerResponse res)
  	{
         import std.range : take;
-        //! auto conn = db.getConnection ();
-        //! scope (exit) db.dropConnection (conn);
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
-        auto collIsotope = db.getCollection!(LkModule.ISOTOPE, null);
-        auto recipes = collIsotope.find!ImageBuildRecipe ();
-
+        auto recipes = conn.getBuildRecipes (0);
         auto entries = appender!(IsoImageEntry[]);
         foreach (ref recipe; recipes) {
             IsoImageEntry entry;
             entry.recipe = recipe;
-            //! entry.jobs = db.findJobsByTrigger!ImageBuildJob (recipe.id).limit (10);
+            entry.jobs = conn.getJobsByTrigger!ImageBuildJob (recipe.lkid, 10);
 
             entries ~= entry;
         }

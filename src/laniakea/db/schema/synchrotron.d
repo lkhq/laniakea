@@ -82,6 +82,21 @@ struct SynchrotronIssue {
     string targetVersion; /// version of the package in the target suite and repo, to be overriden
 
     string details;  /// additional information text about the issue (usually a log excerpt)
+
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid,
+                 &date,
+                 &kind,
+                 &packageName,
+                 &sourceSuite,
+                 &targetSuite,
+                 &sourceVersion,
+                 &targetVersion,
+                 &details
+        );
+    }
 }
 
 
@@ -209,4 +224,20 @@ void removeSynchrotronIssuesForSuites (PgConnection conn, string sourceSuite, st
     p.sqlCommand = "DELETE FROM " ~ synchrotronIssuesTableName ~ " WHERE source_suite=$1 AND target_suite=$2";
     p.setParams (sourceSuite, targetSuite);
     conn.execParams(p);
+}
+
+auto getSynchrotronIssues (PgConnection conn, long limit, long offset = 0) @trusted
+{
+    QueryParams p;
+
+    if (limit > 0) {
+        p.sqlCommand = "SELECT * FROM " ~ synchrotronIssuesTableName ~ " LIMIT $1 OFFSET $2 ORDER BY package_name";
+        p.setParams (limit, offset);
+    } else {
+        p.sqlCommand = "SELECT * FROM " ~ synchrotronIssuesTableName ~ " OFFSET $1 ORDER BY package_name";
+        p.setParams (offset);
+    }
+
+    auto ans = conn.execParams(p);
+    return rowsTo!SynchrotronIssue (ans);
 }

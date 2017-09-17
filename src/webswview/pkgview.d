@@ -40,7 +40,7 @@ final class PackageView {
 
     private {
         WebConfig wconf;
-        MongoLegacyDatabase db;
+        Database db;
     }
 
     this (WebConfig conf)

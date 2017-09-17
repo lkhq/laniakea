@@ -4,6 +4,7 @@ block head
     - auto title = "Migration Excuses";
 
 block contents
+    - import std.array : empty;
     h1 Package Migration Excuses
 
 

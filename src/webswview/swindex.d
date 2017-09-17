@@ -39,7 +39,7 @@ final class SWWebIndex {
 
     private {
         WebConfig wconf;
-        MongoLegacyDatabase db;
+        Database db;
     }
 
     this (WebConfig conf)

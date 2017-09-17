@@ -253,5 +253,49 @@ void removeSpearsExcusesForSuites (PgConnection conn, string sourceSuite, string
 
     p.sqlCommand = "DELETE FROM spears_excuses WHERE source_suite=$1 AND target_suite=$2";
     p.setParams (sourceSuite, targetSuite);
-    conn.execParams(p);
+    conn.execParams (p);
+}
+
+auto getSpearsExcusesForSuites (PgConnection conn, string sourceSuite, string targetSuite, long limit, long offset = 0) @trusted
+{
+    QueryParams p;
+
+    if (limit > 0) {
+        p.sqlCommand = "SELECT * FROM spears_excuses WHERE
+                        source_suite=$1 AND target_suite=$2 LIMIT $3 OFFSET $4 ORDER BY source_package";
+        p.setParams (sourceSuite, targetSuite, limit, offset);
+    } else {
+        p.sqlCommand = "SELECT * FROM spears_excuses WHERE
+                        source_suite=$1 AND target_suite=$2 OFFSET $3 ORDER BY source_package";
+        p.setParams (sourceSuite, targetSuite, offset);
+    }
+
+    auto ans = conn.execParams (p);
+    return rowsTo!SpearsExcuse (ans);
+}
+
+uint countSpearsExcusesForSuites (PgConnection conn, string sourceSuite, string targetSuite) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT COUNT(*) FROM spears_excuses WHERE source_suite=$1 AND target_suite=$2";
+    p.setParams (sourceSuite, targetSuite);
+
+    auto ans = conn.execParams (p);
+    if (ans.length > 0) {
+        const r = ans[0];
+        if (r.length > 0)
+            return r[0].dbValueTo!uint;
+    }
+    return 0;
+}
+
+auto getSpearsExcuse (PgConnection conn, string sourceSuite, string targetSuite, string sourcePackage, string newVersion) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM spears_excuses WHERE
+                        source_suite=$1 AND target_suite=$2 AND source_package=$3 AND version_new=$4";
+    p.setParams (sourceSuite, targetSuite, sourcePackage, newVersion);
+
+    auto ans = conn.execParams (p);
+    return rowsToOne!SpearsExcuse (ans);
 }

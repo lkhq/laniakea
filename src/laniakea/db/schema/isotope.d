@@ -139,8 +139,14 @@ void update (PgConnection conn, ImageBuildRecipe recipe) @trusted
 auto getBuildRecipes (PgConnection conn, long limit, long offset = 0) @trusted
 {
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM isotope_recipes LIMIT $1 OFFSET $2 ORDER BY name";
-    p.setParams (limit, offset);
+
+    if (limit > 0) {
+        p.sqlCommand = "SELECT * FROM isotope_recipes LIMIT $1 OFFSET $2 ORDER BY name";
+        p.setParams (limit, offset);
+    } else {
+        p.sqlCommand = "SELECT * FROM isotope_recipes OFFSET $1 ORDER BY name";
+        p.setParams (offset);
+    }
 
     auto ans = conn.execParams(p);
     return rowsTo!ImageBuildRecipe (ans);

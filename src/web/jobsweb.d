@@ -26,18 +26,11 @@ import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
-import vibe.db.mongo.mongo;
 import vibe.web.web;
 
 import laniakea.db;
 
 import web.webconfig;
-
-struct IsoImageEntry
-{
-    ImageBuildRecipe recipe;
-    MongoCursor!(BsonObjectID[string], ImageBuildJob, typeof(null)) jobs;
-}
 
 @path("/jobs")
 class JobsWebService {
@@ -45,7 +38,7 @@ class JobsWebService {
 
     private {
         WebConfig wconf;
-        MongoLegacyDatabase db;
+        Database db;
     }
 
     this (WebConfig conf)
@@ -61,15 +54,18 @@ class JobsWebService {
         immutable job_id = req.params["job_id"];
         if (job_id.empty)
             return;
+        if (job_id.length < LKID_LENGTH)
+            return;
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
-        auto coll = db.collJobs ();
-        auto jobRaw = coll.findOne (["_id": BsonObjectID.fromString(job_id)]);
-        if (jobRaw.isNull)
+        const jobRaw = conn.getRawJobById (laniakea.db.lkid.to!LkId (job_id));
+        if (jobRaw.length == 0)
             return;
 
-        if (jobRaw["module"].get!string == LkModule.ISOTOPE) {
+        if (jobRaw.rawJobGetModule == LkModule.ISOTOPE) {
             // we have an isotope job!
-            auto job = jobRaw.deserializeBson!ImageBuildJob;
+            auto job = jobRaw.rowTo!ImageBuildJob;
             render!("jobs/details_isojob.dt", ginfo, job);
         } else {
             return; // FIXME: We need generic details for jobs that aren't treated special

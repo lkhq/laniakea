@@ -190,3 +190,39 @@ auto getDebcheckIssues (PgConnection conn, string suiteName, PackageType pkind, 
     auto ans = conn.execParams(p);
     return rowsTo!DebcheckIssue (ans);
 }
+
+uint countDebcheckIssues (PgConnection conn, string suiteName, PackageType pkind, string architecture = null) @trusted
+{
+    import std.array : empty;
+    QueryParams p;
+
+    if (architecture.empty) {
+        p.sqlCommand = "SELECT COUNT(*) FROM debcheck_issues WHERE suite_name=$1 AND package_kind=$2";
+        p.setParams (suiteName, pkind);
+    } else {
+        p.sqlCommand = "SELECT COUNT(*) FROM debcheck_issues WHERE suite_name=$1 AND package_kind=$2 AND architecture=$3";
+        p.setParams (suiteName, pkind, architecture);
+    }
+
+    auto ans = conn.execParams(p);
+    if (ans.length > 0) {
+        const r = ans[0];
+        if (r.length > 0)
+            return r[0].dbValueTo!uint;
+    }
+    return 0;
+}
+
+auto getDebcheckIssue (PgConnection conn, string suiteName, PackageType pkind, string packageName, string packageVersion) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM debcheck_issues WHERE
+                    suite_name=$1 AND
+                    package_kind=$2 AND
+                    package_name=$3 AND
+                    package_version=$5";
+    p.setParams (suiteName, pkind, packageName, packageVersion);
+
+    auto ans = conn.execParams(p);
+    return rowsToOne!DebcheckIssue (ans);
+}

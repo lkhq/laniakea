@@ -282,6 +282,20 @@ auto rowsToOne (T) (immutable Answer ans)
     return res;
 }
 
+/**
+ * Convert a row of a database reply to the selected type.
+ */
+auto rowTo (T) (PgRow r)
+{
+    import std.traits : OriginalType;
+    static assert (is(OriginalType!T == struct));
+    Nullable!T res;
+    if (r.length > 0) {
+        res = T(r);
+    }
+    return res;
+}
+
 public auto dbValueTo (T) (immutable(Value) v)
 {
     import laniakea.db.lkid;

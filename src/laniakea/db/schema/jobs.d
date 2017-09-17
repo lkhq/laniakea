@@ -285,11 +285,41 @@ void addJob (J) (PgConnection conn, J job, LkId trigger)
 auto getJobsByTrigger (T) (PgConnection conn, LkId triggerId, long limit, long offset = 0) @trusted
 {
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 LIMIT $2 OFFSET $3 ORDER BY time_created DESC";
-    p.setParams (triggerId, limit, offset);
+    if (limit > 0) {
+        p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 LIMIT $2 OFFSET $3 ORDER BY time_created DESC";
+        p.setParams (triggerId, limit, offset);
+    } else {
+        p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 OFFSET $2 ORDER BY time_created DESC";
+        p.setParams (triggerId, offset);
+    }
 
     auto ans = conn.execParams(p);
     return rowsTo!T (ans);
+}
+
+/**
+ * Find a job by its Laniakea ID, return it as raw SQL answer.
+ */
+auto getRawJobById (PgConnection conn, LkId lkid) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM jobs WHERE lkid=$1";
+    p.setParams (lkid);
+    auto ans = conn.execParams(p);
+    if (ans.length > 0)
+        return ans[0];
+    else
+        return PgRow();
+}
+
+/**
+ * Get the responsible module from a raw job SQL row.
+ */
+LkModule rawJobGetModule (PgRow r) @trusted
+{
+    if (r.length < 3)
+        return null;
+    return r[2].dbValueTo!LkModule;
 }
 
 /**
