@@ -141,10 +141,10 @@ auto getBuildRecipes (PgConnection conn, long limit, long offset = 0) @trusted
     QueryParams p;
 
     if (limit > 0) {
-        p.sqlCommand = "SELECT * FROM isotope_recipes LIMIT $1 OFFSET $2 ORDER BY name";
+        p.sqlCommand = "SELECT * FROM isotope_recipes ORDER BY name LIMIT $1 OFFSET $2";
         p.setParams (limit, offset);
     } else {
-        p.sqlCommand = "SELECT * FROM isotope_recipes OFFSET $1 ORDER BY name";
+        p.sqlCommand = "SELECT * FROM isotope_recipes ORDER BY name OFFSET $1";
         p.setParams (offset);
     }
 

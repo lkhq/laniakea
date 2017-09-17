@@ -90,8 +90,8 @@ template Job(LkModule mod, string jobKind) {
                  &finishedTime,
                  &worker,
                  &workerId,
-                 &latestLogExcerpt,
                  &result,
+                 &latestLogExcerpt,
                  &data
         );
     }
@@ -104,7 +104,6 @@ struct GenericJob {
     mixin Job!(LkModule.UNKNOWN, "generic");
 
     Bson data;
-    alias data this;
 }
 
 /**
@@ -233,7 +232,7 @@ void updateJob (T) (PgConnection conn, T job) @trusted
     static if (hasMember!(T, "data"))
         auto data = job.data;
     else
-        auto data = "";
+        auto data = "{}";
 
     p.setParams (job.lkid,
                  job.status,
@@ -285,13 +284,11 @@ void addJob (J) (PgConnection conn, J job, LkId trigger)
 auto getJobsByTrigger (T) (PgConnection conn, LkId triggerId, long limit, long offset = 0) @trusted
 {
     QueryParams p;
-    if (limit > 0) {
-        p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 LIMIT $2 OFFSET $3 ORDER BY time_created DESC";
+    p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 ORDER BY time_created DESC LIMIT $2 OFFSET $3";
+    if (limit > 0)
         p.setParams (triggerId, limit, offset);
-    } else {
-        p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 OFFSET $2 ORDER BY time_created DESC";
-        p.setParams (triggerId, offset);
-    }
+    else
+        p.setParams (triggerId, long.max, offset);
 
     auto ans = conn.execParams(p);
     return rowsTo!T (ans);
@@ -306,6 +303,7 @@ auto getRawJobById (PgConnection conn, LkId lkid) @trusted
     p.sqlCommand = "SELECT * FROM jobs WHERE lkid=$1";
     p.setParams (lkid);
     auto ans = conn.execParams(p);
+
     if (ans.length > 0)
         return ans[0];
     else
@@ -315,9 +313,9 @@ auto getRawJobById (PgConnection conn, LkId lkid) @trusted
 /**
  * Get the responsible module from a raw job SQL row.
  */
-LkModule rawJobGetModule (PgRow r) @trusted
+auto rawJobGetModule (PgRow r) @trusted
 {
-    if (r.length < 3)
+    if (r.length < 14)
         return null;
     return r[2].dbValueTo!LkModule;
 }

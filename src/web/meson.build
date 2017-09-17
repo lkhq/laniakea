@@ -22,8 +22,7 @@ lk_web_src = [
     'depcheckweb.d',
     'workersweb.d',
     'isoimagesweb.d',
-    'jobsweb.d',
-    '/usr/include/d/vibe/vibe/appmain.d'
+    'jobsweb.d'
 ]
 
 lkweb_exe = executable ('laniakea-web',

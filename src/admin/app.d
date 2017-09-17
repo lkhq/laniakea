@@ -107,6 +107,11 @@ void main (string[] args)
 
     immutable command = args[1];
     switch (command) {
+        case "init-db":
+            import laniakea.db.database : Database;
+            auto db = Database.get;
+            db.initializeDatabase ();
+            break;
         case "init":
             foreach (ref tool; tools) {
                 if (!tool.initDb ())

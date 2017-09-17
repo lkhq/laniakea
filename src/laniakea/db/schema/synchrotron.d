@@ -229,14 +229,11 @@ void removeSynchrotronIssuesForSuites (PgConnection conn, string sourceSuite, st
 auto getSynchrotronIssues (PgConnection conn, long limit, long offset = 0) @trusted
 {
     QueryParams p;
-
-    if (limit > 0) {
-        p.sqlCommand = "SELECT * FROM " ~ synchrotronIssuesTableName ~ " LIMIT $1 OFFSET $2 ORDER BY package_name";
+    p.sqlCommand = "SELECT * FROM " ~ synchrotronIssuesTableName ~ " ORDER BY package_name LIMIT $1 OFFSET $2";
+    if (limit > 0)
         p.setParams (limit, offset);
-    } else {
-        p.sqlCommand = "SELECT * FROM " ~ synchrotronIssuesTableName ~ " OFFSET $1 ORDER BY package_name";
-        p.setParams (offset);
-    }
+    else
+        p.setParams (long.max, offset);
 
     auto ans = conn.execParams(p);
     return rowsTo!SynchrotronIssue (ans);

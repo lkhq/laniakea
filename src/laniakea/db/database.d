@@ -232,7 +232,9 @@ public void setParams (A...) (ref QueryParams p, A args)
             } else
                 p.args[i] = Value (cast(ubyte[])c, OidType.FixedString, false, ValueFormat.BINARY);
         } else {
-            static if (is(T == SysTime))
+            static if (is(T == string))
+                p.args[i] = c.toValue; // since isArray is true for strings, we special-case them here, so they don't get stores as JSONB
+            else static if (is(T == SysTime))
                 p.args[i] = c.toUnixTime.toValue;
             else static if (is(T == DateTime))
                 p.args[i] = SysTime(c).toUnixTime.toValue;
@@ -306,17 +308,30 @@ public auto dbValueTo (T) (immutable(Value) v)
     import dpq2.oids : OidType;
     import dpq2 : as;
 
-    static if (is(T == LkId))
-        return (cast(const(char[])) v.data).to!string;
+    static if ((is(T == string)) || (is(OriginalType!T == string)))
+        return v.as!string; // we need to catch strings explicitly, because isArray is true for them
+    else static if (is(T == LkId))
+        return v.isNull? cast(LkId) "" : (cast(const(char[])) v.data).to!string;
     else static if (is(T == DateTime))
         return (as! (TimeStampWithoutTZ) (v)).dateTime;
     else static if (is(T == SysTime))
         return SysTime((v.as!TimeStampWithoutTZ).dateTime);
-    else static if ((is(OriginalType!T == struct)) || (isArray!T))
-        return deserializeBson!T (v.as!Bson);
-    else static if (is(OriginalType!T == int))
-        return to!T (v.as!int);
-    else {
+    else static if ((is(OriginalType!T == struct)) || (isArray!T)) {
+        const bson = v.as!Bson;
+        if ((bson.type == Bson.Type.array) || (bson.type == Bson.Type.object)) {
+            return bson.deserializeBson!T;
+        } else {
+            static if (isArray!T)
+                return null;
+            else
+                return T();
+        }
+    } else static if (is(OriginalType!T == int)) {
+        if (v.oidType == OidType.Int2)
+            return to!T (v.as!short);
+        else
+            return to!T (v.as!int);
+    } else {
         return v.as!T;
     }
 }

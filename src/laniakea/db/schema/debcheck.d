@@ -106,7 +106,8 @@ void createTables (Database db) @trusted
           conflicts        JSONB
         )"
     );
-    conn.exec ("CREATE INDEX ON debcheck_issues IF NOT EXISTS (package_name)");
+    conn.exec ("CREATE INDEX IF NOT EXISTS debcheck_issues_package_name_idx
+                ON debcheck_issues (package_name)");
 }
 
 /**
@@ -174,24 +175,24 @@ auto getDebcheckIssues (PgConnection conn, string suiteName, PackageType pkind, 
     QueryParams p;
 
     if (architecture.empty) {
-        p.sqlCommand = "SELECT * FROM debcheck_issues LIMIT $1 OFFSET $2 ORDER BY date WHERE suite_name=$3 AND package_kind=$4";
+        p.sqlCommand = "SELECT * FROM debcheck_issues WHERE suite_name=$1 AND package_kind=$2 ORDER BY date LIMIT $3 OFFSET $4";
         if (limit == 0)
-            p.setParams ("ALL", offset, suiteName, pkind);
+            p.setParams (suiteName, pkind, long.max, offset);
         else
-            p.setParams (limit, offset, suiteName, pkind);
+            p.setParams (suiteName, pkind, limit, offset);
     } else {
-        p.sqlCommand = "SELECT * FROM debcheck_issues LIMIT $1 OFFSET $2 ORDER BY date WHERE suite_name=$3 AND package_kind=$4 AND architecture=$5";
+        p.sqlCommand = "SELECT * FROM debcheck_issues WHERE suite_name=$1 AND package_kind=$2 AND architecture=$3 ORDER BY date LIMIT $4 OFFSET $5";
         if (limit == 0)
-            p.setParams ("ALL", offset, suiteName, pkind, architecture);
+            p.setParams (suiteName, pkind, architecture, long.max, offset);
         else
-            p.setParams (limit, offset, suiteName, pkind, architecture);
+            p.setParams (suiteName, pkind, architecture, limit, offset);
     }
 
     auto ans = conn.execParams(p);
     return rowsTo!DebcheckIssue (ans);
 }
 
-uint countDebcheckIssues (PgConnection conn, string suiteName, PackageType pkind, string architecture = null) @trusted
+long countDebcheckIssues (PgConnection conn, string suiteName, PackageType pkind, string architecture = null) @trusted
 {
     import std.array : empty;
     QueryParams p;
@@ -208,7 +209,7 @@ uint countDebcheckIssues (PgConnection conn, string suiteName, PackageType pkind
     if (ans.length > 0) {
         const r = ans[0];
         if (r.length > 0)
-            return r[0].dbValueTo!uint;
+            return r[0].dbValueTo!long;
     }
     return 0;
 }

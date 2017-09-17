@@ -114,7 +114,7 @@ private void acceptUpload (RubiConfig conf, DudData dud) @trusted
     if (jobResult == JobResult.SUCCESS) {
         import rubicon.importisotope;
 
-        if (job["module"].get!string == LkModule.ISOTOPE)
+        if (job.moduleName == LkModule.ISOTOPE)
             handleIsotopeUpload (conf, dud, job);
     }
 

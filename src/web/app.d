@@ -114,3 +114,14 @@ shared static this ()
     // clean up stuff left from the initialization explicitly
     GC.collect ();
 }
+
+int main()
+{
+	import vibe.core.core : runApplication;
+
+	version (unittest) {
+		return 0;
+	} else {
+		return runApplication();
+	}
+}

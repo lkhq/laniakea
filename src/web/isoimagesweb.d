@@ -71,7 +71,7 @@ class IsoImagesWebService {
             entries ~= entry;
         }
 
-        auto images = entries.data;
+        const images = entries.data;
         render!("isoimages/overview.dt", ginfo, images);
  	}
 
