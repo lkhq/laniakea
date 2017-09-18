@@ -47,7 +47,7 @@ struct SpearsConfigEntry
     string sourceSuite; /// Name of the suite packages migrate from
     string targetSuite; /// Name of the suite packages migrate to
 
-    uint[VersionPriority] delays;
+    int[VersionPriority] delays;
     SpearsHint[] hints;
 }
 
@@ -242,7 +242,7 @@ auto getSpearsConfig (Database db)
     scope (exit) db.dropConnection (conn);
 
     SpearsConfig conf;
-    conf.migrations = db.getConfigEntry!(SpearsConfigEntry[]) (conn, LkModule.BASE, "migrations");
+    conf.migrations = db.getConfigEntry!(SpearsConfigEntry[]) (conn, LkModule.SPEARS, "migrations");
 
     return conf;
 }

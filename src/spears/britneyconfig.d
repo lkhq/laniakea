@@ -147,7 +147,7 @@ public:
         newArchesSet = true;
     }
 
-    void setDelays (uint[VersionPriority] delays)
+    void setDelays (int[VersionPriority] delays)
     {
         import std.traits : EnumMembers;
         assert (!delaysSet);
@@ -205,7 +205,7 @@ public:
         if (!newArchesSet)
             setNewArchitectures ([]);
         if (!delaysSet) {
-            uint[VersionPriority] delays;
+            int[VersionPriority] delays;
             setDelays (delays);
         }
 
