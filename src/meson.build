@@ -34,22 +34,22 @@ subdir('debcheck')
 subdir('rubicon')
 
 # Eggshell
-if (get_option('enable-eggshell'))
+if (get_option('eggshell'))
     subdir('eggshell')
 endif
 
 # Spears
-if (get_option('enable-spears'))
+if (get_option('spears'))
     subdir('spears')
 endif
 
 # Synchrotron
-if (get_option('enable-synchrotron'))
+if (get_option('synchrotron'))
     subdir('synchrotron')
 endif
 
 # web frontends
-if (get_option('enable-webgui'))
+if (get_option('webgui'))
     # admin & technical overview
     subdir('web')
     # software view

@@ -1,21 +1,21 @@
 # Build options for Laniakea
 
-option('enable-webgui',
+option('webgui',
     type: 'boolean',
     value: true,
     description: 'Build the web interfaces'
 )
-option('enable-spears',
+option('spears',
     type: 'boolean',
     value: true,
     description: 'Build the "Spears" Britney2 package migration integration'
 )
-option('enable-synchrotron',
+option('synchrotron',
     type: 'boolean',
     value: true,
     description: 'Build the package synchronization module'
 )
-option('enable-eggshell',
+option('eggshell',
     type: 'boolean',
     value: true,
     description: 'Build the "Eggshell" metapackage seed / Germinator integration'
