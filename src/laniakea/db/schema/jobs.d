@@ -63,7 +63,8 @@ template Job(LkModule mod, string jobKind) {
 
     string title;     /// A human-readable title of this job
 
-    LkId trigger = "";     /// ID of the entity responsible for triggering this job's creation
+    LkId trigger = "";           /// ID of the entity responsible for triggering this job's creation
+    string architecture = "any"; /// Architecture this job can run on, "any" in case the architecture does not matter
 
     DateTime createdTime;  /// Time when this job was created.
     DateTime assignedTime; /// Time when this job was assigned to a worker.
@@ -85,6 +86,7 @@ template Job(LkModule mod, string jobKind) {
                  &kind,
                  &title,
                  &trigger,
+                 &architecture,
                  &createdTime,
                  &assignedTime,
                  &finishedTime,
@@ -164,6 +166,7 @@ void createTables (Database db) @trusted
           kind             TEXT NOT NULL,
           title            TEXT,
           trigger          VARCHAR(32),
+          architecture     TEXT,
           time_created     TIMESTAMP NOT NULL,
           time_assigned    TIMESTAMP NOT NULL,
           time_finished    TIMESTAMP NOT NULL,
@@ -206,14 +209,15 @@ void updateJob (T) (PgConnection conn, T job) @trusted
                             $4,
                             $5,
                             $6,
-                            to_timestamp($7),
+                            $7,
                             to_timestamp($8),
                             to_timestamp($9),
-                            $10,
+                            to_timestamp($10),
                             $11,
                             $12,
                             $13,
-                            $14::jsonb
+                            $14,
+                            $15::jsonb
                         )
                     ON CONFLICT (lkid) DO UPDATE SET
                       status           = $2,
@@ -221,13 +225,14 @@ void updateJob (T) (PgConnection conn, T job) @trusted
                       kind             = $4,
                       title            = $5,
                       trigger          = $6,
-                      time_assigned    = to_timestamp($8),
-                      time_finished    = to_timestamp($9),
-                      worker_name      = $10,
-                      worker_id        = $11,
-                      result           = $12,
-                      latest_log_excerpt = $13,
-                      data             = $14::jsonb";
+                      architecture     = $7,
+                      time_assigned    = to_timestamp($9),
+                      time_finished    = to_timestamp($10),
+                      worker_name      = $11,
+                      worker_id        = $12,
+                      result           = $13,
+                      latest_log_excerpt = $14,
+                      data             = $15::jsonb";
 
     static if (hasMember!(T, "data"))
         auto data = job.data;
@@ -240,6 +245,7 @@ void updateJob (T) (PgConnection conn, T job) @trusted
                  job.kind,
                  job.title,
                  job.trigger,
+                 job.architecture,
                  job.createdTime,
                  job.assignedTime,
                  job.finishedTime,

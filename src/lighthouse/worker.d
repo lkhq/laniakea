@@ -87,7 +87,7 @@ class LighthouseWorker {
                                            worker_id=$3,
                                            time_assigned=now()
                                          WHERE
-                                           status=$4 AND architecture=$5
+                                           status=$4 AND (architecture=$5 OR architecture='any')
                                          RETURNING *",
                                         JobStatus.SCHEDULED,
                                         clientName,

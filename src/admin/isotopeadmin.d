@@ -128,11 +128,11 @@ final class IsotopeAdmin : AdminTool
 
         foreach (ref arch; recipe.architectures) {
             ImageBuildJob isojob;
-            isojob.distribution = recipe.distribution;
-            isojob.suite        = recipe.suite;
-            isojob.architecture = arch;
-            isojob.liveBuildGit = recipe.liveBuildGit;
-            isojob.flavor       = recipe.flavor;
+            isojob.distribution  = recipe.distribution;
+            isojob.suite         = recipe.suite;
+            isojob.architecture  = arch;
+            isojob.liveBuildGit  = recipe.liveBuildGit;
+            isojob.flavor        = recipe.flavor;
 
             conn.addJob (isojob, recipe.lkid);
         }

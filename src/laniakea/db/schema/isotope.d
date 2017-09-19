@@ -65,7 +65,6 @@ struct ImageBuildJob {
         string distribution;  /// Name of the distribution, e.g. "Tanglu"
         string suite;         /// Suite of the distribution to build an image for
         string flavor;        /// The flavor to build
-        string architecture;  /// The architecture to build the image for
 
         string liveBuildGit;  /// Git repository URL with the live-build scripts
     }
