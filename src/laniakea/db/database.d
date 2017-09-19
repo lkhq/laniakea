@@ -228,9 +228,9 @@ public void setParams (A...) (ref QueryParams p, A args)
 
         static if (is(T == LkId)) {
             if ((c[0] == '\0') || (c == ""))
-                p.args[i] = Value ([], OidType.Void, false, ValueFormat.TEXT);
+                p.args[i] = Value ([], OidType.Void, false, ValueFormat.BINARY);
             else
-                p.args[i] = Value (cast(ubyte[])c, OidType.FixedString, false, ValueFormat.TEXT);
+                p.args[i] = Value (cast(ubyte[])c, OidType.FixedString, false, ValueFormat.BINARY);
         } else static if (is(T == string)) {
             // since isArray is true for strings, we special-case them here, so they don't get stores as JSONB
             p.args[i] = c.toValue;
@@ -312,7 +312,7 @@ public auto dbValueTo (T) (immutable(Value) v)
     static if ((is(T == string)) || (is(OriginalType!T == string)))
         return v.as!string; // we need to catch strings explicitly, because isArray is true for them
     else static if (is(T == LkId))
-        return v.isNull? cast(LkId) "" : (cast(const(char[])) v.data).to!string;
+        return (v.isNull || v.data.length < LKID_LENGTH)? cast(LkId) "" : (cast(const(char[])) v.data).to!string;
     else static if (is(T == DateTime))
         return (as! (TimeStampWithoutTZ) (v)).dateTime;
     else static if (is(T == SysTime))
