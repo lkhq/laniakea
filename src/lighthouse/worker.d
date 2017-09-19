@@ -67,8 +67,12 @@ class LighthouseWorker {
         // update information about this client
         auto worker = conn.getWorkerByMachineId (clientId);
         // we might have a new machine, so set the ID again to create an empty new worker
-        worker.machineId = clientId;
-        worker.machineName = clientName;
+        if (worker.isNull) {
+            worker = SparkWorker();
+            worker.lkid = generateNewLkid! (LkidType.WORKER);
+            worker.machineId = clientId;
+            worker.machineName = clientName;
+        }
         worker.lastPing = currentDateTime;
         worker.accepts = jreq["accepts"].deserializeJson!(string[]);
         conn.update (worker);

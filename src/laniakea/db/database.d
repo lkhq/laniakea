@@ -227,14 +227,15 @@ public void setParams (A...) (ref QueryParams p, A args)
         alias T = typeof(c);
 
         static if (is(T == LkId)) {
-            if (c[0] == '\0') {
-                p.args[i] = Value (ValueFormat.BINARY, OidType.Void);
-            } else
-                p.args[i] = Value (cast(ubyte[])c, OidType.FixedString, false, ValueFormat.BINARY);
+            if ((c[0] == '\0') || (c == ""))
+                p.args[i] = Value ([], OidType.Void, false, ValueFormat.TEXT);
+            else
+                p.args[i] = Value (cast(ubyte[])c, OidType.FixedString, false, ValueFormat.TEXT);
+        } else static if (is(T == string)) {
+            // since isArray is true for strings, we special-case them here, so they don't get stores as JSONB
+            p.args[i] = c.toValue;
         } else {
-            static if (is(T == string))
-                p.args[i] = c.toValue; // since isArray is true for strings, we special-case them here, so they don't get stores as JSONB
-            else static if (is(T == SysTime))
+            static if (is(T == SysTime))
                 p.args[i] = c.toUnixTime.toValue;
             else static if (is(T == DateTime))
                 p.args[i] = SysTime(c).toUnixTime.toValue;

@@ -40,17 +40,17 @@ enum WorkerStatus
 struct SparkWorker {
     LkId lkid;
 
-    string machineName;  /// The machine/worker name
-    string machineId;    /// The machine-id as defined in /etc/machine-id for this system
-    string owner;        /// Owner of this worker
+    string machineName;   /// The machine/worker name
+    string machineId;     /// The machine-id as defined in /etc/machine-id for this system
+    string owner;         /// Owner of this worker
     DateTime createdTime; /// Time when this worker was created
 
-    string[] accepts;   /// Modules this worker will accept jobs for
+    string[] accepts;    /// Modules this worker will accept jobs for
     WorkerStatus status; /// Status/health of this machine
-    bool enabled; /// Whether this worker should receive jobs or not
+    bool enabled;        /// Whether this worker should receive jobs or not
 
-    DateTime lastPing;
-    LkId lastJob; /// The last job that was assigned to this worker
+    DateTime lastPing;   /// Time when we last got a message from the worker
+    LkId lastJob = "";   /// The last job that was assigned to this worker
 
     this (PgRow r) @trusted
     {
