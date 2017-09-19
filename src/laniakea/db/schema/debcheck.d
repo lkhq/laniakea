@@ -221,7 +221,7 @@ auto getDebcheckIssue (PgConnection conn, string suiteName, PackageType pkind, s
                     suite_name=$1 AND
                     package_kind=$2 AND
                     package_name=$3 AND
-                    package_version=$5";
+                    package_version=$4";
     p.setParams (suiteName, pkind, packageName, packageVersion);
 
     auto ans = conn.execParams(p);
