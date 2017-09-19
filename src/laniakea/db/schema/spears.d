@@ -70,8 +70,8 @@ struct SpearsOldBinaries {
  * Age requirements for a package to migrate
  **/
 struct SpearsAgePolicy {
-    uint currentAge;
-    uint requiredAge;
+    long currentAge;
+    long requiredAge;
 }
 
 /**
