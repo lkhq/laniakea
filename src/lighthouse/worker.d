@@ -72,6 +72,8 @@ class LighthouseWorker {
             worker.lkid = generateNewLkid! (LkidType.WORKER);
             worker.machineId = clientId;
             worker.machineName = clientName;
+            worker.createdTime = currentDateTime;
+            worker.enabled = true;
         }
         worker.lastPing = currentDateTime;
         worker.accepts = jreq["accepts"].deserializeJson!(string[]);
