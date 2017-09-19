@@ -80,7 +80,7 @@ class LighthouseWorker {
         string jobData;
         foreach (ref arch; architectures) {
             auto ans = conn.executeSQL ("UPDATE jobs SET
-                                           status=$1
+                                           status=$1,
                                            worker_name=$2,
                                            worker_id=$3,
                                            time_assigned=now()
