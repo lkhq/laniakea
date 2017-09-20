@@ -79,8 +79,9 @@ class LighthouseWorker {
         worker.accepts = jreq["accepts"].deserializeJson!(string[]);
         conn.update (worker);
 
-        string jobData;
-        foreach (ref arch; architectures) {
+        string jobData = null.serializeToJsonString;
+        foreach (ref archJ; architectures) {
+            immutable arch = archJ.get!string;
             auto ans = conn.executeSQL ("UPDATE jobs SET
                                            status=$1,
                                            worker_name=$2,
@@ -96,8 +97,9 @@ class LighthouseWorker {
                                         arch);
 
             // use the first job with a matching architecture
-            if (ans.length > 0) {
-                jobData = ans[0].serializeToJsonString;
+            const job = ans.rowsToOne!GenericJob;
+            if (!job.isNull) {
+                jobData = job.serializeToJsonString;
                 break;
             }
         }
