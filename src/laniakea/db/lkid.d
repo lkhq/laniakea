@@ -42,9 +42,22 @@ enum LkidType
 
 /// A database object ID used within Laniakea to refer to objects in the database
 alias LkId = char[LKID_LENGTH];
-
-
 public enum LKID_LENGTH = 32;
+
+
+template LkidSerializationPolicy(T)
+	if (is(T == LkId))
+{
+	import std.conv : to;
+	static string toRepresentation(T value) @safe {
+		return to!string(value);
+	}
+
+	static T fromRepresentation(string value) {
+		LkId id = value;
+		return id;
+	}
+}
 
 private auto getRandomAlphanum (uint len) ()
 {

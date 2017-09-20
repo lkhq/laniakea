@@ -99,7 +99,7 @@ class LighthouseWorker {
             // use the first job with a matching architecture
             const job = ans.rowsToOne!GenericJob;
             if (!job.isNull) {
-                jobData = job.serializeToJsonString;
+                jobData = job.jobToJsonString;
                 break;
             }
         }

@@ -54,10 +54,13 @@ enum JobResult
  * A task pending to be performed.
  **/
 template Job(LkModule mod, string jobKind) {
+    import vibe.data.serialization : name;
+
     LkId lkid;
 
     JobStatus status; /// Status of this job
 
+    @name("module")
     string moduleName = mod; /// the name of the module responsible for this job
     string kind = jobKind;  /// kind of the job
 
@@ -144,6 +147,17 @@ struct EventEntry {
                  &text
         );
     }
+}
+
+string jobToJsonString (J) (J job)
+{
+    import vibe.data.json;
+    import laniakea.db.lkid;
+    import std.array : Appender, appender;
+
+    auto res = appender!string;
+    serializeWithPolicy!(JsonStringSerializer!(Appender!string), LkidSerializationPolicy) (job, res);
+    return res.data;
 }
 
 
