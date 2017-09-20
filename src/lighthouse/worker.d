@@ -186,11 +186,11 @@ class LighthouseWorker {
             jobResult = JobResult.MAYBE_FAILURE;
 
         conn.executeSQL ("UPDATE jobs SET
-                                 status=$1
+                                 status=$1,
                                  result=$2,
                                  time_finished=now()
                                WHERE
-                                 lkid=$4 AND status=$5
+                                 lkid=$3 AND status=$4
                                RETURNING *",
                           JobStatus.DONE,
                           jobResult,

@@ -151,7 +151,7 @@ auto getWorkerByMachineId (PgConnection conn, string machineId) @trusted
 
 void updateWorkerPing (PgConnection conn, string workerId) @trusted
 {
-    conn.exec ("UPDATE workers SET last_ping=now() WHERE identifier=workerId");
+    conn.executeSQL ("UPDATE workers SET last_ping=now() WHERE identifier=$1", workerId);
 }
 
 auto getWorkers (PgConnection conn) @trusted
