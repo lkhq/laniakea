@@ -230,7 +230,7 @@ public void setParams (A...) (ref QueryParams p, A args)
             if ((c[0] == '\0') || (c == ""))
                 p.args[i] = Value ([], OidType.Void, false, ValueFormat.BINARY);
             else
-                p.args[i] = Value (cast(ubyte[])c, OidType.FixedString, false, ValueFormat.BINARY);
+                p.args[i] = to!string (c).toValue; //! Value (cast(ubyte[])c, OidType.FixedString, false, ValueFormat.BINARY);
         } else static if (is(T == string)) {
             // since isArray is true for strings, we special-case them here, so they don't get stores as JSONB
             p.args[i] = c.toValue;
