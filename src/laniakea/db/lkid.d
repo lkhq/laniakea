@@ -114,8 +114,6 @@ auto getDirShorthandForLkid (const ref LkId id)
  */
 auto getDirShorthandForLkidString (const string idstr)
 {
-    if (idstr.length < 10)
-        throw new Exception ("String is too short to generate a dir shorthand for.");
     immutable id = idstr.to!LkId;
     return getDirShorthandForLkid (id).dup;
 }
@@ -156,5 +154,5 @@ unittest
     assert ("HISHAIOD84jdhs9w37owehsd9skejwd9".getDirShorthandForLkid == "HI");
     assert ("ascbacjjua-hd7639wndosnds7ekwnsi".getDirShorthandForLkid == "hd");
     assert ("UNKNOWN_INVALID                 ".getDirShorthandForLkid == "UN");
-    assert ("INVALID_STR".getDirShorthandForLkidString == "UN");
+    assert ("INVALID_STR                     ".getDirShorthandForLkidString == "IN");
 }
