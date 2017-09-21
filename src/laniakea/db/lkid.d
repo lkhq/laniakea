@@ -91,6 +91,36 @@ LkId generateNewLkid (LkidType lkt) ()
 }
 
 /**
+ * Get a two-character ID for the specific Laniakea ID, for
+ * use in directory names.
+ */
+auto getDirShorthandForLkid (const ref LkId id)
+{
+    import std.string : indexOf;
+    if (id[3] == '-')
+        return id[4..6];
+    if (id[4] == '-')
+        return id[5..7];
+    immutable idx = id.indexOf ("-");
+    if (idx < 0)
+        return id[0..2];
+    return id[idx+1..idx+3];
+}
+
+/**
+ * Get a two-character ID for the specific Laniakea ID, for
+ * use in directory names.
+ * This version operates on strings instead of LkIds.
+ */
+auto getDirShorthandForLkidString (const string idstr)
+{
+    if (idstr.length < 10)
+        throw new Exception ("String is too short to generate a dir shorthand for.");
+    immutable id = idstr.to!LkId;
+    return getDirShorthandForLkid (id).dup;
+}
+
+/**
  * Helper to cast a regular string into a Laniakea ID.
  */
 auto to (LkId) (string s)
@@ -119,4 +149,12 @@ unittest
     writeln (id1);
     writeln (id2);
     writeln (id3);
+
+    // test dir shorthand generation
+    assert ("JOB-7oJOgaFWCEnxuKrfU4jZHQdl3tD8".getDirShorthandForLkid == "7o");
+    assert ("EVNT-aiot73ifn83mdksz39enw8rfo39".getDirShorthandForLkid == "ai");
+    assert ("HISHAIOD84jdhs9w37owehsd9skejwd9".getDirShorthandForLkid == "HI");
+    assert ("ascbacjjua-hd7639wndosnds7ekwnsi".getDirShorthandForLkid == "hd");
+    assert ("UNKNOWN_INVALID                 ".getDirShorthandForLkid == "UN");
+    assert ("INVALID_STR".getDirShorthandForLkidString == "UN");
 }

@@ -101,7 +101,7 @@ private void acceptUpload (RubiConfig conf, DudData dud) @trusted
         if (!af.fname.endsWith (".log"))
             continue;
 
-        auto targetDir = buildPath (conf.logStorageDir, dud.jobId[0..2]);
+        auto targetDir = buildPath (conf.logStorageDir, dud.jobId.getDirShorthandForLkidString);
         mkdirRecurse (targetDir);
 
         // move the logfile to its destination
