@@ -16,5 +16,5 @@ lk_main_test_exe = executable ('lk-test_integration',
 )
 test('lk-test_integration',
     lk_main_test_exe,
-    args: [join_paths(source_root, 'tests', 'data')]
+    args: [join_paths(source_root, 'tests', 'test_data')]
 )
