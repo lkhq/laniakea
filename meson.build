@@ -17,6 +17,7 @@ curl_dep = dependency('libcurl')
 czmq_dep = dependency('libczmq')
 dyaml_dep = dependency('dyaml')
 systemd_dep = dependency('systemd')
+fluentassets_dep = dependency('fluent-asserts', version: '>= 0.6', fallback: ['fluent-asserts', 'fluentasserts_dep'])
 
 # Vibe
 vibe_core_dep = dependency('vibe-core')

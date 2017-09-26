@@ -1,0 +1,4 @@
+[wrap-git]
+directory=ddmp
+url=https://github.com/lkorigin/ddmp.git
+revision=head

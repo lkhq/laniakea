@@ -52,6 +52,12 @@ RUN mkdir vibe-pgsql/b
 RUN cd vibe-pgsql/b/ && meson --prefix=/usr ..
 RUN cd vibe-pgsql/b/ && ninja && ninja install
 
+# FluentAsserts
+RUN git clone --depth 1 https://github.com/lkorigin/fluent-asserts.git fluent-asserts
+RUN mkdir fluent-asserts/b
+RUN cd fluent-asserts/b/ && meson --prefix=/usr ..
+RUN cd fluent-asserts/b/ && ninja && ninja install
+
 # finish
 WORKDIR /build
 RUN rm -rf extra

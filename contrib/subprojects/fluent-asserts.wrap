@@ -1,0 +1,4 @@
+[wrap-git]
+directory=fluent-asserts
+url=https://github.com/lkorigin/fluent-asserts.git
+revision=head

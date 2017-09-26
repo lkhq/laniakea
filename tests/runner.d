@@ -25,6 +25,8 @@ static import std.file;
 import repotests;
 import gpgtests;
 
+import fluent.asserts;
+
 //! static import test_spears;
 
 void main (string[] args)
