@@ -8,7 +8,7 @@
     },
 
     "Database": {
-        "database": "laniakea_test",
+        "db": "laniakea_test",
         "user": "lkdbuser_test",
         "password": "notReallySecret"
     },

@@ -25,6 +25,7 @@ import std.algorithm;
 import testutils;
 import laniakea.pkgitems;
 import laniakea.repository;
+import laniakea.localconfig;
 
 
 void validateSourcePackages (SourcePackage[] srcPkgs)
@@ -133,7 +134,7 @@ void testRepositoryRead (const string datadir)
 {
     printTestInfo ("Repository (Read)");
 
-    auto repo = new Repository (buildPath (datadir, "samplerepo", "dummy"), "dummy");
+    auto repo = new Repository (buildPath (datadir, "samplerepo", "dummy"), "dummy", LocalConfig.get.trustedGpgKeyrings);
 
     auto srcPkgs = repo.getSourcePackages ("testing", "main");
     validateSourcePackages (srcPkgs);

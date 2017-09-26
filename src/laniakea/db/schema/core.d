@@ -29,6 +29,7 @@ enum LkModule
 {
     UNKNOWN     = "",
     BASE        = "core",        /// The Laniakea base platform
+    TESTSUITE   = "test",        /// The Laniakea testsuite
     LIGHTHOUSE  = "lighthouse",  /// Message relay station
     SYNCHROTRON = "synchrotron", /// Syncs packages from a source distribution
     SPEARS      = "spears",      /// Automatic package migration

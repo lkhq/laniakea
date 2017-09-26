@@ -461,7 +461,8 @@ public:
             this.valid = false;
         } else if (["PROGRESS",
                     "NEWSIG",
-                    "KEY_CONSIDERED"].canFind (fields[1])) {
+                    "KEY_CONSIDERED",
+                    "VERIFICATION_COMPLIANCE_MODE"].canFind (fields[1])) {
             // ignore these gpg2 fields
         } else {
             throw new GPGError ("Keyword '%s' from GnuPG was not expected.".format (fields[1]));
