@@ -47,13 +47,21 @@ class SynchrotronWebService {
     }
 
     @path("/")
- 	void getMigrationExcuses ()
+ 	void getSyncOverview ()
  	{
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
 
         auto issues = conn.getSynchrotronIssues (0);
         render!("synchrotron/syncoverview.dt", ginfo, issues);
+    }
+
+    @path("/blacklist")
+ 	void getSyncBlacklist ()
+ 	{
+        const blist = db.getSynchrotronBlacklist ();
+        auto entries = blist.blacklist;
+        render!("synchrotron/blacklist.dt", ginfo, entries);
  	}
 
 }
