@@ -136,15 +136,32 @@ final class SyncAdmin : AdminTool
     {
         // TODO: this is quick and dirty - we can do better SQL here
         auto blist = db.getSynchrotronBlacklist;
-        blist.blacklist[pkg] = reason;
+        foreach (ref entry; blist.blacklist) {
+            if (entry.pkgname == pkg) {
+                writeNote ("Package '%s' is already in the blacklist.".format (pkg));
+                return;
+            }
+        }
+        BlacklistEntry entry;
+        entry.pkgname = pkg;
+        entry.date = currentDateTime;
+        entry.reason = reason;
+        blist.blacklist ~= entry;
         db.update (blist);
     }
 
     void synchrotronBlacklistRemove (string pkg)
     {
+        import std.algorithm : remove;
+
         // TODO: this is quick and dirty - we can do better SQL here
         auto blist = db.getSynchrotronBlacklist;
-        blist.blacklist.remove (pkg);
+        foreach (i, e; blist.blacklist) {
+            if (e.pkgname == pkg) {
+                blist.blacklist = blist.blacklist.remove (i);
+                break;
+            }
+        }
         db.update (blist);
     }
 

@@ -99,10 +99,14 @@ public:
         setSourceSuite (syncConfig.source.defaultSuite);
     }
 
-    private auto getPackageBlacklist ()
+    private auto getPackageBlacklistSet ()
     {
         auto syncBlConf = db.getSynchrotronBlacklist;
-        return syncBlConf.blacklist;
+        bool[string] blacklistSet;
+        foreach (ref entry; syncBlConf.blacklist)
+            blacklistSet[entry.pkgname] = true;
+
+        return blacklistSet;
     }
 
     @property
@@ -344,7 +348,7 @@ public:
         auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
         auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
 
-        auto syncBlacklist = getPackageBlacklist ();
+        auto syncBlacklist = getPackageBlacklistSet ();
 
         auto syncedSrcPkgs = appender!(SourcePackage[]);
         foreach (ref pkgname; pkgnames) {
@@ -411,7 +415,7 @@ public:
         auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
         auto activeSrcPkgs = appender!(SourcePackage[]); // source packages which should have their binary packages updated
 
-        auto syncBlacklist = getPackageBlacklist ();
+        auto syncBlacklist = getPackageBlacklistSet ();
 
         // FIXME: we do the quick and dirty update here, removing everything and adding it back.
         // Maybe we need to be smarter about this in future.

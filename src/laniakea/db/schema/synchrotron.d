@@ -45,10 +45,19 @@ struct SynchrotronConfig {
 }
 
 /**
+ * A single entry in the package blacklist.
+ */
+struct BlacklistEntry {
+    string pkgname; /// Name of the blacklisted package
+    DateTime date;  /// Time when the package was blacklisted
+    string reason;  /// Reason why the package is blacklisted
+}
+
+/**
  * Synchrotron blacklist
  **/
 struct SynchrotronBlacklist {
-    string[string] blacklist; // array of blacklisted package (key) and blacklist reasons (value)
+    BlacklistEntry[] blacklist; /// list of packages ignored from synchronization
 }
 
 /**
@@ -213,7 +222,7 @@ auto getSynchrotronBlacklist (Database db)
     scope (exit) db.dropConnection (conn);
 
     SynchrotronBlacklist blist;
-    blist.blacklist = db.getConfigEntry!(string[string]) (conn, LkModule.SYNCHROTRON, "blacklist");
+    blist.blacklist = db.getConfigEntry!(BlacklistEntry[]) (conn, LkModule.SYNCHROTRON, "blacklist");
 
     return blist;
 }
