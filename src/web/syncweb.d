@@ -57,11 +57,11 @@ class SynchrotronWebService {
     }
 
     @path("/blacklist")
- 	void getSyncBlacklist ()
- 	{
+    void getSyncBlacklist ()
+    {
         const blist = db.getSynchrotronBlacklist ();
         auto entries = blist.blacklist;
         render!("synchrotron/blacklist.dt", ginfo, entries);
- 	}
+    }
 
 }
