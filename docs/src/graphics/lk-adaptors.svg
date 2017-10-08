@@ -14,7 +14,7 @@
    viewBox="0 0 207.47083 228.39167"
    version="1.1"
    id="svg4958"
-   inkscape:version="0.92.1 r15371"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
    sodipodi:docname="lk-adaptors.svg">
   <defs
      id="defs4952" />
@@ -25,20 +25,20 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.35"
-     inkscape:cx="-921.7166"
-     inkscape:cy="576.71313"
+     inkscape:zoom="0.49497475"
+     inkscape:cx="247.04057"
+     inkscape:cy="419.54957"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g5852"
      showgrid="false"
      fit-margin-left="8"
      fit-margin-bottom="8"
      fit-margin-top="8"
      fit-margin-right="8"
-     inkscape:window-width="3200"
-     inkscape:window-height="1671"
+     inkscape:window-width="1920"
+     inkscape:window-height="1016"
      inkscape:window-x="0"
-     inkscape:window-y="55"
+     inkscape:window-y="0"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata4955">
@@ -48,7 +48,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -132,15 +132,14 @@
             <text
                xml:space="preserve"
                style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:125%;font-family:Lato;-inkscape-font-specification:Lato;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-               x="-466.42264"
-               y="171.58755"
-               id="text4517-1"
-               transform="translate(-7.4083335,2.1166659)"><tspan
+               x="-472.24344"
+               y="174.23338"
+               id="text4517-1"><tspan
                  sodipodi:role="line"
                  id="tspan4515-9"
-                 x="-466.42264"
-                 y="171.58755"
-                 style="font-size:22.57777786px;stroke-width:0.26458332px">Eggshell</tspan></text>
+                 x="-472.24344"
+                 y="174.23338"
+                 style="font-size:22.57777786px;stroke-width:0.26458332px">Planter</tspan></text>
             <rect
                style="opacity:1;fill:#decd87;fill-opacity:1;stroke:#221c24;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
                id="rect5183-6"
