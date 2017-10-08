@@ -33,7 +33,7 @@ enum LkModule
     LIGHTHOUSE  = "lighthouse",  /// Message relay station
     SYNCHROTRON = "synchrotron", /// Syncs packages from a source distribution
     SPEARS      = "spears",      /// Automatic package migration
-    EGGSHELL    = "eggshell",    /// Interface to Germinate, a metapackage / default-package-selection generator
+    PLANTER     = "planter",     /// Interface to Germinate, a metapackage / default-package-selection generator
     ADMINCLI    = "admin-cli",   /// CLI interface to Laniakea settings and the database, useful debug tool
     KEYTOOL     = "keytool",     /// Small CLI tool to handle encryption keys and certificates
     WEB         = "web",         /// Laniakea web view

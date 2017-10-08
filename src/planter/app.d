@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -24,14 +24,14 @@ import core.stdc.stdlib : exit;
 
 import laniakea.localconfig;
 import laniakea.logging;
-import eggshell.germinate;
+import planter.germinate;
 
 
 private immutable helpText =
 "Usage:
-  eggshell <subcommand> [OPTION...] - Control package migration.
+  planter <subcommand> [OPTION...] - Generate metapackages.
 
-Laniakea module for managing the Britney package migrator.
+Laniakea module for managing the Germinator metapackage generator.
 
 Subcommands:
   run                    - Run Germinator.
@@ -77,7 +77,7 @@ void main (string[] args)
 
     auto conf = LocalConfig.get;
     try {
-        conf.load (LkModule.EGGSHELL);
+        conf.load (LkModule.PLANTER);
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);

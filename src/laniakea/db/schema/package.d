@@ -4,7 +4,7 @@ module laniakea.db.schema;
 public import laniakea.db.schema.core;
 public import laniakea.db.schema.jobs;
 public import laniakea.db.schema.synchrotron;
-public import laniakea.db.schema.eggshell;
+public import laniakea.db.schema.planter;
 public import laniakea.db.schema.spears;
 public import laniakea.db.schema.debcheck;
 public import laniakea.db.schema.workers;
@@ -16,7 +16,7 @@ static immutable __laniakea_db_schema_names = tuple(
     "core",
     "jobs",
     "synchrotron",
-    "eggshell",
+    "planter",
     "spears",
     "debcheck",
     "workers",

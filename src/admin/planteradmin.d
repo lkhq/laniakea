@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module admin.eggshelladmin;
+module admin.planteradmin;
 
 import std.stdio : writeln;
 import std.string : format;
@@ -27,14 +27,14 @@ import admin.admintool;
 
 
 /**
- * Eggshell administration.
+ * Planter administration.
  */
-final class EggshellAdmin : AdminTool
+final class PlanterAdmin : AdminTool
 {
     @property
     override string toolId ()
     {
-        return "eggshell";
+        return "planter";
     }
 
     override
@@ -48,7 +48,7 @@ final class EggshellAdmin : AdminTool
                 ret = initDb ();
                 break;
             case "dump":
-                eggshellDumpConfig ();
+                planterDumpConfig ();
                 break;
             default:
                 writeln ("The command '%s' is unknown.".format (command));
@@ -63,9 +63,9 @@ final class EggshellAdmin : AdminTool
     override
     bool initDb ()
     {
-        writeHeader ("Configuring settings for Eggshell (metapackages / germinator)");
+        writeHeader ("Configuring settings for Planter (metapackages / germinator)");
 
-        EggshellConfig esconf;
+        PlanterConfig esconf;
 
         SpearsConfigEntry migration;
         writeQS ("Git pull URL for the germinate metapackage sources");
@@ -77,8 +77,8 @@ final class EggshellAdmin : AdminTool
         return true;
     }
 
-    void eggshellDumpConfig ()
+    void planterDumpConfig ()
     {
-        writeln (db.getEggshellConfig ().serializeToPrettyJson);
+        writeln (db.getPlanterConfig ().serializeToPrettyJson);
     }
 }

@@ -50,7 +50,7 @@ subdir('tests')
 #
 
 #doc_sources = []
-#foreach s : (laniakea_lib_src + lkadmin_src + synchrotron_src + spears_src + eggshell_src)
+#foreach s : (laniakea_lib_src + lkadmin_src + synchrotron_src + spears_src + planter_src)
 #  doc_sources += source_root + '/' + s
 #endforeach
 #

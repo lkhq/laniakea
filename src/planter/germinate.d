@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module eggshell.germinate;
+module planter.germinate;
 
 import std.stdio : File;
 import std.process;
@@ -51,7 +51,7 @@ private:
     string resultsBaseDir;
 
     Database db;
-    EggshellConfig eggshellConf;
+    PlanterConfig planterConf;
     BaseConfig baseConf;
     LocalConfig localConf;
 
@@ -63,11 +63,11 @@ public:
         germinateExe = "germinate";
 
         db = Database.get;
-        eggshellConf = db.getEggshellConfig;
+        planterConf = db.getPlanterConfig;
         baseConf = db.getBaseConfig;
 
         localConf = LocalConfig.get;
-        immutable workspace = buildPath (localConf.workspace, "eggshell");
+        immutable workspace = buildPath (localConf.workspace, "planter");
         std.file.mkdirRecurse (workspace);
 
         // meta package / seed source directory
@@ -122,7 +122,7 @@ public:
         git.repository = metaSrcDir;
         if (!std.file.exists (buildPath (metaSrcDir, ".git"))) {
             std.file.mkdirRecurse (metaSrcDir);
-            git.clone (eggshellConf.metaPackageGitSourceUrl);
+            git.clone (planterConf.metaPackageGitSourceUrl);
         } else {
             git.pull ();
         }

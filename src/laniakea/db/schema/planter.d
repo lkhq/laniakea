@@ -17,13 +17,13 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module laniakea.db.schema.eggshell;
+module laniakea.db.schema.planter;
 @safe:
 
 /**
 * Configuration specific for the germinate module.
 **/
-struct EggshellConfig {
+struct PlanterConfig {
    string metaPackageGitSourceUrl; /// Git URL of a Germinator seed
 }
 
@@ -32,21 +32,21 @@ import laniakea.db.database;
 /**
  * Add/update configuration.
  */
-void update (Database db, EggshellConfig conf)
+void update (Database db, PlanterConfig conf)
 {
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
-    db.updateConfigEntry (conn, LkModule.EGGSHELL, "metaPackageGitSourceUrl", conf.metaPackageGitSourceUrl);
+    db.updateConfigEntry (conn, LkModule.PLANTER, "metaPackageGitSourceUrl", conf.metaPackageGitSourceUrl);
 }
 
-auto getEggshellConfig (Database db)
+auto getPlanterConfig (Database db)
 {
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
-    EggshellConfig conf;
-    conf.metaPackageGitSourceUrl = db.getConfigEntry!string (conn, LkModule.EGGSHELL, "metaPackageGitSourceUrl");
+    PlanterConfig conf;
+    conf.metaPackageGitSourceUrl = db.getConfigEntry!string (conn, LkModule.PLANTER, "metaPackageGitSourceUrl");
 
     return conf;
 }

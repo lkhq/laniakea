@@ -15,8 +15,8 @@ option('synchrotron',
     value: true,
     description: 'Build the package synchronization module'
 )
-option('eggshell',
+option('planter',
     type: 'boolean',
     value: true,
-    description: 'Build the "Eggshell" metapackage seed / Germinator integration'
+    description: 'Build the "Planter" metapackage seed / Germinator integration'
 )

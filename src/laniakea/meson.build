@@ -29,7 +29,7 @@ laniakea_lib_src = [
     'db/schema/debcheck.d',
     'db/schema/synchrotron.d',
     'db/schema/spears.d',
-    'db/schema/eggshell.d',
+    'db/schema/planter.d',
     'db/schema/workers.d',
     'db/schema/isotope.d'
 ]

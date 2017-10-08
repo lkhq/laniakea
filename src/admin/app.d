@@ -27,7 +27,7 @@ import laniakea.logging;
 
 import admin.admintool;
 import admin.baseadmin;
-import admin.eggshelladmin;
+import admin.planteradmin;
 import admin.spearsadmin;
 import admin.syncadmin;
 import admin.isotopeadmin;
@@ -99,7 +99,7 @@ void main (string[] args)
     // connection can be initialized.
     AdminTool[] tools = [
         new BaseAdmin,
-        new EggshellAdmin,
+        new PlanterAdmin,
         new SpearsAdmin,
         new SyncAdmin,
         new IsotopeAdmin

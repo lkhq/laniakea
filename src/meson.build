@@ -33,9 +33,9 @@ subdir('debcheck')
 # Rubicon data importer
 subdir('rubicon')
 
-# Eggshell
-if (get_option('eggshell'))
-    subdir('eggshell')
+# Planter
+if (get_option('planter'))
+    subdir('planter')
 endif
 
 # Spears

@@ -3,7 +3,7 @@
 lk_admin_src = [
     'admintool.d',
     'baseadmin.d',
-    'eggshelladmin.d',
+    'planteradmin.d',
     'spearsadmin.d',
     'syncadmin.d',
     'isotopeadmin.d'
