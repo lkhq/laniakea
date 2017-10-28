@@ -53,6 +53,7 @@ private:
 
     string rootDir;
     string repoUrl;
+    string repoName;
     string[] keyrings;
     bool repoTrusted;
 
@@ -75,6 +76,7 @@ public:
 
         keyrings = trustedKeyrings;
         repoTrusted = false;
+        this.repoName = repoName;
     }
 
     @property @safe
@@ -209,6 +211,7 @@ public:
             pkg.name = pkgname;
             pkg.suite = suite;
             pkg.component = component;
+            pkg.repository = repoName;
 
             pkg.ver = tf.readField ("Version");
             pkg.architectures = tf.readField ("Architecture").split (" ");
@@ -264,6 +267,7 @@ public:
             pkg.name = pkgname;
             pkg.suite = suiteName;
             pkg.component = component;
+            pkg.repository = repoName;
 
             pkg.ver = tf.readField ("Version");
             pkg.architecture = tf.readField ("Architecture");
@@ -283,7 +287,7 @@ public:
 
             immutable isize = tf.readField ("Installed-Size");
             if (!isize.empty)
-                pkg.installedSize = to!size_t (tf.readField ("Installed-Size"));
+                pkg.installedSize = to!int (tf.readField ("Installed-Size"));
 
             pkg.depends = tf.readField ("Depends", "").splitStrip (",");
             pkg.preDepends = tf.readField ("Pre-Depends", "").splitStrip (",");

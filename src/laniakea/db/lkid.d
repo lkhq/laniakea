@@ -30,6 +30,7 @@ import laniakea.db.schema.core;
  */
 enum LkidType
 {
+    PACKAGE           = "PKG",  /// A package in the archive
     JOB               = "JOB",  /// Prefix for a generic Laniakea job
     EVENT             = "EVNT", /// A (log) event
     WORKER            = "WRK",  /// Prefix for a generic Laniakea worker

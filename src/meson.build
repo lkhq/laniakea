@@ -24,8 +24,8 @@ subdir('keytool')
 # Lighthouse relay
 subdir('lighthouse')
 
-# Datasync
-#! subdir('datasync')
+# Dataimport
+subdir('dataimport')
 
 # Debcheck
 subdir('debcheck')

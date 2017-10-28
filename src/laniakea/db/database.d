@@ -142,6 +142,12 @@ public:
     {
         import laniakea.db.schema : __laniakea_db_schema_names;
 
+        auto conn = getConnection ();
+        scope (exit) dropConnection (conn);
+
+        // ensure we have the debversion extension loaded for this database
+        conn.exec ("CREATE EXTENSION IF NOT EXISTS debversion;");
+
         foreach (ref schemaMod; __laniakea_db_schema_names) {
             callSchemaFunction! ("createTables", schemaMod);
         }

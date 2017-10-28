@@ -25,6 +25,7 @@ laniakea_lib_src = [
     'db/database.d',
     'db/schema/package.d',
     'db/schema/core.d',
+    'db/schema/archive.d',
     'db/schema/jobs.d',
     'db/schema/debcheck.d',
     'db/schema/synchrotron.d',

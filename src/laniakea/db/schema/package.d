@@ -2,6 +2,7 @@
 module laniakea.db.schema;
 
 public import laniakea.db.schema.core;
+public import laniakea.db.schema.archive;
 public import laniakea.db.schema.jobs;
 public import laniakea.db.schema.synchrotron;
 public import laniakea.db.schema.planter;
@@ -14,6 +15,7 @@ public import laniakea.db.schema.isotope;
 private import std.typecons : tuple;
 static immutable __laniakea_db_schema_names = tuple(
     "core",
+    "archive",
     "jobs",
     "synchrotron",
     "planter",

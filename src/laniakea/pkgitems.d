@@ -152,9 +152,11 @@ struct SourcePackage
     PackageType type = PackageType.SOURCE;
 
     string name;       /// Source package name
-    string ver; /// Version of this package
-    string suite;     /// Suite this package is in
-    string component; /// Component this package is in
+    string ver;        /// Version of this package
+    string suite;      /// Suite this package is in
+    string component;  /// Component this package is in
+
+    string repository; /// The archive this package is part of
 
     string[] architectures;
     PackageInfo[] binaries;
@@ -171,6 +173,31 @@ struct SourcePackage
     string[] buildDepends;
     ArchiveFile[] files;
     string directory;
+
+
+    import laniakea.db.database : PgRow, unpackRowValues;
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid,
+                 &name,
+                 &ver,
+                 &suite,
+                 &component,
+                 &repository,
+                 &architectures,
+                 &binaries,
+                 &standardsVersion,
+                 &format,
+                 &homepage,
+                 &vcsBrowser,
+                 &maintainer,
+                 &uploaders,
+                 &buildDepends,
+                 &files,
+                 &directory
+        );
+    }
 }
 
 /**
@@ -183,12 +210,14 @@ struct BinaryPackage
 
     DebType debType;   /// Deb package type
     string name;       /// Package name
-    string ver; /// Version of this package
-    string suite;     /// Suite this package is in
-    string component; /// Component this package is in
+    string ver;        /// Version of this package
+    string suite;      /// Suite this package is in
+    string component;  /// Component this package is in
+
+    string repository; /// Name of the archive this package is part of
 
     string architecture;
-    size_t installedSize;
+    int    installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
 
     string description;
     string descriptionMd5;
@@ -207,4 +236,32 @@ struct BinaryPackage
     ArchiveFile file;
 
     string homepage;
+
+
+    import laniakea.db.database : PgRow, unpackRowValues;
+    this (PgRow r) @trusted
+    {
+        r.unpackRowValues (
+                 &lkid,
+                 &name,
+                 &ver,
+                 &suite,
+                 &component,
+                 &debType,
+                 &repository,
+                 &architecture,
+                 &installedSize,
+                 &description,
+                 &descriptionMd5,
+                 &sourceName,
+                 &sourceVersion,
+                 &priority,
+                 &section,
+                 &depends,
+                 &preDepends,
+                 &maintainer,
+                 &file,
+                 &homepage
+        );
+    }
 }

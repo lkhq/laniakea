@@ -25,7 +25,7 @@ import laniakea.localconfig;
 import laniakea.repository;
 import laniakea.db;
 
-bool syncRepoData (string suiteName, string archiveName = "master") @trusted
+bool syncRepoData (string suiteName, string repoName = "master") @trusted
 {
     auto db = Database.get;
 
@@ -36,43 +36,41 @@ bool syncRepoData (string suiteName, string archiveName = "master") @trusted
     }
 
     Repository repo;
-    if (archiveName == "master") {
-        repo = new Repository (LocalConfig.get.archive.rootPath,
-                                     db.getBaseConfig.projectName);
+    if (repoName == "master") {
+        repo = new Repository (LocalConfig.get.archive.rootPath, repoName);
         repo.setTrusted (true);
     } else {
         assert (0, "The multiple repositories feature is not yet implemented.");
     }
 
-    // the collection containing package data for this repository
-    auto pkgColl = db.collRepoPackages (archiveName);
+    // open database connection
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
 
     // quick & dirty replacement of existing data in this collection: remove the old stuff and add the new stuff
-    pkgColl.remove (["suite": suite.name]);
+    conn.removeSuiteContents (repoName, suite.name);
 
     foreach (ref component; suite.components) {
         // Source packages
         foreach (ref pkg; repo.getSourcePackages (suite.name, component.name)) {
-            pkg.id = newBsonId ();
-            pkgColl.insert (pkg);
+            pkg.lkid = generateNewLkid! (LkidType.PACKAGE);
+            conn.update (pkg);
         }
 
         foreach (ref arch; suite.architectures) {
             // binary packages
             foreach (ref pkg; repo.getBinaryPackages (suite.name, component.name, arch)) {
-                pkg.id = newBsonId ();
-                pkgColl.insert (pkg);
+                pkg.lkid = generateNewLkid! (LkidType.PACKAGE);
+                conn.update (pkg);
             }
 
             // binary packages of the debian-installer
             foreach (ref pkg; repo.getInstallerPackages (suite.name, component.name, arch)) {
-                pkg.id = newBsonId ();
-                pkgColl.insert (pkg);
+                pkg.lkid = generateNewLkid! (LkidType.PACKAGE);
+                conn.update (pkg);
             }
         }
     }
-
-    db.fsync;
 
     return true;
 }
