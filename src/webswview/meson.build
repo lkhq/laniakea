@@ -22,5 +22,5 @@ lkswview_exe = executable ('laniakea-web-swview',
                    vibe_web_dep],
     d_args: ['-J' + current_src_dir + '/views/', '-d-version=VibeDefaultMain', '-d-version=Have_diet_ng'],
     install: true,
-    install_dir: 'lib/laniakea/web-swview/'
+    install_dir: 'lib/laniakea/web/'
 )
