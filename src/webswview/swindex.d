@@ -26,7 +26,6 @@ import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
-import vibe.db.mongo.mongo;
 import vibe.web.web;
 
 import laniakea.db;
@@ -58,25 +57,18 @@ final class SWWebIndex {
 	}
 
     @method(HTTPMethod.GET) @path("/search")
- 	void getJobDetails (HTTPServerRequest req, HTTPServerResponse res)
+ 	void getPackageSearch (HTTPServerRequest req, HTTPServerResponse res)
  	{
-        immutable search_term = req.query["term"];
-        if (search_term.empty)
+        immutable searchTerm = req.query["term"];
+        if (searchTerm.empty)
             return;
 
-        auto coll = db.collRepoPackages;
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
-        auto termRE = Bson(["$regex": Bson(".*" ~ search_term ~ ".*")]);
-        auto searchCur = coll.find!BinaryPackage (["type": Bson(cast(int)PackageType.BINARY),
-                                                   "$or": Bson([
-                                                              Bson([ "name":  termRE]),
-                                                              Bson([ "description": termRE ])
-                                                              ])
-                                                  ]);
-
+        auto results = conn.findBinaryPackage ("master", "green", searchTerm);
 
         // FIXME: Combine the data and make it easier to use
-        auto results = searchCur;
-        render!("search_results.dt", ginfo, results, search_term);
+        render!("search_results.dt", ginfo, results, searchTerm);
  	}
 }

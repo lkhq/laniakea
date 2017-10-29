@@ -53,5 +53,5 @@ if (get_option('webgui'))
     # admin & technical overview
     subdir('web')
     # software view
-    #! subdir('webswview')
+    subdir('webswview')
 endif

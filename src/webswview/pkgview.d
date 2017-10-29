@@ -26,7 +26,6 @@ import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
-import vibe.db.mongo.mongo;
 import vibe.web.web;
 
 import laniakea.db;
@@ -58,27 +57,23 @@ final class PackageView {
         auto component = req.params["component"];
         auto pkgName = req.params["name"];
 
-        auto coll = db.collRepoPackages;
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+
         if (type == "binary") {
-            auto pkg = coll.findOne!BinaryPackage (["type": Bson(cast(int)PackageType.BINARY),
-                                                       "suite": Bson(suite),
-                                                       "component": Bson(component),
-                                                       "name": Bson(pkgName)
-                                                   ]);
-            if (pkg.isNull)
+            auto pkgs = conn.getBinaryPackageVersions ("master", suite, component, pkgName);
+            if (pkgs.length <= 0)
                 return;
+            auto pkg = pkgs[0];
 
             render!("pkgview/details_binary.dt", ginfo, pkg);
             return;
 
         } else if (type == "source") {
-            auto pkg = coll.findOne!SourcePackage (["type": Bson(cast(int)PackageType.SOURCE),
-                                                       "suite": Bson(suite),
-                                                       "component": Bson(component),
-                                                       "name": Bson(pkgName)
-                                                   ]);
-            if (pkg.isNull)
+            auto pkgs = conn.getSourcePackageVersions ("master", suite, component, pkgName);
+            if (pkgs.length <= 0)
                 return;
+            auto pkg = pkgs[0];
 
             render!("pkgview/details_source.dt", ginfo, pkg);
             return;

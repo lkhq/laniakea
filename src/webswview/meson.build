@@ -12,8 +12,7 @@ lk_swview_src = [
     'app.d',
     'webconfig.d',
     'swindex.d',
-    'pkgview.d',
-    '/usr/include/d/vibe/vibe/appmain.d'
+    'pkgview.d'
 ]
 
 lkswview_exe = executable ('laniakea-web-swview',

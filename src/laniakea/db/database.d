@@ -42,6 +42,8 @@ public import std.typecons : Nullable;
 alias PgConnection = LockedConnection!__Conn;
 alias PgRow = immutable(Row);
 
+private static __gshared int OidDebversion = -1; /// The OID of the "Debversion" type, assigned when a "Database" instance is created
+
 /**
  * A connection to the Laniakea database.
  * This singleton can be shared between fibers,
@@ -96,6 +98,17 @@ private:
             scope (exit) dropConnection (conn);
             conn.exec ("SET client_min_messages = warning;");
         }
+
+        // fetch the Debversion OID
+        auto conn = getConnection ();
+        scope (exit) dropConnection (conn);
+        QueryParams p;
+        p.sqlCommand = "SELECT 'debversion'::regtype::oid::integer;";
+        auto r = conn.execParams(p);
+        if (r.length == 0)
+            throw new Exception ("Unable to get OID for the debversion type - is the debversion extension active on Postgres?");
+
+        OidDebversion = r[0][0].as!int;
     }
 
 public:
@@ -314,6 +327,12 @@ public auto dbValueTo (T) (immutable(Value) v)
     import dpq2.conv.to_d_types : TimeStampWithoutTZ;
     import dpq2.oids : OidType;
     import dpq2 : as;
+
+    // special-case debversion strings
+    static if ((is(T == string)) || (is(OriginalType!T == string))) {
+        if (v.oidType == OidDebversion)
+            return (cast(const(char[])) v.data).to!T;
+    }
 
     static if ((is(T == string)) || (is(OriginalType!T == string)))
         return v.as!string; // we need to catch strings explicitly, because isArray is true for them

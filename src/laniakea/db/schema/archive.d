@@ -62,6 +62,11 @@ void createTables (Database db) @trusted
         )"
     );
 
+    conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_name_version_idx
+                ON archive_srcpkg (name, version)");
+    conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_repo_suite_idx
+                ON archive_srcpkg (repository, suite)");
+
     // Binary packages
     conn.exec (
         "CREATE TABLE IF NOT EXISTS archive_binpkg (
@@ -95,6 +100,11 @@ void createTables (Database db) @trusted
           homepage         TEXT
         )"
     );
+
+    conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_name_version_idx
+                ON archive_binpkg (name, version)");
+    conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_repo_suite_idx
+                ON archive_binpkg (repository, suite)");
 }
 
 /**
@@ -262,4 +272,34 @@ void removeSuiteContents (PgConnection conn, string repoName, string suiteName) 
     p.sqlCommand = "DELETE FROM archive_srcpkg WHERE repository=$1 AND suite=$2";
     p.setParams (repoName, suiteName);
     conn.execParams (p);
+}
+
+auto findBinaryPackage (PgConnection conn, string repoName, string suiteName, string term) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM archive_binpkg WHERE repository=$1 AND suite=$2 AND to_tsvector(name || '. ' || description) @@ to_tsquery($3);";
+    p.setParams (repoName, suiteName, term);
+
+    auto ans = conn.execParams(p);
+    return rowsTo!BinaryPackage (ans);
+}
+
+auto getBinaryPackageVersions (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM archive_binpkg WHERE repository=$1 AND suite=$2 AND component=$3 AND name=$4;";
+    p.setParams (repoName, suiteName, component, name);
+
+    auto ans = conn.execParams(p);
+    return rowsTo!BinaryPackage (ans);
+}
+
+auto getSourcePackageVersions (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
+{
+    QueryParams p;
+    p.sqlCommand = "SELECT * FROM archive_srcpkg WHERE repository=$1 AND suite=$2 AND component=$3 AND name=$4;";
+    p.setParams (repoName, suiteName, component, name);
+
+    auto ans = conn.execParams(p);
+    return rowsTo!SourcePackage (ans);
 }
