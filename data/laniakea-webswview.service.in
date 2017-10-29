@@ -1,7 +1,7 @@
 [Unit]
 Description=Laniakea Web Software View GUI
 After=syslog.target network.target
-ConditionPathExists=/etc/laniakea/web-config.json
+ConditionPathExists=/etc/laniakea/swview-web-config.json
 
 [Service]
 Type=simple
