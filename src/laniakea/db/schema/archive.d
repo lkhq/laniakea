@@ -276,9 +276,15 @@ void removeSuiteContents (PgConnection conn, string repoName, string suiteName) 
 
 auto findBinaryPackage (PgConnection conn, string repoName, string suiteName, string term) @trusted
 {
+    import std.array : replace, split, join;
+    import std.algorithm : map;
+
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM archive_binpkg WHERE repository=$1 AND suite=$2 AND to_tsvector(name || '. ' || description) @@ to_tsquery($3);";
-    p.setParams (repoName, suiteName, term);
+
+    immutable termPrepared = term.replace ("|", " ").replace ("&", " ").split.join ("|");
+    p.sqlCommand = "SELECT * FROM archive_binpkg WHERE
+                    repository=$1 AND suite=$2 AND to_tsvector(name || '. ' || description) @@ to_tsquery($3);";
+    p.setParams (repoName, suiteName, termPrepared);
 
     auto ans = conn.execParams(p);
     return rowsTo!BinaryPackage (ans);
@@ -287,7 +293,9 @@ auto findBinaryPackage (PgConnection conn, string repoName, string suiteName, st
 auto getBinaryPackageVersions (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
 {
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM archive_binpkg WHERE repository=$1 AND suite=$2 AND component=$3 AND name=$4;";
+    p.sqlCommand = "SELECT * FROM archive_binpkg WHERE
+                    repository=$1 AND suite=$2 AND component=$3 AND name=$4
+                    ORDER BY version;";
     p.setParams (repoName, suiteName, component, name);
 
     auto ans = conn.execParams(p);
@@ -297,7 +305,9 @@ auto getBinaryPackageVersions (PgConnection conn, string repoName, string suiteN
 auto getSourcePackageVersions (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
 {
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM archive_srcpkg WHERE repository=$1 AND suite=$2 AND component=$3 AND name=$4;";
+    p.sqlCommand = "SELECT * FROM archive_srcpkg WHERE
+                    repository=$1 AND suite=$2 AND component=$3 AND name=$4
+                    ORDER BY version;";
     p.setParams (repoName, suiteName, component, name);
 
     auto ans = conn.execParams(p);
