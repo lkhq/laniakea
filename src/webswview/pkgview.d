@@ -61,21 +61,19 @@ final class PackageView {
         scope (exit) db.dropConnection (conn);
 
         if (type == "binary") {
-            auto pkgs = conn.getBinaryPackageVersions ("master", suite, component, pkgName);
-            if (pkgs.length <= 0)
+            auto pkg = conn.getPackageFor!BinaryPackage ("master", suite, component, pkgName);
+            if (pkg.isNull)
                 return;
-            auto pkg = pkgs[0];
-
-            render!("pkgview/details_binary.dt", ginfo, pkg);
+            auto suites = conn.getPackageSuites!BinaryPackage ("master", component, pkgName);
+            render!("pkgview/details_binary.dt", ginfo, pkg, suites);
             return;
 
         } else if (type == "source") {
-            auto pkgs = conn.getSourcePackageVersions ("master", suite, component, pkgName);
-            if (pkgs.length <= 0)
+            auto pkg = conn.getPackageFor!SourcePackage ("master", suite, component, pkgName);
+            if (pkg.isNull)
                 return;
-            auto pkg = pkgs[0];
-
-            render!("pkgview/details_source.dt", ginfo, pkg);
+            auto suites = conn.getPackageSuites!SourcePackage ("master", component, pkgName);
+            render!("pkgview/details_source.dt", ginfo, pkg, suites);
             return;
 
         } else {

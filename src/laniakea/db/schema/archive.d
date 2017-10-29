@@ -66,6 +66,8 @@ void createTables (Database db) @trusted
                 ON archive_srcpkg (name, version)");
     conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_repo_suite_idx
                 ON archive_srcpkg (repository, suite)");
+    conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_ftsearch
+                ON archive_srcpkg USING GIN(to_tsvector('english', name));");
 
     // Binary packages
     conn.exec (
@@ -105,6 +107,8 @@ void createTables (Database db) @trusted
                 ON archive_binpkg (name, version)");
     conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_repo_suite_idx
                 ON archive_binpkg (repository, suite)");
+    conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_ftsearch
+                ON archive_binpkg USING GIN(to_tsvector('english', name || ' ' || description));");
 }
 
 /**
@@ -274,7 +278,7 @@ void removeSuiteContents (PgConnection conn, string repoName, string suiteName) 
     conn.execParams (p);
 }
 
-auto findBinaryPackage (PgConnection conn, string repoName, string suiteName, string term) @trusted
+auto findBinaryPackage (PgConnection conn, string repoName, string term) @trusted
 {
     import std.array : replace, split, join;
     import std.algorithm : map;
@@ -283,33 +287,75 @@ auto findBinaryPackage (PgConnection conn, string repoName, string suiteName, st
 
     immutable termPrepared = term.replace ("|", " ").replace ("&", " ").split.join ("|");
     p.sqlCommand = "SELECT * FROM archive_binpkg WHERE
-                    repository=$1 AND suite=$2 AND to_tsvector(name || '. ' || description) @@ to_tsquery($3);";
-    p.setParams (repoName, suiteName, termPrepared);
+                    repository=$1 AND to_tsvector(name || '. ' || description) @@ to_tsquery($2);";
+    p.setParams (repoName, termPrepared);
 
     auto ans = conn.execParams(p);
     return rowsTo!BinaryPackage (ans);
 }
 
-auto getBinaryPackageVersions (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
+/**
+ * Get the package with the highest version number matching the given parameters.
+ */
+auto getPackageFor (T) (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
 {
+    static assert (is(T == SourcePackage) || is(T == BinaryPackage));
+
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM archive_binpkg WHERE
-                    repository=$1 AND suite=$2 AND component=$3 AND name=$4
-                    ORDER BY version;";
+
+    static if (is(T == SourcePackage))
+        p.sqlCommand = "SELECT * FROM archive_srcpkg WHERE
+                        repository=$1 AND suite=$2 AND component=$3 AND name=$4
+                        ORDER BY version LIMIT 1;";
+    else
+        p.sqlCommand = "SELECT * FROM archive_binpkg WHERE
+                        repository=$1 AND suite=$2 AND component=$3 AND name=$4
+                        ORDER BY version LIMIT 1;";
+
     p.setParams (repoName, suiteName, component, name);
 
     auto ans = conn.execParams(p);
-    return rowsTo!BinaryPackage (ans);
+    return rowsToOne!T (ans);
 }
 
-auto getSourcePackageVersions (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
+auto getPackageVersions (T) (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
 {
+    static assert (is(T == SourcePackage) || is(T == BinaryPackage));
+
     QueryParams p;
-    p.sqlCommand = "SELECT * FROM archive_srcpkg WHERE
-                    repository=$1 AND suite=$2 AND component=$3 AND name=$4
-                    ORDER BY version;";
+    static if (is(T == SourcePackage))
+        p.sqlCommand = "SELECT version FROM archive_srcpkg WHERE
+                        repository=$1 AND suite=$2 AND component=$3 AND name=$4
+                        ORDER BY version;";
+    else
+        p.sqlCommand = "SELECT version FROM archive_binpkg WHERE
+                        repository=$1 AND suite=$2 AND component=$3 AND name=$4
+                        ORDER BY version;";
+
     p.setParams (repoName, suiteName, component, name);
 
     auto ans = conn.execParams(p);
-    return rowsTo!SourcePackage (ans);
+    return rowsToStringList (ans);
+}
+
+auto getPackageSuites (T) (PgConnection conn, string repoName, string component, string name) @trusted
+{
+    static assert (is(T == SourcePackage) || is(T == BinaryPackage));
+
+    import std.algorithm : uniq;
+    QueryParams p;
+
+    static if (is(T == SourcePackage))
+        p.sqlCommand = "SELECT suite FROM archive_srcpkg WHERE
+                        repository=$1 AND component=$2 AND name=$3
+                        ORDER BY suite;";
+    else
+        p.sqlCommand = "SELECT suite FROM archive_binpkg WHERE
+                        repository=$1 AND component=$2 AND name=$3
+                        ORDER BY suite;";
+
+    p.setParams (repoName, component, name);
+
+    auto ans = conn.execParams(p);
+    return rowsToStringList (ans).uniq;
 }

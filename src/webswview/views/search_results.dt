@@ -6,6 +6,9 @@ block head
 block contents
   h1 Results for search for '#{searchTerm}'
 
-  - foreach (ref res; results)
-    p
-      a(href='/package/binary/#{res.suite}/#{res.component}/#{res.name}') #{res.name} - #{res.ver} [#{res.suite}/#{res.component}] [#{res.architecture}]
+  h3 Binary Packages
+  .list-group
+    - foreach (ref res; results)
+      a.list-group-item(href='/package/binary/#{res.suite}/#{res.component}/#{res.name}')
+        h4.list-group-item-heading #{res.name} - #{res.ver}
+        p.list-group-item-text #{res.suite}/#{res.component} - [#{res.architecture}]

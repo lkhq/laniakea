@@ -305,6 +305,25 @@ auto rowsToOne (T) (immutable Answer ans)
 }
 
 /**
+ * Convert rows of a database reply to a string list.
+ */
+auto rowsToStringList (immutable Answer ans)
+{
+    string[] res;
+    res.length = ans.length;
+
+    uint i = 0;
+    foreach (r; rangify (ans)) {
+        if (r.length <= 0)
+            continue;
+        res[i] = r[0].dbValueTo!string;
+        i++;
+    }
+
+    return res;
+}
+
+/**
  * Convert a row of a database reply to the selected type.
  */
 auto rowTo (T) (PgRow r)

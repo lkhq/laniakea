@@ -9,11 +9,11 @@ block contents
     p.lead Suites
     |
     .list-group
-      a.list-group-item.active= pkg.suite
-      |
-      a.list-group-item(href="#") Suite 2
-      |
-      a.list-group-item(href="#") Suite 3
+      - foreach (ref suite; suites)
+        - if (suite == pkg.suite)
+          a.list-group-item.active= pkg.suite
+        - else
+          a.list-group-item(href='/package/binary/#{suite}/#{pkg.component}/#{pkg.name}')= suite
   |
   .col-md-9
     .thumbnail

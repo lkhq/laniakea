@@ -66,7 +66,7 @@ final class SWWebIndex {
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
 
-        auto results = conn.findBinaryPackage ("master", "green", searchTerm);
+        auto results = conn.findBinaryPackage ("master", searchTerm);
 
         // FIXME: Combine the data and make it easier to use
         render!("search_results.dt", ginfo, results, searchTerm);
