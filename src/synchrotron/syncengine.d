@@ -460,9 +460,9 @@ public:
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
 
-                    if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
+                    if (compareVersions (dpkg.ver, spkg.ver) >= 0) {
                         logDebug ("Skipped sync of %s: Target version '%s' is equal/newer than source version '%s'.",
-                                  spkg.name, (*dpkgP).ver, spkg.ver);
+                                  spkg.name, dpkg.ver, spkg.ver);
                         continue;
                     }
 
