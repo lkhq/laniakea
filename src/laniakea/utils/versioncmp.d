@@ -214,4 +214,6 @@ unittest
 
     assert (compareVersions ("4:5.6-2", "8.0-6") > 0);
     assert (compareVersions ("1:1.0-4", "3:0.8-2") < 0);
+
+    assert (compareVersions ("5.9.1+dfsg-5pureos1", "5.9.1+dfsg-5") > 0);
 }

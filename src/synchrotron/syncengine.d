@@ -310,13 +310,13 @@ public:
                             existingPackages = true;
                             continue;
                         }
-                    }
 
-                    if (binI.ver.getDebianRev.canFind (distroTag)) {
-                        // safety measure, we should never get here as packages with modifications were
-                        // filtered out previously.
-                        logDebug ("Can not sync binary package %s/%s: It has modifications.", binI.name, binI.ver);
-                        continue;
+                        if (ebinPkg.ver.getDebianRev.canFind (distroTag)) {
+                            // safety measure, we should never get here as packages with modifications were
+                            // filtered out previously.
+                            logDebug ("Can not sync binary package %s/%s: Target has modifications.", binI.name, binI.ver);
+                            continue;
+                        }
                     }
 
                     auto fname = sourceRepo.getFile (binPkg.file);
@@ -366,10 +366,20 @@ public:
 
             auto spkg = *spkgP;
             if (dpkgP !is null) {
-                if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
+                auto dpkg = *dpkgP;
+
+                if (compareVersions (dpkg.ver, spkg.ver) >= 0) {
                     logInfo ("Can not sync %s: Target version '%s' is newer/equal than source version '%s'.",
-                             pkgname, (*dpkgP).ver, spkg.ver);
+                             pkgname, dpkg.ver, spkg.ver);
                     continue;
+                }
+
+                if (!force) {
+                    if (dpkg.ver.getDebianRev.canFind (distroTag)) {
+                        logError ("No syncing %s/%s: Destination has modifications (found %s).",
+                                  spkg.name, spkg.ver, dpkg.ver);
+                        continue;
+                    }
                 }
             }
 
@@ -453,7 +463,7 @@ public:
                     // check if we have a modified target package,
                     // indicated via its Debian revision, e.g. "1.0-0tanglu1"
                     if (dpkg.ver.getDebianRev.canFind (distroTag)) {
-                        logInfo ("No syncing %s/%s: It has modifications.", spkg.name, spkg.ver);
+                        logInfo ("No syncing %s/%s: Destination has modifications (found %s).", spkg.name, spkg.ver, dpkg.ver);
 
                         // add information that this package needs to be merged to the issue list
                         auto issue = newSyncIssue (sourceSuite, targetSuite);
