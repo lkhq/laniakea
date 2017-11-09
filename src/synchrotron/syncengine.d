@@ -460,6 +460,12 @@ public:
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
 
+                    if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
+                        logDebug ("Skipped sync of %s: Target version '%s' is equal/newer than source version '%s'.",
+                                  spkg.name, (*dpkgP).ver, spkg.ver);
+                        continue;
+                    }
+
                     // check if we have a modified target package,
                     // indicated via its Debian revision, e.g. "1.0-0tanglu1"
                     if (dpkg.ver.getDebianRev.canFind (distroTag)) {
@@ -475,13 +481,6 @@ public:
                         conn.update (issue);
                         continue;
                     }
-
-                    if (compareVersions ((*dpkgP).ver, spkg.ver) >= 0) {
-                        logDebug ("Skipped sync of %s: Target version '%s' is equal/newer than source version '%s'.",
-                                  spkg.name, (*dpkgP).ver, spkg.ver);
-                        continue;
-                    }
-
                 }
 
                 // sync source package
