@@ -368,15 +368,18 @@ public:
             if (dpkgP !is null) {
                 auto dpkg = *dpkgP;
 
-                if (!force) {
-                    // don't do any version checks if we force the sync action
-
-                    if (compareVersions (dpkg.ver, spkg.ver) >= 0) {
+                if (compareVersions (dpkg.ver, spkg.ver) >= 0) {
+                    if (force) {
+                        logWarning ("%s: Target version '%s' is newer/equal than source version '%s'.",
+                                    pkgname, dpkg.ver, spkg.ver);
+                    } else {
                         logInfo ("Can not sync %s: Target version '%s' is newer/equal than source version '%s'.",
-                                 pkgname, dpkg.ver, spkg.ver);
+                             pkgname, dpkg.ver, spkg.ver);
                         continue;
                     }
+                }
 
+                if (!force) {
                     if (dpkg.ver.getDebianRev.canFind (distroTag)) {
                         logError ("No syncing %s/%s: Destination has modifications (found %s).",
                                   spkg.name, spkg.ver, dpkg.ver);
