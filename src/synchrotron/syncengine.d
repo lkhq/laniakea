@@ -236,7 +236,7 @@ public:
     /**
      * Import binary packages for the given set of source packages into the archive.
      */
-    private bool importBinariesForSources (SourcePackage[] spkgs, string component)
+    private bool importBinariesForSources (SourcePackage[] spkgs, string component, bool ignoreTargetChanges = false)
     {
         if (!syncConfig.syncBinaries) {
             logDebug ("Skipping binary syncs.");
@@ -311,7 +311,7 @@ public:
                             continue;
                         }
 
-                        if (ebinPkg.ver.getDebianRev.canFind (distroTag)) {
+                        if ((!ignoreTargetChanges) && (ebinPkg.ver.getDebianRev.canFind (distroTag))) {
                             // safety measure, we should never get here as packages with modifications were
                             // filtered out previously.
                             logDebug ("Can not sync binary package %s/%s: Target has modifications.", binI.name, binI.ver);
@@ -391,7 +391,7 @@ public:
             syncedSrcPkgs ~= spkg;
         }
 
-        auto ret = importBinariesForSources (syncedSrcPkgs.data, component);
+        auto ret = importBinariesForSources (syncedSrcPkgs.data, component, force);
 
         // TODO: Analyze the input, fetch the packages from the source distribution and
         // import them into the target in their correct order.
