@@ -300,15 +300,19 @@ public:
                             continue;
                         }
 
-                        // filter out manual rebuild uploads matching the pattern XbY.
+                        // Filter out manual rebuild uploads matching the pattern XbY.
                         // sometimes rebuild uploads of not-modified packages happen, and if the source
                         // distro did a binNMU, we don't want to sync that, even if it's bigger
-                        auto rbRE = ctRegex!(`([0-9]+)b([0-9]+)`);
-                        if (!ebinPkg.ver.matchAll (rbRE).empty) {
-                            logDebug ("Not syncing binary package '%s/%s': Existing binary package with rebuild upload '%s' found.",
-                                        binPkg.name, binPkg.ver, ebinPkg.ver);
-                            existingPackages = true;
-                            continue;
+                        // This rebuild-upload check must only happen if we haven't just updated the source package
+                        // (in that case the source package version will be bigger than the existing binary package version)
+                        if (compareVersions (spkg.ver, ebinPkg.ver) <= 0) {
+                            auto rbRE = ctRegex!(`([0-9]+)b([0-9]+)`);
+                            if (!ebinPkg.ver.matchAll (rbRE).empty) {
+                                logDebug ("Not syncing binary package '%s/%s': Existing binary package with rebuild upload '%s' found.",
+                                           binPkg.name, binPkg.ver, ebinPkg.ver);
+                                existingPackages = true;
+                                continue;
+                            }
                         }
 
                         if ((!ignoreTargetChanges) && (ebinPkg.ver.getDebianRev.canFind (distroTag))) {
