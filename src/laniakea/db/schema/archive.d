@@ -24,6 +24,17 @@ import laniakea.pkgitems;
 
 import laniakea.db.database;
 
+private enum ArchiveTab {
+    SRCPKGS    = "archive_src_packages",
+    BINPKGS    = "archive_bin_packages",
+    REPOS      = "archive_repos",
+    SUITES     = "archive_suites",
+    COMPONENTS = "archive_components",
+
+    BIN_PKG_ASSOC = "archive_bin_package_associations",
+    SRC_PKG_ASSOC = "archive_src_package_associations"
+};
+
 
 /**
  * Create initial tables for this module.
@@ -35,7 +46,7 @@ void createTables (Database db) @trusted
 
     // Source packages
     conn.exec (
-        "CREATE TABLE IF NOT EXISTS archive_srcpkg (
+        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.SRCPKGS ~ " (
           lkid VARCHAR(32) PRIMARY KEY,
           name             TEXT NOT NULL,
           version          DEBVERSION NOT NULL,
