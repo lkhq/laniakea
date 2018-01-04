@@ -31,8 +31,8 @@ private enum ArchiveTab {
     SUITES     = "archive_suites",
     COMPONENTS = "archive_components",
 
-    BIN_PKG_ASSOC = "archive_bin_package_associations",
-    SRC_PKG_ASSOC = "archive_src_package_associations"
+    BINPKG_ASSOC = "archive_bin_package_associations",
+    SRCPKG_ASSOC = "archive_src_package_associations"
 };
 
 
@@ -44,10 +44,39 @@ void createTables (Database db) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
+    // Repositories
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.REPOS ~ " (
+          id           INTEGER PRIMARY KEY,
+          name         TEXT NOT NULL,
+          description  TEXT
+        )"
+    );
+
+    // Suites
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.SUITES ~ " (
+          id           INTEGER PRIMARY KEY,
+          name         TEXT NOT NULL,
+          description  TEXT,
+          repo_id      INTEGER REFERENCES " ~ ArchiveTab.REPOS ~ "(id)
+        )"
+    );
+
+    // Components
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.COMPONENTS ~ " (
+          id           INTEGER PRIMARY KEY,
+          name         TEXT NOT NULL,
+          description  TEXT,
+          repo_id      INTEGER REFERENCES " ~ ArchiveTab.REPOS ~ "(id)
+        )"
+    );
+
     // Source packages
     conn.exec (
         "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.SRCPKGS ~ " (
-          lkid VARCHAR(32) PRIMARY KEY,
+          uuid             UUID PRIMARY KEY,
           name             TEXT NOT NULL,
           version          DEBVERSION NOT NULL,
           suite            TEXT NOT NULL,
@@ -74,16 +103,16 @@ void createTables (Database db) @trusted
     );
 
     conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_name_version_idx
-                ON archive_srcpkg (name, version)");
+                ON " ~ ArchiveTab.SRCPKGS ~ " (name, version)");
     conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_repo_suite_idx
-                ON archive_srcpkg (repository, suite)");
+                ON " ~ ArchiveTab.SRCPKGS ~ " (repository, suite)");
     conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_ftsearch
-                ON archive_srcpkg USING GIN(to_tsvector('english', name));");
+                ON " ~ ArchiveTab.SRCPKGS ~ " USING GIN(to_tsvector('english', name));");
 
     // Binary packages
     conn.exec (
-        "CREATE TABLE IF NOT EXISTS archive_binpkg (
-          lkid VARCHAR(32) PRIMARY KEY,
+        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.BINPKGS ~ " (
+          uuid             UUID PRIMARY KEY,
           name             TEXT NOT NULL,
           version          DEBVERSION NOT NULL,
           suite            TEXT NOT NULL,
@@ -115,11 +144,28 @@ void createTables (Database db) @trusted
     );
 
     conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_name_version_idx
-                ON archive_binpkg (name, version)");
+                ON " ~ ArchiveTab.BINPKGS ~ " (name, version)");
     conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_repo_suite_idx
-                ON archive_binpkg (repository, suite)");
+                ON " ~ ArchiveTab.BINPKGS ~ " (repository, suite)");
     conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_ftsearch
-                ON archive_binpkg USING GIN(to_tsvector('english', name || ' ' || description));");
+                ON " ~ ArchiveTab.BINPKGS ~ " USING GIN(to_tsvector('english', name || ' ' || description));");
+
+
+    // Relations
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.BINPKG_ASSOC ~ " (
+          bin_package   UUID REFERENCES " ~ ArchiveTab.BINPKGS ~ "(uuid),
+          suite_id      INTEGER REFERENCES " ~ ArchiveTab.SUITES ~ "(id),
+          component_id  INTEGER REFERENCES " ~ ArchiveTab.COMPONENTS ~ "(id)
+        )"
+    );
+    conn.exec (
+        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.SRCPKG_ASSOC ~ " (
+          src_package   UUID REFERENCES " ~ ArchiveTab.SRCPKGS ~ "(uuid),
+          suite_id      INTEGER REFERENCES " ~ ArchiveTab.SUITES ~ "(id),
+          component_id  INTEGER REFERENCES " ~ ArchiveTab.COMPONENTS ~ "(id)
+        )"
+    );
 }
 
 /**
@@ -280,11 +326,11 @@ void removeSuiteContents (PgConnection conn, string repoName, string suiteName) 
 {
     QueryParams p;
 
-    p.sqlCommand = "DELETE FROM archive_binpkg WHERE repository=$1 AND suite=$2";
+    p.sqlCommand = "DELETE FROM " ~ ArchiveTab.BINPKGS ~ " WHERE repository=$1 AND suite=$2";
     p.setParams (repoName, suiteName);
     conn.execParams (p);
 
-    p.sqlCommand = "DELETE FROM archive_srcpkg WHERE repository=$1 AND suite=$2";
+    p.sqlCommand = "DELETE FROM " ~ ArchiveTab.SRCPKGS ~ " WHERE repository=$1 AND suite=$2";
     p.setParams (repoName, suiteName);
     conn.execParams (p);
 }
@@ -297,7 +343,7 @@ auto findBinaryPackage (PgConnection conn, string repoName, string term) @truste
     QueryParams p;
 
     immutable termPrepared = term.replace ("|", " ").replace ("&", " ").split.join ("|");
-    p.sqlCommand = "SELECT * FROM archive_binpkg WHERE
+    p.sqlCommand = "SELECT * FROM " ~ ArchiveTab.BINPKGS ~ " WHERE
                     repository=$1 AND to_tsvector(name || '. ' || description) @@ to_tsquery($2);";
     p.setParams (repoName, termPrepared);
 
@@ -315,11 +361,11 @@ auto getPackageFor (T) (PgConnection conn, string repoName, string suiteName, st
     QueryParams p;
 
     static if (is(T == SourcePackage))
-        p.sqlCommand = "SELECT * FROM archive_srcpkg WHERE
+        p.sqlCommand = "SELECT * FROM " ~ ArchiveTab.SRCPKGS ~ " WHERE
                         repository=$1 AND suite=$2 AND component=$3 AND name=$4
                         ORDER BY version LIMIT 1;";
     else
-        p.sqlCommand = "SELECT * FROM archive_binpkg WHERE
+        p.sqlCommand = "SELECT * FROM " ~ ArchiveTab.BINPKGS ~ " WHERE
                         repository=$1 AND suite=$2 AND component=$3 AND name=$4
                         ORDER BY version LIMIT 1;";
 
@@ -335,11 +381,11 @@ auto getPackageVersions (T) (PgConnection conn, string repoName, string suiteNam
 
     QueryParams p;
     static if (is(T == SourcePackage))
-        p.sqlCommand = "SELECT version FROM archive_srcpkg WHERE
+        p.sqlCommand = "SELECT version FROM " ~ ArchiveTab.SRCPKGS ~ " WHERE
                         repository=$1 AND suite=$2 AND component=$3 AND name=$4
                         ORDER BY version;";
     else
-        p.sqlCommand = "SELECT version FROM archive_binpkg WHERE
+        p.sqlCommand = "SELECT version FROM " ~ ArchiveTab.BINPKGS ~ " WHERE
                         repository=$1 AND suite=$2 AND component=$3 AND name=$4
                         ORDER BY version;";
 
@@ -357,11 +403,11 @@ auto getPackageSuites (T) (PgConnection conn, string repoName, string component,
     QueryParams p;
 
     static if (is(T == SourcePackage))
-        p.sqlCommand = "SELECT suite FROM archive_srcpkg WHERE
+        p.sqlCommand = "SELECT suite FROM " ~ ArchiveTab.SRCPKGS ~ " WHERE
                         repository=$1 AND component=$2 AND name=$3
                         ORDER BY suite;";
     else
-        p.sqlCommand = "SELECT suite FROM archive_binpkg WHERE
+        p.sqlCommand = "SELECT suite FROM " ~ ArchiveTab.BINPKGS ~ " WHERE
                         repository=$1 AND component=$2 AND name=$3
                         ORDER BY suite;";
 

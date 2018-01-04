@@ -142,3 +142,8 @@ void testRepositoryRead (const string datadir)
     auto binPkgs = repo.getBinaryPackages ("testing", "main", "amd64");
     validateBinaryPackages (binPkgs);
 }
+
+void testArchiveDatabase ()
+{
+
+}

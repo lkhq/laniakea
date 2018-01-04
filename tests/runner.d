@@ -71,6 +71,11 @@ void main (string[] args)
     conf.trustedGpgKeyrings ~= buildPath (testDataDir, "gpg", "keyrings", "keyring.gpg");
     conf.trustedGpgKeyrings ~= buildPath (testDataDir, "gpg", "keyrings", "other-keyring.gpg");
 
+    // initialize the database
+    import laniakea.db.database : Database;
+    auto db = Database.get;
+    db.initializeDatabase ();
+
     // At this point, we already ran all the stuff from unittest blocks.
     // now we can do a bit more complex tests which are longer or
     // involve a lot of pieces needing to work well together.
@@ -78,6 +83,8 @@ void main (string[] args)
     // aditional data from the test-data directory (while stuff in
     // unittest blocks is always standalone).
     testRepositoryRead (testDataDir);
+
+    testArchiveDatabase ();
 
     testGnuPG (testDataDir);
 
