@@ -15,9 +15,9 @@ ssl_dep = dependency('libssl')
 archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
 czmq_dep = dependency('libczmq')
-dyaml_dep = dependency('dyaml')
 systemd_dep = dependency('systemd')
-fluentassets_dep = dependency('fluent-asserts', version: '>= 0.6', fallback: ['fluent-asserts', 'fluentasserts_dep'])
+dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_dep'])
+fluentasserts_dep = dependency('fluent-asserts', version: '>= 0.6', fallback: ['fluent-asserts', 'fluentasserts_dep'])
 
 # Vibe
 vibe_core_dep = dependency('vibe-core')

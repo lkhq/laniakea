@@ -12,7 +12,7 @@ lk_tests_src = [
 
 lk_main_test_exe = executable ('lk-test_integration',
     [lk_tests_src],
-    dependencies: [laniakea_shared_dep, fluentassets_dep]
+    dependencies: [laniakea_shared_dep, fluentasserts_dep]
 )
 test('lk-test_integration',
     lk_main_test_exe,

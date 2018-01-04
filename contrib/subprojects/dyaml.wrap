@@ -1,0 +1,4 @@
+[wrap-git]
+directory=dyaml
+url=https://github.com/dlang-community/D-YAML.git
+revision=head
