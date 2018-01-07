@@ -21,7 +21,7 @@ module laniakea.db.schema.debcheck;
 
 import std.datetime : DateTime;
 public import laniakea.pkgitems : PackageType;
-import laniakea.db.schema.core;
+import laniakea.db.utils;
 @safe:
 
 /**

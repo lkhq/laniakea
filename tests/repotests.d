@@ -118,7 +118,7 @@ void validateBinaryPackages (BinaryPackage[] binPkgs)
 
         assertEq (pkg.depends, ["debhelper (>= 9)", "make"]);
 
-        assertEq (pkg.architecture, "all");
+        assertEq (pkg.architecture.name, "all");
         assertEq (pkg.section, "utils");
         assertEq (pkg.priority, PackagePriority.OPTIONAL);
         assertEq (pkg.installedSize, 89);

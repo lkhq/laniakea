@@ -21,7 +21,7 @@ module laniakea.db.schema.synchrotron;
 @safe:
 
 import std.datetime : DateTime;
-import laniakea.db.schema.core;
+import laniakea.db.utils;
 
 
 /**
@@ -60,6 +60,7 @@ struct SynchrotronConfig {
  **/
 @Table ("synchrotron_blacklist")
 class SyncBlacklistEntry {
+    @Id @UniqueKey
     string pkgname; /// Name of the blacklisted package
     DateTime date;  /// Time when the package was blacklisted
     string reason;  /// Reason why the package is blacklisted
@@ -103,8 +104,6 @@ class SynchrotronIssue {
 
 import laniakea.db.database;
 
-enum synchrotronIssuesTableName = "synchrotron_issues";
-
 /**
  * Create initial tables for this module.
  */
@@ -129,7 +128,7 @@ void createTables (Database db) @trusted
     // figure out the proper types
     stmt.executeUpdate (
         "ALTER TABLE synchrotron_issue
-         ALTER COLUMN uuid TYPE UUID;"
+         ALTER COLUMN uuid TYPE UUID USING uuid::uuid;"
     );
 }
 

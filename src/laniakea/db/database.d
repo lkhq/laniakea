@@ -31,7 +31,7 @@ import ddbc;
 import ddbc.drivers.pgsqlddbc : PGSQLDriver;
 import hibernated.core;
 
-import laniakea.db.schema.core;
+import laniakea.db.utils;
 
 public import laniakea.db.schema.core : LkModule;
 public import ddbc : Connection, ResultSet;
@@ -148,36 +148,6 @@ public:
         scope(exit) stmt.close();
 
         return stmt.executeUpdate (sql);
-    }
-
-    /**
-     * Call functions on a module with this database as parameter.
-     */
-    void callSchemaFunction (string fun, string mod_name) ()
-    {
-        static import laniakea.db.schema;
-        mixin("alias mod = laniakea.db.schema." ~ mod_name ~ ";");
-
-        foreach (m; __traits(derivedMembers, mod)) {
-        static if (__traits(isStaticFunction, __traits(getMember, mod, m)))
-            static if (m == fun)
-                __traits(getMember, mod, m) (this);
-        }
-    }
-
-    /**
-     * Create database and all tables
-     */
-    void initializeDatabase ()
-    {
-        import laniakea.db.schema : __laniakea_db_schema_names;
-
-        // ensure we have the debversion extension loaded for this database
-        simpleExecute ("CREATE EXTENSION IF NOT EXISTS debversion;");
-
-        foreach (ref schemaMod; __laniakea_db_schema_names) {
-            callSchemaFunction! ("createTables", schemaMod);
-        }
     }
 
     /**

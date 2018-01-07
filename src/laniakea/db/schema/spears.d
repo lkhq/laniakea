@@ -22,7 +22,7 @@ module laniakea.db.schema.spears;
 
 import std.datetime : DateTime;
 
-import laniakea.db.schema.core;
+import laniakea.db.utils;
 import laniakea.pkgitems : VersionPriority;
 
 
@@ -153,11 +153,11 @@ void createTables (Database db) @trusted
     // figure out the proper types
     stmt.executeUpdate (
         "ALTER TABLE spears_excuse
-         ALTER COLUMN uuid TYPE UUID,
-         ALTER COLUMN age TYPE JSONB,
-         ALTER COLUMN missing_builds TYPE JSONB,
-         ALTER COLUMN old_binaries TYPE JSONB,
-         ALTER COLUMN reason TYPE JSONB;"
+         ALTER COLUMN uuid TYPE UUID USING uuid::uuid,
+         ALTER COLUMN age TYPE JSONB USING age::jsonb,
+         ALTER COLUMN missing_builds TYPE JSONB USING missing_builds::jsonb,
+         ALTER COLUMN old_binaries TYPE JSONB USING old_binaries::jsonb,
+         ALTER COLUMN reason TYPE JSONB USING reason::jsonb;"
     );
 }
 

@@ -73,6 +73,7 @@ void main (string[] args)
 
     // initialize the database
     import laniakea.db.database : Database;
+    import laniakea.db.maintenance : initializeDatabase;
     auto db = Database.get;
     db.initializeDatabase ();
 

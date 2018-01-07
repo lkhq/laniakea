@@ -21,6 +21,7 @@ module laniakea.pkgitems;
 @safe:
 public import std.uuid : UUID;
 
+import laniakea.db.utils;
 import laniakea.db.schema.core;
 
 /**

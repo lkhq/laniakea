@@ -21,7 +21,7 @@ module laniakea.db.schema.workers;
 @safe:
 
 import std.datetime : DateTime;
-import laniakea.db.schema.core;
+import laniakea.db.utils;
 
 /**
  * State this worker is in.
@@ -48,10 +48,10 @@ class SparkWorker {
     DateTime createdTime; /// Time when this worker was created
 
     string[] accepts;    /// Modules this worker will accept jobs for
-    mixin JsonDatabaseField!("accepts", "accepts", "string[]");
+    mixin (JsonDatabaseField!("accepts", "accepts", "string[]"));
 
     WorkerStatus status; /// Status/health of this machine
-    mixin EnumDatabaseField!("status", "status", "WorkerStatus");
+    mixin (EnumDatabaseField!("status", "status", "WorkerStatus"));
 
     bool enabled;        /// Whether this worker should receive jobs or not
 
@@ -88,8 +88,8 @@ void createTables (Database db) @trusted
     // figure out the proper types
     stmt.executeUpdate (
         "ALTER TABLE workers
-         ALTER COLUMN uuid TYPE UUID,
-         ALTER COLUMN last_job TYPE UUID,
-         ALTER COLUMN accepts TYPE JSONB;"
+         ALTER COLUMN uuid TYPE UUID USING uuid::uuid,
+         ALTER COLUMN last_job TYPE UUID USING uuid::uuid,
+         ALTER COLUMN accepts TYPE JSONB USING accepts::jsonb;"
     );
 }

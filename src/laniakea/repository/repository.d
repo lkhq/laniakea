@@ -209,7 +209,7 @@ public:
             if (!pkgname)
                 continue;
 
-            SourcePackage pkg;
+            auto pkg = new SourcePackage;
             pkg.name = pkgname;
             pkg.suite = suite;
             pkg.component = component;
@@ -265,7 +265,7 @@ public:
             if (!pkgname)
                 continue;
 
-            BinaryPackage pkg;
+            auto pkg = new BinaryPackage;
             pkg.name = pkgname;
             pkg.suite = suiteName;
             pkg.component = component;

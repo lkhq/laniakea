@@ -53,7 +53,7 @@ public:
         if (tf.readField ("Source") is null)
             tf.nextSection ();
 
-        SourcePackage sp;
+        auto sp = new SourcePackage;
 
         sp.format = tf.readField ("Format");
         sp.name = tf.readField ("Source");

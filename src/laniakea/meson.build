@@ -22,6 +22,8 @@ laniakea_lib_src = [
     'utils/namegen.d',
     'db/package.d',
     'db/database.d',
+    'db/maintenance.d',
+    'db/utils.d',
     'db/schema/package.d',
     'db/schema/core.d',
     'db/schema/archive.d',

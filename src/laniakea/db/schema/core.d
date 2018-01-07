@@ -20,9 +20,7 @@
 module laniakea.db.schema.core;
 @safe:
 
-public import std.array : empty;
-public import std.uuid : UUID;
-public import hibernated.annotations;
+import laniakea.db.utils;
 
 /**
  * A list of all modules integrated into the Laniakea suite,
@@ -50,72 +48,12 @@ enum LkModule
 }
 
 /**
- * A template to mix into classes containing a uuid primary key.
- **/
-template UUIDProperty() {
-    UUID uuid;
-    @property @Column ("uuid") @Id @UniqueKey string uuid_s () { return uuid.toString; }
-    @property void uuid_s (string s) { uuid = UUID (s); }
-}
-
-/**
- * A template to quickly add JSON/JSONB properties to database entities,
- * so Hibernated can recognize and serialize them.
- */
-template JsonDatabaseField (string column, string fieldName, string dataType) {
-    const char[] JsonDatabaseField =
-        `@property @Column ("` ~ column ~ `")
-         string ` ~ fieldName ~ `_json () {
-             import vibe.data.json : serializeToJsonString;
-             return serializeToJsonString (` ~ fieldName ~ `);
-         };
-
-         @property @Column ("` ~ column ~ `")
-         void ` ~ fieldName ~ `_json (string v) {
-             import vibe.data.json : deserializeJson;
-             ` ~ fieldName ~ ` = v.deserializeJson! (` ~ dataType ~ `);
-         };`;
-}
-
-/**
- * A template to make enums readable as integers for the Hibernated ORM.
- */
-template EnumDatabaseField (string column, string fieldName, string dataType, bool isShort = false) {
-    static if (isShort) {
-        const char[] EnumDatabaseField =
-            `@property @Column ("` ~ column ~ `")
-            short ` ~ fieldName ~ `_i () {
-                import std.conv : to;
-                return ` ~ fieldName ~ `.to!short;
-            };
-
-            @property @Column ("` ~ column ~ `")
-            void ` ~ fieldName ~ `_i (short v) {
-                import std.conv : to;
-                ` ~ fieldName ~ ` = v.to! (` ~ dataType ~ `);
-            };`;
-    } else {
-        const char[] EnumDatabaseField =
-            `@property @Column ("` ~ column ~ `")
-            int ` ~ fieldName ~ `_i () {
-                import std.conv : to;
-                return ` ~ fieldName ~ `.to!int;
-            };
-
-            @property @Column ("` ~ column ~ `")
-            void ` ~ fieldName ~ `_i (int v) {
-                import std.conv : to;
-                ` ~ fieldName ~ ` = v.to! (` ~ dataType ~ `);
-            };`;
-    }
-}
-
-/**
  * A system architecture software can be compiled for.
  * Usually associated with an @ArchiveSuite
  */
 class ArchiveRepository
 {
+    @Id
     int id;
 
     @UniqueKey
@@ -129,6 +67,7 @@ class ArchiveRepository
  */
 class ArchiveSuite
 {
+    @Id
     int id;
 
     string name;
@@ -224,7 +163,7 @@ void createTables (Database db) @trusted
     scope (exit) factory.close();
 
     // create tables if they don't exist yet
-    factory.getDBMetaData().updateDBSchema (conn, false, true);
+    factory.getDBMetaData ().updateDBSchema (conn, false, true);
 }
 
 /**
@@ -258,7 +197,10 @@ auto getBaseConfig (Database db)
 
 auto getSuite (Database db, string name, string repo = "master") @trusted
 {
-    auto schema = new SchemaInfoImpl! (ArchiveSuite);
+    auto schema = new SchemaInfoImpl! (ArchiveRepository,
+                                       ArchiveComponent,
+                                       ArchiveArchitecture,
+                                       ArchiveSuite);
 
     auto factory = db.newSessionFactory (schema);
     auto session = factory.openSession();
