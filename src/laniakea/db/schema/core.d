@@ -81,7 +81,7 @@ class ArchiveSuite
     LazyCollection!ArchiveComponent components;
 
     @Null
-    string baseSuite;
+    string baseSuiteName;
 }
 
 /**
@@ -206,11 +206,27 @@ auto getSuite (Database db, string name, string repo = "master") @trusted
     auto session = factory.openSession();
     scope (exit) session.close();
 
-    auto q = session.createQuery ("FROM archive_suite WHERE name=:Name")
+    auto q = session.createQuery ("FROM ArchiveSuite WHERE name=:Name")
                     .setParameter ("Name", name);
     ArchiveSuite[] list = q.list!ArchiveSuite();
 
     if (list.empty)
         return null;
     return list[0];
+}
+
+auto getSuites (Database db, string repo = "master") @trusted
+{
+    auto schema = new SchemaInfoImpl! (ArchiveRepository,
+                                       ArchiveComponent,
+                                       ArchiveArchitecture,
+                                       ArchiveSuite);
+
+    auto factory = db.newSessionFactory (schema);
+    auto session = factory.openSession();
+    scope (exit) session.close();
+
+    auto q = session.createQuery ("FROM ArchiveSuite suite WHERE suite.repo.name=:repo")
+                    .setParameter ("repo", repo);
+    return q.list!ArchiveSuite();
 }

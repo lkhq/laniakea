@@ -18,9 +18,6 @@
  */
 
 module laniakea.debcheck;
-@safe:
-
-version(none):
 
 import std.string : format;
 import std.array : appender, empty, array;
@@ -48,12 +45,15 @@ class Debcheck
         }
 
         Database db;
+        SessionFactory sFactory;
         Repository repo;
     }
 
     this ()
     {
         db = Database.get;
+        auto schema = new SchemaInfoImpl! (DebcheckIssue);
+        auto sFactory = db.newSessionFactory (schema);
 
         auto conf = LocalConfig.get;
         auto baseConfig = db.getBaseConfig;
@@ -63,15 +63,20 @@ class Debcheck
         repo.setTrusted (true);
     }
 
-    private string getDefaultNativeArch (DistroSuite suite)
+    private string getDefaultNativeArch (ArchiveSuite suite)
     {
-        import std.algorithm : canFind;
-
         // determine a default native architecture in case
         // we are processing arch:all
         auto defaultNativeArch = "amd64";
-        if (!suite.architectures.canFind (defaultNativeArch))
-            defaultNativeArch = suite.architectures[0];
+        auto nativeArchFound = false;
+        foreach (ref a; suite.architectures) {
+            if (a.name == defaultNativeArch) {
+                nativeArchFound = true;
+                break;
+            }
+        }
+        if (!nativeArchFound)
+            defaultNativeArch = suite.architectures[0].name;
 
         if (defaultNativeArch.empty)
             throw new Exception ("Unable to determine a valid default architecture.");
@@ -126,7 +131,7 @@ class Debcheck
      * ones of the dependencies are added as "background" (bg).
      */
     private Tuple!(string[], "fg", string[], "bg")
-    getFullIndexFileList (DistroSuite suite, string arch, bool sourcePackages, string binArch)
+    getFullIndexFileList (ArchiveSuite suite, string arch, bool sourcePackages, string binArch)
     {
         Tuple!(string[], "fg", string[], "bg") res;
 
@@ -153,7 +158,7 @@ class Debcheck
         // add base suite packages
         if (!suite.baseSuiteName.empty) {
             auto baseSuite = db.getSuite (suite.baseSuiteName);
-            if (!baseSuite.isNull) {
+            if (baseSuite !is null) {
                 foreach (ref component; baseSuite.components) {
                     string fname;
 
@@ -173,12 +178,12 @@ class Debcheck
     /**
      * Get Dose YAML data for build dependency issues in the selected suite.
      */
-    private string[string] getBuildDepCheckYaml (DistroSuite suite)
+    private string[string] getBuildDepCheckYaml (ArchiveSuite suite)
     {
         string[string] archIssueMap;
 
         immutable defaultNativeArch = getDefaultNativeArch (suite);
-        foreach (ref arch; suite.architectures) {
+        foreach (ref arch; suite.architectures.map! (a => a.name)) {
             // fetch source-package-centric index list
             auto indices = getFullIndexFileList (suite, arch, true, defaultNativeArch);
             if (indices.fg.empty) {
@@ -208,13 +213,15 @@ class Debcheck
     /**
      * Get Dose YAML data for build installability issues in the selected suite.
      */
-    private string[string] getDepCheckYaml (DistroSuite suite)
+    private string[string] getDepCheckYaml (ArchiveSuite suite)
     {
+        import std.algorithm : map;
+        import std.array : array;
         string[string] archIssueMap;
 
         immutable defaultNativeArch = getDefaultNativeArch (suite);
 
-        auto allArchs = suite.architectures ~ ["all"];
+        auto allArchs = array (suite.architectures.map!(a => a.name)) ~ ["all"];
         foreach (ref arch; allArchs) {
             // fetch binary-package index list
             auto indices = getFullIndexFileList (suite, arch, false, defaultNativeArch);
@@ -246,6 +253,7 @@ class Debcheck
 
     private DebcheckIssue[] doseYamlToDatabaseEntries (string yamlData, string suiteName, string arch) @trusted
     {
+        import std.uuid : randomUUID;
         auto res = appender!(DebcheckIssue[]);
 
         void setBasicPackageInfo (T) (ref T v, dyaml.Node entry) {
@@ -264,7 +272,7 @@ class Debcheck
         auto archAll = arch == "all";
 
         foreach (ref dyaml.Node entry; report) {
-            DebcheckIssue issue;
+            auto issue = new DebcheckIssue;
 
             if (!archAll) {
                 // we ignore entries from "all" unless we are explicitly reading information
@@ -273,7 +281,7 @@ class Debcheck
                     continue;
             }
 
-            issue.lkid = generateNewLkid! (LkidType.DEBCHECK);
+            issue.uuid = randomUUID ();
             issue.date = currentDateTime ();
             issue.suiteName = suiteName;
 
@@ -332,13 +340,15 @@ class Debcheck
         return res.data;
     }
 
-    public bool updateBuildDepCheckIssues (DistroSuite suite) @trusted
+    public bool updateBuildDepCheckIssues (ArchiveSuite suite) @trusted
     {
         import vibe.data.bson;
         import std.typecons : tuple;
 
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession();
+        scope (exit) session.close();
 
         auto issuesYaml = getBuildDepCheckYaml (suite);
         conn.removeDebcheckIssues (suite.name, PackageType.SOURCE);
@@ -346,7 +356,7 @@ class Debcheck
             auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
 
             foreach (ref entry; entries)
-                conn.update (entry);
+                session.save (entry);
         }
 
         return true;
@@ -359,8 +369,7 @@ class Debcheck
 
     public bool updateBuildDepCheckIssues ()
     {
-        auto bconf = db.getBaseConfig ();
-        foreach (ref suite; bconf.suites) {
+        foreach (ref suite; db.getSuites ()) {
             auto ret = updateBuildDepCheckIssues (suite);
             if (!ret)
                 return false;
@@ -368,13 +377,15 @@ class Debcheck
         return true;
     }
 
-    public bool updateDepCheckIssues (DistroSuite suite) @trusted
+    public bool updateDepCheckIssues (ArchiveSuite suite) @trusted
     {
         import vibe.data.bson;
         import std.typecons : tuple;
 
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession();
+        scope (exit) session.close();
 
         auto issuesYaml = getDepCheckYaml (suite);
         foreach (ref arch, ref yamlData; issuesYaml) {
@@ -382,7 +393,7 @@ class Debcheck
 
             conn.removeDebcheckIssues (suite.name, PackageType.BINARY, arch);
             foreach (ref entry; entries)
-                conn.update (entry);
+                session.save (entry);
         }
 
         return true;
@@ -395,8 +406,7 @@ class Debcheck
 
     public bool updateDepCheckIssues ()
     {
-        auto bconf = db.getBaseConfig ();
-        foreach (ref suite; bconf.suites) {
+        foreach (ref suite; db.getSuites ()) {
             auto ret = updateDepCheckIssues (suite);
             if (!ret)
                 return false;
@@ -404,17 +414,31 @@ class Debcheck
         return true;
     }
 
-    public auto getBinaryIssuesList (DistroSuite suite, string arch) @trusted
+    public auto getBinaryIssuesList (ArchiveSuite suite, string arch) @trusted
     {
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
-        return conn.getDebcheckIssues (suite.name, PackageType.BINARY, arch);
+        auto session = sFactory.openSession();
+        scope (exit) session.close();
+
+        auto q = session.createQuery ("FROM DebcheckIssue issue WHERE issue.suiteName=:suite
+                                                                  AND issue.architecture=:arch
+                                                                  AND issue.packageKind=:kind")
+                                      .setParameter ("suite", suite.name)
+                                      .setParameter ("arch", arch)
+                                      .setParameter ("kind", PackageType.BINARY.to!short);
+        return q.list!DebcheckIssue();
     }
 
-    public auto getSourceIssuesList (DistroSuite suite, string arch) @trusted
+    public auto getSourceIssuesList (ArchiveSuite suite, string arch) @trusted
     {
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
-        return conn.getDebcheckIssues (suite.name, PackageType.SOURCE);
+        auto session = sFactory.openSession();
+        scope (exit) session.close();
+
+        auto q = session.createQuery ("FROM DebcheckIssue issue WHERE issue.suiteName=:suite
+                                                                  AND issue.architecture=:arch
+                                                                  AND issue.packageKind=:kind")
+                                      .setParameter ("suite", suite.name)
+                                      .setParameter ("arch", arch)
+                                      .setParameter ("kind", PackageType.SOURCE.to!short);
+        return q.list!DebcheckIssue();
     }
 }

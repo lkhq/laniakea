@@ -20,7 +20,7 @@
 
 // public imports with generaly useful stuff
 public import std.array : empty;
-public import std.uuid : UUID;
+public import std.uuid : UUID, randomUUID;
 public import hibernated.annotations;
 
 

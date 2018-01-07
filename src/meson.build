@@ -19,7 +19,7 @@ subdir('laniakea')
 #! subdir('admin')
 
 # Key management cli tool
-#! subdir('keytool')
+subdir('keytool')
 
 # Lighthouse relay
 #! subdir('lighthouse')
