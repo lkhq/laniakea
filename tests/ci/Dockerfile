@@ -46,11 +46,11 @@ RUN mkdir dyaml/b
 RUN cd dyaml/b/ && meson --prefix=/usr ..
 RUN cd dyaml/b/ && ninja && ninja install
 
-# D PostgreSQL
-RUN git clone --depth 1 https://github.com/lkorigin/vibe.d.db.postgresql.git vibe-pgsql
-RUN mkdir vibe-pgsql/b
-RUN cd vibe-pgsql/b/ && meson --prefix=/usr ..
-RUN cd vibe-pgsql/b/ && ninja && ninja install
+# Hibernated
+RUN git clone --depth 1 https://github.com/lkorigin/hibernated.git hibernated
+RUN mkdir hibernated/b
+RUN cd hibernated/b/ && meson --prefix=/usr ..
+RUN cd hibernated/b/ && ninja && ninja install
 
 # FluentAsserts
 RUN git clone --depth 1 https://github.com/lkorigin/fluent-asserts.git fluent-asserts
