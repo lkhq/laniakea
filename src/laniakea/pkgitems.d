@@ -19,7 +19,9 @@
 
 module laniakea.pkgitems;
 @safe:
-public import laniakea.db.lkid : LkId, LkidType;
+public import std.uuid : UUID;
+
+import laniakea.db.schema.core;
 
 /**
  * Type of the package.
@@ -146,20 +148,21 @@ struct PackageInfo
 /**
  * Data of a source package.
  */
-struct SourcePackage
+class SourcePackage
 {
-    LkId lkid;
-    PackageType type = PackageType.SOURCE;
+    mixin UUIDProperty;
 
     string name;       /// Source package name
-    string ver;        /// Version of this package
+    @Column ("version") string ver; /// Version of this package
     string suite;      /// Suite this package is in
     string component;  /// Component this package is in
 
     string repository; /// The archive this package is part of
 
     string[] architectures;
+    mixin (JsonDatabaseField!("architectures", "architectures", "string[]"));
     PackageInfo[] binaries;
+    mixin (JsonDatabaseField!("binaries", "binaries", "PackageInfo[]"));
 
     string standardsVersion;
     string format;
@@ -169,54 +172,46 @@ struct SourcePackage
 
     string maintainer;
     string[] uploaders;
+    mixin (JsonDatabaseField!("uploaders", "uploaders", "string[]"));
 
     string[] buildDepends;
+    mixin (JsonDatabaseField!("buildDepends", "buildDepends", "string[]"));
+
     ArchiveFile[] files;
+    mixin (JsonDatabaseField!("files", "files", "ArchiveFile[]"));
     string directory;
 
-
-    import laniakea.db.database : PgRow, unpackRowValues;
-    this (PgRow r) @trusted
+    void ensureUUID (bool regenerate = false)
     {
-        r.unpackRowValues (
-                 &lkid,
-                 &name,
-                 &ver,
-                 &suite,
-                 &component,
-                 &repository,
-                 &architectures,
-                 &binaries,
-                 &standardsVersion,
-                 &format,
-                 &homepage,
-                 &vcsBrowser,
-                 &maintainer,
-                 &uploaders,
-                 &buildDepends,
-                 &files,
-                 &directory
-        );
+        import std.uuid : sha1UUID;
+        import std.array : empty;
+        if (this.uuid.empty && !regenerate)
+            return;
+
+        if (this.repository.empty)
+            this.repository = "master";
+        this.uuid = sha1UUID (this.repository ~ "::" ~ this.name ~ "/" ~ this.ver);
     }
 }
 
 /**
  * Data of a binary package.
  */
-struct BinaryPackage
+class BinaryPackage
 {
-    LkId lkid;
-    PackageType type = PackageType.BINARY;
+    mixin UUIDProperty;
 
     DebType debType;   /// Deb package type
+    mixin (EnumDatabaseField! ("deb_type", "debType", "DebType", true));
+
     string name;       /// Package name
-    string ver;        /// Version of this package
+    @Column ("version") string ver; /// Version of this package
     string suite;      /// Suite this package is in
     string component;  /// Component this package is in
 
     string repository; /// Name of the archive this package is part of
 
-    string architecture;
+    ArchiveArchitecture architecture;
     int    installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
 
     string description;
@@ -226,42 +221,32 @@ struct BinaryPackage
     string sourceVersion;
 
     PackagePriority priority;
+    mixin (EnumDatabaseField! ("priority", "priority", "PackagePriority", true));
+
     string section;
 
     string[] depends;
+    mixin (JsonDatabaseField! ("depends", "depends", "string[]"));
+
     string[] preDepends;
+    mixin (JsonDatabaseField! ("preDepends", "preDepends", "string[]"));
 
     string maintainer;
 
     ArchiveFile file;
+    mixin (JsonDatabaseField! ("file", "file", "ArchiveFile"));
 
     string homepage;
 
-
-    import laniakea.db.database : PgRow, unpackRowValues;
-    this (PgRow r) @trusted
+    void ensureUUID (bool regenerate = false)
     {
-        r.unpackRowValues (
-                 &lkid,
-                 &name,
-                 &ver,
-                 &suite,
-                 &component,
-                 &debType,
-                 &repository,
-                 &architecture,
-                 &installedSize,
-                 &description,
-                 &descriptionMd5,
-                 &sourceName,
-                 &sourceVersion,
-                 &priority,
-                 &section,
-                 &depends,
-                 &preDepends,
-                 &maintainer,
-                 &file,
-                 &homepage
-        );
+        import std.uuid : sha1UUID;
+        import std.array : empty;
+        if (this.uuid.empty && !regenerate)
+            return;
+
+        if (this.repository.empty)
+            this.repository = "master";
+        this.uuid = sha1UUID (this.repository ~ "::" ~ this.name ~ "/" ~ this.ver);
     }
 }

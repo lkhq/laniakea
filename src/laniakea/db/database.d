@@ -25,22 +25,21 @@ import std.string : format;
 import std.array : empty;
 import std.conv : to;
 
-import vibe.db.postgresql;
 import laniakea.localconfig;
 import laniakea.logging;
+import ddbc;
+import ddbc.drivers.pgsqlddbc : PGSQLDriver;
+import hibernated.core;
 
 import laniakea.db.schema.core;
 
 public import laniakea.db.schema.core : LkModule;
-public import laniakea.db.lkid : LkId, LkidType;
-public import dpq2 : QueryParams, ValueFormat;
-public import vibe.data.json : Json, serializeToJsonString;
-public import vibe.data.bson : Bson, deserializeBson;
+public import ddbc : Connection, ResultSet;
+public import hibernated.annotations;
+public import hibernated.type;
+public import hibernated.metadata;
 public import std.typecons : Nullable;
-
-
-alias PgConnection = LockedConnection!__Conn;
-alias PgRow = immutable(Row);
+public import std.variant : Variant;
 
 private static __gshared int OidDebversion = -1; /// The OID of the "Debversion" type, assigned when a "Database" instance is created
 
@@ -63,7 +62,9 @@ final class Database
     }
 
 private:
-    PostgresClient client;
+    PGSQLDriver driver;
+    DataSource dsource;
+    PGSQLDialect dialect;
 
     immutable string dbHost;
     immutable ushort dbPort;
@@ -85,30 +86,33 @@ private:
         dbPassword = conf.databasePassword;
         dbExtraOptions = conf.databaseExtraOpts;
 
-        client = new PostgresClient("host=" ~ dbHost ~
-                                    " port=" ~ dbPort.to!string ~
-                                    " dbname=" ~ dbName ~
-                                    " user=" ~ dbUser ~
-                                    " password=" ~ dbPassword ~
-                                    " " ~ dbExtraOptions, 8);
+
+        driver = new PGSQLDriver();
+        auto url = PGSQLDriver.generateUrl (dbHost, dbPort, dbName);
+        auto params = PGSQLDriver.setUserAndPassword (dbUser, dbPassword);
+        dsource = new ConnectionPoolDataSourceImpl (driver, url, params);
+
+        auto conn = getConnection ();
+        scope (exit) dropConnection (conn);
 
         if (!loggingIsVerbose) {
             // disable excess log messages unless we are in verbose mode
-            auto conn = getConnection ();
-            scope (exit) dropConnection (conn);
-            conn.exec ("SET client_min_messages = warning;");
+            auto stmt = conn.createStatement ();
+            scope (exit) stmt.close ();
+
+            stmt.executeUpdate ("SET client_min_messages = warning;");
         }
 
         // fetch the Debversion OID
-        auto conn = getConnection ();
-        scope (exit) dropConnection (conn);
-        QueryParams p;
-        p.sqlCommand = "SELECT 'debversion'::regtype::oid::integer;";
-        auto r = conn.execParams(p);
-        if (r.length == 0)
-            throw new Exception ("Unable to get OID for the debversion type - is the debversion extension active on Postgres?");
+        auto stmt = conn.createStatement ();
+        scope (exit) stmt.close ();
 
-        OidDebversion = r[0][0].as!int;
+        auto rs = stmt.executeQuery ("SELECT 'debversion'::regtype::oid::integer");
+        if (!rs.first ())
+            throw new Exception ("Unable to get OID for the debversion type - is the debversion extension active on Postgres?");
+        OidDebversion = rs.getInt (1);
+
+        dialect = new PGSQLDialect;
     }
 
 public:
@@ -118,19 +122,32 @@ public:
      */
     auto getConnection () @trusted
     {
-        try {
-            return client.lockConnection();
-        } catch (Exception e) {
-            throw new Exception("Unable to get database connection: %s".format (e.msg));
-        }
+        return dsource.getConnection ();
     }
 
     /**
      * Explicitly close a database connection and return its slot.
      */
-    void dropConnection (ref PgConnection conn) @trusted
+    void dropConnection (ref Connection conn) @trusted
     {
-        delete conn;
+        conn.close ();
+    }
+
+    /**
+     * Execute a simple SQL command using a new connection.
+     *
+     * Using this method is not very efficient, if you need
+     * to execute more than one command, use a dedicated
+     * connection/statement combo.
+     */
+    int simpleExecute (string sql)
+    {
+        auto conn = getConnection ();
+        scope (exit) dropConnection (conn);
+        auto stmt = conn.createStatement();
+        scope(exit) stmt.close();
+
+        return stmt.executeUpdate (sql);
     }
 
     /**
@@ -155,11 +172,8 @@ public:
     {
         import laniakea.db.schema : __laniakea_db_schema_names;
 
-        auto conn = getConnection ();
-        scope (exit) dropConnection (conn);
-
         // ensure we have the debversion extension loaded for this database
-        conn.exec ("CREATE EXTENSION IF NOT EXISTS debversion;");
+        simpleExecute ("CREATE EXTENSION IF NOT EXISTS debversion;");
 
         foreach (ref schemaMod; __laniakea_db_schema_names) {
             callSchemaFunction! ("createTables", schemaMod);
@@ -169,15 +183,19 @@ public:
     /**
      * Update a configuration entry for s specific module.
      */
-    void updateConfigEntry (T) (PgConnection conn, LkModule mod, string key, T data) @trusted
+    void updateConfigEntry (T) (Connection conn, LkModule mod, string key, T data) @trusted
     {
-        QueryParams p;
-        p.sqlCommand = "INSERT INTO config (id, data)
-                        VALUES ($1, $2::jsonb)
-                        ON CONFLICT (id) DO UPDATE SET
-                        data = $2::jsonb";
-        p.argsFromArray = [mod ~ "." ~ key, data.serializeToJsonString];
-        conn.execParams (p);
+        import vibe.data.json : serializeToJsonString;
+
+        auto ps = conn.prepareStatement ("INSERT INTO config (id, data)
+                                          VALUES ($1, $2::jsonb)
+                                          ON CONFLICT (id) DO UPDATE SET
+                                          data = $2::jsonb");
+        scope (exit) ps.close ();
+
+        ps.setString (1, mod ~ "." ~ key);
+        ps.setString (2, data.serializeToJsonString);
+        ps.executeUpdate ();
     }
 
     /**
@@ -197,41 +215,92 @@ public:
     {
         auto conn = getConnection ();
         scope (exit) dropConnection (conn);
-        QueryParams p;
-        p.sqlCommand = "UPDATE config SET
-                          data = $2::jsonb
-                        WHERE id=$1";
-        p.argsFromArray = [id, value];
-        conn.execParams (p);
+
+        auto ps = conn.prepareStatement ("UPDATE config SET
+                                          data = $2::jsonb
+                                          WHERE id=$1");
+        scope (exit) ps.close ();
+
+        ps.setString (1, id);
+        ps.setString (2, value);
+        ps.executeUpdate ();
     }
 
     /**
      * Get configuration entry of the selected type T.
      */
-    auto getConfigEntry (T) (PgConnection conn, LkModule mod, string key) @trusted
+    auto getConfigEntry (T) (Connection conn, LkModule mod, string key) @trusted
     {
-        QueryParams p;
-        p.sqlCommand = "SELECT * FROM config WHERE id=$1";
-        p.argsFromArray = [mod ~ "." ~ key];
-        auto r = conn.execParams(p);
+        import vibe.data.json : deserializeJson, parseJsonString;
+
+        auto ps = conn.prepareStatement ("SELECT * FROM config WHERE id=$1");
+        scope (exit) ps.close ();
+        ps.setString (1, mod ~ "." ~ key);
+        auto rs = ps.executeQuery ();
 
         T d;
-        if (r.length == 0)
+        if (rs.getFetchSize == 0)
             return d;
-        if (r[0].length < 2)
-            return d;
-        immutable bson = r[0][1].as!Bson;
+        rs.first ();
+
+        immutable json = parseJsonString (rs.getString (2));
 
         // special-case some easy types
         static if (is(T == string)) {
-            return bson.get!string;
+            return json.get!string;
         } else {
             // generic Bson deserialization
-            return bson.deserializeBson!T;
+            return json.deserializeJson!T;
         }
+    }
+
+    /**
+     * Create a new session factory using the provided schema.
+     */
+    auto newSessionFactory (EntityMetaData schema)
+    {
+        return new SessionFactoryImpl (schema, dialect, dsource);
     }
 }
 
+/**
+ * Convert rows of a database reply to the selected type.
+ */
+auto rowsTo (T) (ResultSet rs)
+{
+    import std.traits : OriginalType;
+    static assert (is(OriginalType!T == struct));
+
+    T[] res;
+    res.length = rs.getFetchSize;
+
+    uint i = 0;
+    while (rs.next ()) {
+        res[i] = T(rs);
+        i++;
+    }
+
+    return res;
+}
+
+/**
+ * Convert first row of a database reply to the selected type.
+ */
+auto rowsToOne (T) (ResultSet rs)
+{
+    import std.traits : OriginalType;
+    static assert (is(OriginalType!T == struct));
+
+    Nullable!T res;
+    if (rs.getFetchSize > 0) {
+        rs.first ();
+        res = T(rs);
+    }
+
+    return res;
+}
+
+version (none) {
 public void setParams (A...) (ref QueryParams p, A args)
 {
     import laniakea.db.lkid;
@@ -268,41 +337,7 @@ public void setParams (A...) (ref QueryParams p, A args)
     }
 }
 
-/**
- * Convert rows of a database reply to the selected type.
- */
-auto rowsTo (T) (immutable Answer ans)
-{
-    import std.traits : OriginalType;
-    static assert (is(OriginalType!T == struct));
 
-    T[] res;
-    res.length = ans.length;
-
-    uint i = 0;
-    foreach (r; rangify (ans)) {
-        res[i] = T(r);
-        i++;
-    }
-
-    return res;
-}
-
-/**
- * Convert first row of a database reply to the selected type.
- */
-auto rowsToOne (T) (immutable Answer ans)
-{
-    import std.traits : OriginalType;
-    static assert (is(OriginalType!T == struct));
-
-    Nullable!T res;
-    if (ans.length > 0) {
-        res = T(ans[0]);
-    }
-
-    return res;
-}
 
 /**
  * Convert rows of a database reply to a string list.
@@ -323,19 +358,7 @@ auto rowsToStringList (immutable Answer ans)
     return res;
 }
 
-/**
- * Convert a row of a database reply to the selected type.
- */
-auto rowTo (T) (PgRow r)
-{
-    import std.traits : OriginalType;
-    static assert (is(OriginalType!T == struct));
-    Nullable!T res;
-    if (r.length > 0) {
-        res = T(r);
-    }
-    return res;
-}
+
 
 public auto dbValueTo (T) (immutable(Value) v)
 {
@@ -401,3 +424,5 @@ auto executeSQL (A...) (PgConnection conn, string sql, A args) @trusted
 
     return conn.execParams (p);
 }
+
+} // end of uncomment version() block

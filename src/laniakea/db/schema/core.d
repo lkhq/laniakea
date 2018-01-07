@@ -20,6 +20,10 @@
 module laniakea.db.schema.core;
 @safe:
 
+public import std.array : empty;
+public import std.uuid : UUID;
+public import hibernated.annotations;
+
 /**
  * A list of all modules integrated into the Laniakea suite,
  * with their respective identifier strings.
@@ -46,23 +50,133 @@ enum LkModule
 }
 
 /**
- * Information about a distribution component.
+ * A template to mix into classes containing a uuid primary key.
+ **/
+template UUIDProperty() {
+    UUID uuid;
+    @property @Column ("uuid") @Id @UniqueKey string uuid_s () { return uuid.toString; }
+    @property void uuid_s (string s) { uuid = UUID (s); }
+}
+
+/**
+ * A template to quickly add JSON/JSONB properties to database entities,
+ * so Hibernated can recognize and serialize them.
  */
-struct DistroComponent
+template JsonDatabaseField (string column, string fieldName, string dataType) {
+    const char[] JsonDatabaseField =
+        `@property @Column ("` ~ column ~ `")
+         string ` ~ fieldName ~ `_json () {
+             import vibe.data.json : serializeToJsonString;
+             return serializeToJsonString (` ~ fieldName ~ `);
+         };
+
+         @property @Column ("` ~ column ~ `")
+         void ` ~ fieldName ~ `_json (string v) {
+             import vibe.data.json : deserializeJson;
+             ` ~ fieldName ~ ` = v.deserializeJson! (` ~ dataType ~ `);
+         };`;
+}
+
+/**
+ * A template to make enums readable as integers for the Hibernated ORM.
+ */
+template EnumDatabaseField (string column, string fieldName, string dataType, bool isShort = false) {
+    static if (isShort) {
+        const char[] EnumDatabaseField =
+            `@property @Column ("` ~ column ~ `")
+            short ` ~ fieldName ~ `_i () {
+                import std.conv : to;
+                return ` ~ fieldName ~ `.to!short;
+            };
+
+            @property @Column ("` ~ column ~ `")
+            void ` ~ fieldName ~ `_i (short v) {
+                import std.conv : to;
+                ` ~ fieldName ~ ` = v.to! (` ~ dataType ~ `);
+            };`;
+    } else {
+        const char[] EnumDatabaseField =
+            `@property @Column ("` ~ column ~ `")
+            int ` ~ fieldName ~ `_i () {
+                import std.conv : to;
+                return ` ~ fieldName ~ `.to!int;
+            };
+
+            @property @Column ("` ~ column ~ `")
+            void ` ~ fieldName ~ `_i (int v) {
+                import std.conv : to;
+                ` ~ fieldName ~ ` = v.to! (` ~ dataType ~ `);
+            };`;
+    }
+}
+
+/**
+ * A system architecture software can be compiled for.
+ * Usually associated with an @ArchiveSuite
+ */
+class ArchiveRepository
 {
+    int id;
+
+    @UniqueKey
     string name;
-    string[] dependencies;
+
+    LazyCollection!ArchiveSuite suites;
 }
 
 /**
  * Information about a distribution suite.
  */
-struct DistroSuite
+class ArchiveSuite
 {
+    int id;
+
     string name;
-    string[] architectures;
-    DistroComponent[] components;
-    string baseSuiteName;
+
+    ArchiveRepository repo;
+
+    @ManyToMany
+    LazyCollection!ArchiveArchitecture architectures;
+
+    @ManyToMany
+    LazyCollection!ArchiveComponent components;
+
+    @Null
+    string baseSuite;
+}
+
+/**
+ * Information about a distribution component.
+ */
+class ArchiveComponent
+{
+    int id;
+
+    @UniqueKey
+    string name;
+
+    @ManyToMany // w/o this annotation will be OneToMany by convention
+    LazyCollection!ArchiveSuite suites;
+}
+
+/**
+ * A system architecture software can be compiled for.
+ * Usually associated with an @ArchiveSuite
+ */
+class ArchiveArchitecture
+{
+    int id;
+
+    @UniqueKey
+    string name;
+
+    @ManyToMany
+    LazyCollection!ArchiveSuite suites;
+
+    this (string name)
+    {
+        this.name = name;
+    }
 }
 
 /**
@@ -80,7 +194,6 @@ struct BaseArchiveConfig {
 struct BaseConfig {
     string projectName;         /// Name of the distrobution or project ("Tanglu", "PureOS", ...)
     BaseArchiveConfig archive;  /// archive specific settings
-    DistroSuite[] suites;       /// suites this OS contains
 }
 
 import laniakea.db.database;
@@ -92,13 +205,26 @@ void createTables (Database db) @trusted
 {
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
+    auto stmt = conn.createStatement();
+    scope(exit) stmt.close();
 
-    conn.exec (
+    stmt.executeUpdate (
         "CREATE TABLE IF NOT EXISTS config (
           id text PRIMARY KEY,
           data jsonb NOT NULL
         )"
     );
+
+    auto schema = new SchemaInfoImpl! (ArchiveRepository,
+                                      ArchiveSuite,
+                                      ArchiveArchitecture,
+                                      ArchiveComponent);
+
+    auto factory = db.newSessionFactory (schema);
+    scope (exit) factory.close();
+
+    // create tables if they don't exist yet
+    factory.getDBMetaData().updateDBSchema (conn, false, true);
 }
 
 /**
@@ -110,7 +236,6 @@ void update (Database db, BaseConfig conf)
     scope (exit) db.dropConnection (conn);
 
     db.updateConfigEntry (conn, LkModule.BASE, "projectName", conf.projectName);
-    db.updateConfigEntry (conn, LkModule.BASE, "suites", conf.suites);
 
     db.updateConfigEntry (conn, LkModule.BASE, "archive.develSuite", conf.archive.develSuite);
     db.updateConfigEntry (conn, LkModule.BASE, "archive.incomingSuite", conf.archive.incomingSuite);
@@ -124,7 +249,6 @@ auto getBaseConfig (Database db)
 
     BaseConfig conf;
     conf.projectName = db.getConfigEntry!string (conn, LkModule.BASE, "projectName");
-    conf.suites = db.getConfigEntry!(DistroSuite[]) (conn, LkModule.BASE, "suites");
     conf.archive.develSuite = db.getConfigEntry!string (conn, LkModule.BASE, "archive.develSuite");
     conf.archive.incomingSuite = db.getConfigEntry!string (conn, LkModule.BASE, "archive.incomingSuite");
     conf.archive.distroTag = db.getConfigEntry!string (conn, LkModule.BASE, "archive.distroTag");
@@ -132,17 +256,19 @@ auto getBaseConfig (Database db)
     return conf;
 }
 
-auto getSuite (Database db, string name)
+auto getSuite (Database db, string name, string repo = "master") @trusted
 {
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
+    auto schema = new SchemaInfoImpl! (ArchiveSuite);
 
-    Nullable!DistroSuite suite;
-    foreach (ref s; db.getConfigEntry!(DistroSuite[]) (conn, LkModule.BASE, "suites")) {
-        if (s.name == name) {
-            suite = s;
-            break;
-        }
-    }
-    return suite;
+    auto factory = db.newSessionFactory (schema);
+    auto session = factory.openSession();
+    scope (exit) session.close();
+
+    auto q = session.createQuery ("FROM archive_suite WHERE name=:Name")
+                    .setParameter ("Name", name);
+    ArchiveSuite[] list = q.list!ArchiveSuite();
+
+    if (list.empty)
+        return null;
+    return list[0];
 }

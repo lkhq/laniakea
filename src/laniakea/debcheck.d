@@ -20,6 +20,8 @@
 module laniakea.debcheck;
 @safe:
 
+version(none):
+
 import std.string : format;
 import std.array : appender, empty, array;
 import std.algorithm : startsWith, map;

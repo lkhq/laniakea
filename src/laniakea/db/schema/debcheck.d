@@ -21,7 +21,7 @@ module laniakea.db.schema.debcheck;
 
 import std.datetime : DateTime;
 public import laniakea.pkgitems : PackageType;
-import laniakea.db.lkid;
+import laniakea.db.schema.core;
 @safe:
 
 /**
@@ -52,36 +52,28 @@ struct PackageConflict {
 /**
  * Dependency issue information
  **/
-struct DebcheckIssue {
-    LkId lkid;
+class DebcheckIssue {
+    mixin UUIDProperty;
 
     DateTime date;           /// Time when this excuse was created
 
     PackageType packageKind; /// Kind of the examined package
+    mixin (EnumDatabaseField!("package_kind", "packageKind", "PackageType", true));
+
     string suiteName;
     string packageName;
     string packageVersion;
     string architecture;
 
     PackageIssue[] missing;
-    PackageConflict[] conflicts;
+    mixin (JsonDatabaseField!("missing", "missing", "PackageIssue[]"));
 
-    this (PgRow r) @trusted
-    {
-        r.unpackRowValues (
-                 &lkid,
-                 &date,
-                 &packageKind,
-                 &suiteName,
-                 &packageName,
-                 &packageVersion,
-                 &architecture,
-                 &missing,
-                 &conflicts
-        );
-    }
+    PackageConflict[] conflicts;
+    mixin (JsonDatabaseField!("conflicts", "conflicts", "PackageConflict[]"));
 }
 
+
+version(none) {
 
 import laniakea.db.database;
 
@@ -226,4 +218,6 @@ auto getDebcheckIssue (PgConnection conn, string suiteName, PackageType pkind, s
 
     auto ans = conn.execParams(p);
     return rowsToOne!DebcheckIssue (ans);
+}
+
 }

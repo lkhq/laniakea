@@ -22,8 +22,12 @@ module laniakea.db.schema.jobs;
 
 import laniakea.logging;
 import laniakea.db.schema.core;
+import std.uuid : randomUUID;
+import std.conv : to;
+
+public import vibe.data.json : Json;
 public import std.datetime : DateTime;
-public import laniakea.db.lkid : LkId, LkidType;
+public import std.uuid : UUID;
 
 /**
  * State this job is in.
@@ -53,20 +57,21 @@ enum JobResult
 /**
  * A task pending to be performed.
  **/
-template Job(LkModule mod, string jobKind) {
+struct Job
+{
     import vibe.data.serialization : name;
 
-    LkId lkid;
+    UUID uuid;
 
     JobStatus status; /// Status of this job
 
     @name("module")
-    string moduleName = mod; /// the name of the module responsible for this job
-    string kind = jobKind;  /// kind of the job
+    string moduleName; /// the name of the module responsible for this job
+    string kind;       /// kind of the job
 
     string title;     /// A human-readable title of this job
 
-    LkId trigger = "";           /// ID of the entity responsible for triggering this job's creation
+    UUID trigger;     /// ID of the entity responsible for triggering this job's creation
     string architecture = "any"; /// Architecture this job can run on, "any" in case the architecture does not matter
 
     DateTime createdTime;  /// Time when this job was created.
@@ -74,41 +79,40 @@ template Job(LkModule mod, string jobKind) {
     DateTime finishedTime; /// Time when this job was finished.
 
     string worker;        /// The person/system/tool this job is assigned to
-    LkId   workerId = ""; /// Unique ID of the entity the job is assigned to
+    UUID   workerId;      /// Unique ID of the entity the job is assigned to
 
     string latestLogExcerpt;   /// An excerpt of the current job log
 
     JobResult result;
 
-    this (PgRow r) @trusted
+    Json data;
+
+    this (ResultSet r) @trusted
     {
-        r.unpackRowValues (
-                 &lkid,
-                 &status,
-                 &moduleName,
-                 &kind,
-                 &title,
-                 &trigger,
-                 &architecture,
-                 &createdTime,
-                 &assignedTime,
-                 &finishedTime,
-                 &worker,
-                 &workerId,
-                 &result,
-                 &latestLogExcerpt,
-                 &data
-        );
+        import std.conv : to;
+        import vibe.data.json : parseJsonString;
+        assert (r.getMetaData.getColumnCount == 15);
+
+        uuid         = UUID (r.getString (1));
+        status       = r.getShort (2).to!JobStatus;
+        moduleName   = r.getString (3);
+        kind         = r.getString (4);
+        title        = r.getString (5);
+        trigger      = UUID (r.getString (6));
+        architecture = r.getString (7);
+
+        createdTime  = r.getDateTime (8);
+        assignedTime = r.getDateTime (9);
+        finishedTime = r.getDateTime (10);
+
+        worker       = r.getString (11);
+        workerId     = UUID (r.getString (12));
+
+        result       = r.getShort (13).to!JobResult;
+        latestLogExcerpt = r.getString (14);
+
+        data         = parseJsonString (r.getString (15));
     }
-}
-
-/**
- * A generic job type.
- */
-struct GenericJob {
-    mixin Job!(LkModule.UNKNOWN, "generic");
-
-    Bson data;
 }
 
 /**
@@ -127,7 +131,7 @@ enum EventKind
  * An event log entry.
  **/
 struct EventEntry {
-    LkId lkid;
+    UUID uuid;
 
     EventKind kind;    /// Type of this event
     string moduleName; /// the name of the module responsible for this event
@@ -136,30 +140,20 @@ struct EventEntry {
     string title;      /// A human-readable title of this issue
     string text;       /// content of this issue
 
-    this (PgRow r) @trusted
+    this (ResultSet r) @trusted
     {
-        r.unpackRowValues (
-                 &lkid,
-                 &kind,
-                 &moduleName,
-                 &time,
-                 &title,
-                 &text
-        );
+        import std.conv : to;
+        assert (r.getMetaData.getColumnCount == 6);
+
+        uuid        = UUID (r.getString (1));
+        kind        = r.getShort (2).to!EventKind;
+        moduleName  = r.getString (3);
+        time        = r.getDateTime (4);
+
+        title       = r.getString (5);
+        text        = r.getString (6);
     }
 }
-
-string jobToJsonString (J) (J job)
-{
-    import vibe.data.json;
-    import laniakea.db.lkid;
-    import std.array : Appender, appender;
-
-    auto res = appender!string;
-    serializeWithPolicy!(JsonStringSerializer!(Appender!string), LkidSerializationPolicy) (job, res);
-    return res.data;
-}
-
 
 import laniakea.db.database;
 
@@ -170,11 +164,13 @@ void createTables (Database db) @trusted
 {
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
+    auto stmt = conn.createStatement();
+    scope(exit) stmt.close();
 
     // Jobs table
-    conn.exec (
+    stmt.executeUpdate (
         "CREATE TABLE IF NOT EXISTS jobs (
-          lkid VARCHAR(32) PRIMARY KEY,
+          uuid             UUID PRIMARY KEY,
           status           SMALLINT,
           module           TEXT NOT NULL,
           kind             TEXT NOT NULL,
@@ -193,9 +189,9 @@ void createTables (Database db) @trusted
     );
 
     // Events table
-    conn.exec (
+    stmt.executeUpdate (
         "CREATE TABLE IF NOT EXISTS events (
-          lkid VARCHAR(32) PRIMARY KEY,
+          uuid             UUID PRIMARY KEY,
           kind             SMALLINT,
           module           TEXT NOT NULL,
           time             TIMESTAMP NOT NULL,
@@ -208,15 +204,11 @@ void createTables (Database db) @trusted
 /**
  * Add/update a job.
  */
-void updateJob (T) (PgConnection conn, T job) @trusted
+void updateJob (Connection conn, Job job) @trusted
 {
-    import std.traits : hasMember;
-    static assert (hasMember!(T, "lkid"));
-    static assert (hasMember!(T, "status"));
-    static assert (hasMember!(T, "result"));
+    import vibe.data.json : serializeToJsonString;
 
-    QueryParams p;
-    p.sqlCommand = "INSERT INTO jobs
+    immutable sql = "INSERT INTO jobs
                     VALUES ($1,
                             $2,
                             $3,
@@ -248,42 +240,38 @@ void updateJob (T) (PgConnection conn, T job) @trusted
                       latest_log_excerpt = $14,
                       data             = $15::jsonb";
 
-    static if (hasMember!(T, "data"))
-        auto data = job.data;
-    else
-        auto data = "{}";
+    auto ps = conn.prepareStatement (sql);
+    scope (exit) ps.close ();
 
-    p.setParams (job.lkid,
-                 job.status,
-                 job.moduleName,
-                 job.kind,
-                 job.title,
-                 job.trigger,
-                 job.architecture,
-                 job.createdTime,
-                 job.assignedTime,
-                 job.finishedTime,
-                 job.worker,
-                 job.workerId,
-                 job.result,
-                 job.latestLogExcerpt,
-                 data
-    );
+    ps.setString (1, job.uuid.toString);
+    ps.setShort  (2, job.status.to!short);
+    ps.setString (1, job.moduleName);
+    ps.setString (1, job.kind);
+    ps.setString (1, job.title);
+    ps.setString (1, job.trigger.toString);
+    ps.setString (1, job.architecture);
+    ps.setDateTime (1, job.createdTime);
+    ps.setDateTime (1, job.assignedTime);
+    ps.setDateTime (1, job.finishedTime);
+    ps.setString (1, job.worker);
+    ps.setString (1, job.workerId.toString);
+    ps.setShort  (2, job.result.to!short);
+    ps.setString (1, job.latestLogExcerpt);
+    ps.setString (1, job.data.serializeToJsonString);
 
-    conn.execParams (p);
+    ps.executeUpdate ();
 }
 
 /**
  * Add a new job to the database.
  */
-void addJob (J) (PgConnection conn, J job, LkId trigger)
+void addJob (Connection conn, Job job, UUID trigger)
 {
-    import laniakea.db.lkid : generateNewLkid;
     import laniakea.utils : currentDateTime;
     import std.array : empty;
     import std.string : format;
 
-    job.lkid = generateNewLkid! (LkidType.JOB);
+    job.uuid = randomUUID ();
     job.createdTime = currentDateTime;
     job.status = JobStatus.WAITING;
     job.trigger = trigger;
@@ -294,90 +282,77 @@ void addJob (J) (PgConnection conn, J job, LkId trigger)
         job.title = "%s %s job".format (job.moduleName, job.kind);
     }
 
-    logInfo ("Adding job '%s'", job.lkid);
+    logInfo ("Adding job '%s'", job.uuid.toString);
     conn.updateJob (job);
 }
 
 /**
- * Find jobs of type T by their trigger ID.
+ * Find jobs by their trigger ID.
  */
-auto getJobsByTrigger (T) (PgConnection conn, LkId triggerId, long limit, long offset = 0) @trusted
+auto getJobsByTrigger (Connection conn, UUID triggerId, long limit, long offset = 0) @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "SELECT * FROM jobs WHERE trigger=$1 ORDER BY time_created DESC LIMIT $2 OFFSET $3";
+    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE trigger=$1 ORDER BY time_created DESC LIMIT $2 OFFSET $3");
+    scope (exit) ps.close ();
+
+    ps.setString (1, triggerId.toString);
+    ps.setLong  (3, offset);
+
     if (limit > 0)
-        p.setParams (triggerId, limit, offset);
+        ps.setLong  (3, limit);
     else
-        p.setParams (triggerId, long.max, offset);
+        ps.setLong  (3, long.max);
 
-    auto ans = conn.execParams(p);
-    return rowsTo!T (ans);
-}
-
-/**
- * Find a job by its Laniakea ID, return it as raw SQL answer.
- */
-auto getRawJobById (PgConnection conn, LkId lkid) @trusted
-{
-    QueryParams p;
-    p.sqlCommand = "SELECT * FROM jobs WHERE lkid=$1";
-    p.setParams (lkid);
-    auto ans = conn.execParams(p);
-
-    if (ans.length > 0)
-        return ans[0];
-    else
-        return PgRow();
-}
-
-/**
- * Get the responsible module from a raw job SQL row.
- */
-auto rawJobGetModule (PgRow r) @trusted
-{
-    if (r.length < 14)
-        return null;
-    return r[2].dbValueTo!LkModule;
+    auto ans = ps.executeQuery ();
+    return rowsTo!Job (ans);
 }
 
 /**
  * Change result of job.
  */
-auto setJobResult (T) (PgConnection conn, LkId jobId, JobResult result) @trusted
+auto setJobResult (Connection conn, UUID jobId, JobResult result) @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "UPDATE jobs SET result=$1 WHERE lkid=$2 RETURNING *";
-    p.setParams (result, jobId);
+    auto ps = conn.prepareStatement ("UPDATE jobs SET result=$1 WHERE uuid=$2 RETURNING *");
+    scope (exit) ps.close ();
 
-    auto ans = conn.execParams (p);
-    return rowsToOne!T (ans);
+    ps.setShort (1, result.to!short);
+    ps.setString (2, jobId.toString);
+
+    auto ans = ps.executeQuery ();
+    return rowsToOne!Job (ans);
 }
 
 /**
  * Change status of job.
  */
-bool setJobStatus (PgConnection conn, LkId jobId, JobStatus status) @trusted
+bool setJobStatus (Connection conn, UUID jobId, JobStatus status) @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "UPDATE jobs SET status=$1 WHERE lkid=$2";
-    p.setParams (status, jobId);
+    auto ps = conn.prepareStatement ("UPDATE jobs SET status=$1 WHERE uuid=$2");
+    scope (exit) ps.close ();
 
-    conn.execParams (p);
+    ps.setShort (1, status.to!short);
+    ps.setString (2, jobId.toString);
+
+    ps.executeUpdate ();
     return true;
 }
 
 /**
  * Set the latest log excerpt
  */
-bool setJobLogExcerpt (PgConnection conn, LkId jobId, string excerpt) @trusted
+bool setJobLogExcerpt (Connection conn, UUID jobId, string excerpt) @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "UPDATE jobs SET latest_log_excerpt=$1 WHERE lkid=$2";
-    p.setParams (excerpt, jobId);
-    conn.execParams (p);
+    auto ps = conn.prepareStatement ("UPDATE jobs SET latest_log_excerpt=$1 WHERE uuid=$2");
+    scope (exit) ps.close ();
+
+    ps.setString (1, excerpt);
+    ps.setString (2, jobId.toString);
+
+    ps.executeUpdate ();
     return true;
 }
 
+// FIXME
+version (none) {
 /**
  * Add a new event to the database (using a DB connection)
  */
@@ -414,4 +389,6 @@ void addEvent (Database db, EventKind kind, string title, string text) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
     addEvent (conn, kind, title, text);
+}
+
 }

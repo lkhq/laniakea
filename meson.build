@@ -19,10 +19,13 @@ systemd_dep = dependency('systemd')
 dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_dep'])
 fluentasserts_dep = dependency('fluent-asserts', version: '>= 0.6', fallback: ['fluent-asserts', 'fluentasserts_dep'])
 
+# Database
+ddbc_pg_dep = dependency('ddbc-pgsql', version: '>= 0.3.7', fallback: ['ddbc', 'ddbc_pg_dep'])
+hibernated_pg_dep = dependency('hibernated-pgsql', version: '>= 0.3.2', fallback: ['hibernated', 'hibernated_pg_dep'])
+
 # Vibe
 vibe_core_dep = dependency('vibe-core')
 vibe_data_dep = dependency('vibe-data')
-vibe_pgsql_dep = dependency('vibe-postgresql', version: '>= 0.3', fallback: ['vibe-postgresql', 'vibe_postgresql_dep'])
 
 #
 # Common D Features

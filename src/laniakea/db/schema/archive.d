@@ -20,6 +20,8 @@
 module laniakea.db.schema.archive;
 @safe:
 
+version (none):
+
 import laniakea.pkgitems;
 
 import laniakea.db.database;
@@ -68,8 +70,7 @@ void createTables (Database db) @trusted
         "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.COMPONENTS ~ " (
           id           INTEGER PRIMARY KEY,
           name         TEXT NOT NULL,
-          description  TEXT,
-          repo_id      INTEGER REFERENCES " ~ ArchiveTab.REPOS ~ "(id)
+          description  TEXT
         )"
     );
 
@@ -79,9 +80,6 @@ void createTables (Database db) @trusted
           uuid             UUID PRIMARY KEY,
           name             TEXT NOT NULL,
           version          DEBVERSION NOT NULL,
-          suite            TEXT NOT NULL,
-          component        TEXT NOT NULL,
-          repository       TEXT NOT NULL,
 
           architectures    JSONB,
           binaries         JSONB,
@@ -115,11 +113,7 @@ void createTables (Database db) @trusted
           uuid             UUID PRIMARY KEY,
           name             TEXT NOT NULL,
           version          DEBVERSION NOT NULL,
-          suite            TEXT NOT NULL,
-          component        TEXT NOT NULL,
-
           deb_kind         SMALLINT,
-          repository       TEXT NOT NULL,
 
           architecture     TEXT NOT NULL,
           size_installed   INTEGER,
@@ -156,14 +150,16 @@ void createTables (Database db) @trusted
         "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.BINPKG_ASSOC ~ " (
           bin_package   UUID REFERENCES " ~ ArchiveTab.BINPKGS ~ "(uuid),
           suite_id      INTEGER REFERENCES " ~ ArchiveTab.SUITES ~ "(id),
-          component_id  INTEGER REFERENCES " ~ ArchiveTab.COMPONENTS ~ "(id)
+          component_id  INTEGER REFERENCES " ~ ArchiveTab.COMPONENTS ~ "(id),
+          UNIQUE (bin_package, suite_id, component_id)
         )"
     );
     conn.exec (
         "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.SRCPKG_ASSOC ~ " (
           src_package   UUID REFERENCES " ~ ArchiveTab.SRCPKGS ~ "(uuid),
           suite_id      INTEGER REFERENCES " ~ ArchiveTab.SUITES ~ "(id),
-          component_id  INTEGER REFERENCES " ~ ArchiveTab.COMPONENTS ~ "(id)
+          component_id  INTEGER REFERENCES " ~ ArchiveTab.COMPONENTS ~ "(id),
+          UNIQUE (src_package, suite_id, component_id)
         )"
     );
 }
@@ -171,58 +167,59 @@ void createTables (Database db) @trusted
 /**
  * Add/update a source package.
  */
-void update (PgConnection conn, SourcePackage spkg) @trusted
+void update (Connection conn, SourcePackage spkg) @trusted
 {
+    spkg.ensureUUID ();
     QueryParams p;
-    p.sqlCommand = "INSERT INTO archive_srcpkg
+    p.sqlCommand = "BEGIN;
+                    INSERT INTO " ~ ArchiveTab.SRCPKGS ~ "
                     VALUES ($1,
                             $2,
                             $3,
-                            $4,
-                            $5,
+                            $4::jsonb,
+                            $5::jsonb,
                             $6,
-                            $7::jsonb,
-                            $8::jsonb,
+                            $7,
+                            $8,
                             $9,
                             $10,
-                            $11,
-                            $12,
-                            $13,
-                            $14::jsonb,
-                            $15::jsonb,
-                            $16::jsonb,
-                            $17
+                            $11::jsonb,
+                            $12::jsonb,
+                            $13::jsonb,
+                            $14
                         )
-                    ON CONFLICT (lkid) DO UPDATE SET
+                    ON CONFLICT (uuid) DO UPDATE SET
                       name       = $2,
                       version    = $3,
-                      suite      = $4,
-                      component  = $5,
-                      repository = $6,
 
-                      architectures = $7::jsonb,
-                      binaries      = $8::jsonb,
+                      architectures = $4::jsonb,
+                      binaries      = $5::jsonb,
 
-                      standards_version = $9,
-                      format            = $10,
+                      standards_version = $6,
+                      format            = $7,
 
-                      homepage          = $11,
-                      vcs_browser       = $12,
+                      homepage          = $8,
+                      vcs_browser       = $9,
 
-                      mainteiner        = $13,
-                      uploaders         = $14::jsonb,
+                      mainteiner        = $10,
+                      uploaders         = $11::jsonb,
 
-                      build_depends     = $15::jsonb,
-                      files             = $16::jsonb,
+                      build_depends     = $12::jsonb,
+                      files             = $13::jsonb,
 
-                      directory         = $17";
+                      directory         = $14;
+
+                    INSERT INTO " ~ ArchiveTab.SRCPKG_ASSOC ~ "
+                    VALUES ($1,
+                            X
+                            Y)
+                    ON CONFLICT DO NOTHING;
+
+                    COMMIT;";
 
     p.setParams (spkg.lkid,
                  spkg.name,
                  spkg.ver,
-                 spkg.suite,
-                 spkg.component,
-                 spkg.repository,
                  spkg.architectures,
                  spkg.binaries,
                  spkg.standardsVersion,
@@ -235,6 +232,10 @@ void update (PgConnection conn, SourcePackage spkg) @trusted
                  spkg.files,
                  spkg.directory
     );
+
+                     spkg.suite,
+                 spkg.component,
+                 spkg.repository,
 
     conn.execParams (p);
 }

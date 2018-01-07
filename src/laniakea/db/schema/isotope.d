@@ -28,7 +28,7 @@ import laniakea.db.schema.core;
  * Instructions on how to do an automatic ISO image build.
  */
 struct ImageBuildRecipe {
-    LkId lkid;              /// Laniakea object ID
+    UUID uuid;              /// Laniakea object ID
 
     string name;            /// A unique name identifying this recipe
     string distribution;    /// Name of the distribution, e.g. "Tanglu"
@@ -40,37 +40,32 @@ struct ImageBuildRecipe {
     string resultMoveTo;    /// Local or remote URL to copy the resulting build artifacts to
 
 
-    this (PgRow r) @trusted
+    this (ResultSet r) @trusted
     {
-        r.unpackRowValues (
-                 &lkid,
-                 &name,
-                 &distribution,
-                 &suite,
-                 &flavor,
-                 &architectures,
-                 &liveBuildGit,
-                 &resultMoveTo
-        );
+        import vibe.data.json : parseJsonString, deserializeJson;
+        assert (r.getMetaData.getColumnCount == 8);
+
+        uuid          = UUID (r.getString (1));
+        name          = r.getString (2);
+        distribution  = r.getString (3);
+        suite         = r.getString (4);
+        flavor        = r.getString (5);
+        architectures = deserializeJson!(string[]) (r.getString (6));
+
+        liveBuildGit  = r.getString (7);
+        resultMoveTo  = r.getString (8);
     }
 }
 
 /**
- * A job containing an iso-image build task.
+ * Data specific to a job containing an iso-image build task.
  */
-struct ImageBuildJob {
-    mixin Job!(LkModule.ISOTOPE, "image-build");
+struct ImageBuildJobData {
+    string distribution;  /// Name of the distribution, e.g. "Tanglu"
+    string suite;         /// Suite of the distribution to build an image for
+    string flavor;        /// The flavor to build
 
-    struct Data {
-        string distribution;  /// Name of the distribution, e.g. "Tanglu"
-        string suite;         /// Suite of the distribution to build an image for
-        string flavor;        /// The flavor to build
-
-        string liveBuildGit;  /// Git repository URL with the live-build scripts
-    }
-
-    Data data;
-    alias data this;
+    string liveBuildGit;  /// Git repository URL with the live-build scripts
 }
 
 
@@ -83,10 +78,12 @@ void createTables (Database db) @trusted
 {
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
+    auto stmt = conn.createStatement();
+    scope(exit) stmt.close();
 
-    conn.exec (
+    stmt.executeUpdate (
         "CREATE TABLE IF NOT EXISTS isotope_recipes (
-          lkid VARCHAR(32) PRIMARY KEY,
+          uuid             UUID PRIMARY KEY,
           name             TEXT NOT NULL UNIQUE,
           distribution     TEXT NOT NULL,
           suite            TEXT NOT NULL,
@@ -101,10 +98,11 @@ void createTables (Database db) @trusted
 /**
  * Add/update image build recipe.
  */
-void update (PgConnection conn, ImageBuildRecipe recipe) @trusted
+void update (Connection conn, ImageBuildRecipe recipe) @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "INSERT INTO isotope_recipes
+    import vibe.data.json : serializeToJsonString;
+
+    immutable sql = "INSERT INTO isotope_recipes
                     VALUES ($1,
                             $2,
                             $3,
@@ -123,50 +121,54 @@ void update (PgConnection conn, ImageBuildRecipe recipe) @trusted
                       livebuild_git  = $7,
                       result_move_to = $8";
 
-    p.setParams (recipe.lkid,
-                 recipe.name,
-                 recipe.distribution,
-                 recipe.suite,
-                 recipe.flavor,
-                 recipe.architectures,
-                 recipe.liveBuildGit,
-                 recipe.resultMoveTo
-    );
-    conn.execParams (p);
+    auto ps = conn.prepareStatement (sql);
+    scope (exit) ps.close ();
+
+    ps.setString (1, recipe.uuid.toString);
+    ps.setString (2, recipe.name);
+    ps.setString (3, recipe.distribution);
+    ps.setString (4, recipe.suite);
+    ps.setString (5, recipe.flavor);
+    ps.setString (6, recipe.architectures.serializeToJsonString);
+    ps.setString (7, recipe.liveBuildGit);
+    ps.setString (8, recipe.resultMoveTo);
+
+    ps.executeUpdate ();
 }
 
-auto getBuildRecipes (PgConnection conn, long limit, long offset = 0) @trusted
+auto getBuildRecipes (Connection conn, long limit, long offset = 0) @trusted
 {
-    QueryParams p;
+    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes ORDER BY name LIMIT $1 OFFSET $2");
+    scope (exit) ps.close ();
 
-    if (limit > 0) {
-        p.sqlCommand = "SELECT * FROM isotope_recipes ORDER BY name LIMIT $1 OFFSET $2";
-        p.setParams (limit, offset);
-    } else {
-        p.sqlCommand = "SELECT * FROM isotope_recipes ORDER BY name OFFSET $1";
-        p.setParams (offset);
-    }
+    ps.setLong (1, offset);
+    if (limit > 0)
+        ps.setLong  (2, limit);
+    else
+        ps.setLong  (2, long.max);
 
-    auto ans = conn.execParams(p);
+    auto ans = ps.executeQuery ();
     return rowsTo!ImageBuildRecipe (ans);
 }
 
-auto getRecipeByName (PgConnection conn, string name) @trusted
+auto getRecipeByName (Connection conn, string name) @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "SELECT * FROM isotope_recipes WHERE name=$1";
-    p.setParams (name);
+    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes WHERE name=$1");
+    scope (exit) ps.close ();
 
-    auto ans = conn.execParams(p);
+    ps.setString (1, name);
+
+    auto ans = ps.executeQuery ();
     return rowsToOne!ImageBuildRecipe (ans);
 }
 
-auto getRecipeById (PgConnection conn, LkId lkid) @trusted
+auto getRecipeById (Connection conn, UUID uuid) @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "SELECT * FROM isotope_recipes WHERE lkid=$1";
-    p.setParams (lkid);
+    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes WHERE uuid=$1");
+    scope (exit) ps.close ();
 
-    auto ans = conn.execParams(p);
+    ps.setString (1, uuid.toString);
+
+    auto ans = ps.executeQuery ();
     return rowsToOne!ImageBuildRecipe (ans);
 }

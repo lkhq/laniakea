@@ -1,0 +1,4 @@
+[wrap-git]
+directory = ddbc
+url       = https://github.com/lkorigin/ddbc.git
+revision  = head

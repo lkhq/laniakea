@@ -84,7 +84,7 @@ void main (string[] args)
     // unittest blocks is always standalone).
     testRepositoryRead (testDataDir);
 
-    testArchiveDatabase ();
+    testArchiveDatabase (testDataDir);
 
     testGnuPG (testDataDir);
 

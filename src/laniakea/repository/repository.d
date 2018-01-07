@@ -37,6 +37,8 @@ import laniakea.utils : isRemote, splitStrip, compareVersions, hashFile;
 import laniakea.tagfile;
 import laniakea.pkgitems;
 
+import laniakea.db.schema.core : ArchiveArchitecture;
+
 
 /**
  * Allows reading data from a Debian repository.
@@ -270,7 +272,7 @@ public:
             pkg.repository = repoName;
 
             pkg.ver = tf.readField ("Version");
-            pkg.architecture = tf.readField ("Architecture");
+            pkg.architecture = new ArchiveArchitecture (tf.readField ("Architecture"));
             pkg.maintainer = tf.readField ("Maintainer");
 
             immutable sourceId = tf.readField ("Source");

@@ -23,12 +23,23 @@ module laniakea.db.schema.synchrotron;
 import std.datetime : DateTime;
 import laniakea.db.schema.core;
 
+
+/**
+ * Information about a distribution suite the we can sync data from
+ */
+struct SyncSourceSuite
+{
+    string name;
+    string[] architectures;
+    string[] components;
+}
+
 /**
  * Information about a Synchrotron data source
  */
 struct SyncSourceInfo {
     string defaultSuite;    // default suite name, e.g. "sid"
-    DistroSuite[] suites;   // suites available in the source ("sid", "jessie", ...)
+    SyncSourceSuite[] suites;   // suites available in the source ("sid", "jessie", ...)
 
     string repoUrl;         // URL of the package repository
 }
@@ -45,19 +56,14 @@ struct SynchrotronConfig {
 }
 
 /**
- * A single entry in the package blacklist.
- */
-struct BlacklistEntry {
+ * Synchrotron blacklist
+ **/
+@Table ("synchrotron_blacklist")
+class SyncBlacklistEntry {
     string pkgname; /// Name of the blacklisted package
     DateTime date;  /// Time when the package was blacklisted
     string reason;  /// Reason why the package is blacklisted
-}
-
-/**
- * Synchrotron blacklist
- **/
-struct SynchrotronBlacklist {
-    BlacklistEntry[] blacklist; /// list of packages ignored from synchronization
+    string user;    /// Person who marked this to be ignored
 }
 
 /**
@@ -75,12 +81,13 @@ enum SynchrotronIssueKind {
 /**
  * Hints about why packages are not synchronized.
  **/
-struct SynchrotronIssue {
-    LkId lkid;
+class SynchrotronIssue {
+    mixin UUIDProperty;
 
     DateTime date;              /// Time when this excuse was created
 
     SynchrotronIssueKind kind; /// Kind of this issue, and usually also the reason for it.
+    mixin EnumDatabaseField!("kind", "kind", "SynchrotronIssueKind", true);
 
     string packageName; /// Name of the source package that is to be synchronized
 
@@ -91,21 +98,6 @@ struct SynchrotronIssue {
     string targetVersion; /// version of the package in the target suite and repo, to be overriden
 
     string details;  /// additional information text about the issue (usually a log excerpt)
-
-    this (PgRow r) @trusted
-    {
-        r.unpackRowValues (
-                 &lkid,
-                 &date,
-                 &kind,
-                 &packageName,
-                 &sourceSuite,
-                 &targetSuite,
-                 &sourceVersion,
-                 &targetVersion,
-                 &details
-        );
-    }
 }
 
 
@@ -121,60 +113,24 @@ void createTables (Database db) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS " ~ synchrotronIssuesTableName ~ " (
-          lkid VARCHAR(32) PRIMARY KEY,
-          date             TIMESTAMP NOT NULL,
-          kind             SMALLINT,
-          package_name     TEXT NOT NULL,
-          source_suite     TEXT NOT NULL,
-          target_suite     TEXT NOT NULL,
-          source_version   TEXT,
-          target_version   TEXT,
-          details          TEXT
-        )"
+    auto schema = new SchemaInfoImpl! (SyncBlacklistEntry,
+                                       SynchrotronIssue);
+
+    auto factory = db.newSessionFactory (schema);
+    scope (exit) factory.close();
+
+    // create tables if they don't exist yet
+    factory.getDBMetaData().updateDBSchema (conn, false, true);
+
+    auto stmt = conn.createStatement();
+    scope(exit) stmt.close();
+
+    // ensure we use the right datatypes - the ORM is not smart enough to
+    // figure out the proper types
+    stmt.executeUpdate (
+        "ALTER TABLE synchrotron_issue
+         ALTER COLUMN uuid TYPE UUID;"
     );
-}
-
-/**
- * Add/update Synchrotron issue.
- */
-void update (PgConnection conn, SynchrotronIssue issue) @trusted
-{
-    QueryParams p;
-    p.sqlCommand = "INSERT INTO " ~ synchrotronIssuesTableName ~ "
-                    VALUES ($1,
-                            to_timestamp($2),
-                            $3,
-                            $4,
-                            $5,
-                            $6,
-                            $7,
-                            $8,
-                            $9
-                        )
-                    ON CONFLICT (lkid) DO UPDATE SET
-                      date            = to_timestamp($2),
-                      kind            = $3,
-                      package_name    = $4,
-                      source_suite    = $5,
-                      target_suite    = $6,
-                      source_version  = $7,
-                      target_version  = $8,
-                      details         = $9";
-
-    p.setParams (issue.lkid,
-                 issue.date,
-                 issue.kind,
-                 issue.packageName,
-                 issue.sourceSuite,
-                 issue.targetSuite,
-                 issue.sourceVersion,
-                 issue.targetVersion,
-                 issue.details
-
-    );
-    conn.execParams (p);
 }
 
 /**
@@ -205,45 +161,30 @@ auto getSynchrotronConfig (Database db)
     return conf;
 }
 
-/**
- * Add/update Synchrotron blacklist.
- */
-void update (Database db, SynchrotronBlacklist blist)
+void removeSynchrotronIssuesForSuites (Connection conn, string sourceSuite, string targetSuite) @trusted
 {
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
+    auto ps = conn.prepareStatement ("DELETE FROM synchrotron_issue WHERE source_suite=$1 AND target_suite=$2");
+    scope (exit) ps.close ();
 
-    db.updateConfigEntry (conn, LkModule.SYNCHROTRON, "blacklist", blist.blacklist);
+    ps.setString (1, sourceSuite);
+    ps.setString (2, targetSuite);
+
+    ps.executeUpdate ();
 }
 
-auto getSynchrotronBlacklist (Database db)
+auto getSynchrotronIssues (Database db, long limit, long offset = 0) @trusted
 {
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
+    auto schema = new SchemaInfoImpl! (SynchrotronIssue);
+    auto factory = db.newSessionFactory (schema);
+    auto session = factory.openSession();
+    scope (exit) session.close();
 
-    SynchrotronBlacklist blist;
-    blist.blacklist = db.getConfigEntry!(BlacklistEntry[]) (conn, LkModule.SYNCHROTRON, "blacklist");
+    if (limit <= 0)
+        limit = long.max;
 
-    return blist;
-}
+    auto q = session.createQuery ("FROM synchrontron_issue ORDER BY package_name LIMIT :lim OFFSET :offs")
+                    .setParameter ("lim", limit).setParameter ("offs", offset);
+    SynchrotronIssue[] list = q.list!SynchrotronIssue();
 
-void removeSynchrotronIssuesForSuites (PgConnection conn, string sourceSuite, string targetSuite) @trusted
-{
-    QueryParams p;
-    p.sqlCommand = "DELETE FROM " ~ synchrotronIssuesTableName ~ " WHERE source_suite=$1 AND target_suite=$2";
-    p.setParams (sourceSuite, targetSuite);
-    conn.execParams(p);
-}
-
-auto getSynchrotronIssues (PgConnection conn, long limit, long offset = 0) @trusted
-{
-    QueryParams p;
-    p.sqlCommand = "SELECT * FROM " ~ synchrotronIssuesTableName ~ " ORDER BY package_name LIMIT $1 OFFSET $2";
-    if (limit > 0)
-        p.setParams (limit, offset);
-    else
-        p.setParams (long.max, offset);
-
-    auto ans = conn.execParams(p);
-    return rowsTo!SynchrotronIssue (ans);
+    return list;
 }

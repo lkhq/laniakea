@@ -16,42 +16,42 @@ subdir('c')
 subdir('laniakea')
 
 # Admin cli tool
-subdir('admin')
+#! subdir('admin')
 
 # Key management cli tool
-subdir('keytool')
+#! subdir('keytool')
 
 # Lighthouse relay
-subdir('lighthouse')
+#! subdir('lighthouse')
 
 # Dataimport
-subdir('dataimport')
+#! subdir('dataimport')
 
 # Debcheck
-subdir('debcheck')
+#! subdir('debcheck')
 
 # Rubicon data importer
-subdir('rubicon')
+#! subdir('rubicon')
 
 # Planter
 if (get_option('planter'))
-    subdir('planter')
+    #! subdir('planter')
 endif
 
 # Spears
 if (get_option('spears'))
-    subdir('spears')
+    #! subdir('spears')
 endif
 
 # Synchrotron
 if (get_option('synchrotron'))
-    subdir('synchrotron')
+    #! subdir('synchrotron')
 endif
 
 # web frontends
 if (get_option('webgui'))
     # admin & technical overview
-    subdir('web')
+    #! subdir('web')
     # software view
-    subdir('webswview')
+    #! subdir('webswview')
 endif

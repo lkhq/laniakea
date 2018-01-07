@@ -143,7 +143,12 @@ void testRepositoryRead (const string datadir)
     validateBinaryPackages (binPkgs);
 }
 
-void testArchiveDatabase ()
+void testArchiveDatabase (const string datadir)
 {
+    printTestInfo ("Repository (Database)");
 
+    auto repo = new Repository (buildPath (datadir, "samplerepo", "dummy"), "dummy", LocalConfig.get.trustedGpgKeyrings);
+
+    auto srcPkgs = repo.getSourcePackages ("testing", "main");
+    auto binPkgs = repo.getBinaryPackages ("testing", "main", "amd64");
 }

@@ -1,0 +1,4 @@
+[wrap-git]
+directory = hibernated
+url       = https://github.com/lkorigin/hibernated.git
+revision  = head

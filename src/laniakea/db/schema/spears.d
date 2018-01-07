@@ -98,8 +98,8 @@ struct SpearsMissingBuilds {
 /**
  * Data for a package migration excuse, as emitted by Britney
  **/
-struct SpearsExcuse {
-    LkId lkid;
+class SpearsExcuse {
+    mixin UUIDProperty;
 
     DateTime date;        /// Time when this excuse was created
 
@@ -112,34 +112,19 @@ struct SpearsExcuse {
     string maintainer;    /// name of the maintainer responsible for this package
 
     SpearsAgePolicy age;  /// policy on how old the package needs to be to migrate
+    mixin (JsonDatabaseField! ("age", "age", "SpearsAgePolicy"));
 
     string newVersion;    /// package version waiting to migrate
     string oldVersion;    /// old package version in the target suite
 
     SpearsMissingBuilds missingBuilds; /// list of architectures where the package has not been built
+    mixin (JsonDatabaseField! ("missing_builds", "missingBuilds", "SpearsMissingBuilds"));
 
     SpearsOldBinaries[] oldBinaries; /// Superseded cruft binaries that need to be garbage-collected
+    mixin (JsonDatabaseField!("old_binaries", "oldBinaries", "SpearsOldBinaries[]"));
 
     SpearsReason reason; /// reasoning on why this might not be allowed to migrate
-
-    this (PgRow r) @trusted
-    {
-        r.unpackRowValues (
-                 &lkid,
-                 &date,
-                 &sourceSuite,
-                 &targetSuite,
-                 &isCandidate,
-                 &sourcePackage,
-                 &maintainer,
-                 &age,
-                 &newVersion,
-                 &oldVersion,
-                 &missingBuilds,
-                 &oldBinaries,
-                 &reason
-        );
-    }
+    mixin (JsonDatabaseField! ("reason", "reason", "SpearsReason"));
 }
 
 
@@ -153,76 +138,27 @@ void createTables (Database db) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS spears_excuses (
-          lkid VARCHAR(32) PRIMARY KEY,
-          date             TIMESTAMP NOT NULL,
-          source_suite     TEXT NOT NULL,
-          target_suite     TEXT NOT NULL,
-          candidate        BOOLEAN,
-          source_package   TEXT NOT NULL,
-          maintainer       TEXT,
-          age              JSONB,
-          version_new      TEXT NOT NULL,
-          version_old      TEXT NOT NULL,
-          missing_builds   JSONB,
-          old_binaries     JSONB,
-          reason           JSONB
-        )"
+    auto schema = new SchemaInfoImpl! (SpearsExcuse);
+
+    auto factory = db.newSessionFactory (schema);
+    scope (exit) factory.close();
+
+    // create tables if they don't exist yet
+    factory.getDBMetaData().updateDBSchema (conn, false, true);
+
+    auto stmt = conn.createStatement();
+    scope(exit) stmt.close();
+
+    // ensure we use the right datatypes - the ORM is not smart enough to
+    // figure out the proper types
+    stmt.executeUpdate (
+        "ALTER TABLE spears_excuse
+         ALTER COLUMN uuid TYPE UUID,
+         ALTER COLUMN age TYPE JSONB,
+         ALTER COLUMN missing_builds TYPE JSONB,
+         ALTER COLUMN old_binaries TYPE JSONB,
+         ALTER COLUMN reason TYPE JSONB;"
     );
-}
-
-/**
- * Add/update Spears excuse.
- */
-void update (PgConnection conn, SpearsExcuse excuse) @trusted
-{
-    QueryParams p;
-    p.sqlCommand = "INSERT INTO spears_excuses
-                    VALUES ($1,
-                            to_timestamp($2),
-                            $3,
-                            $4,
-                            $5,
-                            $6,
-                            $7,
-                            $8::jsonb,
-                            $9,
-                            $10,
-                            $11::jsonb,
-                            $12::jsonb,
-                            $13::jsonb
-                        )
-                    ON CONFLICT (lkid) DO UPDATE SET
-                      date            = to_timestamp($2),
-                      source_suite    = $3,
-                      target_suite    = $4,
-                      candidate       = $5,
-                      source_package  = $6,
-                      maintainer      = $7,
-                      age             = $8::jsonb,
-                      version_new     = $9,
-                      version_old     = $10,
-                      missing_builds  = $11::jsonb,
-                      old_binaries    = $12::jsonb,
-                      reason          = $13::jsonb";
-
-    p.setParams (excuse.lkid,
-                 excuse.date,
-                 excuse.sourceSuite,
-                 excuse.targetSuite,
-                 excuse.isCandidate,
-                 excuse.sourcePackage,
-                 excuse.maintainer,
-                 excuse.age,
-                 excuse.newVersion,
-                 excuse.oldVersion,
-                 excuse.missingBuilds,
-                 excuse.oldBinaries,
-                 excuse.reason
-
-    );
-    conn.execParams (p);
 }
 
 /**
@@ -247,51 +183,27 @@ auto getSpearsConfig (Database db)
     return conf;
 }
 
-void removeSpearsExcusesForSuites (PgConnection conn, string sourceSuite, string targetSuite) @trusted
+void removeSpearsExcusesForSuites (Connection conn, string sourceSuite, string targetSuite) @trusted
 {
-    QueryParams p;
+    auto ps = conn.prepareStatement ("DELETE FROM spears_excuse WHERE source_suite=$1 AND target_suite=$2");
+    scope (exit) ps.close ();
 
-    p.sqlCommand = "DELETE FROM spears_excuses WHERE source_suite=$1 AND target_suite=$2";
-    p.setParams (sourceSuite, targetSuite);
-    conn.execParams (p);
+    ps.setString (1, sourceSuite);
+    ps.setString (2, targetSuite);
+
+    ps.executeUpdate ();
 }
 
-auto getSpearsExcusesForSuites (PgConnection conn, string sourceSuite, string targetSuite, long limit, long offset = 0) @trusted
+long countSpearsExcusesForSuites (Connection conn, string sourceSuite, string targetSuite) @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "SELECT * FROM spears_excuses WHERE
-                        source_suite=$1 AND target_suite=$2 ORDER BY source_package LIMIT $3 OFFSET $4";
-    if (limit > 0)
-        p.setParams (sourceSuite, targetSuite, limit, offset);
-    else
-        p.setParams (sourceSuite, targetSuite, long.max, offset);
+    auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM spears_excuse WHERE source_suite=$1 AND target_suite=$2");
+    scope (exit) ps.close ();
 
-    auto ans = conn.execParams (p);
-    return rowsTo!SpearsExcuse (ans);
-}
+    ps.setString (1, sourceSuite);
+    ps.setString (2, targetSuite);
 
-long countSpearsExcusesForSuites (PgConnection conn, string sourceSuite, string targetSuite) @trusted
-{
-    QueryParams p;
-    p.sqlCommand = "SELECT COUNT(*) FROM spears_excuses WHERE source_suite=$1 AND target_suite=$2";
-    p.setParams (sourceSuite, targetSuite);
+    Variant var;
+    ps.executeUpdate (var);
 
-    auto ans = conn.execParams (p);
-    if (ans.length > 0) {
-        const r = ans[0];
-        if (r.length > 0)
-            return r[0].dbValueTo!long;
-    }
-    return 0;
-}
-
-auto getSpearsExcuse (PgConnection conn, string sourceSuite, string targetSuite, string sourcePackage, string newVersion) @trusted
-{
-    QueryParams p;
-    p.sqlCommand = "SELECT * FROM spears_excuses WHERE
-                        source_suite=$1 AND target_suite=$2 AND source_package=$3 AND version_new=$4";
-    p.setParams (sourceSuite, targetSuite, sourcePackage, newVersion);
-
-    auto ans = conn.execParams (p);
-    return rowsToOne!SpearsExcuse (ans);
+    return var.get!long;
 }
