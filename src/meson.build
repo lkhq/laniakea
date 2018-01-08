@@ -22,20 +22,20 @@ subdir('admin')
 subdir('keytool')
 
 # Lighthouse relay
-#! subdir('lighthouse')
+subdir('lighthouse')
 
 # Dataimport
 #! subdir('dataimport')
 
 # Debcheck
-#! subdir('debcheck')
+subdir('debcheck')
 
 # Rubicon data importer
-#! subdir('rubicon')
+subdir('rubicon')
 
 # Planter
 if (get_option('planter'))
-    #! subdir('planter')
+    subdir('planter')
 endif
 
 # Spears

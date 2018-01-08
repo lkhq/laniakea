@@ -43,7 +43,6 @@ class SparkWorker {
     mixin UUIDProperty;
 
     string machineName;   /// The machine/worker name
-    @UniqueKey string machineId;     /// The machine-id as defined in /etc/machine-id for this system
     string owner;         /// Owner of this worker
     DateTime createdTime; /// Time when this worker was created
 
@@ -92,4 +91,18 @@ void createTables (Database db) @trusted
          ALTER COLUMN last_job TYPE UUID USING uuid::uuid,
          ALTER COLUMN accepts TYPE JSONB USING accepts::jsonb;"
     );
+}
+
+void updateWorkerPing (Connection conn, string workerId) @trusted
+{
+    auto ps = conn.prepareStatement ("UPDATE workers SET last_ping=now() WHERE uuid=$1");
+    scope (exit) ps.close ();
+
+    ps.setString (1, workerId);
+    ps.executeQuery ();
+}
+
+void updateWorkerPing (Connection conn, UUID workerId) @trusted
+{
+    updateWorkerPing (conn, workerId.toString);
 }

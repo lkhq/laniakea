@@ -34,8 +34,10 @@ import lighthouse.utils;
 class LighthouseWorker {
     private {
         zsock_t *socket;
-        PgConnection conn;
+
         Database db;
+        Connection conn;
+        SessionFactory sFactory;
     }
 
     this (zsock_t *sock)
@@ -44,6 +46,9 @@ class LighthouseWorker {
 
         db = Database.get;
         conn = db.getConnection ();
+
+        auto schema = new SchemaInfoImpl! (SparkWorker);
+        sFactory = db.newSessionFactory (schema);
     }
 
     ~this ()
@@ -64,42 +69,58 @@ class LighthouseWorker {
         auto architectures = jreq["architectures"].get!(Json[]);
         auto accepted = jreq["accepts"].get!(Json[]);
 
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
         // update information about this client
-        auto worker = conn.getWorkerByMachineId (clientId);
+        auto worker = session.createQuery ("FROM SparkWorker WHERE uuid=:id")
+                             .setParameter ("id", clientId)
+                             .uniqueResult!SparkWorker;
         // we might have a new machine, so set the ID again to create an empty new worker
-        if (worker.isNull) {
-            worker = SparkWorker();
-            worker.lkid = generateNewLkid! (LkidType.WORKER);
-            worker.machineId = clientId;
+        if (worker is null) {
+            import std.uuid : parseUUID;
+            // this may throw an exception which is caought and sent back to the worker
+            // (the worker then has the oportunity to fix its UUID)
+            const clientUUID = parseUUID (clientId);
+
+            worker = new SparkWorker;
+            worker.uuid = clientUUID;
             worker.machineName = clientName;
             worker.createdTime = currentDateTime;
             worker.enabled = true;
+            session.save (worker);
         }
         worker.lastPing = currentDateTime;
         worker.accepts = jreq["accepts"].deserializeJson!(string[]);
-        conn.update (worker);
+        session.update (worker);
 
         string jobData = null.serializeToJsonString;
         foreach (ref archJ; architectures) {
             immutable arch = archJ.get!string;
-            auto ans = conn.executeSQL ("UPDATE jobs SET
-                                           status=$1,
-                                           worker_name=$2,
-                                           worker_id=$3,
-                                           time_assigned=now()
-                                         WHERE
-                                           status=$4 AND (architecture=$5 OR architecture='any')
-                                         RETURNING *",
-                                        JobStatus.SCHEDULED,
-                                        clientName,
-                                        clientId,
-                                        JobStatus.WAITING,
-                                        arch);
+
+
+            auto ps = conn.prepareStatement ("UPDATE jobs SET
+                                              status=?,
+                                              worker_name=?,
+                                              worker_id=?,
+                                              time_assigned=now()
+                                            WHERE
+                                              status=? AND (architecture=? OR architecture='any')
+                                            RETURNING *");
+            scope (exit) ps.close ();
+
+            ps.setShort  (1, JobStatus.SCHEDULED.to!short);
+            ps.setString (2, clientName);
+            ps.setString (1, clientId);
+            ps.setShort  (1, JobStatus.WAITING.to!short);
+            ps.setString (1, arch);
+
+            auto ans = ps.executeQuery ();
 
             // use the first job with a matching architecture
-            const job = ans.rowsToOne!GenericJob;
+            const job = ans.rowsToOne!Job;
             if (!job.isNull) {
-                jobData = job.jobToJsonString;
+                jobData = job.serializeToJsonString ();
                 break;
             }
         }
@@ -114,7 +135,7 @@ class LighthouseWorker {
      */
     private string processJobAcceptedRequest (Json jreq)
     {
-        LkId jobId = jreq["lkid"].get!string;
+        auto jobId = UUID (jreq["uuid"].get!string);
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
@@ -133,36 +154,45 @@ class LighthouseWorker {
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
-        auto res = conn.executeSQL ("UPDATE jobs SET
-                                           status=$1
-                                           worker_name=$2,
-                                           worker_id=$3
-                                         WHERE
-                                           lkid=$4 AND status=$5
-                                         RETURNING *",
-                                    JobStatus.WAITING,
-                                    "",
-                                    "",
-                                    jobId,
-                                    JobStatus.SCHEDULED);
 
-        if (res.length == 0) {
+        auto ps1 = conn.prepareStatement ("UPDATE jobs SET
+                                           status=?
+                                           worker_name=?,
+                                           worker_id=?
+                                         WHERE
+                                           uuid=? AND status=?
+                                         RETURNING *");
+        scope (exit) ps1.close ();
+
+        ps1.setShort  (1, JobStatus.WAITING.to!short);
+        ps1.setString (2, "");
+        ps1.setString (3, UUID ().toString);
+        ps1.setString (4, jobId);
+        ps1.setShort  (5, JobStatus.SCHEDULED.to!short);
+
+        auto res = ps1.executeQuery ();
+
+        if (res.getFetchSize () == 0) {
             // we also want to allow workers to reject a job that they have already accepted - if the workers
             // change their mind that late, it's usually a sign that something broke. In this case, we don't want
             // to block a possibly important job though, and rather have another worker take it instead.
             // NOTE: Should we log this behavior?
-            conn.executeSQL ("UPDATE jobs SET
-                                     status=$1
-                                     worker_name=$2,
-                                     worker_id=$3
-                                   WHERE
-                                     lkid=$4 AND status=$5
-                                   RETURNING *",
-                              JobStatus.WAITING,
-                              "",
-                              "",
-                              jobId,
-                              JobStatus.RUNNING);
+            auto ps2 = conn.prepareStatement ("UPDATE jobs SET
+                                                 status=?
+                                                 worker_name=?,
+                                                 worker_id=?
+                                               WHERE
+                                                 uuid=? AND status=?
+                                               RETURNING *");
+            scope (exit) ps2.close ();
+
+            ps2.setShort  (1, JobStatus.WAITING.to!short);
+            ps2.setString (2, "");
+            ps2.setString (3, UUID ().toString);
+            ps2.setString (4, jobId);
+            ps2.setShort  (5, JobStatus.RUNNING.to!short);
+
+            ps2.executeQuery ();
         }
 
         return Json(null).serializeToJsonString;
@@ -185,17 +215,21 @@ class LighthouseWorker {
         if (!success)
             jobResult = JobResult.MAYBE_FAILURE;
 
-        conn.executeSQL ("UPDATE jobs SET
-                                 status=$1,
-                                 result=$2,
-                                 time_finished=now()
-                               WHERE
-                                 lkid=$3 AND status=$4
-                               RETURNING *",
-                          JobStatus.DONE,
-                          jobResult,
-                          jobId,
-                          JobStatus.RUNNING);
+
+        auto ps = conn.prepareStatement ("UPDATE jobs SET
+                                             status=?,
+                                             result=?,
+                                             time_finished=now()
+                                           WHERE
+                                             uuid=? AND status=?");
+        scope (exit) ps.close ();
+
+        ps.setShort  (1, JobStatus.DONE.to!short);
+        ps.setShort  (2, jobResult.to!short);
+        ps.setString (3, jobId);
+        ps.setShort  (4, JobStatus.RUNNING.to!short);
+
+        ps.executeQuery ();
 
         return Json(null).serializeToJsonString;
     }
@@ -206,7 +240,7 @@ class LighthouseWorker {
      */
     private void processJobStatusRequest (Json jreq)
     {
-        LkId jobId = jreq["lkid"].get!string;
+        auto jobId = UUID (jreq["uuid"].get!string);
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
         auto logExcerpt = jreq["log_excerpt"].get!string;

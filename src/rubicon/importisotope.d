@@ -33,7 +33,7 @@ import rubicon.rubiconfig;
 import rubicon.fileimport;
 
 
-public void handleIsotopeUpload (RubiConfig conf, DudData dud, GenericJob job) @trusted
+public void handleIsotopeUpload (RubiConfig conf, DudData dud, Job job) @trusted
 {
     import std.file;
     auto db = Database.get;

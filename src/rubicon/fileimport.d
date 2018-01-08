@@ -79,14 +79,14 @@ public void safeRename (const string from, const string to) @trusted
 private void acceptUpload (RubiConfig conf, DudData dud) @trusted
 {
     import std.file;
-    import laniakea.db.lkid : to;
+    import laniakea.utils;
     auto db = Database.get;
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
     // mark job as accepted and done
     auto jobResult = dud.success? JobResult.SUCCESS : JobResult.FAILURE;
-    auto job = conn.setJobResult!GenericJob (dud.jobId.to!LkId, jobResult);
+    auto job = conn.setJobResult (UUID (dud.jobId), jobResult);
     if (job.isNull) {
         logError ("Unable to mark job '%s' as done: The Job was not found.", dud.jobId);
 
@@ -101,7 +101,7 @@ private void acceptUpload (RubiConfig conf, DudData dud) @trusted
         if (!af.fname.endsWith (".log"))
             continue;
 
-        auto targetDir = buildPath (conf.logStorageDir, dud.jobId.getDirShorthandForLkidString);
+        auto targetDir = buildPath (conf.logStorageDir, dud.jobId.getDirShorthandForUUIDString);
         mkdirRecurse (targetDir);
 
         // move the logfile to its destination

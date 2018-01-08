@@ -25,6 +25,7 @@ import std.string : split, strip, toLower;
 import std.digest.sha : isDigest;
 import std.array : appender, empty;
 import std.datetime : SysTime, DateTime;
+import std.uuid : UUID;
 
 /**
  * Check if string contains a remote URI.
@@ -143,6 +144,25 @@ auto currentDateTime ()
     return Clock.currTime.to!DateTime;
 }
 
+/**
+ * Get a two-character ID for the specific Laniakea ID, for
+ * use in directory names.
+ * This version operates on strings instead of LkIds.
+ */
+auto getDirShorthandForUUIDString (const string id)
+{
+    assert (id.length > 2);
+    return id[0..2];
+}
+
+/**
+ * Get a two-character ID for the specific Laniakea ID, for
+ * use in directory names.
+ */
+auto getDirShorthandForUUID (const UUID uuid)
+{
+    return getDirShorthandForUUIDString (uuid.toString).dup;
+}
 
 unittest
 {
@@ -164,4 +184,8 @@ unittest
     assert (getDebianRev ("2.4a-", false) == null);
     assert (getDebianRev ("2.4tanglu1") == "2.4tanglu1");
     assert (getDebianRev ("2.6~a-0tanglu4") == "0tanglu4");
+
+    // test dir shorthand generation
+    assert ("5924c600-f41a-11e7-8c3f-9a214cf093ae".getDirShorthandForUUIDString == "59");
+    assert (UUID ("5924c600-f41a-11e7-8c3f-9a214cf093ae").getDirShorthandForUUID == "59");
 }

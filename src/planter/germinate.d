@@ -154,7 +154,7 @@ public:
                        "-d", devSuiteName, // suite / dist name
                        "-m", "file://" ~ localConf.archive.rootPath, // mirror
                        "-c", develSuite.components.map!(c => c.name).join (" "), // components to check
-                       "-a", develSuite.architectures[0]];
+                       "-a", develSuite.architectures[0].name];
         // NOTE: Maybe we want to limit the seed to only stuff in the primary (main) component?
 
         // execute germinator
