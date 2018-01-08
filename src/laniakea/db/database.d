@@ -159,13 +159,15 @@ public:
         import vibe.data.json : serializeToJsonString;
 
         auto ps = conn.prepareStatement ("INSERT INTO config (id, data)
-                                          VALUES ($1, $2::jsonb)
+                                          VALUES (?, ?::jsonb)
                                           ON CONFLICT (id) DO UPDATE SET
-                                          data = $2::jsonb");
+                                          data = ?::jsonb");
         scope (exit) ps.close ();
 
+        immutable jdata = data.serializeToJsonString;
         ps.setString (1, mod ~ "." ~ key);
-        ps.setString (2, data.serializeToJsonString);
+        ps.setString (2, jdata);
+        ps.setString (3, jdata);
         ps.executeUpdate ();
     }
 
@@ -188,12 +190,12 @@ public:
         scope (exit) dropConnection (conn);
 
         auto ps = conn.prepareStatement ("UPDATE config SET
-                                          data = $2::jsonb
-                                          WHERE id=$1");
+                                          data = ?::jsonb
+                                          WHERE id=?");
         scope (exit) ps.close ();
 
-        ps.setString (1, id);
-        ps.setString (2, value);
+        ps.setString (1, value);
+        ps.setString (2, id);
         ps.executeUpdate ();
     }
 
@@ -204,7 +206,7 @@ public:
     {
         import vibe.data.json : deserializeJson, parseJsonString;
 
-        auto ps = conn.prepareStatement ("SELECT * FROM config WHERE id=$1");
+        auto ps = conn.prepareStatement ("SELECT * FROM config WHERE id=?");
         scope (exit) ps.close ();
         ps.setString (1, mod ~ "." ~ key);
         auto rs = ps.executeQuery ();

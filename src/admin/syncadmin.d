@@ -37,6 +37,14 @@ final class SyncAdmin : AdminTool
         return "synchrotron";
     }
 
+    private SessionFactory sFactory;
+
+    this ()
+    {
+        auto schema = new SchemaInfoImpl! (SyncBlacklistEntry);
+        sFactory = db.newSessionFactory (schema);
+    }
+
     override
     int run (string[] args)
     {
@@ -89,16 +97,12 @@ final class SyncAdmin : AdminTool
 
         bool addSuite = true;
         while (addSuite) {
-            DistroSuite suite;
+            SyncSourceSuite suite;
             writeQS ("Adding a new source suite. Please set a name");
             suite.name = readString ();
 
             writeQS ("List of components for suite '%s'".format (suite.name));
-            foreach (ref cname; readList ()) {
-                DistroComponent c;
-                c.name = cname;
-                suite.components ~= c;
-            }
+            suite.components = readList ();
 
             writeQS ("List of architectures for suite '%s'".format (suite.name));
             suite.architectures = readList ();
@@ -128,41 +132,42 @@ final class SyncAdmin : AdminTool
     {
         writeln ("Config:");
         writeln (db.getSynchrotronConfig ().serializeToPrettyJson);
-        writeln ("Blacklist:");
-        writeln (db.getSynchrotronBlacklist ().serializeToPrettyJson);
     }
 
     void synchrotronBlacklistAdd (string pkg, string reason)
     {
-        // TODO: this is quick and dirty - we can do better SQL here
-        auto blist = db.getSynchrotronBlacklist;
-        foreach (ref entry; blist.blacklist) {
-            if (entry.pkgname == pkg) {
-                writeNote ("Package '%s' is already in the blacklist.".format (pkg));
-                return;
-            }
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        auto entry = session.createQuery ("FROM SyncBlacklistEntry WHERE pkgname=:name")
+                            .setParameter ("name", pkg)
+                            .uniqueResult!SyncBlacklistEntry;
+        if (entry !is null) {
+            writeNote ("Package '%s' is already in the blacklist.".format (pkg));
+            return;
         }
-        BlacklistEntry entry;
+
+        entry = new SyncBlacklistEntry;
         entry.pkgname = pkg;
         entry.date = currentDateTime;
         entry.reason = reason;
-        blist.blacklist ~= entry;
-        db.update (blist);
+        session.save (entry);
     }
 
     void synchrotronBlacklistRemove (string pkg)
     {
-        import std.algorithm : remove;
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
-        // TODO: this is quick and dirty - we can do better SQL here
-        auto blist = db.getSynchrotronBlacklist;
-        foreach (i, e; blist.blacklist) {
-            if (e.pkgname == pkg) {
-                blist.blacklist = blist.blacklist.remove (i);
-                break;
-            }
+        auto entry = session.createQuery ("FROM SyncBlacklistEntry WHERE pkgname=:name")
+                            .setParameter ("name", pkg)
+                            .uniqueResult!SyncBlacklistEntry;
+        if (entry is null) {
+            writeNote ("Package '%s' is not blacklisted.".format (pkg));
+            return;
         }
-        db.update (blist);
+
+        session.remove (entry);
     }
 
 }

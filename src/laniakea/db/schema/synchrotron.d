@@ -64,7 +64,7 @@ class SyncBlacklistEntry {
     string pkgname; /// Name of the blacklisted package
     DateTime date;  /// Time when the package was blacklisted
     string reason;  /// Reason why the package is blacklisted
-    string user;    /// Person who marked this to be ignored
+    @Null string user;    /// Person who marked this to be ignored
 }
 
 /**
@@ -162,7 +162,7 @@ auto getSynchrotronConfig (Database db)
 
 void removeSynchrotronIssuesForSuites (Connection conn, string sourceSuite, string targetSuite) @trusted
 {
-    auto ps = conn.prepareStatement ("DELETE FROM synchrotron_issue WHERE source_suite=$1 AND target_suite=$2");
+    auto ps = conn.prepareStatement ("DELETE FROM synchrotron_issue WHERE source_suite=? AND target_suite=?");
     scope (exit) ps.close ();
 
     ps.setString (1, sourceSuite);

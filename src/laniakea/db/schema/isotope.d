@@ -103,23 +103,23 @@ void update (Connection conn, ImageBuildRecipe recipe) @trusted
     import vibe.data.json : serializeToJsonString;
 
     immutable sql = "INSERT INTO isotope_recipes
-                    VALUES ($1,
-                            $2,
-                            $3,
-                            $4,
-                            $5,
-                            $6::jsonb,
-                            $7,
-                            $8
+                    VALUES (?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?::jsonb,
+                            ?,
+                            ?
                         )
-                    ON CONFLICT (lkid) DO UPDATE SET
-                      name           = $2,
-                      distribution   = $3,
-                      suite          = $4,
-                      flavor         = $5,
-                      architectures  = $6::jsonb,
-                      livebuild_git  = $7,
-                      result_move_to = $8";
+                    ON CONFLICT (uuid) DO UPDATE SET
+                      name           = ?,
+                      distribution   = ?,
+                      suite          = ?,
+                      flavor         = ?,
+                      architectures  = ?::jsonb,
+                      livebuild_git  = ?,
+                      result_move_to = ?";
 
     auto ps = conn.prepareStatement (sql);
     scope (exit) ps.close ();
@@ -133,19 +133,27 @@ void update (Connection conn, ImageBuildRecipe recipe) @trusted
     ps.setString (7, recipe.liveBuildGit);
     ps.setString (8, recipe.resultMoveTo);
 
+    ps.setString (9, recipe.name);
+    ps.setString (10, recipe.distribution);
+    ps.setString (11, recipe.suite);
+    ps.setString (12, recipe.flavor);
+    ps.setString (13, recipe.architectures.serializeToJsonString);
+    ps.setString (14, recipe.liveBuildGit);
+    ps.setString (15, recipe.resultMoveTo);
+
     ps.executeUpdate ();
 }
 
 auto getBuildRecipes (Connection conn, long limit, long offset = 0) @trusted
 {
-    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes ORDER BY name LIMIT $1 OFFSET $2");
+    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes ORDER BY name LIMIT ? OFFSET ?");
     scope (exit) ps.close ();
 
-    ps.setLong (1, offset);
+    ps.setLong (2, offset);
     if (limit > 0)
-        ps.setLong  (2, limit);
+        ps.setLong  (1, limit);
     else
-        ps.setLong  (2, long.max);
+        ps.setLong  (1, long.max);
 
     auto ans = ps.executeQuery ();
     return rowsTo!ImageBuildRecipe (ans);
@@ -153,7 +161,7 @@ auto getBuildRecipes (Connection conn, long limit, long offset = 0) @trusted
 
 auto getRecipeByName (Connection conn, string name) @trusted
 {
-    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes WHERE name=$1");
+    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes WHERE name=?");
     scope (exit) ps.close ();
 
     ps.setString (1, name);
@@ -164,7 +172,7 @@ auto getRecipeByName (Connection conn, string name) @trusted
 
 auto getRecipeById (Connection conn, UUID uuid) @trusted
 {
-    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes WHERE uuid=$1");
+    auto ps = conn.prepareStatement ("SELECT * FROM isotope_recipes WHERE uuid=?");
     scope (exit) ps.close ();
 
     ps.setString (1, uuid.toString);

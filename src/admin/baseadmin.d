@@ -67,34 +67,78 @@ final class BaseAdmin : AdminTool
         writeHeader ("Configuring base settings for Laniakea");
 
         BaseConfig bconf;
+        auto schema = new SchemaInfoImpl! (ArchiveRepository,
+                                           ArchiveComponent,
+                                           ArchiveArchitecture,
+                                           ArchiveSuite);
+
+        auto factory = db.newSessionFactory (schema);
+        auto session = factory.openSession();
+        scope (exit) session.close();
 
         writeQS ("Name of this project");
         bconf.projectName = readString ();
+
+        // we only support one repository at time, so add the default
+        auto repo = session.createQuery ("FROM ArchiveRepository WHERE name=:rname")
+                            .setParameter ("rname", "master")
+                            .uniqueResult!ArchiveRepository;
+        if (repo is null) {
+            repo = new ArchiveRepository;
+            repo.name = "master";
+            session.save (repo);
+        }
 
         bool addSuite = true;
         while (addSuite) {
             import std.algorithm : canFind;
 
-            DistroSuite suite;
             writeQS ("Adding a new suite. Please set a name");
-            suite.name = readString ();
+            auto suiteName = readString ();
+
+            auto suite = session.createQuery ("FROM ArchiveSuite WHERE name=:sname")
+                                .setParameter ("sname", suiteName)
+                                .uniqueResult!ArchiveSuite;
+            if (suite !is null)
+                session.remove (suite);
+            suite = new ArchiveSuite;
+            suite.repo = repo;
+            suite.name = suiteName;
 
             writeQS ("List of components for suite '%s'".format (suite.name));
             auto componentsList = readList ();
             auto addMainDep = false;
             addMainDep = componentsList.canFind ("main");
             foreach (ref cname; componentsList) {
-                DistroComponent c;
-                c.name = cname;
+                auto c = session.createQuery ("FROM ArchiveComponent WHERE name=:cname")
+                                .setParameter ("cname", cname)
+                                .uniqueResult!ArchiveComponent;
+                if (c is null) {
+                    c = new ArchiveComponent;
+                    c.name = cname;
+                    session.save (c);
+                }
+
                 if (addMainDep && c.name != "main")
                     c.dependencies ~= "main";
                 suite.components ~= c;
             }
 
             writeQS ("List of architectures for suite '%s'".format (suite.name));
-            suite.architectures = readList ();
+            foreach (archName; readList ()) {
+                auto arch = session.createQuery ("FROM ArchiveArchitecture WHERE name=:aname")
+                                   .setParameter ("aname", archName)
+                                   .uniqueResult!ArchiveArchitecture;
+                if (arch is null) {
+                    arch = new ArchiveArchitecture;
+                    arch.name = archName;
+                    session.save (arch);
+                }
 
-            bconf.suites ~= suite;
+                suite.architectures ~= arch;
+            }
+
+            session.save (suite);
 
             writeQB ("Add another suite?");
             addSuite = readBool ();

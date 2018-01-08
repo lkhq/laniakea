@@ -53,11 +53,11 @@ enum LkModule
  */
 class ArchiveRepository
 {
-    @Id
+    @Id @Generated
     int id;
 
     @UniqueKey
-    string name;
+    string name; /// Name of the repository
 
     LazyCollection!ArchiveSuite suites;
 }
@@ -67,7 +67,7 @@ class ArchiveRepository
  */
 class ArchiveSuite
 {
-    @Id
+    @Id @Generated
     int id;
 
     string name;
@@ -89,21 +89,7 @@ class ArchiveSuite
  */
 class ArchiveComponent
 {
-    int id;
-
-    @UniqueKey
-    string name;
-
-    @ManyToMany // w/o this annotation will be OneToMany by convention
-    LazyCollection!ArchiveSuite suites;
-}
-
-/**
- * A system architecture software can be compiled for.
- * Usually associated with an @ArchiveSuite
- */
-class ArchiveArchitecture
-{
+    @Id @Generated
     int id;
 
     @UniqueKey
@@ -112,6 +98,26 @@ class ArchiveArchitecture
     @ManyToMany
     LazyCollection!ArchiveSuite suites;
 
+    string[] dependencies; /// Other components that need to be present to fulfill dependencies of packages in this component
+    mixin (JsonDatabaseField! ("dependencies", "dependencies", "string[]"));
+}
+
+/**
+ * A system architecture software can be compiled for.
+ * Usually associated with an @ArchiveSuite
+ */
+class ArchiveArchitecture
+{
+    @Id @Generated
+    int id;
+
+    @UniqueKey
+    string name;
+
+    @ManyToMany
+    LazyCollection!ArchiveSuite suites;
+
+    this () {}
     this (string name)
     {
         this.name = name;
@@ -164,6 +170,13 @@ void createTables (Database db) @trusted
 
     // create tables if they don't exist yet
     factory.getDBMetaData ().updateDBSchema (conn, false, true);
+
+    // ensure we use the right datatypes - the ORM is not smart enough to
+    // figure out the proper types
+    stmt.executeUpdate (
+        "ALTER TABLE archive_component
+         ALTER COLUMN dependencies TYPE JSONB USING dependencies::jsonb;"
+    );
 }
 
 /**

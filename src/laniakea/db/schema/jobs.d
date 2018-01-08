@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2017-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -175,13 +175,13 @@ void createTables (Database db) @trusted
           module           TEXT NOT NULL,
           kind             TEXT NOT NULL,
           title            TEXT,
-          trigger          VARCHAR(32),
+          trigger          UUID,
           architecture     TEXT,
           time_created     TIMESTAMP NOT NULL,
           time_assigned    TIMESTAMP NOT NULL,
           time_finished    TIMESTAMP NOT NULL,
           worker_name      TEXT,
-          worker_id        VARCHAR(32),
+          worker_id        UUID,
           result           SMALLINT,
           latest_log_excerpt TEXT,
           data             JSONB
@@ -209,55 +209,69 @@ void updateJob (Connection conn, Job job) @trusted
     import vibe.data.json : serializeToJsonString;
 
     immutable sql = "INSERT INTO jobs
-                    VALUES ($1,
-                            $2,
-                            $3,
-                            $4,
-                            $5,
-                            $6,
-                            $7,
-                            to_timestamp($8),
-                            to_timestamp($9),
-                            to_timestamp($10),
-                            $11,
-                            $12,
-                            $13,
-                            $14,
-                            $15::jsonb
+                    VALUES (?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?::timestamp,
+                            ?::timestamp,
+                            ?::timestamp,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?::jsonb
                         )
-                    ON CONFLICT (lkid) DO UPDATE SET
-                      status           = $2,
-                      module           = $3,
-                      kind             = $4,
-                      title            = $5,
-                      trigger          = $6,
-                      architecture     = $7,
-                      time_assigned    = to_timestamp($9),
-                      time_finished    = to_timestamp($10),
-                      worker_name      = $11,
-                      worker_id        = $12,
-                      result           = $13,
-                      latest_log_excerpt = $14,
-                      data             = $15::jsonb";
+                    ON CONFLICT (uuid) DO UPDATE SET
+                      status           = ?,
+                      module           = ?,
+                      kind             = ?,
+                      title            = ?,
+                      trigger          = ?,
+                      architecture     = ?,
+                      time_assigned    = ?::timestamp,
+                      time_finished    = ?::timestamp,
+                      worker_name      = ?,
+                      worker_id        = ?,
+                      result           = ?,
+                      latest_log_excerpt = ?,
+                      data             = ?::jsonb";
 
     auto ps = conn.prepareStatement (sql);
     scope (exit) ps.close ();
 
     ps.setString (1, job.uuid.toString);
     ps.setShort  (2, job.status.to!short);
-    ps.setString (1, job.moduleName);
-    ps.setString (1, job.kind);
-    ps.setString (1, job.title);
-    ps.setString (1, job.trigger.toString);
-    ps.setString (1, job.architecture);
-    ps.setDateTime (1, job.createdTime);
-    ps.setDateTime (1, job.assignedTime);
-    ps.setDateTime (1, job.finishedTime);
-    ps.setString (1, job.worker);
-    ps.setString (1, job.workerId.toString);
-    ps.setShort  (2, job.result.to!short);
-    ps.setString (1, job.latestLogExcerpt);
-    ps.setString (1, job.data.serializeToJsonString);
+    ps.setString (3, job.moduleName);
+    ps.setString (4, job.kind);
+    ps.setString (5, job.title);
+    ps.setString (6, job.trigger.toString);
+    ps.setString (7, job.architecture);
+    ps.setDateTime (8, job.createdTime);
+    ps.setDateTime (9, job.assignedTime);
+    ps.setDateTime (10, job.finishedTime);
+    ps.setString (11, job.worker);
+    ps.setString (12, job.workerId.toString);
+    ps.setShort  (13, job.result.to!short);
+    ps.setString (14, job.latestLogExcerpt);
+    ps.setString (15, job.data.serializeToJsonString);
+
+    ps.setShort  (16, job.status.to!short);
+    ps.setString (17, job.moduleName);
+    ps.setString (18, job.kind);
+    ps.setString (19, job.title);
+    ps.setString (20, job.trigger.toString);
+    ps.setString (21, job.architecture);
+    ps.setDateTime (22, job.assignedTime);
+    ps.setDateTime (23, job.finishedTime);
+    ps.setString (24, job.worker);
+    ps.setString (25, job.workerId.toString);
+    ps.setShort  (26, job.result.to!short);
+    ps.setString (27, job.latestLogExcerpt);
+    ps.setString (28, job.data.serializeToJsonString);
 
     ps.executeUpdate ();
 }
@@ -291,11 +305,11 @@ void addJob (Connection conn, Job job, UUID trigger)
  */
 auto getJobsByTrigger (Connection conn, UUID triggerId, long limit, long offset = 0) @trusted
 {
-    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE trigger=$1 ORDER BY time_created DESC LIMIT $2 OFFSET $3");
+    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE trigger=? ORDER BY time_created DESC LIMIT ? OFFSET ?");
     scope (exit) ps.close ();
 
     ps.setString (1, triggerId.toString);
-    ps.setLong  (3, offset);
+    ps.setLong   (3, offset);
 
     if (limit > 0)
         ps.setLong  (3, limit);
@@ -311,10 +325,10 @@ auto getJobsByTrigger (Connection conn, UUID triggerId, long limit, long offset 
  */
 auto setJobResult (Connection conn, UUID jobId, JobResult result) @trusted
 {
-    auto ps = conn.prepareStatement ("UPDATE jobs SET result=$1 WHERE uuid=$2 RETURNING *");
+    auto ps = conn.prepareStatement ("UPDATE jobs SET result=? WHERE uuid=? RETURNING *");
     scope (exit) ps.close ();
 
-    ps.setShort (1, result.to!short);
+    ps.setShort  (1, result.to!short);
     ps.setString (2, jobId.toString);
 
     auto ans = ps.executeQuery ();
@@ -326,10 +340,10 @@ auto setJobResult (Connection conn, UUID jobId, JobResult result) @trusted
  */
 bool setJobStatus (Connection conn, UUID jobId, JobStatus status) @trusted
 {
-    auto ps = conn.prepareStatement ("UPDATE jobs SET status=$1 WHERE uuid=$2");
+    auto ps = conn.prepareStatement ("UPDATE jobs SET status=? WHERE uuid=?");
     scope (exit) ps.close ();
 
-    ps.setShort (1, status.to!short);
+    ps.setShort  (1, status.to!short);
     ps.setString (2, jobId.toString);
 
     ps.executeUpdate ();
@@ -341,7 +355,7 @@ bool setJobStatus (Connection conn, UUID jobId, JobStatus status) @trusted
  */
 bool setJobLogExcerpt (Connection conn, UUID jobId, string excerpt) @trusted
 {
-    auto ps = conn.prepareStatement ("UPDATE jobs SET latest_log_excerpt=$1 WHERE uuid=$2");
+    auto ps = conn.prepareStatement ("UPDATE jobs SET latest_log_excerpt=? WHERE uuid=?");
     scope (exit) ps.close ();
 
     ps.setString (1, excerpt);
@@ -352,24 +366,24 @@ bool setJobLogExcerpt (Connection conn, UUID jobId, string excerpt) @trusted
 }
 
 // FIXME
-version (none) {
+version (none):
+
 /**
  * Add a new event to the database (using a DB connection)
  */
 void addEvent (PgConnection conn, EventKind kind, string title, string text) @trusted
 {
-    import laniakea.db.lkid;
     import laniakea.localconfig : LocalConfig;
     const conf = LocalConfig.get;
 
     QueryParams p;
     p.sqlCommand = "INSERT INTO events
-                    VALUES ($1,
-                            $2,
-                            $3,
+                    VALUES (?,
+                            ?,
+                            ?,
                             now(),
-                            $4,
-                            $5
+                            ?,
+                            ?
                         )";
 
     p.setParams (generateNewLkid! (LkidType.EVENT),
@@ -389,6 +403,4 @@ void addEvent (Database db, EventKind kind, string title, string text) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
     addEvent (conn, kind, title, text);
-}
-
 }

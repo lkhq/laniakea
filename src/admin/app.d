@@ -109,6 +109,7 @@ void main (string[] args)
     switch (command) {
         case "init-db":
             import laniakea.db.database : Database;
+            import laniakea.db.maintenance : initializeDatabase;
             auto db = Database.get;
             db.initializeDatabase ();
             break;

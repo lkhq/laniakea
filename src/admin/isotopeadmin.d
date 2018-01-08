@@ -80,10 +80,11 @@ final class IsotopeAdmin : AdminTool
     {
         import std.uni : toLower;
         import std.typecons : tuple;
+        import std.uuid : randomUUID;
 
         writeHeader ("Add new ISO image build recipe");
         ImageBuildRecipe recipe;
-        recipe.lkid = generateNewLkid! (LkidType.ISOTOPE_RECIPE);
+        recipe.uuid = randomUUID ();
 
         writeQS ("Name of the distribution to build the image for");
         recipe.distribution = readString ();
@@ -117,6 +118,7 @@ final class IsotopeAdmin : AdminTool
     bool triggerBuild (string name)
     {
         import std.typecons : tuple;
+        import vibe.data.json : serializeToJson;
 
         auto conn = db.getConnection;
 
@@ -127,14 +129,19 @@ final class IsotopeAdmin : AdminTool
         }
 
         foreach (ref arch; recipe.architectures) {
-            ImageBuildJob isojob;
-            isojob.distribution  = recipe.distribution;
-            isojob.suite         = recipe.suite;
+            Job isojob;
+            ImageBuildJobData data;
+            data.distribution  = recipe.distribution;
+            data.suite         = recipe.suite;
+            data.liveBuildGit  = recipe.liveBuildGit;
+            data.flavor        = recipe.flavor;
             isojob.architecture  = arch;
-            isojob.liveBuildGit  = recipe.liveBuildGit;
-            isojob.flavor        = recipe.flavor;
+            isojob.data = serializeToJson (data);
+            isojob.moduleName = LkModule.ISOTOPE;
+            isojob.kind = "image-build";
 
-            conn.addJob (isojob, recipe.lkid);
+
+            conn.addJob (isojob, recipe.uuid);
         }
 
         return true;

@@ -185,7 +185,7 @@ auto getSpearsConfig (Database db)
 
 void removeSpearsExcusesForSuites (Connection conn, string sourceSuite, string targetSuite) @trusted
 {
-    auto ps = conn.prepareStatement ("DELETE FROM spears_excuse WHERE source_suite=$1 AND target_suite=$2");
+    auto ps = conn.prepareStatement ("DELETE FROM spears_excuse WHERE source_suite=? AND target_suite=?");
     scope (exit) ps.close ();
 
     ps.setString (1, sourceSuite);
@@ -196,7 +196,7 @@ void removeSpearsExcusesForSuites (Connection conn, string sourceSuite, string t
 
 long countSpearsExcusesForSuites (Connection conn, string sourceSuite, string targetSuite) @trusted
 {
-    auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM spears_excuse WHERE source_suite=$1 AND target_suite=$2");
+    auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM spears_excuse WHERE source_suite=? AND target_suite=?");
     scope (exit) ps.close ();
 
     ps.setString (1, sourceSuite);

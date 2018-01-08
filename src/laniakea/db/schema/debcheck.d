@@ -113,18 +113,18 @@ void removeDebcheckIssues (Connection conn, string suiteName, PackageType pkind,
     import std.array : empty;
 
     if (architecture.empty) {
-        auto ps = conn.prepareStatement ("DELETE FROM debcheck_issue WHERE suite_name=$1 AND package_kind=$2");
+        auto ps = conn.prepareStatement ("DELETE FROM debcheck_issue WHERE suite_name=? AND package_kind=?");
         scope (exit) ps.close ();
 
         ps.setString (1, suiteName);
-        ps.setShort (2, pkind.to!short);
+        ps.setShort  (2, pkind.to!short);
         ps.executeUpdate ();
     } else {
-        auto ps = conn.prepareStatement ("DELETE FROM debcheck_issues WHERE suite_name=$1 AND package_kind=$2 AND architecture=$3");
+        auto ps = conn.prepareStatement ("DELETE FROM debcheck_issues WHERE suite_name=? AND package_kind=? AND architecture=?");
         scope (exit) ps.close ();
 
         ps.setString (1, suiteName);
-        ps.setShort (2, pkind.to!short);
+        ps.setShort  (2, pkind.to!short);
         ps.setString (3, architecture);
         ps.executeUpdate ();
     }
@@ -136,18 +136,18 @@ long countDebcheckIssues (Connection conn, string suiteName, PackageType pkind, 
 
     Variant var;
     if (architecture.empty) {
-        auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM debcheck_issue WHERE suite_name=$1 AND package_kind=$2");
+        auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM debcheck_issue WHERE suite_name=? AND package_kind=?");
         scope (exit) ps.close ();
 
         ps.setString (1, suiteName);
-        ps.setShort (2, pkind.to!short);
+        ps.setShort  (2, pkind.to!short);
         ps.executeUpdate (var);
     } else {
-        auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM debcheck_issue WHERE suite_name=$1 AND package_kind=$2 AND architecture=$3");
+        auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM debcheck_issue WHERE suite_name=? AND package_kind=? AND architecture=?");
         scope (exit) ps.close ();
 
         ps.setString (1, suiteName);
-        ps.setShort (2, pkind.to!short);
+        ps.setShort  (2, pkind.to!short);
         ps.setString (3, architecture);
         ps.executeUpdate ();
     }

@@ -16,7 +16,7 @@ subdir('c')
 subdir('laniakea')
 
 # Admin cli tool
-#! subdir('admin')
+subdir('admin')
 
 # Key management cli tool
 subdir('keytool')
