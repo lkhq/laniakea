@@ -47,6 +47,8 @@ private:
     Dak dak;
 
     Database db;
+    SessionFactory sFactory;
+
     BaseConfig baseConf;
     SpearsConfig spearsConf;
     LocalConfig localConf;
@@ -61,6 +63,9 @@ public:
         dak = new Dak ();
 
         db = Database.get;
+        auto schema = new SchemaInfoImpl! (SpearsExcuse);
+        sFactory = db.newSessionFactory (schema);
+
         baseConf = db.getBaseConfig;
         spearsConf = db.getSpearsConfig;
 
@@ -69,27 +74,27 @@ public:
         std.file.mkdirRecurse (workspace);
     }
 
-    alias SuiteCheckResult = Tuple!(DistroSuite, "from", DistroSuite, "to", bool, "error");
+    alias SuiteCheckResult = Tuple!(ArchiveSuite, "from", ArchiveSuite, "to", bool, "error");
     private SuiteCheckResult suitesFromConfigEntry (SpearsConfigEntry centry)
     {
         SuiteCheckResult res;
         res.error = false;
 
         auto maybeSuite = db.getSuite (centry.sourceSuite);
-        if (maybeSuite.isNull) {
+        if (maybeSuite is null) {
             logError ("Migration source suite '%s' does not exist. Can not create configuration.", centry.sourceSuite);
             res.error = true;
             return res;
         }
-        res.from = maybeSuite.get ();
+        res.from = maybeSuite;
 
         maybeSuite = db.getSuite (centry.targetSuite);
-        if (maybeSuite.isNull) {
+        if (maybeSuite is null) {
             logError ("Migration target suite '%s' does not exist. Can not create configuration.", centry.targetSuite);
             res.error = true;
             return res;
         }
-        res.to = maybeSuite.get ();
+        res.to = maybeSuite;
 
         if (res.from == res.to) {
             logError ("Migration source and target suite (%s) are the same.", res.from.name);
@@ -123,7 +128,7 @@ public:
             bc.setArchivePaths (buildPath (archiveRootPath, "dists", fromSuite.name),
                                 buildPath (archiveRootPath, "dists", toSuite.name));
             bc.setComponents (map!(c => c.name)(toSuite.components).array);
-            bc.setArchitectures (toSuite.architectures);
+            bc.setArchitectures (array (toSuite.architectures.map! (a => a.name)));
             bc.setDelays (mentry.delays);
             bc.setHints (mentry.hints);
 
@@ -246,12 +251,15 @@ public:
         return processedResult;
     }
 
-    private bool updateDatabase (string miWorkspace, DistroSuite fromSuite, DistroSuite toSuite)
+    private bool updateDatabase (string miWorkspace, ArchiveSuite fromSuite, ArchiveSuite toSuite)
     {
         import std.file : exists;
         import std.typecons : tuple;
+
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         immutable excusesYaml = buildPath (miWorkspace, "output", "target", "excuses.yaml");
         immutable logFile = buildPath (miWorkspace, "output", "target", "output.txt");
@@ -266,14 +274,15 @@ public:
         // day, it needs to be optimized to just update stuff that is needed.
         conn.removeSpearsExcusesForSuites (fromSuite.name, toSuite.name);
         foreach (excuse; efile.getExcuses ().byValue) {
-            excuse.lkid = generateNewLkid! (LkidType.SPEARS_EXCUSE);
-            conn.update (excuse);
+            import std.uuid : randomUUID;
+            excuse.uuid = randomUUID ();
+            session.save (excuse);
         }
 
         return true;
     }
 
-    private bool runMigrationInternal (DistroSuite fromSuite, DistroSuite toSuite)
+    private bool runMigrationInternal (ArchiveSuite fromSuite, ArchiveSuite toSuite)
     {
         immutable miWorkspace = getMigrateWorkspace (fromSuite.name, toSuite.name);
         immutable britneyConf = buildPath (miWorkspace, "britney.conf");

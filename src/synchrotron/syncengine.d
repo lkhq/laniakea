@@ -55,16 +55,17 @@ class SyncEngine
 {
 
 private:
+    Database db;
+    SessionFactory sFactory;
 
     Dak dak;
-    Database db;
     bool m_importsTrusted;
 
     Repository sourceRepo;
     Repository targetRepo;
 
-    DistroSuite sourceSuite;
-    DistroSuite targetSuite;
+    SyncSourceSuite sourceSuite;
+    ArchiveSuite targetSuite;
 
     SynchrotronConfig syncConfig;
     BaseConfig baseConfig;
@@ -76,7 +77,16 @@ public:
     this ()
     {
         dak = new Dak;
+
         db = Database.get;
+        auto schema = new SchemaInfoImpl! (ArchiveRepository,
+                                           ArchiveSuite,
+                                           ArchiveArchitecture,
+                                           ArchiveComponent,
+                                           SyncBlacklistEntry,
+                                           SynchrotronIssue);
+        sFactory = db.newSessionFactory (schema);
+
         auto conf = LocalConfig.get;
 
         baseConfig = db.getBaseConfig;
@@ -101,9 +111,14 @@ public:
 
     private auto getPackageBlacklistSet ()
     {
-        auto syncBlConf = db.getSynchrotronBlacklist;
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        auto q = session.createQuery ("FROM SyncBlacklistEntry");
+        SyncBlacklistEntry[] list = q.list!SyncBlacklistEntry;
+
         bool[string] blacklistSet;
-        foreach (ref entry; syncBlConf.blacklist)
+        foreach (ref entry; list)
             blacklistSet[entry.pkgname] = true;
 
         return blacklistSet;
@@ -238,6 +253,9 @@ public:
      */
     private bool importBinariesForSources (SourcePackage[] spkgs, string component, bool ignoreTargetChanges = false)
     {
+        import std.array : array;
+        import std.algorithm : map;
+
         if (!syncConfig.syncBinaries) {
             logDebug ("Skipping binary syncs.");
             return true;
@@ -245,7 +263,7 @@ public:
 
         // list of valid architectrures supported by the target
         auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
-        immutable targetArchs = incomingSuite.architectures.idup;
+        immutable targetArchs = array (incomingSuite.architectures.map!(a => a.name)).idup;
 
         // cache of binary-package mappings for the source
         BinaryPackage[string][string] binPkgArchMap;
@@ -409,11 +427,12 @@ public:
         return ret;
     }
 
-    private auto newSyncIssue (DistroSuite sourceSuite, DistroSuite targetSuite)
+    private auto newSyncIssue (SyncSourceSuite sourceSuite, ArchiveSuite targetSuite)
     {
-        SynchrotronIssue issue;
+        import std.uuid : randomUUID;
+        auto issue = new SynchrotronIssue;
 
-        issue.lkid = generateNewLkid! (LkidType.SYNCHROTRON_ISSUE);
+        issue.uuid = randomUUID ();
         issue.date = currentDateTime ();
 
         issue.sourceSuite = sourceSuite.name;
@@ -428,8 +447,11 @@ public:
     bool autosync ()
     {
         checkSyncReady ();
+
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
         auto activeSrcPkgs = appender!(SourcePackage[]); // source packages which should have their binary packages updated
@@ -487,7 +509,7 @@ public:
                         issue.targetVersion = dpkg.ver;
                         issue.sourceVersion = spkg.ver;
 
-                        conn.update (issue);
+                        session.save (issue);
                         continue;
                     }
                 }
@@ -554,7 +576,7 @@ public:
                 issue.targetVersion = dpkg.ver;
                 issue.sourceVersion = null;
 
-                conn.update (issue);
+                session.save (issue);
                 continue;
             }
 
@@ -571,7 +593,7 @@ public:
                     issue.sourceVersion = null;
                     issue.details = "%s".format (e);
 
-                    conn.update (issue);
+                    session.save (issue);
                 }
             } else {
                 // looks like we can not remove this
@@ -582,7 +604,7 @@ public:
                 issue.sourceVersion = null;
                 issue.details = "This package can not be removed without breaking other packages. It needs manual removal.";
 
-                conn.update (issue);
+                session.save (issue);
             }
         }
 

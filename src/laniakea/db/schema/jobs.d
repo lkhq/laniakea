@@ -365,34 +365,32 @@ bool setJobLogExcerpt (Connection conn, UUID jobId, string excerpt) @trusted
     return true;
 }
 
-// FIXME
-version (none):
-
 /**
  * Add a new event to the database (using a DB connection)
  */
-void addEvent (PgConnection conn, EventKind kind, string title, string text) @trusted
+void addEvent (Connection conn, EventKind kind, string title, string text) @trusted
 {
     import laniakea.localconfig : LocalConfig;
     const conf = LocalConfig.get;
 
-    QueryParams p;
-    p.sqlCommand = "INSERT INTO events
-                    VALUES (?,
-                            ?,
-                            ?,
-                            now(),
-                            ?,
-                            ?
-                        )";
 
-    p.setParams (generateNewLkid! (LkidType.EVENT),
-                 kind,
-                 conf.currentModule,
-                 title,
-                 text
-    );
-    conn.execParams (p);
+    auto ps = conn.prepareStatement ("INSERT INTO events
+                                      VALUES (?,
+                                              ?,
+                                              ?,
+                                              now(),
+                                              ?,
+                                              ?
+                                             )");
+    scope (exit) ps.close ();
+
+    ps.setString (1, randomUUID ().toString);
+    ps.setShort  (2, kind.to!short);
+    ps.setString (3, conf.currentModule);
+    ps.setString (4, title);
+    ps.setString (5, text);
+
+    ps.executeUpdate ();
 }
 
 /**

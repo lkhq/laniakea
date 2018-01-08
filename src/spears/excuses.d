@@ -124,7 +124,7 @@ public:
 
         auto ysrc = yroot["sources"];
         foreach(dyaml.Node yentry; ysrc) {
-            SpearsExcuse excuse;
+            auto excuse = new SpearsExcuse;
 
             excuse.date = currentDateTime ();
             excuse.sourceSuite = sourceSuite;

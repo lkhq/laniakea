@@ -40,12 +40,12 @@ endif
 
 # Spears
 if (get_option('spears'))
-    #! subdir('spears')
+    subdir('spears')
 endif
 
 # Synchrotron
 if (get_option('synchrotron'))
-    #! subdir('synchrotron')
+    subdir('synchrotron')
 endif
 
 # web frontends
