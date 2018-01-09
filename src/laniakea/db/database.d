@@ -46,19 +46,28 @@ private static __gshared int OidDebversion = -1; /// The OID of the "Debversion"
 
 /**
  * A connection to the Laniakea database.
- * This singleton can be shared between fibers,
- * but not threads.
+ * This singleton is shared between threads.
  */
 final class Database
 {
     // Thread local
-    private static Database instance_ = null;
+    private static bool instantiated_;
+
+    // Thread global
+    private __gshared Database instance_;
 
     @trusted
     static Database get ()
     {
-        if (instance_ is null)
-            instance_ = new Database ();
+        if (!instantiated_) {
+            synchronized (Database.classinfo) {
+                if (!instance_)
+                    instance_ = new Database ();
+
+                instantiated_ = true;
+            }
+        }
+
         return instance_;
     }
 
