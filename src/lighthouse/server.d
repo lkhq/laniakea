@@ -161,8 +161,10 @@ int runServer (bool verbose)
     auto maxThreads = totalCPUs - 1;
     if (maxThreads <= 0)
         maxThreads = 1;
-    for (auto i = 1; i < maxThreads; i++)
-        new Thread ({ serverWorkerThread (sFactory); }).start ();
+
+    // FIXME: temporarily disabled until Hibernated is fixed
+    /+ for (auto i = 1; i < maxThreads; i++)
+        new Thread ({ serverWorkerThread (sFactory); }).start (); +/
     serverWorkerThread (sFactory);
 
     return 0;
