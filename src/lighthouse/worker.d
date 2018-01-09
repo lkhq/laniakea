@@ -64,10 +64,7 @@ class LighthouseWorker {
     {
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
-
-        auto acceptedJobs = jreq["accepts"].get!(Json[]);
         auto architectures = jreq["architectures"].get!(Json[]);
-        auto accepted = jreq["accepts"].get!(Json[]);
 
         auto session = sFactory.openSession ();
         scope (exit) session.close ();
