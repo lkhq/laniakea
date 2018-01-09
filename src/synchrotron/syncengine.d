@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -56,7 +56,7 @@ class SyncEngine
 
 private:
     Database db;
-    Session session; // we use a global session for simplicity here, this process is short-lived
+    SessionFactory sFactory;
 
     Dak dak;
     bool m_importsTrusted;
@@ -65,7 +65,7 @@ private:
     Repository targetRepo;
 
     SyncSourceSuite sourceSuite;
-    ArchiveSuite targetSuite;
+    string targetSuiteName;
 
     SynchrotronConfig syncConfig;
     BaseConfig baseConfig;
@@ -79,9 +79,10 @@ public:
         dak = new Dak;
 
         db = Database.get;
-        auto sFactory = db.newSessionFactory! (SyncBlacklistEntry,
+        sFactory = db.newSessionFactory! (SyncBlacklistEntry,
                                           SynchrotronIssue);
-        session = sFactory.openSession ();
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         auto conf = LocalConfig.get;
 
@@ -93,7 +94,7 @@ public:
                                      baseConfig.projectName);
         targetRepo.setTrusted (true);
 
-        targetSuite = session.getSuite (baseConfig.archive.incomingSuite);
+        targetSuiteName = session.getSuite (baseConfig.archive.incomingSuite).name;
         distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
@@ -105,13 +106,11 @@ public:
         setSourceSuite (syncConfig.source.defaultSuite);
     }
 
-    ~this ()
-    {
-        session.close ();
-    }
-
     private auto getPackageBlacklistSet ()
     {
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
         auto q = session.createQuery ("FROM SyncBlacklistEntry");
         SyncBlacklistEntry[] list = q.list!SyncBlacklistEntry;
 
@@ -208,7 +207,7 @@ public:
         if (is(T == SourcePackage) || is(T == BinaryPackage))
     {
         return getRepoPackageMap!T (targetRepo,
-                                    targetSuite.name,
+                                    targetSuiteName,
                                     component,
                                     arch,
                                     withInstaller);
@@ -243,7 +242,7 @@ public:
             return false;
         }
 
-        return importPackageFiles (targetSuite.name, component, [dscfile]);
+        return importPackageFiles (targetSuiteName, component, [dscfile]);
     }
 
     /**
@@ -258,6 +257,9 @@ public:
             logDebug ("Skipping binary syncs.");
             return true;
         }
+
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         // list of valid architectrures supported by the target
         auto incomingSuite = session.getSuite (baseConfig.archive.incomingSuite);
@@ -349,7 +351,7 @@ public:
                     if (!existingPackages)
                         logWarning ("No binary packages synced for source %s/%s", spkg.name, spkg.ver);
                 } else {
-                    auto ret = importPackageFiles (targetSuite.name, component, binFiles.data);
+                    auto ret = importPackageFiles (targetSuiteName, component, binFiles.data);
                     if (!ret)
                         return false;
                 }
@@ -448,8 +450,11 @@ public:
 
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         auto incomingSuite = session.getSuite (baseConfig.archive.incomingSuite);
+        auto targetSuite   = session.getSuite (targetSuiteName);
         auto activeSrcPkgs = appender!(SourcePackage[]); // source packages which should have their binary packages updated
 
         auto syncBlacklist = getPackageBlacklistSet ();
