@@ -38,7 +38,7 @@ public import ddbc : Connection, ResultSet;
 public import hibernated.annotations;
 public import hibernated.type;
 public import hibernated.metadata;
-public import hibernated.session : SessionFactory;
+public import hibernated.session : Session, SessionFactory;
 public import std.typecons : Nullable;
 public import std.variant : Variant;
 
@@ -230,8 +230,38 @@ public:
     /**
      * Create a new session factory using the provided schema.
      */
-    auto newSessionFactory (EntityMetaData schema)
+    auto newSessionFactory (SchemaInfo schema)
     {
+        return new SessionFactoryImpl (schema, dialect, dsource);
+    }
+
+    /**
+     * Create a new session factory for the set entities,
+     * including a couple of entities from the core set (such as ArchiveSuite)
+     * by default.
+     */
+    auto newSessionFactory (T...) ()
+    {
+        import laniakea.db.schema.core;
+        auto schema = new SchemaInfoImpl! (ArchiveRepository,
+                                           ArchiveComponent,
+                                           ArchiveArchitecture,
+                                           ArchiveSuite,
+                                           T);
+        return new SessionFactoryImpl (schema, dialect, dsource);
+    }
+
+    /**
+     * Create a new session factory including entities from
+     * the core set (such as ArchiveSuite and ArchiveRepository)
+     */
+    auto newSessionFactory ()
+    {
+        import laniakea.db.schema.core;
+        auto schema = new SchemaInfoImpl! (ArchiveRepository,
+                                           ArchiveComponent,
+                                           ArchiveArchitecture,
+                                           ArchiveSuite);
         return new SessionFactoryImpl (schema, dialect, dsource);
     }
 }

@@ -41,8 +41,7 @@ final class SyncAdmin : AdminTool
 
     this ()
     {
-        auto schema = new SchemaInfoImpl! (SyncBlacklistEntry);
-        sFactory = db.newSessionFactory (schema);
+        sFactory = db.newSessionFactory! (SyncBlacklistEntry);
     }
 
     override

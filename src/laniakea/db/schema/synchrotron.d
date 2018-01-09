@@ -112,10 +112,8 @@ void createTables (Database db) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
-    auto schema = new SchemaInfoImpl! (SyncBlacklistEntry,
-                                       SynchrotronIssue);
-
-    auto factory = db.newSessionFactory (schema);
+    auto factory = db.newSessionFactory! (SyncBlacklistEntry,
+                                          SynchrotronIssue);
     scope (exit) factory.close();
 
     // create tables if they don't exist yet
@@ -171,13 +169,8 @@ void removeSynchrotronIssuesForSuites (Connection conn, string sourceSuite, stri
     ps.executeUpdate ();
 }
 
-auto getSynchrotronIssues (Database db, long limit, long offset = 0) @trusted
+auto getSynchrotronIssues (Session session, long limit, long offset = 0) @trusted
 {
-    auto schema = new SchemaInfoImpl! (SynchrotronIssue);
-    auto factory = db.newSessionFactory (schema);
-    auto session = factory.openSession();
-    scope (exit) session.close();
-
     if (limit <= 0)
         limit = long.max;
 

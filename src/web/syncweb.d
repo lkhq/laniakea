@@ -47,9 +47,8 @@ class SynchrotronWebService {
         db = wconf.db;
         ginfo = wconf.ginfo;
 
-        auto schema = new SchemaInfoImpl! (SyncBlacklistEntry,
-                                           SynchrotronIssue);
-        sFactory = db.newSessionFactory (schema);
+        sFactory = db.newSessionFactory! (SyncBlacklistEntry,
+                                          SynchrotronIssue);
     }
 
     @path("/")

@@ -76,7 +76,7 @@ class DepcheckWebService {
             }
         }
 
-        auto sFactory = db.newSessionFactory (new SchemaInfoImpl! (DebcheckIssue));
+        auto sFactory = db.newSessionFactory! (DebcheckIssue);
         auto session = sFactory.openSession ();
         scope (exit) session.close ();
 
@@ -120,7 +120,7 @@ class DepcheckWebService {
         else
             return; // Not found
 
-        auto sFactory = db.newSessionFactory (new SchemaInfoImpl! (DebcheckIssue));
+        auto sFactory = db.newSessionFactory! (DebcheckIssue);
         auto session = sFactory.openSession ();
         scope (exit) session.close ();
 

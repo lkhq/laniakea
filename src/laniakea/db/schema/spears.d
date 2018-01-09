@@ -138,9 +138,7 @@ void createTables (Database db) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
-    auto schema = new SchemaInfoImpl! (SpearsExcuse);
-
-    auto factory = db.newSessionFactory (schema);
+    auto factory = db.newSessionFactory! (SpearsExcuse);
     scope (exit) factory.close();
 
     // create tables if they don't exist yet

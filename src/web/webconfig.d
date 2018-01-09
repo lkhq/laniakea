@@ -58,7 +58,7 @@ final class WebConfig
         ushort port;
     }
 
-    this (LocalConfig lconf)
+    this (LocalConfig lconf) @trusted
     {
         localConf = lconf;
         db = Database.get;
@@ -73,7 +73,15 @@ final class WebConfig
 
             ginfo.migrations ~= minfo;
         }
-        ginfo.suites = db.getSuites ();
+
+        // FIXME: This is dirty - the session is no longer alive when the suites
+        // are accessed, so any attempt to access a lazy-loaded property will fail
+        // and raise an exception.
+        auto sFactory = db.newSessionFactory ();
+        scope (exit) sFactory.close();
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+        ginfo.suites = session.getSuites ();
     }
 
     @trusted

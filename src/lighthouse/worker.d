@@ -47,8 +47,7 @@ class LighthouseWorker {
         db = Database.get;
         conn = db.getConnection ();
 
-        auto schema = new SchemaInfoImpl! (SparkWorker);
-        sFactory = db.newSessionFactory (schema);
+        sFactory = db.newSessionFactory! (SparkWorker);
     }
 
     ~this ()
@@ -246,6 +245,7 @@ class LighthouseWorker {
         auto logExcerpt = jreq["log_excerpt"].get!string;
 
         // update last seen data
+
         conn.updateWorkerPing (clientId);
 
         // update log & status data

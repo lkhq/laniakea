@@ -84,9 +84,7 @@ void createTables (Database db) @trusted
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
 
-    auto schema = new SchemaInfoImpl! (DebcheckIssue);
-
-    auto factory = db.newSessionFactory (schema);
+    auto factory = db.newSessionFactory! (DebcheckIssue);
     scope (exit) factory.close();
 
     // create tables if they don't exist yet

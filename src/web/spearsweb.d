@@ -50,8 +50,7 @@ class SpearsWebService {
         db = wconf.db;
         ginfo = wconf.ginfo;
 
-        auto schema = new SchemaInfoImpl! (SpearsExcuse);
-        sFactory = db.newSessionFactory (schema);
+        sFactory = db.newSessionFactory! (SpearsExcuse);
     }
 
     @path(":from/:to/excuses/:page")

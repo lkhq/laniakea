@@ -52,8 +52,7 @@ class Debcheck
     this ()
     {
         db = Database.get;
-        auto schema = new SchemaInfoImpl! (DebcheckIssue);
-        sFactory = db.newSessionFactory (schema);
+        sFactory = db.newSessionFactory! (DebcheckIssue);
 
         const conf = LocalConfig.get;
         const baseConfig = db.getBaseConfig;
@@ -74,6 +73,7 @@ class Debcheck
                 break;
             }
         }
+
         if (!nativeArchFound)
             defaultNativeArch = suite.architectures[0].name;
 
@@ -130,7 +130,7 @@ class Debcheck
      * ones of the dependencies are added as "background" (bg).
      */
     private Tuple!(string[], "fg", string[], "bg")
-    getFullIndexFileList (ArchiveSuite suite, string arch, bool sourcePackages, string binArch)
+    getFullIndexFileList (Session session, ArchiveSuite suite, string arch, bool sourcePackages, string binArch)
     {
         Tuple!(string[], "fg", string[], "bg") res;
 
@@ -156,7 +156,7 @@ class Debcheck
 
         // add base suite packages
         if (!suite.baseSuiteName.empty) {
-            auto baseSuite = db.getSuite (suite.baseSuiteName);
+            auto baseSuite = session.getSuite (suite.baseSuiteName);
             if (baseSuite !is null) {
                 foreach (ref component; baseSuite.components) {
                     string fname;
@@ -177,14 +177,14 @@ class Debcheck
     /**
      * Get Dose YAML data for build dependency issues in the selected suite.
      */
-    private string[string] getBuildDepCheckYaml (ArchiveSuite suite)
+    private string[string] getBuildDepCheckYaml (Session session, ArchiveSuite suite)
     {
         string[string] archIssueMap;
 
         immutable defaultNativeArch = getDefaultNativeArch (suite);
         foreach (ref arch; suite.architectures.map! (a => a.name)) {
             // fetch source-package-centric index list
-            auto indices = getFullIndexFileList (suite, arch, true, defaultNativeArch);
+            auto indices = getFullIndexFileList (session, suite, arch, true, defaultNativeArch);
             if (indices.fg.empty) {
                 if (arch == "all")
                     continue;
@@ -212,7 +212,7 @@ class Debcheck
     /**
      * Get Dose YAML data for build installability issues in the selected suite.
      */
-    private string[string] getDepCheckYaml (ArchiveSuite suite)
+    private string[string] getDepCheckYaml (Session session, ArchiveSuite suite)
     {
         import std.algorithm : map;
         import std.array : array;
@@ -223,7 +223,7 @@ class Debcheck
         auto allArchs = array (suite.architectures.map!(a => a.name)) ~ ["all"];
         foreach (ref arch; allArchs) {
             // fetch binary-package index list
-            auto indices = getFullIndexFileList (suite, arch, false, defaultNativeArch);
+            auto indices = getFullIndexFileList (session, suite, arch, false, defaultNativeArch);
             if (indices.fg.empty) {
                 if (arch == "all")
                     continue;
@@ -339,17 +339,14 @@ class Debcheck
         return res.data;
     }
 
-    public bool updateBuildDepCheckIssues (ArchiveSuite suite) @trusted
+    public bool updateBuildDepCheckIssues (Session session, ArchiveSuite suite) @trusted
     {
-        import vibe.data.bson;
         import std.typecons : tuple;
 
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
-        auto session = sFactory.openSession();
-        scope (exit) session.close();
 
-        auto issuesYaml = getBuildDepCheckYaml (suite);
+        auto issuesYaml = getBuildDepCheckYaml (session, suite);
         conn.removeDebcheckIssues (suite.name, PackageType.SOURCE);
         foreach (ref arch, ref yamlData; issuesYaml) {
             auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
@@ -363,30 +360,33 @@ class Debcheck
 
     public bool updateBuildDepCheckIssues (string suiteName)
     {
-        return updateBuildDepCheckIssues (db.getSuite (suiteName));
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        return updateBuildDepCheckIssues (session, session.getSuite (suiteName));
     }
 
     public bool updateBuildDepCheckIssues ()
     {
-        foreach (ref suite; db.getSuites ()) {
-            auto ret = updateBuildDepCheckIssues (suite);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        foreach (ref suite; session.getSuites ()) {
+            immutable ret = updateBuildDepCheckIssues (session, suite);
             if (!ret)
                 return false;
         }
         return true;
     }
 
-    public bool updateDepCheckIssues (ArchiveSuite suite) @trusted
+    public bool updateDepCheckIssues (Session session, ArchiveSuite suite) @trusted
     {
-        import vibe.data.bson;
         import std.typecons : tuple;
 
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
 
-        auto issuesYaml = getDepCheckYaml (suite);
+        auto issuesYaml = getDepCheckYaml (session, suite);
         foreach (ref arch, ref yamlData; issuesYaml) {
             auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
 
@@ -400,13 +400,19 @@ class Debcheck
 
     public bool updateDepCheckIssues (string suiteName)
     {
-        return updateDepCheckIssues (db.getSuite (suiteName));
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        return updateDepCheckIssues (session, session.getSuite (suiteName));
     }
 
     public bool updateDepCheckIssues ()
     {
-        foreach (ref suite; db.getSuites ()) {
-            auto ret = updateDepCheckIssues (suite);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        foreach (ref suite; session.getSuites ()) {
+            auto ret = updateDepCheckIssues (session, suite);
             if (!ret)
                 return false;
         }

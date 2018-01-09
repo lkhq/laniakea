@@ -63,8 +63,7 @@ public:
         dak = new Dak ();
 
         db = Database.get;
-        auto schema = new SchemaInfoImpl! (SpearsExcuse);
-        sFactory = db.newSessionFactory (schema);
+        sFactory = db.newSessionFactory! (SpearsExcuse);
 
         baseConf = db.getBaseConfig;
         spearsConf = db.getSpearsConfig;
@@ -75,12 +74,12 @@ public:
     }
 
     alias SuiteCheckResult = Tuple!(ArchiveSuite, "from", ArchiveSuite, "to", bool, "error");
-    private SuiteCheckResult suitesFromConfigEntry (SpearsConfigEntry centry)
+    private SuiteCheckResult suitesFromConfigEntry (Session session, SpearsConfigEntry centry)
     {
         SuiteCheckResult res;
         res.error = false;
 
-        auto maybeSuite = db.getSuite (centry.sourceSuite);
+        auto maybeSuite = session.getSuite (centry.sourceSuite);
         if (maybeSuite is null) {
             logError ("Migration source suite '%s' does not exist. Can not create configuration.", centry.sourceSuite);
             res.error = true;
@@ -88,7 +87,7 @@ public:
         }
         res.from = maybeSuite;
 
-        maybeSuite = db.getSuite (centry.targetSuite);
+        maybeSuite = session.getSuite (centry.targetSuite);
         if (maybeSuite is null) {
             logError ("Migration target suite '%s' does not exist. Can not create configuration.", centry.targetSuite);
             res.error = true;
@@ -113,9 +112,13 @@ public:
     bool updateConfig ()
     {
         logInfo ("Updating configuration");
+
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
         immutable archiveRootPath = localConf.archive.rootPath;
         foreach (ref mentry; spearsConf.migrations) {
-            auto scRes = suitesFromConfigEntry (mentry);
+            auto scRes = suitesFromConfigEntry (session, mentry);
             if (scRes.error)
                 continue;
             auto fromSuite = scRes.from;
@@ -251,15 +254,13 @@ public:
         return processedResult;
     }
 
-    private bool updateDatabase (string miWorkspace, ArchiveSuite fromSuite, ArchiveSuite toSuite)
+    private bool updateDatabase (Session session, string miWorkspace, ArchiveSuite fromSuite, ArchiveSuite toSuite)
     {
         import std.file : exists;
         import std.typecons : tuple;
 
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
 
         immutable excusesYaml = buildPath (miWorkspace, "output", "target", "excuses.yaml");
         immutable logFile = buildPath (miWorkspace, "output", "target", "output.txt");
@@ -282,7 +283,7 @@ public:
         return true;
     }
 
-    private bool runMigrationInternal (ArchiveSuite fromSuite, ArchiveSuite toSuite)
+    private bool runMigrationInternal (Session session, ArchiveSuite fromSuite, ArchiveSuite toSuite)
     {
         immutable miWorkspace = getMigrateWorkspace (fromSuite.name, toSuite.name);
         immutable britneyConf = buildPath (miWorkspace, "britney.conf");
@@ -305,7 +306,7 @@ public:
         auto ret = dak.setSuiteToBritneyResult (toSuite.name, heidiResult);
 
         // add the results to our database
-        ret = updateDatabase (miWorkspace, fromSuite, toSuite) && ret;
+        ret = updateDatabase (session, miWorkspace, fromSuite, toSuite) && ret;
         return ret;
     }
 
@@ -314,13 +315,16 @@ public:
         bool done = false;
         bool ret = true;
 
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
         foreach (ref mentry; spearsConf.migrations) {
             if ((mentry.sourceSuite == fromSuite) && (mentry.targetSuite == toSuite)) {
-                auto scRes = suitesFromConfigEntry (mentry);
+                auto scRes = suitesFromConfigEntry (session, mentry);
                 if (scRes.error)
                     continue;
                 done = true;
-                if (!runMigrationInternal (scRes.from, scRes.to))
+                if (!runMigrationInternal (session, scRes.from, scRes.to))
                     ret = false;
             }
         }
@@ -335,13 +339,16 @@ public:
 
     bool runMigration ()
     {
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
         bool ret = true;
         foreach (ref mentry; spearsConf.migrations) {
-            auto scRes = suitesFromConfigEntry (mentry);
+            auto scRes = suitesFromConfigEntry (session, mentry);
             if (scRes.error)
                 continue;
 
-            if (!runMigrationInternal (scRes.from, scRes.to))
+            if (!runMigrationInternal (session, scRes.from, scRes.to))
                 ret = false;
         }
 

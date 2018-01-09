@@ -48,8 +48,7 @@ class WorkersWebService {
         db = wconf.db;
         ginfo = wconf.ginfo;
 
-        auto schema = new SchemaInfoImpl! (SparkWorker);
-        sFactory = db.newSessionFactory (schema);
+        sFactory = db.newSessionFactory! (SparkWorker);
     }
 
     @path("/")

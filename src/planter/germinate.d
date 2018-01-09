@@ -129,9 +129,13 @@ public:
     }
 
     bool run ()
-    in { assert (db.getSuite (baseConf.archive.develSuite).architectures.length > 0); }
-    body
     {
+        auto sFactory = db.newSessionFactory ();
+        scope (exit) sFactory.close();
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        assert (session.getSuite (baseConf.archive.develSuite).architectures.length > 0);
         immutable devSuiteName = baseConf.archive.develSuite;
 
         // update the seed (contained in the metapackage repository)
@@ -146,7 +150,7 @@ public:
         auto resultsDir = buildPath (resultsBaseDir, "%s.%s".format (baseConf.projectName.toLower, devSuiteName));
         std.file.mkdirRecurse (resultsDir);
 
-        auto develSuite = db.getSuite (baseConf.archive.develSuite);
+        auto develSuite = session.getSuite (baseConf.archive.develSuite);
 
         // prepare parameters
         auto geArgs = ["-S", "file://" ~ seedSrcDir, // seed source

@@ -56,7 +56,7 @@ class SyncEngine
 
 private:
     Database db;
-    SessionFactory sFactory;
+    Session session; // we use a global session for simplicity here, this process is short-lived
 
     Dak dak;
     bool m_importsTrusted;
@@ -79,13 +79,9 @@ public:
         dak = new Dak;
 
         db = Database.get;
-        auto schema = new SchemaInfoImpl! (ArchiveRepository,
-                                           ArchiveSuite,
-                                           ArchiveArchitecture,
-                                           ArchiveComponent,
-                                           SyncBlacklistEntry,
-                                           SynchrotronIssue);
-        sFactory = db.newSessionFactory (schema);
+        auto sFactory = db.newSessionFactory! (SyncBlacklistEntry,
+                                          SynchrotronIssue);
+        session = sFactory.openSession ();
 
         auto conf = LocalConfig.get;
 
@@ -97,7 +93,7 @@ public:
                                      baseConfig.projectName);
         targetRepo.setTrusted (true);
 
-        targetSuite = db.getSuite (baseConfig.archive.incomingSuite);
+        targetSuite = session.getSuite (baseConfig.archive.incomingSuite);
         distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
@@ -109,11 +105,13 @@ public:
         setSourceSuite (syncConfig.source.defaultSuite);
     }
 
+    ~this ()
+    {
+        session.close ();
+    }
+
     private auto getPackageBlacklistSet ()
     {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
         auto q = session.createQuery ("FROM SyncBlacklistEntry");
         SyncBlacklistEntry[] list = q.list!SyncBlacklistEntry;
 
@@ -262,7 +260,7 @@ public:
         }
 
         // list of valid architectrures supported by the target
-        auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
+        auto incomingSuite = session.getSuite (baseConfig.archive.incomingSuite);
         immutable targetArchs = array (incomingSuite.architectures.map!(a => a.name)).idup;
 
         // cache of binary-package mappings for the source
@@ -450,10 +448,8 @@ public:
 
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
 
-        auto incomingSuite = db.getSuite (baseConfig.archive.incomingSuite);
+        auto incomingSuite = session.getSuite (baseConfig.archive.incomingSuite);
         auto activeSrcPkgs = appender!(SourcePackage[]); // source packages which should have their binary packages updated
 
         auto syncBlacklist = getPackageBlacklistSet ();

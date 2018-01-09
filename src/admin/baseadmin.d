@@ -67,12 +67,7 @@ final class BaseAdmin : AdminTool
         writeHeader ("Configuring base settings for Laniakea");
 
         BaseConfig bconf;
-        auto schema = new SchemaInfoImpl! (ArchiveRepository,
-                                           ArchiveComponent,
-                                           ArchiveArchitecture,
-                                           ArchiveSuite);
-
-        auto factory = db.newSessionFactory (schema);
+        auto factory = db.newSessionFactory ();
         auto session = factory.openSession();
         scope (exit) session.close();
 

@@ -160,12 +160,7 @@ void createTables (Database db) @trusted
         )"
     );
 
-    auto schema = new SchemaInfoImpl! (ArchiveRepository,
-                                      ArchiveSuite,
-                                      ArchiveArchitecture,
-                                      ArchiveComponent);
-
-    auto factory = db.newSessionFactory (schema);
+    auto factory = db.newSessionFactory ();
     scope (exit) factory.close();
 
     // create tables if they don't exist yet
@@ -208,17 +203,8 @@ auto getBaseConfig (Database db)
     return conf;
 }
 
-auto getSuite (Database db, string name, string repo = "master") @trusted
+auto getSuite (Session session, string name, string repo = "master") @trusted
 {
-    auto schema = new SchemaInfoImpl! (ArchiveRepository,
-                                       ArchiveComponent,
-                                       ArchiveArchitecture,
-                                       ArchiveSuite);
-
-    auto factory = db.newSessionFactory (schema);
-    auto session = factory.openSession ();
-    scope (exit) session.close ();
-
     auto q = session.createQuery ("FROM ArchiveSuite WHERE name=:nm")
                     .setParameter ("nm", name);
     ArchiveSuite[] list = q.list!ArchiveSuite();
@@ -229,17 +215,8 @@ auto getSuite (Database db, string name, string repo = "master") @trusted
     return suite;
 }
 
-auto getSuites (Database db, string repo = "master") @trusted
+auto getSuites (Session session, string repo = "master") @trusted
 {
-    auto schema = new SchemaInfoImpl! (ArchiveRepository,
-                                       ArchiveComponent,
-                                       ArchiveArchitecture,
-                                       ArchiveSuite);
-
-    auto factory = db.newSessionFactory (schema);
-    auto session = factory.openSession();
-    scope (exit) session.close();
-
     auto q = session.createQuery ("FROM ArchiveSuite suite WHERE suite.repo.name=:repo")
                     .setParameter ("repo", repo);
     return q.list!ArchiveSuite();
