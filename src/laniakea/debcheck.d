@@ -53,11 +53,10 @@ class Debcheck
     {
         db = Database.get;
         auto schema = new SchemaInfoImpl! (DebcheckIssue);
-        auto sFactory = db.newSessionFactory (schema);
+        sFactory = db.newSessionFactory (schema);
 
-        auto conf = LocalConfig.get;
-        auto baseConfig = db.getBaseConfig;
-
+        const conf = LocalConfig.get;
+        const baseConfig = db.getBaseConfig;
         repo = new Repository (conf.archive.rootPath,
                                 baseConfig.projectName);
         repo.setTrusted (true);
