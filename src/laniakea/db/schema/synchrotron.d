@@ -88,7 +88,7 @@ class SynchrotronIssue {
     DateTime date;              /// Time when this excuse was created
 
     SynchrotronIssueKind kind; /// Kind of this issue, and usually also the reason for it.
-    mixin EnumDatabaseField!("kind", "kind", "SynchrotronIssueKind", true);
+    mixin (EnumDatabaseField!("kind", "kind", "SynchrotronIssueKind", true));
 
     string packageName; /// Name of the source package that is to be synchronized
 

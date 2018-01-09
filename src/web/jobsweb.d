@@ -54,18 +54,17 @@ class JobsWebService {
         immutable job_id = req.params["job_id"];
         if (job_id.empty)
             return;
-        if (job_id.length < LKID_LENGTH)
+        if (job_id.length != 36)
             return;
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
 
-        const jobRaw = conn.getRawJobById (laniakea.db.lkid.to!LkId (job_id));
-        if (jobRaw.length == 0)
+        const job = conn.getJobById (job_id);
+        if (job.isNull)
             return;
 
-        if (jobRaw.rawJobGetModule == LkModule.ISOTOPE) {
+        if (job.moduleName == LkModule.ISOTOPE) {
             // we have an isotope job!
-            auto job = jobRaw.rowTo!ImageBuildJob;
             render!("jobs/details_isojob.dt", ginfo, job);
         } else {
             return; // FIXME: We need generic details for jobs that aren't treated special

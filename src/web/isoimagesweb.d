@@ -35,7 +35,7 @@ import web.webconfig;
 struct IsoImageEntry
 {
     ImageBuildRecipe recipe;
-    ImageBuildJob[] jobs;
+    Job[] jobs;
 }
 
 @path("/isoimages")
@@ -66,7 +66,7 @@ class IsoImagesWebService {
         foreach (ref recipe; recipes) {
             IsoImageEntry entry;
             entry.recipe = recipe;
-            entry.jobs = conn.getJobsByTrigger!ImageBuildJob (recipe.lkid, 10);
+            entry.jobs = conn.getJobsByTrigger (recipe.uuid, 10);
 
             entries ~= entry;
         }

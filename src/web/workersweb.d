@@ -39,6 +39,7 @@ class WorkersWebService {
     private {
         WebConfig wconf;
         Database db;
+        SessionFactory sFactory;
     }
 
     this (WebConfig conf)
@@ -46,15 +47,20 @@ class WorkersWebService {
         wconf = conf;
         db = wconf.db;
         ginfo = wconf.ginfo;
+
+        auto schema = new SchemaInfoImpl! (SparkWorker);
+        sFactory = db.newSessionFactory (schema);
     }
 
     @path("/")
  	void getWorkers (HTTPServerRequest req, HTTPServerResponse res)
  	{
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
-        const workers = conn.getWorkers;
+        auto q = session.createQuery ("FROM SparkWorker ORDER BY machineName");
+        const workers = q.list!SparkWorker;
+
         render!("workers/workers.dt", ginfo, workers);
  	}
 

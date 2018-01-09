@@ -39,6 +39,7 @@ class SpearsWebService {
     private {
         WebConfig wconf;
         Database db;
+        SessionFactory sFactory;
 
         immutable excusesPerPage = 100;
     }
@@ -48,6 +49,9 @@ class SpearsWebService {
         wconf = conf;
         db = wconf.db;
         ginfo = wconf.ginfo;
+
+        auto schema = new SchemaInfoImpl! (SpearsExcuse);
+        sFactory = db.newSessionFactory (schema);
     }
 
     @path(":from/:to/excuses/:page")
@@ -68,15 +72,26 @@ class SpearsWebService {
             }
         }
 
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
 
-        const excusesCount = conn.countSpearsExcusesForSuites (sourceSuite, targetSuite);
+        auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM spears_excuse;");
+        scope (exit) ps.close ();
+        Variant v;
+        ps.executeUpdate (v);
+        const excusesCount = v.get!long;
         immutable pageCount = ceil (excusesCount.to!real / excusesPerPage.to!real);
-        auto excuses = conn.getSpearsExcusesForSuites (sourceSuite,
-                                                       targetSuite,
-                                                       excusesPerPage,
-                                                       (currentPage - 1) * excusesPerPage);
+
+        auto q = session.createQuery ("FROM SpearsExcuse as e
+                                       WHERE sourceSuite=:srcSuite AND targetSuite=:dstSuite
+                                       ORDER BY sourcePackage")
+                        .setParameter("srcSuite", sourceSuite)
+                        .setParameter("dstSuite", targetSuite);
+
+        // FIXME: Hibernated doesn't seem to support LIMIT/OFFSET...
+        const excuses = (q.list!SpearsExcuse)[(currentPage - 1) * excusesPerPage .. $].take (excusesPerPage);
 
         render!("migration/excuses.dt", ginfo,
                 currentPage, pageCount,
@@ -98,10 +113,21 @@ class SpearsWebService {
         immutable sourcePackage = req.params["source"];
         immutable newVersion = req.params["version"];
 
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
-        auto excuse = conn.getSpearsExcuse (sourceSuite, targetSuite, sourcePackage, newVersion);
-        if (excuse.isNull) {
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        const excuse = session.createQuery ("FROM SpearsExcuse
+                                       WHERE sourceSuite=:srcSuite
+                                         AND targetSuite=:dstSuite
+                                         AND sourcePackage=:srcPkgname
+                                         AND newVersion=:version")
+                              .setParameter("srcSuite", sourceSuite)
+                              .setParameter("dstSuite", targetSuite)
+                              .setParameter("srcPkgname", sourcePackage)
+                              .setParameter("version", newVersion)
+                              .uniqueResult!SpearsExcuse;
+
+        if (excuse is null) {
             res.statusCode = 404;
             res.writeBody("");
             return;

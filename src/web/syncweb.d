@@ -36,7 +36,9 @@ class SynchrotronWebService {
 
     private {
         WebConfig wconf;
+
         Database db;
+        SessionFactory sFactory;
     }
 
     this (WebConfig conf)
@@ -44,23 +46,33 @@ class SynchrotronWebService {
         wconf = conf;
         db = wconf.db;
         ginfo = wconf.ginfo;
+
+        auto schema = new SchemaInfoImpl! (SyncBlacklistEntry,
+                                           SynchrotronIssue);
+        sFactory = db.newSessionFactory (schema);
     }
 
     @path("/")
  	void getSyncOverview ()
  	{
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
-        auto issues = conn.getSynchrotronIssues (0);
+        auto q = session.createQuery ("FROM SynchrotronIssue ORDER BY packageName");
+        const issues = q.list!SynchrotronIssue;
+
         render!("synchrotron/syncoverview.dt", ginfo, issues);
     }
 
     @path("/blacklist")
     void getSyncBlacklist ()
     {
-        const blist = db.getSynchrotronBlacklist ();
-        auto entries = blist.blacklist;
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        auto q = session.createQuery ("FROM SyncBlacklistEntry ORDER BY pkgname");
+        const entries = q.list!SyncBlacklistEntry;
+
         render!("synchrotron/blacklist.dt", ginfo, entries);
     }
 

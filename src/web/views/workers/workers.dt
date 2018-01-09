@@ -25,7 +25,7 @@ block contents
                             |  #{worker.machineName}
                     .panel-body
                         b ID:
-                        | #{worker.machineId}
+                        | #{worker.uuid.toString}
                         br
                         b Owner:
                         | #{worker.owner.empty? "None set." : worker.owner}

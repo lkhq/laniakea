@@ -54,6 +54,7 @@ class DepcheckWebService {
  	void getIssueList (HTTPServerRequest req, HTTPServerResponse res)
  	{
         import std.math : ceil;
+        import std.range : take;
 
         immutable suiteName = req.params.get("suite");
         immutable packageKindStr = req.params.get("type");
@@ -75,16 +76,23 @@ class DepcheckWebService {
             }
         }
 
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
-        const issuesCount = conn.countDebcheckIssues (suiteName, packageKind);
+        auto sFactory = db.newSessionFactory (new SchemaInfoImpl! (DebcheckIssue));
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
-        auto pageCount = ceil (issuesCount.to!real / issuesPerPage.to!real);
-        const issues = conn.getDebcheckIssues (suiteName,
-                                               packageKind,
-                                               null, // all architectures
-                                               issuesPerPage,
-                                               (currentPage - 1) * issuesPerPage);
+        auto q = session.createQuery ("FROM DebcheckIssue
+                                       WHERE suiteName=:suite
+                                         AND packageKind_i=:kind
+                                       ORDER BY packageName")
+                        .setParameter("suite", suiteName)
+                        .setParameter("kind", packageKind.to!short);
+
+        // FIXME: Hibernated doesn't seem to support LIMIT/OFFSET...
+        const allIssues = q.list!DebcheckIssue;
+        immutable issuesCount = allIssues.length;
+        immutable pageCount = ceil (issuesCount.to!real / issuesPerPage.to!real);
+
+        const DebcheckIssue[] issues = issuesCount > 0? allIssues[(currentPage - 1) * issuesPerPage .. $].take (issuesPerPage) : [];
 
         render!("depcheck/issues.dt", ginfo,
                 suiteName, packageKind, issues,
@@ -112,11 +120,21 @@ class DepcheckWebService {
         else
             return; // Not found
 
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
+        auto sFactory = db.newSessionFactory (new SchemaInfoImpl! (DebcheckIssue));
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
-        auto issue = conn.getDebcheckIssue (suiteName, packageKind, packageName, packageVersion);
-        if (issue.isNull)
+        const issue = session.createQuery ("FROM DebcheckIssue
+                                       WHERE suiteName=:suite
+                                         AND packageKind_i=:kind
+                                         AND packageName=:pkgname
+                                         AND packageVersion=:version")
+                             .setParameter("suite", suiteName)
+                             .setParameter("kind", packageKind.to!short)
+                             .setParameter("pkgname", packageName)
+                             .setParameter("version", packageVersion)
+                             .uniqueResult!DebcheckIssue;
+        if (issue is null)
             return;
 
         render!("depcheck/issue-details.dt", ginfo, suiteName, packageKind, issue);

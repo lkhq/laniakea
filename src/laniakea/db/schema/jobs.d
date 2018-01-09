@@ -312,12 +312,26 @@ auto getJobsByTrigger (Connection conn, UUID triggerId, long limit, long offset 
     ps.setLong   (3, offset);
 
     if (limit > 0)
-        ps.setLong  (3, limit);
+        ps.setLong  (2, limit);
     else
-        ps.setLong  (3, long.max);
+        ps.setLong  (2, long.max);
 
     auto ans = ps.executeQuery ();
     return rowsTo!Job (ans);
+}
+
+/**
+ * Find a job by its unique ID.
+ */
+auto getJobById (Connection conn, string uuid) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE uuid=?");
+    scope (exit) ps.close ();
+
+    ps.setString (1, uuid);
+    auto ans = ps.executeQuery ();
+
+    return rowsToOne!Job (ans);
 }
 
 /**
