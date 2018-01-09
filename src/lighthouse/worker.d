@@ -28,6 +28,7 @@ import c.zmq;
 import laniakea.logging;
 import laniakea.db;
 import laniakea.utils : currentDateTime;
+import laniakea.db.schema.workers : SparkWorker;
 
 import lighthouse.utils;
 
@@ -40,14 +41,14 @@ class LighthouseWorker {
         SessionFactory sFactory;
     }
 
-    this (zsock_t *sock)
+    this (zsock_t *sock, SessionFactory factory)
     {
         socket = sock;
 
         db = Database.get;
         conn = db.getConnection ();
 
-        sFactory = db.newSessionFactory! (SparkWorker);
+        sFactory = factory;
     }
 
     ~this ()
@@ -72,7 +73,7 @@ class LighthouseWorker {
         scope (exit) session.close ();
 
         // update information about this client
-        auto worker = session.createQuery ("FROM SparkWorker WHERE uuid=:id")
+        auto worker = session.createQuery ("FROM SparkWorker WHERE uuid_s=:id")
                              .setParameter ("id", clientId)
                              .uniqueResult!SparkWorker;
         // we might have a new machine, so set the ID again to create an empty new worker

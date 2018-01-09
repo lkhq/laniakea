@@ -28,13 +28,15 @@ import laniakea.logging;
 import laniakea.localconfig;
 import lighthouse.utils;
 import lighthouse.worker;
+import laniakea.db.database;
+import laniakea.db.schema.workers;
 
 /**
  * Listen for signals and call for the worker
  * to handle requests.
  */
 void
-serverWorkerThread ()
+serverWorkerThread (SessionFactory sFactory)
 {
     auto workerSock = zsock_new (ZMQ_DEALER);
     scope (exit) zsock_destroy (&workerSock);
@@ -43,7 +45,7 @@ serverWorkerThread ()
     assert (r == 0);
     logDebug ("Started new worker thread.");
 
-    auto worker = new LighthouseWorker (workerSock);
+    auto worker = new LighthouseWorker (workerSock, sFactory);
     while (true) {
         // receive reply envelope and message
         auto msg = zmsg_recv (workerSock);
@@ -151,13 +153,17 @@ int runServer (bool verbose)
     zstr_sendx (proxy, "BACKEND".toStringz, "DEALER".toStringz, "inproc://backend".toStringz, null);
     zsock_wait (proxy);
 
+    // create session factory to be shared between threads
+    auto db = Database.get;
+    auto sFactory = db.newSessionFactory! (SparkWorker);
+
     // determine the number of worker threads we want to spawn
     auto maxThreads = totalCPUs - 1;
     if (maxThreads <= 0)
         maxThreads = 1;
     for (auto i = 1; i < maxThreads; i++)
-        new Thread ({ serverWorkerThread (); }).start ();
-    serverWorkerThread ();
+        new Thread ({ serverWorkerThread (sFactory); }).start ();
+    serverWorkerThread (sFactory);
 
     return 0;
 }
