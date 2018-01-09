@@ -43,7 +43,7 @@ class SparkWorker {
     mixin UUIDProperty;
 
     string machineName;   /// The machine/worker name
-    string owner;         /// Owner of this worker
+    @Null string owner;   /// Owner of this worker
     DateTime createdTime; /// Time when this worker was created
 
     string[] accepts;    /// Modules this worker will accept jobs for

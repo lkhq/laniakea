@@ -111,9 +111,9 @@ class LighthouseWorker {
 
             ps.setShort  (1, JobStatus.SCHEDULED.to!short);
             ps.setString (2, clientName);
-            ps.setString (1, clientId);
-            ps.setShort  (1, JobStatus.WAITING.to!short);
-            ps.setString (1, arch);
+            ps.setString (3, clientId);
+            ps.setShort  (4, JobStatus.WAITING.to!short);
+            ps.setString (5, arch);
 
             auto ans = ps.executeQuery ();
 
