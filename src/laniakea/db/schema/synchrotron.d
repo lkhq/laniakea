@@ -95,10 +95,10 @@ class SynchrotronIssue {
     string sourceSuite;   /// Source suite of this package, usually the one in Debian
     string targetSuite;   /// Target suite of this package, from the target distribution
 
-    string sourceVersion; /// package version to be synced
-    string targetVersion; /// version of the package in the target suite and repo, to be overriden
+    @Null string sourceVersion; /// package version to be synced
+    @Null string targetVersion; /// version of the package in the target suite and repo, to be overriden
 
-    string details;  /// additional information text about the issue (usually a log excerpt)
+    @Null string details;  /// additional information text about the issue (usually a log excerpt)
 }
 
 
