@@ -118,7 +118,7 @@ void removeDebcheckIssues (Connection conn, string suiteName, PackageType pkind,
         ps.setShort  (2, pkind.to!short);
         ps.executeUpdate ();
     } else {
-        auto ps = conn.prepareStatement ("DELETE FROM debcheck_issues WHERE suite_name=? AND package_kind=? AND architecture=?");
+        auto ps = conn.prepareStatement ("DELETE FROM debcheck_issue WHERE suite_name=? AND package_kind=? AND architecture=?");
         scope (exit) ps.close ();
 
         ps.setString (1, suiteName);
