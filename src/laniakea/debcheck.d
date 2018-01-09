@@ -383,8 +383,8 @@ class Debcheck
 
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
-        auto session = sFactory.openSession();
-        scope (exit) session.close();
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         auto issuesYaml = getDepCheckYaml (suite);
         foreach (ref arch, ref yamlData; issuesYaml) {
@@ -415,8 +415,8 @@ class Debcheck
 
     public auto getBinaryIssuesList (ArchiveSuite suite, string arch) @trusted
     {
-        auto session = sFactory.openSession();
-        scope (exit) session.close();
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         auto q = session.createQuery ("FROM DebcheckIssue issue WHERE issue.suiteName=:suite
                                                                   AND issue.architecture=:arch
@@ -429,8 +429,8 @@ class Debcheck
 
     public auto getSourceIssuesList (ArchiveSuite suite, string arch) @trusted
     {
-        auto session = sFactory.openSession();
-        scope (exit) session.close();
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         auto q = session.createQuery ("FROM DebcheckIssue issue WHERE issue.suiteName=:suite
                                                                   AND issue.architecture=:arch

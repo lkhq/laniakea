@@ -216,16 +216,17 @@ auto getSuite (Database db, string name, string repo = "master") @trusted
                                        ArchiveSuite);
 
     auto factory = db.newSessionFactory (schema);
-    auto session = factory.openSession();
-    scope (exit) session.close();
+    auto session = factory.openSession ();
+    scope (exit) session.close ();
 
-    auto q = session.createQuery ("FROM ArchiveSuite WHERE name=:Name")
-                    .setParameter ("Name", name);
+    auto q = session.createQuery ("FROM ArchiveSuite WHERE name=:nm")
+                    .setParameter ("nm", name);
     ArchiveSuite[] list = q.list!ArchiveSuite();
 
     if (list.empty)
         return null;
-    return list[0];
+    auto suite = list[0];
+    return suite;
 }
 
 auto getSuites (Database db, string repo = "master") @trusted
