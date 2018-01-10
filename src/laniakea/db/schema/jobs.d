@@ -72,16 +72,16 @@ struct Job
     string title;     /// A human-readable title of this job
 
     UUID trigger;     /// ID of the entity responsible for triggering this job's creation
+    string ver;       /// Version of the item this job is for (can be null)
     string architecture = "any"; /// Architecture this job can run on, "any" in case the architecture does not matter
 
     DateTime createdTime;  /// Time when this job was created.
     DateTime assignedTime; /// Time when this job was assigned to a worker.
     DateTime finishedTime; /// Time when this job was finished.
 
-    string worker;        /// The person/system/tool this job is assigned to
-    UUID   workerId;      /// Unique ID of the entity the job is assigned to
+    UUID   workerId;       /// Unique ID of the entity the job is assigned to
 
-    string latestLogExcerpt;   /// An excerpt of the current job log
+    string latestLogExcerpt; /// An excerpt of the current job log
 
     JobResult result;
 
@@ -99,13 +99,13 @@ struct Job
         kind         = r.getString (4);
         title        = r.getString (5);
         trigger      = UUID (r.getString (6));
-        architecture = r.getString (7);
+        ver          = r.getString (7);
+        architecture = r.getString (8);
 
-        createdTime  = r.getDateTime (8);
-        assignedTime = r.getDateTime (9);
-        finishedTime = r.getDateTime (10);
+        createdTime  = r.getDateTime (9);
+        assignedTime = r.getDateTime (10);
+        finishedTime = r.getDateTime (11);
 
-        worker       = r.getString (11);
         workerId     = UUID (r.getString (12));
 
         result       = r.getShort (13).to!JobResult;
@@ -176,11 +176,11 @@ void createTables (Database db) @trusted
           kind             TEXT NOT NULL,
           title            TEXT,
           trigger          UUID,
+          version          DEBVERSION,
           architecture     TEXT,
           time_created     TIMESTAMP NOT NULL,
           time_assigned    TIMESTAMP NOT NULL,
           time_finished    TIMESTAMP NOT NULL,
-          worker_name      TEXT,
           worker_id        UUID,
           result           SMALLINT,
           latest_log_excerpt TEXT,
@@ -231,10 +231,10 @@ void updateJob (Connection conn, Job job) @trusted
                       kind             = ?,
                       title            = ?,
                       trigger          = ?,
+                      version          = ?,
                       architecture     = ?,
                       time_assigned    = ?::timestamp,
                       time_finished    = ?::timestamp,
-                      worker_name      = ?,
                       worker_id        = ?,
                       result           = ?,
                       latest_log_excerpt = ?,
@@ -249,11 +249,11 @@ void updateJob (Connection conn, Job job) @trusted
     ps.setString (4, job.kind);
     ps.setString (5, job.title);
     ps.setString (6, job.trigger.toString);
-    ps.setString (7, job.architecture);
-    ps.setDateTime (8, job.createdTime);
-    ps.setDateTime (9, job.assignedTime);
-    ps.setDateTime (10, job.finishedTime);
-    ps.setString (11, job.worker);
+    ps.setString (7, job.ver);
+    ps.setString (8, job.architecture);
+    ps.setDateTime (9, job.createdTime);
+    ps.setDateTime (10, job.assignedTime);
+    ps.setDateTime (11, job.finishedTime);
     ps.setString (12, job.workerId.toString);
     ps.setShort  (13, job.result.to!short);
     ps.setString (14, job.latestLogExcerpt);
@@ -264,10 +264,10 @@ void updateJob (Connection conn, Job job) @trusted
     ps.setString (18, job.kind);
     ps.setString (19, job.title);
     ps.setString (20, job.trigger.toString);
-    ps.setString (21, job.architecture);
-    ps.setDateTime (22, job.assignedTime);
-    ps.setDateTime (23, job.finishedTime);
-    ps.setString (24, job.worker);
+    ps.setString (21, job.ver);
+    ps.setString (22, job.architecture);
+    ps.setDateTime (23, job.assignedTime);
+    ps.setDateTime (24, job.finishedTime);
     ps.setString (25, job.workerId.toString);
     ps.setShort  (26, job.result.to!short);
     ps.setString (27, job.latestLogExcerpt);
@@ -332,6 +332,26 @@ auto getJobById (Connection conn, string uuid) @trusted
     auto ans = ps.executeQuery ();
 
     return rowsToOne!Job (ans);
+}
+
+/**
+ * Fetch the name of the worker assigned to this job
+ */
+auto getJobWorkerName (Connection conn, Job job) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT name FROM workers WHERE uuid=?");
+    scope (exit) ps.close ();
+
+    ps.setString (1, job.workerId.toString);
+    auto ans = ps.executeQuery ();
+
+    string wname;
+    if (ans.getFetchSize > 0) {
+        ans.first ();
+        wname = ans.getString (1);
+    }
+
+    return wname;
 }
 
 /**

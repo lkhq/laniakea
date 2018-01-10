@@ -17,7 +17,7 @@ block contents
     | #{job.createdTime.getPastEventAge} ago
     br
 
-    - if (!job.worker.empty)
+    - if (!workerName.empty)
         b Assigned:
         | #{job.assignedTime.getPastEventAge} ago
         br
@@ -27,9 +27,9 @@ block contents
         | #{job.finishedTime.getPastEventAge} ago
         br
 
-    - if (!job.worker.empty)
+    - if (!workerName.empty)
         b Worker:
-        | #{job.worker}
+        | #{workerName}
         br
 
     b Status:

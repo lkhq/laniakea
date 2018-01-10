@@ -63,9 +63,11 @@ class JobsWebService {
         if (job.isNull)
             return;
 
+        auto workerName = conn.getJobWorkerName (job);
+
         if (job.moduleName == LkModule.ISOTOPE) {
             // we have an isotope job!
-            render!("jobs/details_isojob.dt", ginfo, job);
+            render!("jobs/details_isojob.dt", ginfo, job, workerName);
         } else {
             return; // FIXME: We need generic details for jobs that aren't treated special
         }

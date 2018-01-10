@@ -298,7 +298,7 @@ class SourcePackage
                 repo = "master";
         }
 
-        this.uuid = sha1UUID (repo ~ "::" ~ this.name ~ "/" ~ this.ver);
+        this.uuid = sha1UUID (repo ~ "::" ~ this.name);
     }
 }
 
