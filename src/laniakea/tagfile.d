@@ -29,7 +29,7 @@ import std.typecons : Flag, Yes;
 
 import laniakea.utils : splitStrip;
 import laniakea.compressed;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 
 /**
  * Parser for Debians RFC2822-style metadata.

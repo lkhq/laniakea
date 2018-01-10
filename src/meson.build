@@ -25,7 +25,7 @@ subdir('keytool')
 subdir('lighthouse')
 
 # Dataimport
-#! subdir('dataimport')
+subdir('dataimport')
 
 # Debcheck
 subdir('debcheck')

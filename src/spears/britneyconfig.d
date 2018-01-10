@@ -29,7 +29,7 @@ static import std.file;
 
 import laniakea.db.schema;
 import laniakea.logging;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 
 /**
  * A Britney2 configuration file.

@@ -20,7 +20,7 @@
 module laniakea.db.schema.debcheck;
 
 import std.datetime : DateTime;
-public import laniakea.pkgitems : PackageType;
+public import laniakea.db.schema.archive : PackageType;
 import laniakea.db.utils;
 import std.conv : to;
 @safe:

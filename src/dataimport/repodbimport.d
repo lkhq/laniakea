@@ -24,13 +24,19 @@ import laniakea.logging;
 import laniakea.localconfig;
 import laniakea.repository;
 import laniakea.db;
+import laniakea.db.schema.archive;
 
 bool syncRepoData (string suiteName, string repoName = "master") @trusted
 {
     auto db = Database.get;
 
-    auto suite = db.getSuite (suiteName);
-    if (suite.isNull) {
+    auto sFactory = db.newSessionFactory ();
+    scope (exit) sFactory.close ();
+    auto session = sFactory.openSession ();
+    scope (exit) session.close ();
+
+    auto suite = session.getSuite (suiteName);
+    if (suite is null) {
         logError ("Unable to find suite: %s", suiteName);
         return false;
     }
@@ -43,31 +49,21 @@ bool syncRepoData (string suiteName, string repoName = "master") @trusted
         assert (0, "The multiple repositories feature is not yet implemented.");
     }
 
-    // open database connection
-    auto conn = db.getConnection ();
-    scope (exit) db.dropConnection (conn);
-
-    // quick & dirty replacement of existing data in this collection: remove the old stuff and add the new stuff
-    conn.removeSuiteContents (repoName, suite.name);
-
     foreach (ref component; suite.components) {
         // Source packages
-        foreach (ref pkg; repo.getSourcePackages (suite.name, component.name)) {
-            pkg.lkid = generateNewLkid! (LkidType.PACKAGE);
-            conn.update (pkg);
+        foreach (ref pkg; repo.getSourcePackages (suite.name, component.name, session)) {
+            session.save (pkg);
         }
 
         foreach (ref arch; suite.architectures) {
             // binary packages
-            foreach (ref pkg; repo.getBinaryPackages (suite.name, component.name, arch)) {
-                pkg.lkid = generateNewLkid! (LkidType.PACKAGE);
-                conn.update (pkg);
+            foreach (ref pkg; repo.getBinaryPackages (suite.name, component.name, arch.name, session)) {
+                session.save (pkg);
             }
 
             // binary packages of the debian-installer
-            foreach (ref pkg; repo.getInstallerPackages (suite.name, component.name, arch)) {
-                pkg.lkid = generateNewLkid! (LkidType.PACKAGE);
-                conn.update (pkg);
+            foreach (ref pkg; repo.getInstallerPackages (suite.name, component.name, arch.name, session)) {
+                session.save (pkg);
             }
         }
     }

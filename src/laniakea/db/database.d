@@ -102,8 +102,12 @@ private:
         auto params = PGSQLDriver.setUserAndPassword (dbUser, dbPassword);
         dsource = new ConnectionPoolDataSourceImpl (driver, url, params);
 
-        auto conn = getConnection ();
-        scope (exit) dropConnection (conn);
+        // we can't use the connection pool here yet, because we need to
+        // retrieve the debversion OID first and register it for new connections.
+        // The connection pool might try to reuse a connection that doesn't have that
+        // type registered otherwise.
+        auto conn = driver.connect (url, params);
+        scope (exit) conn.close ();
 
         if (!loggingIsVerbose) {
             // disable excess log messages unless we are in verbose mode
@@ -121,6 +125,9 @@ private:
         if (!rs.first ())
             throw new Exception ("Unable to get OID for the debversion type - is the debversion extension active on Postgres?");
         OidDebversion = rs.getInt (1);
+
+        // ensure DDBC understands the debversion type
+        driver.registerCuromDataType (OidDebversion);
 
         dialect = new PGSQLDialect;
     }
@@ -252,10 +259,13 @@ public:
     auto newSessionFactory (T...) ()
     {
         import laniakea.db.schema.core;
+        import laniakea.db.schema.archive;
         auto schema = new SchemaInfoImpl! (ArchiveRepository,
                                            ArchiveComponent,
                                            ArchiveArchitecture,
                                            ArchiveSuite,
+                                           SourcePackage,
+                                           BinaryPackage,
                                            T);
         return new SessionFactoryImpl (schema, dialect, dsource);
     }
@@ -267,10 +277,13 @@ public:
     auto newSessionFactory ()
     {
         import laniakea.db.schema.core;
+        import laniakea.db.schema.archive;
         auto schema = new SchemaInfoImpl! (ArchiveRepository,
                                            ArchiveComponent,
                                            ArchiveArchitecture,
-                                           ArchiveSuite);
+                                           ArchiveSuite,
+                                           SourcePackage,
+                                           BinaryPackage);
         return new SessionFactoryImpl (schema, dialect, dsource);
     }
 }

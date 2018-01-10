@@ -23,7 +23,7 @@ import std.stdio : writeln, writefln;
 import std.string : format;
 
 import laniakea.db;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 import admin.admintool;
 
 

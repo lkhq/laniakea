@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -20,22 +20,351 @@
 module laniakea.db.schema.archive;
 @safe:
 
-version (none):
+import laniakea.db.utils;
+import hibernated.core;
 
-import laniakea.pkgitems;
 
-import laniakea.db.database;
+/**
+ * A system architecture software can be compiled for.
+ * Usually associated with an @ArchiveSuite
+ */
+class ArchiveRepository
+{
+    @Id @Generated
+    int id;
 
-private enum ArchiveTab {
-    SRCPKGS    = "archive_src_packages",
-    BINPKGS    = "archive_bin_packages",
-    REPOS      = "archive_repos",
-    SUITES     = "archive_suites",
-    COMPONENTS = "archive_components",
+    @UniqueKey
+    string name; /// Name of the repository
 
-    BINPKG_ASSOC = "archive_bin_package_associations",
-    SRCPKG_ASSOC = "archive_src_package_associations"
-};
+    LazyCollection!ArchiveSuite suites;
+
+    this () {}
+    this (string name)
+    {
+        this.name = name;
+    }
+}
+
+/**
+ * Information about a distribution suite.
+ */
+class ArchiveSuite
+{
+    @Id @Generated
+    int id;
+
+    string name;
+
+    ArchiveRepository repo;
+
+    @ManyToMany
+    LazyCollection!ArchiveArchitecture architectures;
+
+    @ManyToMany
+    LazyCollection!ArchiveComponent components;
+
+    @Null
+    string baseSuiteName;
+
+    LazyCollection!BinaryPackage binPackages;
+    LazyCollection!BinaryPackage srcPackages;
+
+    this () {}
+    this (string name)
+    {
+        this.name = name;
+    }
+}
+
+/**
+ * Information about a distribution component.
+ */
+class ArchiveComponent
+{
+    @Id @Generated
+    int id;
+
+    @UniqueKey
+    string name;
+
+    @ManyToMany
+    LazyCollection!ArchiveSuite suites;
+
+    string[] dependencies; /// Other components that need to be present to fulfill dependencies of packages in this component
+    mixin (JsonDatabaseField! ("dependencies", "dependencies", "string[]"));
+
+    LazyCollection!BinaryPackage binPackages;
+    LazyCollection!BinaryPackage srcPackages;
+
+    this () {}
+    this (string name)
+    {
+        this.name = name;
+    }
+}
+
+/**
+ * A system architecture software can be compiled for.
+ * Usually associated with an @ArchiveSuite
+ */
+class ArchiveArchitecture
+{
+    @Id @Generated
+    int id;
+
+    @UniqueKey
+    string name;
+
+    @ManyToMany
+    LazyCollection!ArchiveSuite suites; /// Suites that contain this architecture
+
+    LazyCollection!BinaryPackage binPackages;
+
+    this () {}
+    this (string name)
+    {
+        this.name = name;
+    }
+}
+
+/**
+ * Type of the package.
+ */
+enum PackageType
+{
+    UNKNOWN,
+    SOURCE,
+    BINARY
+}
+
+/**
+ * Type of the Debian archive item.
+ */
+enum DebType
+{
+    UNKNOWN,
+    DEB,
+    UDEB
+}
+
+/**
+ * Convert the text representation into the enumerated type.
+ */
+DebType debTypeFromString (string str) pure
+{
+    if (str == "deb")
+        return DebType.DEB;
+    if (str == "udeb")
+        return DebType.UDEB;
+    return DebType.UNKNOWN;
+}
+
+/**
+ * Priority of a Debian package.
+ */
+enum PackagePriority
+{
+    UNKNOWN,
+    REQUIRED,
+    IMPORTANT,
+    STANDARD,
+    OPTIONAL,
+    EXTRA
+}
+
+/**
+ * Convert the text representation into the enumerated type.
+ */
+PackagePriority packagePriorityFromString (string str) pure
+{
+    if (str == "optional")
+        return PackagePriority.OPTIONAL;
+    if (str == "extra")
+        return PackagePriority.EXTRA;
+    if (str == "standard")
+        return PackagePriority.STANDARD;
+    if (str == "important")
+        return PackagePriority.IMPORTANT;
+    if (str == "required")
+        return PackagePriority.REQUIRED;
+
+    return PackagePriority.UNKNOWN;
+}
+
+/**
+ * Priority of a package upload.
+ */
+enum VersionPriority
+{
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL,
+    EMERGENCY
+}
+
+string toString (VersionPriority priority)
+{
+    switch (priority) {
+        case VersionPriority.LOW:
+            return "low";
+        case VersionPriority.MEDIUM:
+            return "medium";
+        case VersionPriority.HIGH:
+            return "high";
+        case VersionPriority.CRITICAL:
+            return "critical";
+        case VersionPriority.EMERGENCY:
+            return "emergency";
+        default:
+            return "unknown";
+    }
+}
+
+/**
+ * A file in the archive.
+ */
+struct ArchiveFile
+{
+    /// the filename of the file
+    string fname;
+    /// the size of the file
+    size_t size;
+    /// the files' checksum
+    string sha256sum;
+}
+
+/**
+ * Basic package information, used by
+ * SourcePackage to refer to binary packages.
+ */
+struct PackageInfo
+{
+    DebType debType;
+    string name;
+    string ver;
+
+    string section;
+    PackagePriority priority;
+    string[] architectures;
+}
+
+/**
+ * Data of a source package.
+ */
+@Table("archive_src_package")
+class SourcePackage
+{
+    mixin UUIDProperty;
+
+    string name;       /// Source package name
+    @Column ("version") string ver; /// Version of this package
+    ArchiveSuite suite;         /// Suite this package is in
+    ArchiveComponent component; /// Component this package is in
+
+    string[] architectures; /// List of architectures this source package can be built for
+    mixin (JsonDatabaseField!("architectures", "architectures", "string[]"));
+    PackageInfo[] binaries;
+    mixin (JsonDatabaseField!("binaries", "binaries", "PackageInfo[]"));
+
+    @Null string standardsVersion;
+    string format;
+
+    @Null string homepage;
+    @Null string vcsBrowser;
+
+    string maintainer;
+    string[] uploaders;
+    mixin (JsonDatabaseField!("uploaders", "uploaders", "string[]"));
+
+    string[] buildDepends;
+    mixin (JsonDatabaseField!("buildDepends", "buildDepends", "string[]"));
+
+    ArchiveFile[] files;
+    mixin (JsonDatabaseField!("files", "files", "ArchiveFile[]"));
+    string directory;
+
+    void ensureUUID (bool regenerate = false)
+    {
+        import std.uuid : sha1UUID;
+        import std.array : empty;
+        if (this.uuid.empty && !regenerate)
+            return;
+
+        string repo = "";
+        if (this.suite !is null) {
+            repo = this.suite.repo.name;
+            if (repo.empty)
+                repo = "master";
+        }
+
+        this.uuid = sha1UUID (repo ~ "::" ~ this.name ~ "/" ~ this.ver);
+    }
+}
+
+/**
+ * Data of a binary package.
+ */
+@Table("archive_bin_package")
+class BinaryPackage
+{
+    mixin UUIDProperty;
+
+    DebType debType;   /// Deb package type
+    mixin (EnumDatabaseField! ("deb_type", "debType", "DebType", true));
+
+    string name;       /// Package name
+    @Column ("version") string ver; /// Version of this package
+    ArchiveSuite suite;         /// Suite this package is in
+    ArchiveComponent component; /// Component this package is in
+
+    ArchiveArchitecture architecture; /// Architecture this binary was built for
+    int    installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
+
+    string description;
+    string descriptionMd5;
+
+    string sourceName;
+    string sourceVersion;
+
+    PackagePriority priority;
+    mixin (EnumDatabaseField! ("priority", "priority", "PackagePriority", true));
+
+    string section;
+
+    string[] depends;
+    mixin (JsonDatabaseField! ("depends", "depends", "string[]"));
+
+    string[] preDepends;
+    mixin (JsonDatabaseField! ("preDepends", "preDepends", "string[]"));
+
+    string maintainer;
+
+    ArchiveFile file;
+    mixin (JsonDatabaseField! ("file", "file", "ArchiveFile"));
+
+    @Null string homepage;
+
+    void ensureUUID (bool regenerate = false)
+    {
+        import std.uuid : sha1UUID;
+        import std.array : empty;
+        if (this.uuid.empty && !regenerate)
+            return;
+
+        string repo = "";
+        if (this.suite !is null) {
+            repo = this.suite.repo.name;
+            if (repo.empty)
+                repo = "master";
+        }
+
+        this.uuid = sha1UUID (repo ~ "::" ~ this.name ~ "/" ~ this.ver);
+    }
+}
+
+
+import laniakea.db.database : Database;
 
 
 /**
@@ -43,377 +372,67 @@ private enum ArchiveTab {
  */
 void createTables (Database db) @trusted
 {
+    import laniakea.db.schema.archive;
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
+    auto stmt = conn.createStatement();
+    scope(exit) stmt.close();
 
-    // Repositories
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.REPOS ~ " (
-          id           INTEGER PRIMARY KEY,
-          name         TEXT NOT NULL,
-          description  TEXT
+    stmt.executeUpdate (
+        "CREATE TABLE IF NOT EXISTS config (
+          id text PRIMARY KEY,
+          data jsonb NOT NULL
         )"
     );
 
-    // Suites
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.SUITES ~ " (
-          id           INTEGER PRIMARY KEY,
-          name         TEXT NOT NULL,
-          description  TEXT,
-          repo_id      INTEGER REFERENCES " ~ ArchiveTab.REPOS ~ "(id)
-        )"
+    auto factory = db.newSessionFactory ();
+    scope (exit) factory.close();
+
+    // create tables if they don't exist yet
+    factory.getDBMetaData ().updateDBSchema (conn, false, true);
+
+    // ensure we use the right datatypes - the ORM is not smart enough to
+    // figure out the proper types
+    stmt.executeUpdate (
+        "ALTER TABLE archive_component
+         ALTER COLUMN dependencies TYPE JSONB USING dependencies::jsonb;"
     );
 
-    // Components
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.COMPONENTS ~ " (
-          id           INTEGER PRIMARY KEY,
-          name         TEXT NOT NULL,
-          description  TEXT
-        )"
+    stmt.executeUpdate (
+        "ALTER TABLE archive_src_package
+         ALTER COLUMN version       TYPE DEBVERSION,
+         ALTER COLUMN standards_version TYPE DEBVERSION,
+         ALTER COLUMN architectures TYPE JSONB USING architectures::jsonb,
+         ALTER COLUMN binaries      TYPE JSONB USING binaries::jsonb,
+         ALTER COLUMN uploaders     TYPE JSONB USING uploaders::jsonb,
+         ALTER COLUMN buildDepends  TYPE JSONB USING buildDepends::jsonb,
+         ALTER COLUMN files         TYPE JSONB USING files::jsonb;"
     );
 
-    // Source packages
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.SRCPKGS ~ " (
-          uuid             UUID PRIMARY KEY,
-          name             TEXT NOT NULL,
-          version          DEBVERSION NOT NULL,
-
-          architectures    JSONB,
-          binaries         JSONB,
-
-          standards_version TEXT NOT NULL,
-          format           TEXT NOT NULL,
-
-          homepage         TEXT,
-          vcs_browser      TEXT,
-
-          mainteiner       TEXT NOT NULL,
-          uploaders        JSONB,
-
-          build_depends    JSONB,
-          files            JSONB,
-
-          directory        TEXT NOT NULL
-        )"
-    );
-
-    conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_name_version_idx
-                ON " ~ ArchiveTab.SRCPKGS ~ " (name, version)");
-    conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_repo_suite_idx
-                ON " ~ ArchiveTab.SRCPKGS ~ " (repository, suite)");
-    conn.exec ("CREATE INDEX IF NOT EXISTS archive_srcpkg_ftsearch
-                ON " ~ ArchiveTab.SRCPKGS ~ " USING GIN(to_tsvector('english', name));");
-
-    // Binary packages
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.BINPKGS ~ " (
-          uuid             UUID PRIMARY KEY,
-          name             TEXT NOT NULL,
-          version          DEBVERSION NOT NULL,
-          deb_kind         SMALLINT,
-
-          architecture     TEXT NOT NULL,
-          size_installed   INTEGER,
-
-          description      TEXT,
-          description_md5  TEXT,
-
-          source_name      TEXT NOT NULL,
-          source_version   DEBVERSION NOT NULL,
-
-          priority         SMALLINT,
-          section          TEXT NOT NULL,
-
-          depends          JSONB,
-          pre_depends      JSONB,
-
-          maintainer       TEXT NOT NULL,
-
-          file             JSONB,
-          homepage         TEXT
-        )"
-    );
-
-    conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_name_version_idx
-                ON " ~ ArchiveTab.BINPKGS ~ " (name, version)");
-    conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_repo_suite_idx
-                ON " ~ ArchiveTab.BINPKGS ~ " (repository, suite)");
-    conn.exec ("CREATE INDEX IF NOT EXISTS archive_binpkg_ftsearch
-                ON " ~ ArchiveTab.BINPKGS ~ " USING GIN(to_tsvector('english', name || ' ' || description));");
-
-
-    // Relations
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.BINPKG_ASSOC ~ " (
-          bin_package   UUID REFERENCES " ~ ArchiveTab.BINPKGS ~ "(uuid),
-          suite_id      INTEGER REFERENCES " ~ ArchiveTab.SUITES ~ "(id),
-          component_id  INTEGER REFERENCES " ~ ArchiveTab.COMPONENTS ~ "(id),
-          UNIQUE (bin_package, suite_id, component_id)
-        )"
-    );
-    conn.exec (
-        "CREATE TABLE IF NOT EXISTS " ~ ArchiveTab.SRCPKG_ASSOC ~ " (
-          src_package   UUID REFERENCES " ~ ArchiveTab.SRCPKGS ~ "(uuid),
-          suite_id      INTEGER REFERENCES " ~ ArchiveTab.SUITES ~ "(id),
-          component_id  INTEGER REFERENCES " ~ ArchiveTab.COMPONENTS ~ "(id),
-          UNIQUE (src_package, suite_id, component_id)
-        )"
+    stmt.executeUpdate (
+        "ALTER TABLE archive_bin_package
+         ALTER COLUMN version    TYPE DEBVERSION,
+         ALTER COLUMN depends    TYPE JSONB USING depends::jsonb,
+         ALTER COLUMN preDepends TYPE JSONB USING preDepends::jsonb,
+         ALTER COLUMN file       TYPE JSONB USING file::jsonb;"
     );
 }
 
-/**
- * Add/update a source package.
- */
-void update (Connection conn, SourcePackage spkg) @trusted
+auto getSuite (Session session, string name, string repo = "master") @trusted
 {
-    spkg.ensureUUID ();
-    QueryParams p;
-    p.sqlCommand = "BEGIN;
-                    INSERT INTO " ~ ArchiveTab.SRCPKGS ~ "
-                    VALUES ($1,
-                            $2,
-                            $3,
-                            $4::jsonb,
-                            $5::jsonb,
-                            $6,
-                            $7,
-                            $8,
-                            $9,
-                            $10,
-                            $11::jsonb,
-                            $12::jsonb,
-                            $13::jsonb,
-                            $14
-                        )
-                    ON CONFLICT (uuid) DO UPDATE SET
-                      name       = $2,
-                      version    = $3,
+    auto q = session.createQuery ("FROM ArchiveSuite WHERE name=:nm")
+                    .setParameter ("nm", name);
+    ArchiveSuite[] list = q.list!ArchiveSuite();
 
-                      architectures = $4::jsonb,
-                      binaries      = $5::jsonb,
-
-                      standards_version = $6,
-                      format            = $7,
-
-                      homepage          = $8,
-                      vcs_browser       = $9,
-
-                      mainteiner        = $10,
-                      uploaders         = $11::jsonb,
-
-                      build_depends     = $12::jsonb,
-                      files             = $13::jsonb,
-
-                      directory         = $14;
-
-                    INSERT INTO " ~ ArchiveTab.SRCPKG_ASSOC ~ "
-                    VALUES ($1,
-                            X
-                            Y)
-                    ON CONFLICT DO NOTHING;
-
-                    COMMIT;";
-
-    p.setParams (spkg.lkid,
-                 spkg.name,
-                 spkg.ver,
-                 spkg.architectures,
-                 spkg.binaries,
-                 spkg.standardsVersion,
-                 spkg.format,
-                 spkg.homepage,
-                 spkg.vcsBrowser,
-                 spkg.maintainer,
-                 spkg.uploaders,
-                 spkg.buildDepends,
-                 spkg.files,
-                 spkg.directory
-    );
-
-                     spkg.suite,
-                 spkg.component,
-                 spkg.repository,
-
-    conn.execParams (p);
+    if (list.empty)
+        return null;
+    auto suite = list[0];
+    return suite;
 }
 
-
-/**
- * Add/update a binary package.
- */
-void update (PgConnection conn, BinaryPackage bpkg) @trusted
+auto getSuites (Session session, string repo = "master") @trusted
 {
-    QueryParams p;
-    p.sqlCommand = "INSERT INTO archive_binpkg
-                    VALUES ($1,
-                            $2,
-                            $3,
-                            $4,
-                            $5,
-                            $6,
-                            $7,
-                            $8,
-                            $9,
-                            $10,
-                            $11,
-                            $12,
-                            $13,
-                            $14,
-                            $15,
-                            $16::jsonb,
-                            $17::jsonb,
-                            $18,
-                            $19::jsonb,
-                            $20
-                        )
-                    ON CONFLICT (lkid) DO UPDATE SET
-                      name      = $2,
-                      version   = $3,
-                      suite     = $4,
-                      component = $5,
-
-                      deb_kind   = $6,
-                      repository = $7,
-
-                      architecture   = $8,
-                      size_installed = $9,
-
-                      description     = $10,
-                      description_md5 = $11,
-
-                      source_name    = $12,
-                      source_version = $13,
-
-                      priority       = $14,
-                      section        = $15,
-
-                      depends        = $16::jsonb,
-                      pre_depends    = $17::jsonb,
-
-                      maintainer     = $18,
-
-                      file           = $19::jsonb,
-                      homepage       = $20";
-
-    p.setParams (bpkg.lkid,
-                 bpkg.name,
-                 bpkg.ver,
-                 bpkg.suite,
-                 bpkg.component,
-                 bpkg.debType,
-                 bpkg.repository,
-                 bpkg.architecture,
-                 bpkg.installedSize,
-                 bpkg.description,
-                 bpkg.descriptionMd5,
-                 bpkg.sourceName,
-                 bpkg.sourceVersion,
-                 bpkg.priority,
-                 bpkg.section,
-                 bpkg.depends,
-                 bpkg.preDepends,
-                 bpkg.maintainer,
-                 bpkg.file,
-                 bpkg.homepage
-    );
-
-    conn.execParams (p);
-}
-
-void removeSuiteContents (PgConnection conn, string repoName, string suiteName) @trusted
-{
-    QueryParams p;
-
-    p.sqlCommand = "DELETE FROM " ~ ArchiveTab.BINPKGS ~ " WHERE repository=$1 AND suite=$2";
-    p.setParams (repoName, suiteName);
-    conn.execParams (p);
-
-    p.sqlCommand = "DELETE FROM " ~ ArchiveTab.SRCPKGS ~ " WHERE repository=$1 AND suite=$2";
-    p.setParams (repoName, suiteName);
-    conn.execParams (p);
-}
-
-auto findBinaryPackage (PgConnection conn, string repoName, string term) @trusted
-{
-    import std.array : replace, split, join;
-    import std.algorithm : map;
-
-    QueryParams p;
-
-    immutable termPrepared = term.replace ("|", " ").replace ("&", " ").split.join ("|");
-    p.sqlCommand = "SELECT * FROM " ~ ArchiveTab.BINPKGS ~ " WHERE
-                    repository=$1 AND to_tsvector(name || '. ' || description) @@ to_tsquery($2);";
-    p.setParams (repoName, termPrepared);
-
-    auto ans = conn.execParams(p);
-    return rowsTo!BinaryPackage (ans);
-}
-
-/**
- * Get the package with the highest version number matching the given parameters.
- */
-auto getPackageFor (T) (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
-{
-    static assert (is(T == SourcePackage) || is(T == BinaryPackage));
-
-    QueryParams p;
-
-    static if (is(T == SourcePackage))
-        p.sqlCommand = "SELECT * FROM " ~ ArchiveTab.SRCPKGS ~ " WHERE
-                        repository=$1 AND suite=$2 AND component=$3 AND name=$4
-                        ORDER BY version LIMIT 1;";
-    else
-        p.sqlCommand = "SELECT * FROM " ~ ArchiveTab.BINPKGS ~ " WHERE
-                        repository=$1 AND suite=$2 AND component=$3 AND name=$4
-                        ORDER BY version LIMIT 1;";
-
-    p.setParams (repoName, suiteName, component, name);
-
-    auto ans = conn.execParams(p);
-    return rowsToOne!T (ans);
-}
-
-auto getPackageVersions (T) (PgConnection conn, string repoName, string suiteName, string component, string name) @trusted
-{
-    static assert (is(T == SourcePackage) || is(T == BinaryPackage));
-
-    QueryParams p;
-    static if (is(T == SourcePackage))
-        p.sqlCommand = "SELECT version FROM " ~ ArchiveTab.SRCPKGS ~ " WHERE
-                        repository=$1 AND suite=$2 AND component=$3 AND name=$4
-                        ORDER BY version;";
-    else
-        p.sqlCommand = "SELECT version FROM " ~ ArchiveTab.BINPKGS ~ " WHERE
-                        repository=$1 AND suite=$2 AND component=$3 AND name=$4
-                        ORDER BY version;";
-
-    p.setParams (repoName, suiteName, component, name);
-
-    auto ans = conn.execParams(p);
-    return rowsToStringList (ans);
-}
-
-auto getPackageSuites (T) (PgConnection conn, string repoName, string component, string name) @trusted
-{
-    static assert (is(T == SourcePackage) || is(T == BinaryPackage));
-
-    import std.algorithm : uniq;
-    QueryParams p;
-
-    static if (is(T == SourcePackage))
-        p.sqlCommand = "SELECT suite FROM " ~ ArchiveTab.SRCPKGS ~ " WHERE
-                        repository=$1 AND component=$2 AND name=$3
-                        ORDER BY suite;";
-    else
-        p.sqlCommand = "SELECT suite FROM " ~ ArchiveTab.BINPKGS ~ " WHERE
-                        repository=$1 AND component=$2 AND name=$3
-                        ORDER BY suite;";
-
-    p.setParams (repoName, component, name);
-
-    auto ans = conn.execParams(p);
-    return rowsToStringList (ans).uniq;
+    auto q = session.createQuery ("FROM ArchiveSuite suite WHERE suite.repo.name=:repo")
+                    .setParameter ("repo", repo);
+    return q.list!ArchiveSuite();
 }

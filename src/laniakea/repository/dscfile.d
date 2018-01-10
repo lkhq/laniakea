@@ -23,7 +23,7 @@ import std.string : strip, split;
 
 import laniakea.logging;
 import laniakea.tagfile;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 
 /**
  * Read information from a Debian source package (.dsc file)

@@ -32,7 +32,7 @@ import vibe.data.bson : Bson, BsonObjectID;
 import laniakea.db;
 import laniakea.logging;
 import laniakea.tagfile;
-import laniakea.pkgitems : ArchiveFile;
+import laniakea.db.schema.archive : ArchiveFile;
 import laniakea.utils : findFilesBySuffix, SignedFile, hashFile, randomString;
 
 import rubicon.rubiconfig : RubiConfig;

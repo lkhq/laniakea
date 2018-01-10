@@ -6,7 +6,6 @@ laniakea_lib_src = [
     'debcheck.d',
     'downloadmanager.d',
     'git.d',
-    'pkgitems.d',
     'logging.d',
     'net.d',
     'tagfile.d',

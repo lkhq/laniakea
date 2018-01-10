@@ -48,83 +48,6 @@ enum LkModule
 }
 
 /**
- * A system architecture software can be compiled for.
- * Usually associated with an @ArchiveSuite
- */
-class ArchiveRepository
-{
-    @Id @Generated
-    int id;
-
-    @UniqueKey
-    string name; /// Name of the repository
-
-    LazyCollection!ArchiveSuite suites;
-}
-
-/**
- * Information about a distribution suite.
- */
-class ArchiveSuite
-{
-    @Id @Generated
-    int id;
-
-    string name;
-
-    ArchiveRepository repo;
-
-    @ManyToMany
-    LazyCollection!ArchiveArchitecture architectures;
-
-    @ManyToMany
-    LazyCollection!ArchiveComponent components;
-
-    @Null
-    string baseSuiteName;
-}
-
-/**
- * Information about a distribution component.
- */
-class ArchiveComponent
-{
-    @Id @Generated
-    int id;
-
-    @UniqueKey
-    string name;
-
-    @ManyToMany
-    LazyCollection!ArchiveSuite suites;
-
-    string[] dependencies; /// Other components that need to be present to fulfill dependencies of packages in this component
-    mixin (JsonDatabaseField! ("dependencies", "dependencies", "string[]"));
-}
-
-/**
- * A system architecture software can be compiled for.
- * Usually associated with an @ArchiveSuite
- */
-class ArchiveArchitecture
-{
-    @Id @Generated
-    int id;
-
-    @UniqueKey
-    string name;
-
-    @ManyToMany
-    LazyCollection!ArchiveSuite suites;
-
-    this () {}
-    this (string name)
-    {
-        this.name = name;
-    }
-}
-
-/**
  * Basic archive configuration
  **/
 struct BaseArchiveConfig {
@@ -159,19 +82,6 @@ void createTables (Database db) @trusted
           data jsonb NOT NULL
         )"
     );
-
-    auto factory = db.newSessionFactory ();
-    scope (exit) factory.close();
-
-    // create tables if they don't exist yet
-    factory.getDBMetaData ().updateDBSchema (conn, false, true);
-
-    // ensure we use the right datatypes - the ORM is not smart enough to
-    // figure out the proper types
-    stmt.executeUpdate (
-        "ALTER TABLE archive_component
-         ALTER COLUMN dependencies TYPE JSONB USING dependencies::jsonb;"
-    );
 }
 
 /**
@@ -201,23 +111,4 @@ auto getBaseConfig (Database db)
     conf.archive.distroTag = db.getConfigEntry!string (conn, LkModule.BASE, "archive.distroTag");
 
     return conf;
-}
-
-auto getSuite (Session session, string name, string repo = "master") @trusted
-{
-    auto q = session.createQuery ("FROM ArchiveSuite WHERE name=:nm")
-                    .setParameter ("nm", name);
-    ArchiveSuite[] list = q.list!ArchiveSuite();
-
-    if (list.empty)
-        return null;
-    auto suite = list[0];
-    return suite;
-}
-
-auto getSuites (Session session, string repo = "master") @trusted
-{
-    auto q = session.createQuery ("FROM ArchiveSuite suite WHERE suite.repo.name=:repo")
-                    .setParameter ("repo", repo);
-    return q.list!ArchiveSuite();
 }

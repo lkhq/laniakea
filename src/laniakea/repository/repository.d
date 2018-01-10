@@ -25,7 +25,7 @@ import std.path : buildPath, dirName;
 import std.string : strip, format, endsWith, indexOf;
 import std.array : appender, split, empty;
 import std.conv : to;
-import std.typecons : Flag, Yes, No;
+import std.typecons : Tuple, Flag, Yes, No;
 import std.digest.sha;
 import std.algorithm : canFind;
 static import std.file;
@@ -35,9 +35,9 @@ import laniakea.net : downloadFile;
 import laniakea.localconfig : LocalConfig;
 import laniakea.utils : isRemote, splitStrip, compareVersions, hashFile;
 import laniakea.tagfile;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 
-import laniakea.db.schema.core : ArchiveArchitecture;
+import laniakea.db;
 
 
 /**
@@ -158,6 +158,54 @@ public:
     }
 
     /**
+     * Return suite/component objects from their names. Either use the database
+     * to retrieve persistable entities, or create new ones in case no database
+     * session is given.
+     */
+    private Tuple!(ArchiveSuite, "suite", ArchiveComponent, "component")
+    getSuiteComponentEntities (Session session, const string suiteName, const string componentName) @trusted
+    {
+        Tuple!(ArchiveSuite, "suite", ArchiveComponent, "component") res;
+
+        if (session is null) {
+            res.suite = new ArchiveSuite (suiteName);
+            res.suite.repo = new ArchiveRepository (repoName);
+            res.component = new ArchiveComponent (componentName);
+        } else {
+            // we work with the database
+            res.suite = session.createQuery ("FROM ArchiveSuite WHERE name=:nm AND repo.name=:rn")
+                               .setParameter ("nm", suiteName)
+                               .setParameter ("rn", repoName)
+                               .uniqueResult!ArchiveSuite;
+            foreach (c; res.suite.components) {
+                if (c.name == componentName) {
+                    res.component = c;
+                    break;
+                }
+            }
+            if (res.component is null)
+                throw new Exception ("Can not load packages in suite '%s/%s': Suite in database does not have component '%s'".format (suiteName, componentName, componentName));
+        }
+
+        return res;
+    }
+
+    /**
+     * Get an architecture entity from the database, or create a new one if
+     * we do not have a database session.
+     */
+    private auto getArchitectureEntity (Session session, string archName) @trusted
+    {
+        if (session is null)
+            return new ArchiveArchitecture (archName);
+
+        return session.createQuery ("FROM ArchiveArchitecture WHERE name=:nm")
+                      .setParameter ("nm", archName)
+                      .uniqueResult!ArchiveArchitecture;
+
+    }
+
+    /**
      * Retrieve a package list (index) file from the repository.
      * The file will be downloaded if necessary:
      *
@@ -194,14 +242,18 @@ public:
     /**
      * Return a list of all source packages in the given suite and component.
      */
-    SourcePackage[] getSourcePackages (const string suite, const string component)
+    SourcePackage[] getSourcePackages (const string suiteName, const string componentName, Session session = null)
     {
-        immutable indexFname = getIndexFile (suite, buildPath (component, "source", "Sources.xz"));
+        immutable indexFname = getIndexFile (suiteName, buildPath (componentName, "source", "Sources.xz"));
         if (indexFname.empty)
             return [];
 
         auto tf = new TagFile;
         tf.open (indexFname);
+
+        auto scTuple = getSuiteComponentEntities (session, suiteName, componentName);
+        auto suite = scTuple.suite;
+        auto component = scTuple.component;
 
         auto pkgs = appender!(SourcePackage[]);
         do {
@@ -213,7 +265,6 @@ public:
             pkg.name = pkgname;
             pkg.suite = suite;
             pkg.component = component;
-            pkg.repository = repoName;
 
             pkg.ver = tf.readField ("Version");
             pkg.architectures = tf.readField ("Architecture").split (" ");
@@ -247,6 +298,7 @@ public:
             if (pkg.files.empty)
                 logWarning ("Source package %s/%s seems to have no files (in %s).", pkg.name, pkg.ver, repoLocation);
 
+            pkg.ensureUUID (true);
             pkgs ~= pkg;
         } while (tf.nextSection ());
 
@@ -257,8 +309,14 @@ public:
      * Internal
      */
     @safe
-    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string component)
+    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string componentName, Session session = null)
     {
+        auto scTuple = getSuiteComponentEntities (session, suiteName, componentName);
+        auto suite = scTuple.suite;
+        auto component = scTuple.component;
+
+        ArchiveArchitecture[string] archEntities;
+
         auto pkgs = appender!(BinaryPackage[]);
         do {
             auto pkgname = tf.readField ("Package");
@@ -267,12 +325,23 @@ public:
 
             auto pkg = new BinaryPackage;
             pkg.name = pkgname;
-            pkg.suite = suiteName;
+            pkg.suite = suite;
             pkg.component = component;
-            pkg.repository = repoName;
 
             pkg.ver = tf.readField ("Version");
-            pkg.architecture = new ArchiveArchitecture (tf.readField ("Architecture"));
+
+            // get the architecture
+            immutable archName = tf.readField ("Architecture");
+            auto archP = archName in archEntities;
+            ArchiveArchitecture arch;
+            if (archP is null) {
+                arch = getArchitectureEntity (session, archName);
+                archEntities[archName] = arch;
+            } else {
+                arch = *archP;
+            }
+
+            pkg.architecture = arch;
             pkg.maintainer = tf.readField ("Maintainer");
 
             immutable sourceId = tf.readField ("Source");
@@ -317,6 +386,7 @@ public:
             if (pkg.file.fname.empty)
                 logWarning ("Binary package %s/%s seems to have no files.", pkg.name, pkg.ver);
 
+            pkg.ensureUUID (true);
             pkgs ~= pkg;
         } while (tf.nextSection ());
 
@@ -327,7 +397,7 @@ public:
      * Get a list of binary package information for the given repository suite,
      * component and architecture.
      */
-    BinaryPackage[] getBinaryPackages (const string suite, const string component, const string arch)
+    BinaryPackage[] getBinaryPackages (const string suite, const string component, const string arch, Session session = null)
     {
         immutable indexFname = getIndexFile (suite, buildPath (component, "binary-%s".format (arch), "Packages.xz"));
         if (indexFname.empty)
@@ -336,7 +406,7 @@ public:
         auto tf = new TagFile;
         tf.open (indexFname);
 
-        return readBinaryPackagesFromData (tf, suite, component);
+        return readBinaryPackagesFromData (tf, suite, component, session);
     }
 
     /**
@@ -345,7 +415,7 @@ public:
      * These binary packages are typically udebs used by the debian-installer, and should not
      * be installed on an user's system.
      */
-    BinaryPackage[] getInstallerPackages (const string suite, const string component, const string arch)
+    BinaryPackage[] getInstallerPackages (const string suite, const string component, const string arch, Session session = null)
     {
         immutable indexFname = getIndexFile (suite, buildPath (component, "debian-installer", "binary-%s".format (arch), "Packages.xz"));
         if (indexFname.empty)
@@ -354,7 +424,7 @@ public:
         auto tf = new TagFile;
         tf.open (indexFname);
 
-        return readBinaryPackagesFromData (tf, suite, component);
+        return readBinaryPackagesFromData (tf, suite, component, session);
     }
 
     /**

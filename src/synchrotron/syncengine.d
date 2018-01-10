@@ -31,7 +31,7 @@ import laniakea.db.schema.core;
 import laniakea.db.schema.synchrotron;
 import laniakea.repository;
 import laniakea.repository.dak;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 import laniakea.utils : compareVersions, getDebianRev, currentDateTime;
 import laniakea.localconfig;
 import laniakea.logging;

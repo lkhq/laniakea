@@ -23,7 +23,7 @@ module laniakea.db.schema.spears;
 import std.datetime : DateTime;
 
 import laniakea.db.utils;
-import laniakea.pkgitems : VersionPriority;
+import laniakea.db.schema.archive : VersionPriority;
 
 
 /**

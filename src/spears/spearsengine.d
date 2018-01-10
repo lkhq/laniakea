@@ -26,7 +26,7 @@ import std.typecons : Tuple;
 static import std.file;
 
 import laniakea.repository.dak;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 import laniakea.localconfig;
 import laniakea.logging;
 import laniakea.db;

@@ -30,7 +30,7 @@ static import dyaml;
 import laniakea.db;
 import laniakea.utils : currentDateTime;
 import laniakea.localconfig;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 import laniakea.repository;
 import laniakea.logging;
 

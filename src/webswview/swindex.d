@@ -29,7 +29,7 @@ import vibe.utils.validation;
 import vibe.web.web;
 
 import laniakea.db;
-import laniakea.pkgitems;
+import laniakea.db.schema.archive;
 
 import webswview.webconfig;
 
