@@ -33,7 +33,7 @@ import laniakea.db;
 struct GlobalInfo {
     string serviceName;
 
-    DistroSuite[] suites;
+    ArchiveSuite[] suites;
 }
 
 final class WebConfig

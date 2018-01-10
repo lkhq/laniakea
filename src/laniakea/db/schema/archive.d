@@ -319,7 +319,7 @@ class BinaryPackage
     ArchiveComponent component; /// Component this package is in
 
     ArchiveArchitecture architecture; /// Architecture this binary was built for
-    int    installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
+    int installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
 
     string description;
     string descriptionMd5;
@@ -435,4 +435,27 @@ auto getSuites (Session session, string repo = "master") @trusted
     auto q = session.createQuery ("FROM ArchiveSuite suite WHERE suite.repo.name=:repo")
                     .setParameter ("repo", repo);
     return q.list!ArchiveSuite();
+}
+
+auto getPackageSuites (T) (Session session, string repoName, string component, string name) @trusted
+{
+    static assert (is(T == SourcePackage) || is(T == BinaryPackage));
+
+    import std.algorithm : uniq, map;
+
+    static if (is(T == SourcePackage))
+        enum entityName = "SourcePackage";
+    else
+        enum entityName = "BinaryPackage";
+
+    auto rows = session.createQuery("SELECT pkg.suite.name
+                                     FROM " ~ entityName ~ " AS pkg
+                                     WHERE pkg.suite.repo.name = :repoName
+                                       AND pkg.component.name=:componentName
+                                       AND pkg.name=:pkgName")
+                       .setParameter("repoName", "master")
+                       .setParameter("componentName", component)
+                       .setParameter("pkgName", name).listRows ();
+
+    return rows.map! (r => r[0].toString).uniq;
 }

@@ -39,6 +39,7 @@ final class SWWebIndex {
     private {
         WebConfig wconf;
         Database db;
+        SessionFactory sFactory;
     }
 
     this (WebConfig conf)
@@ -46,6 +47,7 @@ final class SWWebIndex {
         wconf = conf;
         ginfo = wconf.ginfo;
         db = wconf.db;
+        sFactory = db.newSessionFactory ();
     }
 
 	// overrides the path that gets inferred from the method name to
@@ -63,10 +65,15 @@ final class SWWebIndex {
         if (searchTerm.empty)
             return;
 
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
-        auto results = conn.findBinaryPackage ("master", searchTerm);
+        auto q = session.createQuery ("FROM BinaryPackage as pkg
+                                       WHERE (name LIKE :term) OR (description LIKE :term)
+                                       ORDER BY ver")
+                        .setParameter("term", "%" ~ searchTerm ~ "%");
+
+        auto results = q.list!BinaryPackage;
 
         // FIXME: Combine the data and make it easier to use
         render!("search_results.dt", ginfo, results, searchTerm);

@@ -9,10 +9,10 @@ block contents
     |
     .list-group
       - foreach (ref suite; suites)
-        - if (suite == pkg.suite)
-          a.list-group-item.active= pkg.suite
+        - if (suite == pkg.suite.name)
+          a.list-group-item.active= pkg.suite.name
         - else
-          a.list-group-item(href='/package/source/#{suite}/#{pkg.component}/#{pkg.name}')= suite
+          a.list-group-item(href='/package/source/#{suite}/#{pkg.component.name}/#{pkg.name}')= suite
   |
   .col-md-9
     .thumbnail
