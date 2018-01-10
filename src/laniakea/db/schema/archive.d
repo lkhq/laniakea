@@ -284,9 +284,14 @@ class SourcePackage
     mixin (JsonDatabaseField!("files", "files", "ArchiveFile[]"));
     string directory;
 
-    void ensureUUID (bool regenerate = false)
+    static auto generateUUID (const string repoName, const string pkgname)
     {
         import std.uuid : sha1UUID;
+        return sha1UUID (repoName ~ "::" ~ pkgname);
+    }
+
+    void ensureUUID (bool regenerate = false)
+    {
         import std.array : empty;
         if (this.uuid.empty && !regenerate)
             return;
@@ -295,10 +300,22 @@ class SourcePackage
         if (this.suite !is null) {
             repo = this.suite.repo.name;
             if (repo.empty)
-                repo = "master";
+                repo = "?";
         }
 
-        this.uuid = sha1UUID (repo ~ "::" ~ this.name);
+        this.uuid = SourcePackage.generateUUID (repo, this.name);
+    }
+
+    string stringId ()
+    {
+        string repo = "";
+        if (this.suite !is null) {
+            repo = this.suite.repo.name;
+            if (repo.empty)
+                repo = "?";
+        }
+
+        return repo ~ "::" ~ this.name ~ "/" ~ this.ver;
     }
 }
 
@@ -345,9 +362,14 @@ class BinaryPackage
 
     @Null string homepage;
 
-    void ensureUUID (bool regenerate = false)
+    static auto generateUUID (const string repoName, const string pkgname, const string ver)
     {
         import std.uuid : sha1UUID;
+        return sha1UUID (repoName ~ "::" ~ pkgname ~ "/" ~ ver);
+    }
+
+    void ensureUUID (bool regenerate = false)
+    {
         import std.array : empty;
         if (this.uuid.empty && !regenerate)
             return;
@@ -359,7 +381,19 @@ class BinaryPackage
                 repo = "master";
         }
 
-        this.uuid = sha1UUID (repo ~ "::" ~ this.name ~ "/" ~ this.ver);
+        this.uuid = BinaryPackage.generateUUID (repo, this.name, this.ver);
+    }
+
+    string stringId ()
+    {
+        string repo = "";
+        if (this.suite !is null) {
+            repo = this.suite.repo.name;
+            if (repo.empty)
+                repo = "?";
+        }
+
+        return repo ~ "::" ~ this.name ~ "/" ~ this.ver;
     }
 }
 

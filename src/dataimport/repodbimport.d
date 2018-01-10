@@ -51,20 +51,14 @@ bool syncRepoData (string suiteName, string repoName = "master") @trusted
 
     foreach (ref component; suite.components) {
         // Source packages
-        foreach (ref pkg; repo.getSourcePackages (suite.name, component.name, session)) {
-            session.save (pkg);
-        }
+        repo.getSourcePackages (suite.name, component.name, session, true);
 
         foreach (ref arch; suite.architectures) {
             // binary packages
-            foreach (ref pkg; repo.getBinaryPackages (suite.name, component.name, arch.name, session)) {
-                session.save (pkg);
-            }
+            repo.getBinaryPackages (suite.name, component.name, arch.name, session, true);
 
             // binary packages of the debian-installer
-            foreach (ref pkg; repo.getInstallerPackages (suite.name, component.name, arch.name, session)) {
-                session.save (pkg);
-            }
+            repo.getInstallerPackages (suite.name, component.name, arch.name, session, true);
         }
     }
 

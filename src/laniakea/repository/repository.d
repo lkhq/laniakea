@@ -242,8 +242,12 @@ public:
     /**
      * Return a list of all source packages in the given suite and component.
      */
-    SourcePackage[] getSourcePackages (const string suiteName, const string componentName, Session session = null)
+    SourcePackage[] getSourcePackages (const string suiteName, const string componentName,
+                                       Session session = null, bool updateDb = false) @trusted
     {
+        if (updateDb)
+            assert (session !is null);
+
         immutable indexFname = getIndexFile (suiteName, buildPath (componentName, "source", "Sources.xz"));
         if (indexFname.empty)
             return [];
@@ -255,18 +259,42 @@ public:
         auto suite = scTuple.suite;
         auto component = scTuple.component;
 
+        SourcePackage[UUID] dbPackages;
+        bool[UUID] validPackages;
+        if (updateDb) {
+            auto q = session.createQuery ("FROM SourcePackage WHERE suite.name=:suite
+                                            AND component.name=:component")
+                            .setParameter ("suite", suiteName)
+                            .setParameter ("component", componentName);
+            foreach (spkg; q.list!SourcePackage)
+                dbPackages[spkg.uuid] = spkg;
+        }
+
         auto pkgs = appender!(SourcePackage[]);
         do {
-            auto pkgname = tf.readField ("Package");
-            if (!pkgname)
+            immutable pkgname = tf.readField ("Package");
+            immutable pkgversion = tf.readField ("Version");
+            if (!pkgname || !pkgversion)
                 continue;
 
-            auto pkg = new SourcePackage;
+            // get the database package to update it, if available
+            auto pkgP = SourcePackage.generateUUID (this.repoName, pkgname) in dbPackages;
+            SourcePackage pkg;
+            if (pkgP is null) {
+                pkg = new SourcePackage;
+            } else {
+                pkg = *pkgP;
+
+                // we only want the newest version in the database
+                if (compareVersions (pkg.ver, pkgversion) > 0)
+                    continue;
+            }
+
             pkg.name = pkgname;
             pkg.suite = suite;
             pkg.component = component;
 
-            pkg.ver = tf.readField ("Version");
+            pkg.ver = pkgversion;
             pkg.architectures = tf.readField ("Architecture").split (" ");
             pkg.standardsVersion = tf.readField ("Standards-Version");
             pkg.format = tf.readField ("Format");
@@ -298,9 +326,35 @@ public:
             if (pkg.files.empty)
                 logWarning ("Source package %s/%s seems to have no files (in %s).", pkg.name, pkg.ver, repoLocation);
 
+            // add package to results set
             pkg.ensureUUID (true);
             pkgs ~= pkg;
+
+            // ensure we don't delete this package later
+            validPackages[pkg.uuid] = true;
+
+            // update the database, if necessary
+            if (updateDb) {
+                if (pkgP is null) {
+                    session.save (pkg);
+                    dbPackages[pkg.uuid] = pkg;
+                    logDebug ("Added new source package '%s::%s/%s' to database", repoName, pkg.name, pkg.ver);
+                } else {
+                    session.update (pkg);
+                }
+            }
+
         } while (tf.nextSection ());
+
+        // drop copies from the database that are no longer in the imported data
+        if (updateDb) {
+            foreach (pkg; dbPackages.byValue) {
+                if (pkg.uuid !in validPackages) {
+                    session.remove (pkg);
+                    logDebug ("Removed source package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
+                }
+            }
+        }
 
         return pkgs.data;
     }
@@ -308,27 +362,49 @@ public:
     /**
      * Internal
      */
-    @safe
-    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string componentName, Session session = null)
+    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string componentName, DebType debType,
+                                                        Session session = null, bool updateDb = false) @trusted
     {
+        if (updateDb)
+            assert (session !is null);
+
         auto scTuple = getSuiteComponentEntities (session, suiteName, componentName);
         auto suite = scTuple.suite;
         auto component = scTuple.component;
 
-        ArchiveArchitecture[string] archEntities;
+        BinaryPackage[UUID] dbPackages;
+        bool[UUID] validPackages;
+        if (updateDb) {
+            auto q = session.createQuery ("FROM BinaryPackage WHERE suite.name=:suite
+                                            AND component.name=:component
+                                            AND debType_i=:dtype")
+                            .setParameter ("suite", suiteName)
+                            .setParameter ("component", componentName)
+                            .setParameter ("dtype", debType.to!short);
+            foreach (bpkg; q.list!BinaryPackage)
+                dbPackages[bpkg.uuid] = bpkg;
+        }
 
+        ArchiveArchitecture[string] archEntities;
         auto pkgs = appender!(BinaryPackage[]);
         do {
             auto pkgname = tf.readField ("Package");
-            if (!pkgname)
+            auto pkgversion = tf.readField ("Version");
+            if (!pkgname || !pkgversion)
                 continue;
 
-            auto pkg = new BinaryPackage;
+            // get the database package to update it, if available
+            auto pkgP = BinaryPackage.generateUUID (this.repoName, pkgname, pkgversion) in dbPackages;
+            BinaryPackage pkg;
+            if (pkgP is null)
+                pkg = new BinaryPackage;
+            else
+                pkg = *pkgP;
+
             pkg.name = pkgname;
             pkg.suite = suite;
             pkg.component = component;
-
-            pkg.ver = tf.readField ("Version");
+            pkg.ver = pkgversion;
 
             // get the architecture
             immutable archName = tf.readField ("Architecture");
@@ -386,9 +462,34 @@ public:
             if (pkg.file.fname.empty)
                 logWarning ("Binary package %s/%s seems to have no files.", pkg.name, pkg.ver);
 
+            // update UUID and add package to results set
             pkg.ensureUUID (true);
             pkgs ~= pkg;
+            validPackages[pkg.uuid] = true;
+
+            // update the database, if necessary
+            if (updateDb) {
+                if (pkgP is null) {
+                    // create DB copy
+                    session.save (pkg);
+                    dbPackages[pkg.uuid] = pkg;
+                    logDebug ("Added new binary package '%s::%s/%s' to database", repoName, pkg.name, pkg.ver);
+                } else {
+                    // update the database copy
+                    session.update (pkg);
+                }
+            }
         } while (tf.nextSection ());
+
+        // drop copies from the database that are no longer in the imported data
+        if (updateDb) {
+            foreach (pkg; dbPackages.byValue) {
+                if (pkg.uuid !in validPackages) {
+                    session.remove (pkg);
+                    logDebug ("Removed binary package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
+                }
+            }
+        }
 
         return pkgs.data;
     }
@@ -397,7 +498,8 @@ public:
      * Get a list of binary package information for the given repository suite,
      * component and architecture.
      */
-    BinaryPackage[] getBinaryPackages (const string suite, const string component, const string arch, Session session = null)
+    BinaryPackage[] getBinaryPackages (const string suite, const string component, const string arch,
+                                       Session session = null, bool updateDb = false)
     {
         immutable indexFname = getIndexFile (suite, buildPath (component, "binary-%s".format (arch), "Packages.xz"));
         if (indexFname.empty)
@@ -406,7 +508,7 @@ public:
         auto tf = new TagFile;
         tf.open (indexFname);
 
-        return readBinaryPackagesFromData (tf, suite, component, session);
+        return readBinaryPackagesFromData (tf, suite, component, DebType.DEB, session, updateDb);
     }
 
     /**
@@ -415,7 +517,8 @@ public:
      * These binary packages are typically udebs used by the debian-installer, and should not
      * be installed on an user's system.
      */
-    BinaryPackage[] getInstallerPackages (const string suite, const string component, const string arch, Session session = null)
+    BinaryPackage[] getInstallerPackages (const string suite, const string component, const string arch,
+                                          Session session = null, bool updateDb = false)
     {
         immutable indexFname = getIndexFile (suite, buildPath (component, "debian-installer", "binary-%s".format (arch), "Packages.xz"));
         if (indexFname.empty)
@@ -424,7 +527,7 @@ public:
         auto tf = new TagFile;
         tf.open (indexFname);
 
-        return readBinaryPackagesFromData (tf, suite, component, session);
+        return readBinaryPackagesFromData (tf, suite, component, DebType.UDEB, session, updateDb);
     }
 
     /**
