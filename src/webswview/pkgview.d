@@ -64,37 +64,35 @@ final class PackageView {
 
         if (type == "binary") {
             auto pkgs = session.createQuery ("FROM BinaryPackage
-                                              WHERE suite.repo.name=:repoName
-                                                AND suite.name=:suiteName
+                                              WHERE repo.name=:repoName
                                                 AND component.name=:componentName
                                                 AND name=:pkgName
                                               ORDER BY ver  ")
                                .setParameter("repoName", "master")
-                               .setParameter("suiteName", suite)
                                .setParameter("componentName", component)
                                .setParameter("pkgName", pkgName).list!BinaryPackage;
             if (pkgs.length == 0)
                 return;
             auto pkg = pkgs[0];
-            auto suites = session.getPackageSuites!BinaryPackage ("master", component, pkgName);
+            //! auto suites = session.getPackageSuites!BinaryPackage ("master", component, pkgName);
+            string[] suites;
             render!("pkgview/details_binary.dt", ginfo, pkg, suites);
             return;
 
         } else if (type == "source") {
             auto pkgs = session.createQuery ("FROM SourcePackage
-                                              WHERE suite.repo.name=:repoName
-                                                AND suite.name=:suiteName
+                                              WHERE repo.name=:repoName
                                                 AND component.name=:componentName
                                                 AND name=:pkgName
                                               ORDER BY ver  ")
                                .setParameter("repoName", "master")
-                               .setParameter("suiteName", suite)
                                .setParameter("componentName", component)
                                .setParameter("pkgName", pkgName).list!SourcePackage;
             if (pkgs.length == 0)
                 return;
             auto pkg = pkgs[0];
-            auto suites = session.getPackageSuites!SourcePackage ("master", component, pkgName);
+            //! auto suites = session.getPackageSuites!SourcePackage ("master", component, pkgName);
+            string[] suites;
             render!("pkgview/details_source.dt", ginfo, pkg, suites);
             return;
 

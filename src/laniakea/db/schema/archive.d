@@ -499,14 +499,14 @@ auto getPackageSuites (T) (Session session, string repoName, string component, s
     else
         enum entityName = "BinaryPackage";
 
-    auto rows = session.createQuery("SELECT pkg.suite.name
+    auto rows = session.createQuery("SELECT pkg.suites
                                      FROM " ~ entityName ~ " AS pkg
-                                     WHERE pkg.suite.repo.name = :repoName
+                                     WHERE pkg.repo.name = :repoName
                                        AND pkg.component.name=:componentName
                                        AND pkg.name=:pkgName")
                        .setParameter("repoName", "master")
                        .setParameter("componentName", component)
-                       .setParameter("pkgName", name).listRows ();
+                       .setParameter("pkgName", name).list!ArchiveSuite;
 
-    return rows.map! (r => r[0].toString).uniq;
+    return rows.map! (s => s.name).uniq;
 }
