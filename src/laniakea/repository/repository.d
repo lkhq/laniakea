@@ -262,9 +262,9 @@ public:
         SourcePackage[UUID] dbPackages;
         bool[UUID] validPackages;
         if (updateDb) {
-            auto q = session.createQuery ("FROM SourcePackage WHERE suite.name=:suite
-                                            AND component.name=:component")
-                            .setParameter ("suite", suiteName)
+            auto q = session.createQuery ("FROM SourcePackage WHERE repo.name=:repo
+                                             AND component.name=:component")
+                            .setParameter ("repo", repoName)
                             .setParameter ("component", componentName);
             foreach (spkg; q.list!SourcePackage)
                 dbPackages[spkg.uuid] = spkg;
@@ -278,21 +278,19 @@ public:
                 continue;
 
             // get the database package to update it, if available
-            auto pkgP = SourcePackage.generateUUID (this.repoName, pkgname) in dbPackages;
+            auto pkgP = SourcePackage.generateUUID (this.repoName, pkgname, pkgversion) in dbPackages;
             SourcePackage pkg;
             if (pkgP is null) {
                 pkg = new SourcePackage;
             } else {
                 pkg = *pkgP;
-
-                // we only want the newest version in the database
-                if (compareVersions (pkg.ver, pkgversion) > 0)
-                    continue;
             }
 
             pkg.name = pkgname;
-            pkg.suite = suite;
             pkg.component = component;
+            pkg.repo = suite.repo;
+            if (!pkg.suites.canFind (suite))
+                pkg.suites ~= suite;
 
             pkg.ver = pkgversion;
             pkg.architectures = tf.readField ("Architecture").split (" ");
@@ -350,8 +348,21 @@ public:
         if (updateDb) {
             foreach (pkg; dbPackages.byValue) {
                 if (pkg.uuid !in validPackages) {
-                    session.remove (pkg);
-                    logDebug ("Removed source package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
+                    foreach (i, ref s; pkg.suites) {
+                        import std.algorithm : remove;
+                        if (s == suite) {
+                            pkg.suites = pkg.suites.get.remove (i);
+                            break;
+                        }
+                    }
+
+                    if (pkg.suites.empty) {
+                        session.remove (pkg);
+                        logDebug ("Removed source package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
+                    } else {
+                        session.update (pkg);
+                        logDebug ("Removed source package '%s::%s/%s' from suite '%s'", repoName, pkg.name, pkg.ver, suiteName);
+                    }
                 }
             }
         }
@@ -375,10 +386,10 @@ public:
         BinaryPackage[UUID] dbPackages;
         bool[UUID] validPackages;
         if (updateDb) {
-            auto q = session.createQuery ("FROM BinaryPackage WHERE suite.name=:suite
+            auto q = session.createQuery ("FROM BinaryPackage WHERE repo.name=:repo
                                             AND component.name=:component
                                             AND debType_i=:dtype")
-                            .setParameter ("suite", suiteName)
+                            .setParameter ("repo", repoName)
                             .setParameter ("component", componentName)
                             .setParameter ("dtype", debType.to!short);
             foreach (bpkg; q.list!BinaryPackage)
@@ -402,9 +413,11 @@ public:
                 pkg = *pkgP;
 
             pkg.name = pkgname;
-            pkg.suite = suite;
             pkg.component = component;
             pkg.ver = pkgversion;
+            pkg.repo = suite.repo;
+            if (!pkg.suites.canFind (suite))
+                pkg.suites ~= suite;
 
             // get the architecture
             immutable archName = tf.readField ("Architecture");
@@ -485,8 +498,21 @@ public:
         if (updateDb) {
             foreach (pkg; dbPackages.byValue) {
                 if (pkg.uuid !in validPackages) {
-                    session.remove (pkg);
-                    logDebug ("Removed binary package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
+                    foreach (i, ref s; pkg.suites) {
+                        import std.algorithm : remove;
+                        if (s == suite) {
+                            pkg.suites = pkg.suites.get.remove (i);
+                            break;
+                        }
+                    }
+
+                    if (pkg.suites.empty) {
+                        session.remove (pkg);
+                        logDebug ("Removed binary package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
+                    } else {
+                        session.update (pkg);
+                        logDebug ("Removed binary package '%s::%s/%s' from suite '%s'", repoName, pkg.name, pkg.ver, suiteName);
+                    }
                 }
             }
         }

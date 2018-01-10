@@ -10,10 +10,7 @@ block contents
     |
     .list-group
       - foreach (ref suite; suites)
-        - if (suite == pkg.suite.name)
-          a.list-group-item.active= pkg.suite.name
-        - else
-          a.list-group-item(href='/package/binary/#{suite}/#{pkg.component.name}/#{pkg.name}')= suite
+        a.list-group-item(href='/package/binary/#{suite}/#{pkg.component.name}/#{pkg.name}')= suite
   |
   .col-md-9
     .thumbnail
@@ -39,4 +36,4 @@ block contents
       p Section: #{pkg.section}
       p Installed Size: #{pkg.installedSize}
       p
-        a(href='/package/source/#{pkg.suite.name}/#{pkg.component.name}/#{pkg.sourceName}') Source Package
+        a(href='/package/source/#{pkg.suites[0].name}/#{pkg.component.name}/#{pkg.sourceName}') Source Package

@@ -38,6 +38,9 @@ class ArchiveRepository
 
     LazyCollection!ArchiveSuite suites;
 
+    LazyCollection!BinaryPackage binPackages;
+    LazyCollection!BinaryPackage srcPackages;
+
     this () {}
     this (string name)
     {
@@ -66,7 +69,9 @@ class ArchiveSuite
     @Null
     string baseSuiteName;
 
+    @ManyToMany
     LazyCollection!BinaryPackage binPackages;
+    @ManyToMany
     LazyCollection!BinaryPackage srcPackages;
 
     this () {}
@@ -257,10 +262,17 @@ class SourcePackage
 {
     mixin UUIDProperty;
 
+    UUID sourceUUID;        /// The unique identifier for the whole source packaging project (stays the same even if the package version changes)
+    @property @Column ("source_uuid") string sourceUUID_s () { return sourceUUID.toString; }
+    @property @Column ("source_uuid") void sourceUUID_s (string s) { sourceUUID = UUID (s); }
+
     string name;       /// Source package name
     @Column ("version") string ver; /// Version of this package
-    ArchiveSuite suite;         /// Suite this package is in
-    ArchiveComponent component; /// Component this package is in
+
+    @ManyToMany
+    LazyCollection!ArchiveSuite suites; /// Suites this package is in
+    ArchiveComponent component;         /// Component this package is in
+    ArchiveRepository repo;             /// Repository this package is part of
 
     string[] architectures; /// List of architectures this source package can be built for
     mixin (JsonDatabaseField!("architectures", "architectures", "string[]"));
@@ -278,44 +290,46 @@ class SourcePackage
     mixin (JsonDatabaseField!("uploaders", "uploaders", "string[]"));
 
     string[] buildDepends;
-    mixin (JsonDatabaseField!("buildDepends", "buildDepends", "string[]"));
+    mixin (JsonDatabaseField!("build_depends", "buildDepends", "string[]"));
 
     ArchiveFile[] files;
     mixin (JsonDatabaseField!("files", "files", "ArchiveFile[]"));
     string directory;
 
-    static auto generateUUID (const string repoName, const string pkgname)
+    static auto generateUUID (const string repoName, const string pkgname, const string ver)
     {
         import std.uuid : sha1UUID;
-        return sha1UUID (repoName ~ "::" ~ pkgname);
+        return sha1UUID (repoName ~ "::source/" ~ pkgname ~ "/" ~ ver);
     }
 
-    void ensureUUID (bool regenerate = false)
+    void ensureUUID (bool regenerate = false) @trusted
     {
+        import std.uuid : sha1UUID;
         import std.array : empty;
-        if (this.uuid.empty && !regenerate)
+        if (this.uuid.empty && this.sourceUUID.empty && !regenerate)
             return;
 
         string repo = "";
-        if (this.suite !is null) {
-            repo = this.suite.repo.name;
+        if (this.suites.length != 0) {
+            repo = this.suites[0].repo.name;
             if (repo.empty)
                 repo = "?";
         }
 
-        this.uuid = SourcePackage.generateUUID (repo, this.name);
+        this.uuid = SourcePackage.generateUUID (repo, this.name, this.ver);
+        this.sourceUUID = sha1UUID (repo ~ "::" ~ this.name);
     }
 
-    string stringId ()
+    string stringId () @trusted
     {
         string repo = "";
-        if (this.suite !is null) {
-            repo = this.suite.repo.name;
+        if (this.suites.length != 0) {
+            repo = this.suites[0].repo.name;
             if (repo.empty)
                 repo = "?";
         }
 
-        return repo ~ "::" ~ this.name ~ "/" ~ this.ver;
+        return repo ~ "::source/" ~ this.name ~ "/" ~ this.ver;
     }
 }
 
@@ -332,8 +346,11 @@ class BinaryPackage
 
     string name;       /// Package name
     @Column ("version") string ver; /// Version of this package
-    ArchiveSuite suite;         /// Suite this package is in
-    ArchiveComponent component; /// Component this package is in
+
+    @ManyToMany
+    LazyCollection!ArchiveSuite suites; /// Suites this package is in
+    ArchiveComponent component;         /// Component this package is in
+    ArchiveRepository repo;             /// Repository this package is part of
 
     ArchiveArchitecture architecture; /// Architecture this binary was built for
     int installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
@@ -353,7 +370,7 @@ class BinaryPackage
     mixin (JsonDatabaseField! ("depends", "depends", "string[]"));
 
     string[] preDepends;
-    mixin (JsonDatabaseField! ("preDepends", "preDepends", "string[]"));
+    mixin (JsonDatabaseField! ("pre_depends", "preDepends", "string[]"));
 
     string maintainer;
 
@@ -368,27 +385,27 @@ class BinaryPackage
         return sha1UUID (repoName ~ "::" ~ pkgname ~ "/" ~ ver);
     }
 
-    void ensureUUID (bool regenerate = false)
+    void ensureUUID (bool regenerate = false) @trusted
     {
         import std.array : empty;
         if (this.uuid.empty && !regenerate)
             return;
 
         string repo = "";
-        if (this.suite !is null) {
-            repo = this.suite.repo.name;
+        if (this.suites.length != 0) {
+            repo = this.suites[0].repo.name;
             if (repo.empty)
-                repo = "master";
+                repo = "?";
         }
 
         this.uuid = BinaryPackage.generateUUID (repo, this.name, this.ver);
     }
 
-    string stringId ()
+    string stringId () @trusted
     {
         string repo = "";
-        if (this.suite !is null) {
-            repo = this.suite.repo.name;
+        if (this.suites.length != 0) {
+            repo = this.suites[0].repo.name;
             if (repo.empty)
                 repo = "?";
         }
@@ -439,16 +456,16 @@ void createTables (Database db) @trusted
          ALTER COLUMN architectures TYPE JSONB USING architectures::jsonb,
          ALTER COLUMN binaries      TYPE JSONB USING binaries::jsonb,
          ALTER COLUMN uploaders     TYPE JSONB USING uploaders::jsonb,
-         ALTER COLUMN buildDepends  TYPE JSONB USING buildDepends::jsonb,
+         ALTER COLUMN build_depends TYPE JSONB USING build_depends::jsonb,
          ALTER COLUMN files         TYPE JSONB USING files::jsonb;"
     );
 
     stmt.executeUpdate (
         "ALTER TABLE archive_bin_package
-         ALTER COLUMN version    TYPE DEBVERSION,
-         ALTER COLUMN depends    TYPE JSONB USING depends::jsonb,
-         ALTER COLUMN preDepends TYPE JSONB USING preDepends::jsonb,
-         ALTER COLUMN file       TYPE JSONB USING file::jsonb;"
+         ALTER COLUMN version     TYPE DEBVERSION,
+         ALTER COLUMN depends     TYPE JSONB USING depends::jsonb,
+         ALTER COLUMN pre_depends TYPE JSONB USING pre_depends::jsonb,
+         ALTER COLUMN file        TYPE JSONB USING file::jsonb;"
     );
 }
 

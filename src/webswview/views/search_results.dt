@@ -9,6 +9,6 @@ block contents
   h3 Binary Packages
   .list-group
     - foreach (ref res; results)
-      a.list-group-item(href='/package/binary/#{res.suite.name}/#{res.component.name}/#{res.name}')
+      a.list-group-item(href='/package/binary/#{res.suites[0].name}/#{res.component.name}/#{res.name}')
         h4.list-group-item-heading #{res.name} - #{res.ver}
-        p.list-group-item-text #{res.suite.name}/#{res.component.name} - [#{res.architecture}]
+        p.list-group-item-text #{res.suites[0].name}/#{res.component.name} - [#{res.architecture}]

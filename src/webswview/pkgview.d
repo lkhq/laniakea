@@ -75,7 +75,7 @@ final class PackageView {
                                .setParameter("pkgName", pkgName).list!BinaryPackage;
             if (pkgs.length == 0)
                 return;
-            const pkg = pkgs[0];
+            auto pkg = pkgs[0];
             auto suites = session.getPackageSuites!BinaryPackage ("master", component, pkgName);
             render!("pkgview/details_binary.dt", ginfo, pkg, suites);
             return;
@@ -93,7 +93,7 @@ final class PackageView {
                                .setParameter("pkgName", pkgName).list!SourcePackage;
             if (pkgs.length == 0)
                 return;
-            const pkg = pkgs[0];
+            auto pkg = pkgs[0];
             auto suites = session.getPackageSuites!SourcePackage ("master", component, pkgName);
             render!("pkgview/details_source.dt", ginfo, pkg, suites);
             return;
