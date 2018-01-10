@@ -48,6 +48,11 @@ if (get_option('synchrotron'))
     subdir('synchrotron')
 endif
 
+# Ariadne
+if (get_option('ariadne'))
+    subdir('ariadne')
+endif
+
 # web frontends
 if (get_option('webgui'))
     # admin & technical overview

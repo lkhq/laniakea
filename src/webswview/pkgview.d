@@ -67,7 +67,7 @@ final class PackageView {
                                               WHERE repo.name=:repoName
                                                 AND component.name=:componentName
                                                 AND name=:pkgName
-                                              ORDER BY ver  ")
+                                              ORDER BY ver")
                                .setParameter("repoName", "master")
                                .setParameter("componentName", component)
                                .setParameter("pkgName", pkgName).list!BinaryPackage;
