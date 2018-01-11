@@ -36,8 +36,8 @@ import std.parallelism : parallel;
 auto getNewestSourcesIndex (Session session, ArchiveSuite suite)
 {
     SourcePackage[UUID] srcPackages;
-    auto q = session.createQuery ("FROM SourcePackage WHERE repo.id=:repoid")
-                    .setParameter ("repoid", suite.repo.id);
+    auto q = session.createQuery ("FROM SourcePackage WHERE repo.id=:repoID")
+                    .setParameter ("repoID", suite.repo.id);
     foreach (spkg; q.list!SourcePackage)
     {
         if (spkg.suites.canFind (suite))
@@ -51,24 +51,24 @@ auto getNewestSourcesIndex (Session session, ArchiveSuite suite)
  * Get list of binary packages built for the given source package.
  */
 auto binariesForPackage (Session session, ArchiveRepository repo,
-        const string sourceName, const string sourceVersion, ArchiveArchitecture arch)
+                         const string sourceName, const string sourceVersion, ArchiveArchitecture arch)
 {
-    auto q = session.createQuery ("FROM BinaryPackage WHERE repo.id=:repoid
+    auto q = session.createQuery ("FROM BinaryPackage WHERE repo.id=:repoID
                                      AND sourceName=:name
                                      AND sourceVersion=:version
-                                     AND architecture=:arch")
-                    .setParameter ("repoid", repo.id)
+                                     AND architecture.id=:archID")
+                    .setParameter ("repoID", repo.id)
                     .setParameter ("name", sourceName)
                     .setParameter ("version", sourceVersion)
-                    .setParameter ("arch", arch);
+                    .setParameter ("archID", arch.id);
     return q.list!BinaryPackage;
 }
 
 /**
  * Get Debcheck issues related to the given source package.
  */
-auto debcheckIssuesForPackage(Session session, const string suiteName,
-        const string packageName, const string packageVersion, const string architecture)
+auto debcheckIssuesForPackage (Session session, const string suiteName,
+                               const string packageName, const string packageVersion, ArchiveArchitecture arch)
 {
     auto q = session.createQuery ("FROM DebcheckIssue WHERE packageKind_i=:kind
                                      AND suiteName=:suite
@@ -76,8 +76,10 @@ auto debcheckIssuesForPackage(Session session, const string suiteName,
                                      AND packageVersion=:version
                                      AND architecture=:arch")
                     .setParameter ("kind", PackageType.SOURCE)
-                    .setParameter ("suite", suiteName).setParameter ("name", packageName)
-                    .setParameter ("version", packageVersion).setParameter ("arch", architecture);
+                    .setParameter ("suite", suiteName)
+                    .setParameter ("name", packageName)
+                    .setParameter ("version", packageVersion)
+                    .setParameter ("arch", arch.name);
     return q.list!DebcheckIssue;
 }
 
@@ -107,7 +109,7 @@ void scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
     // we have no binaries, looks like we might need to schedule a build job
     // check if all dependencies are there
     auto issues = session.debcheckIssuesForPackage (incomingSuite.name,
-                                                   spkg.name, spkg.ver, arch.name);
+                                                    spkg.name, spkg.ver, arch);
     if (issues.length > 0)
         return;
 
