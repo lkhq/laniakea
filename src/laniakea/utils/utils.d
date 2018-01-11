@@ -164,6 +164,59 @@ auto getDirShorthandForUUID (const UUID uuid)
     return getDirShorthandForUUIDString (uuid.toString).dup;
 }
 
+/**
+ * Check if given arch `arch` matches the other arch `archAlias`. This is most
+ * useful for the complex any-* rules.
+ */
+bool archMatches (string archAlias, string arch)
+{
+    import std.array : array;
+    import std.string : endsWith;
+    import std.algorithm : canFind, splitter;
+    import std.process : execute;
+
+    if (arch == archAlias)
+        return true;
+
+    // These pseudo-arches does not match any wildcards or aliases
+    if ((arch == "all") || (arch == "source"))
+        return false;
+
+    // The 'any' wildcard matches all *real* architectures
+    if (archAlias == "any")
+        return true;
+
+    // GNU/Linux arches are named <cpuabi>
+    // Other Linux arches are named <libc>-linux-<cpuabi>
+    if (archAlias == "linux-any")
+        return !arch.canFind ("-") || arch.splitter ('-').canFind ("linux");
+
+    if (!arch.canFind ("-") && !archAlias.canFind ("-"))
+        return false;
+
+    // This is a performance disaster
+    // Hopefully we'll rarely get here
+    auto dpkga = execute(["/usr/bin/dpkg-architecture",
+                          "-a" ~ arch,
+                          "-i" ~ archAlias
+    ]);
+
+    return dpkga.status == 0;
+}
+
+/**
+ * Check if any of the given architectures in `archAliases` matches
+ * architecture `arch`.
+ */
+bool archMatches (string[] archAliases, string arch)
+{
+    foreach (ref aa; archAliases) {
+        if (aa.archMatches (arch))
+            return true;
+    }
+    return false;
+}
+
 unittest
 {
     // remote checks
@@ -188,4 +241,17 @@ unittest
     // test dir shorthand generation
     assert ("5924c600-f41a-11e7-8c3f-9a214cf093ae".getDirShorthandForUUIDString == "59");
     assert (UUID ("5924c600-f41a-11e7-8c3f-9a214cf093ae").getDirShorthandForUUID == "59");
+
+    // architecture alias matches
+    assert (archMatches ("any", "amd64"));
+    assert (archMatches ("linux-any", "amd64"));
+    assert (!archMatches ("linux-any", "kfreebsd-amd64"));
+    assert (!archMatches ("musl-any-any", "amd64"));
+    assert (archMatches ("gnu-any-any", "amd64"));
+    assert (archMatches ("gnu-any-any", "linux-amd64"));
+    assert (!archMatches ("gnu-any-any", "musl-linux-amd64"));
+    assert (archMatches ("any-arm", "armhf"));
+
+    assert (archMatches (["armhf", "amd64"], "amd64"));
+    assert (!archMatches (["any-arm", "kfreebsd-amd64"], "amd64"));
 }

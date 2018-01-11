@@ -120,7 +120,9 @@ final class BaseAdmin : AdminTool
             }
 
             writeQS ("List of architectures for suite '%s'".format (suite.name));
-            foreach (archName; readList ()) {
+            // every suite has the "all" architecture, so add it straight away
+            auto selectedArchs = ["all"] ~ readList ();
+            foreach (archName; selectedArchs) {
                 auto arch = session.createQuery ("FROM ArchiveArchitecture WHERE name=:aname")
                                    .setParameter ("aname", archName)
                                    .uniqueResult!ArchiveArchitecture;

@@ -20,14 +20,14 @@
 module ariadne.buildscheduler;
 
 import laniakea.logging;
-import laniakea.localconfig;
-import laniakea.repository;
 import laniakea.db;
 import laniakea.db.schema.archive;
+import laniakea.utils : archMatches;
 
 import std.array : empty;
 import std.string : format;
 import std.algorithm : canFind;
+import std.parallelism : parallel;
 
 
 /**
@@ -106,6 +106,14 @@ bool scheduleBuilds ()
 
     foreach (ref spkg; srcPackages.byValue) {
         foreach (ref arch; incomingSuite.architectures) {
+            // TODO: Don't ignore arch:all, treat it properly instead.
+            if (arch.name == "all")
+                continue;
+
+            // check if we can build the package on the current architecture
+            if (!spkg.architectures.archMatches (arch.name))
+                continue;
+
             // check if we have already scheduled a job for this in the past and don't create
             // another one in that case
             auto jobs = conn.getJobsByTriggerVerArch (spkg.sourceUUID, spkg.ver, arch.name, 0);
@@ -123,8 +131,6 @@ bool scheduleBuilds ()
             auto issues = session.debcheckIssuesForPackage (incomingSuite.name, spkg.name, spkg.ver, arch.name);
             if (issues.length > 0)
                 continue;
-
-            // TODO: Assess whether we can actually build the package on this architecture
 
             // no issues found and a build seems required.
             // let's go!
