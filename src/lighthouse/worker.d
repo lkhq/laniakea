@@ -56,6 +56,41 @@ class LighthouseWorker {
         db.dropConnection (conn);
     }
 
+    private auto assignSuitableJob (Connection conn, const string jobKind, const string arch, const string clientId)
+    {
+        auto ps = conn.prepareStatement ("WITH cte AS (
+                                          SELECT uuid
+                                            FROM   jobs
+                                            WHERE  status=?
+                                              AND (architecture=? OR architecture='any')
+                                              AND kind=?
+                                            LIMIT  1
+                                            ORDER BY priority, time_created DESC
+                                            FOR UPDATE
+                                          )
+                                          UPDATE jobs j SET
+                                            status=?,
+                                            worker_id=?,
+                                            time_assigned=now()
+                                          FROM cte
+                                            WHERE  j.uuid = cte.uuid
+                                          RETURNING *");
+        scope (exit) ps.close ();
+
+        ps.setShort (1, JobStatus.WAITING.to!short);
+        ps.setString (2, arch);
+        ps.setString (3, jobKind);
+
+        ps.setShort  (4, JobStatus.SCHEDULED.to!short);
+        ps.setString (5, clientId);
+
+        auto ans = ps.executeQuery ();
+
+        // use the first job with a matching architecture
+        const job = ans.rowsToOne!Job;
+        return job;
+    }
+
     /**
      * Read job request and return a job matching the request or
      * JSON-null in case we couldn't find any job.
@@ -92,42 +127,20 @@ class LighthouseWorker {
         session.update (worker);
 
         string jobData = null.serializeToJsonString;
-        foreach (ref archJ; architectures) {
-            immutable arch = archJ.get!string;
-
-            // TODO: Fetch job properly, taking its priority and creation date into account
-            auto ps = conn.prepareStatement ("WITH cte AS (
-                                                SELECT uuid
-                                                FROM   jobs
-                                                WHERE  status=?
-                                                  AND (architecture=? OR architecture='any')
-                                                LIMIT  1
-                                                ORDER BY priority, time_created DESC
-                                                FOR UPDATE
-                                              )
-                                              UPDATE jobs j SET
-                                                status=?,
-                                                worker_id=?,
-                                                time_assigned=now()
-                                              FROM cte
-                                                WHERE  j.uuid = cte.uuid
-                                              RETURNING *");
-            scope (exit) ps.close ();
-
-            ps.setShort  (1, JobStatus.WAITING.to!short);
-            ps.setString (2, arch);
-
-            ps.setShort  (3, JobStatus.SCHEDULED.to!short);
-            ps.setString (4, clientId);
-
-            auto ans = ps.executeQuery ();
-
-            // use the first job with a matching architecture
-            const job = ans.rowsToOne!Job;
-            if (!job.isNull) {
-                jobData = job.serializeToJsonString ();
-                break;
+        foreach (ref acceptedKind; worker.accepts) {
+            auto jobAssigned = false;
+            foreach (ref archJ; architectures) {
+                immutable arch = archJ.get!string;
+                // use the first job with a matching architecture/kind
+                const job = assignSuitableJob (conn, acceptedKind, arch, clientId);
+                if (!job.isNull) {
+                    jobData = job.serializeToJsonString ();
+                    jobAssigned = true;
+                    break;
+                }
             }
+            if (jobAssigned)
+                break;
         }
 
         return jobData;
