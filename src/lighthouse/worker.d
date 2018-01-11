@@ -95,22 +95,30 @@ class LighthouseWorker {
         foreach (ref archJ; architectures) {
             immutable arch = archJ.get!string;
 
-
-            auto ps = conn.prepareStatement ("UPDATE jobs SET
-                                              status=?,
-                                              worker_name=?,
-                                              worker_id=?,
-                                              time_assigned=now()
-                                            WHERE
-                                              status=? AND (architecture=? OR architecture='any')
-                                            RETURNING *");
+            // TODO: Fetch job properly, taking its priority and creation date into account
+            auto ps = conn.prepareStatement ("WITH cte AS (
+                                                SELECT uuid
+                                                FROM   jobs
+                                                WHERE  status=?
+                                                  AND (architecture=? OR architecture='any')
+                                                LIMIT  1
+                                                ORDER BY priority, time_created DESC
+                                                FOR UPDATE
+                                              )
+                                              UPDATE jobs j SET
+                                                status=?,
+                                                worker_id=?,
+                                                time_assigned=now()
+                                              FROM cte
+                                                WHERE  j.uuid = cte.uuid
+                                              RETURNING *");
             scope (exit) ps.close ();
 
-            ps.setShort  (1, JobStatus.SCHEDULED.to!short);
-            ps.setString (2, clientName);
-            ps.setString (3, clientId);
-            ps.setShort  (4, JobStatus.WAITING.to!short);
-            ps.setString (5, arch);
+            ps.setShort  (1, JobStatus.WAITING.to!short);
+            ps.setString (2, arch);
+
+            ps.setShort  (3, JobStatus.SCHEDULED.to!short);
+            ps.setString (4, clientId);
 
             auto ans = ps.executeQuery ();
 
@@ -154,7 +162,6 @@ class LighthouseWorker {
 
         auto ps1 = conn.prepareStatement ("UPDATE jobs SET
                                            status=?
-                                           worker_name=?,
                                            worker_id=?
                                          WHERE
                                            uuid=? AND status=?
@@ -162,10 +169,9 @@ class LighthouseWorker {
         scope (exit) ps1.close ();
 
         ps1.setShort  (1, JobStatus.WAITING.to!short);
-        ps1.setString (2, "");
-        ps1.setString (3, UUID ().toString);
-        ps1.setString (4, jobId);
-        ps1.setShort  (5, JobStatus.SCHEDULED.to!short);
+        ps1.setString (2, UUID ().toString);
+        ps1.setString (3, jobId);
+        ps1.setShort  (4, JobStatus.SCHEDULED.to!short);
 
         auto res = ps1.executeQuery ();
 
@@ -176,7 +182,6 @@ class LighthouseWorker {
             // NOTE: Should we log this behavior?
             auto ps2 = conn.prepareStatement ("UPDATE jobs SET
                                                  status=?
-                                                 worker_name=?,
                                                  worker_id=?
                                                WHERE
                                                  uuid=? AND status=?
@@ -184,10 +189,9 @@ class LighthouseWorker {
             scope (exit) ps2.close ();
 
             ps2.setShort  (1, JobStatus.WAITING.to!short);
-            ps2.setString (2, "");
-            ps2.setString (3, UUID ().toString);
-            ps2.setString (4, jobId);
-            ps2.setShort  (5, JobStatus.RUNNING.to!short);
+            ps2.setString (2, UUID ().toString);
+            ps2.setString (3, jobId);
+            ps2.setShort  (4, JobStatus.RUNNING.to!short);
 
             ps2.executeQuery ();
         }

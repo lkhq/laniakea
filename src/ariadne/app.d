@@ -48,7 +48,7 @@ void main (string[] args)
     bool verbose;
     bool showHelp;
     bool showVersion;
-    bool forceAction;
+    bool simulateAction;
 
     // parse command-line options
     try {
@@ -56,7 +56,7 @@ void main (string[] args)
             "help|h", &showHelp,
             "verbose", &verbose,
             "version", &showVersion,
-            "force", &forceAction);
+            "simulate", &simulateAction,);
     } catch (Exception e) {
         writeln ("Unable to parse parameters: ", e.msg);
         exit (1);
@@ -92,7 +92,7 @@ void main (string[] args)
 
     immutable command = args[1];
     if (command == "run") {
-        if (!scheduleBuilds ())
+        if (!scheduleBuilds (simulateAction))
             exit (1);
     } else {
         writeln ("Command ", command, " is unknown.");

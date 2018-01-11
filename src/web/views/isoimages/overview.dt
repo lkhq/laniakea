@@ -53,4 +53,3 @@ block contents
                                 a.list-group-item(class='#{hlClass}', href='/jobs/#{job.uuid.toString}')
                                     h4.list-group-item-heading
                                     | [#{job.architecture}] - #{job.createdTime}
-                                    p.list-group-item-text #{job.title}

@@ -1,12 +1,12 @@
 extends base
 
 block head
-    - auto title = "Spark job " ~ job.lkid.to!string;
+    - auto title = "Spark job " ~ job.uuid.toString;
 
 block contents
     - import std.array : empty;
     block job_header
-        h1 #{job.title} (#{job.lkid})
+        h1 (#{job.uuid.toString})
 
     br
 

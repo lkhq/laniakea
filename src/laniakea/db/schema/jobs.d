@@ -69,8 +69,6 @@ struct Job
     string moduleName; /// the name of the module responsible for this job
     string kind;       /// kind of the job
 
-    string title;     /// A human-readable title of this job
-
     UUID trigger;     /// ID of the entity responsible for triggering this job's creation
     string ver;       /// Version of the item this job is for (can be null)
     string architecture = "any"; /// Architecture this job can run on, "any" in case the architecture does not matter
@@ -78,6 +76,7 @@ struct Job
     DateTime createdTime;  /// Time when this job was created.
     DateTime assignedTime; /// Time when this job was assigned to a worker.
     DateTime finishedTime; /// Time when this job was finished.
+    int priority;          /// Priority of this job (higher value means faster execution of the task)
 
     UUID   workerId;       /// Unique ID of the entity the job is assigned to
 
@@ -97,14 +96,14 @@ struct Job
         status       = r.getShort (2).to!JobStatus;
         moduleName   = r.getString (3);
         kind         = r.getString (4);
-        title        = r.getString (5);
-        trigger      = UUID (r.getString (6));
-        ver          = r.getString (7);
-        architecture = r.getString (8);
+        trigger      = UUID (r.getString (5));
+        ver          = r.getString (6);
+        architecture = r.getString (7);
 
-        createdTime  = r.getDateTime (9);
-        assignedTime = r.getDateTime (10);
-        finishedTime = r.getDateTime (11);
+        createdTime  = r.getDateTime (8);
+        assignedTime = r.getDateTime (9);
+        finishedTime = r.getDateTime (10);
+        priority     = r.getInt (11);
 
         workerId     = UUID (r.getString (12));
 
@@ -174,13 +173,13 @@ void createTables (Database db) @trusted
           status           SMALLINT,
           module           TEXT NOT NULL,
           kind             TEXT NOT NULL,
-          title            TEXT,
           trigger          UUID,
           version          DEBVERSION,
           architecture     TEXT,
           time_created     TIMESTAMP NOT NULL,
           time_assigned    TIMESTAMP NOT NULL,
           time_finished    TIMESTAMP NOT NULL,
+          priority         INTEGER,
           worker_id        UUID,
           result           SMALLINT,
           latest_log_excerpt TEXT,
@@ -216,10 +215,10 @@ void updateJob (Connection conn, Job job) @trusted
                             ?,
                             ?,
                             ?,
+                            ?::timestamp,
+                            ?::timestamp,
+                            ?::timestamp,
                             ?,
-                            ?::timestamp,
-                            ?::timestamp,
-                            ?::timestamp,
                             ?,
                             ?,
                             ?,
@@ -229,12 +228,12 @@ void updateJob (Connection conn, Job job) @trusted
                       status           = ?,
                       module           = ?,
                       kind             = ?,
-                      title            = ?,
                       trigger          = ?,
                       version          = ?,
                       architecture     = ?,
                       time_assigned    = ?::timestamp,
                       time_finished    = ?::timestamp,
+                      priority         = ?,
                       worker_id        = ?,
                       result           = ?,
                       latest_log_excerpt = ?,
@@ -247,13 +246,13 @@ void updateJob (Connection conn, Job job) @trusted
     ps.setShort  (2, job.status.to!short);
     ps.setString (3, job.moduleName);
     ps.setString (4, job.kind);
-    ps.setString (5, job.title);
-    ps.setString (6, job.trigger.toString);
-    ps.setString (7, job.ver);
-    ps.setString (8, job.architecture);
-    ps.setDateTime (9, job.createdTime);
-    ps.setDateTime (10, job.assignedTime);
-    ps.setDateTime (11, job.finishedTime);
+    ps.setString (5, job.trigger.toString);
+    ps.setString (6, job.ver);
+    ps.setString (7, job.architecture);
+    ps.setDateTime (8, job.createdTime);
+    ps.setDateTime (9, job.assignedTime);
+    ps.setDateTime (10, job.finishedTime);
+    ps.setInt    (11, job.priority);
     ps.setString (12, job.workerId.toString);
     ps.setShort  (13, job.result.to!short);
     ps.setString (14, job.latestLogExcerpt);
@@ -262,12 +261,12 @@ void updateJob (Connection conn, Job job) @trusted
     ps.setShort  (16, job.status.to!short);
     ps.setString (17, job.moduleName);
     ps.setString (18, job.kind);
-    ps.setString (19, job.title);
-    ps.setString (20, job.trigger.toString);
-    ps.setString (21, job.ver);
-    ps.setString (22, job.architecture);
-    ps.setDateTime (23, job.assignedTime);
-    ps.setDateTime (24, job.finishedTime);
+    ps.setString (19, job.trigger.toString);
+    ps.setString (20, job.ver);
+    ps.setString (21, job.architecture);
+    ps.setDateTime (22, job.assignedTime);
+    ps.setDateTime (23, job.finishedTime);
+    ps.setInt    (24, job.priority);
     ps.setString (25, job.workerId.toString);
     ps.setShort  (26, job.result.to!short);
     ps.setString (27, job.latestLogExcerpt);
@@ -289,12 +288,6 @@ void addJob (Connection conn, Job job, UUID trigger)
     job.createdTime = currentDateTime;
     job.status = JobStatus.WAITING;
     job.trigger = trigger;
-
-    // set a dummy titke for displaying information in UIs which do not
-    // have knowledge of all Laniakea modules
-    if (job.title.empty) {
-        job.title = "%s %s job".format (job.moduleName, job.kind);
-    }
 
     logInfo ("Adding job '%s'", job.uuid.toString);
     conn.updateJob (job);
@@ -329,7 +322,7 @@ auto getJobsByTriggerVerArch (Connection conn, UUID triggerId, const string ver,
     auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE trigger=?
                                         AND version=?
                                         AND architecture=?
-                                      ORDER BY time_created DESC
+                                      ORDER BY priority, time_created DESC
                                       LIMIT ? OFFSET ?");
     scope (exit) ps.close ();
 
