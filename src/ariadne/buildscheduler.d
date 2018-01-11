@@ -33,14 +33,14 @@ import std.parallelism : parallel;
  * Create an index of the most recent source packages, using
  * the source-UUID of source packages.
  */
-auto getNewestSourcesIndex(Session session, ArchiveSuite suite)
+auto getNewestSourcesIndex (Session session, ArchiveSuite suite)
 {
     SourcePackage[UUID] srcPackages;
-    auto q = session.createQuery("FROM SourcePackage WHERE repo.id=:repoid")
-        .setParameter("repoid", suite.repo.id);
+    auto q = session.createQuery ("FROM SourcePackage WHERE repo.id=:repoid")
+                    .setParameter ("repoid", suite.repo.id);
     foreach (spkg; q.list!SourcePackage)
     {
-        if (spkg.suites.canFind(suite))
+        if (spkg.suites.canFind (suite))
             srcPackages[spkg.sourceUUID] = spkg;
     }
 
@@ -50,15 +50,17 @@ auto getNewestSourcesIndex(Session session, ArchiveSuite suite)
 /**
  * Get list of binary packages built for the given source package.
  */
-auto binariesForPackage(Session session, ArchiveRepository repo,
+auto binariesForPackage (Session session, ArchiveRepository repo,
         const string sourceName, const string sourceVersion, ArchiveArchitecture arch)
 {
-    auto q = session.createQuery("FROM BinaryPackage WHERE repo.id=:repoid
+    auto q = session.createQuery ("FROM BinaryPackage WHERE repo.id=:repoid
                                      AND sourceName=:name
                                      AND sourceVersion=:version
-                                     AND architecture=:arch").setParameter("repoid", repo.id)
-        .setParameter("name", sourceName).setParameter("version",
-                sourceVersion).setParameter("arch", arch);
+                                     AND architecture=:arch")
+                    .setParameter ("repoid", repo.id)
+                    .setParameter ("name", sourceName)
+                    .setParameter ("version", sourceVersion)
+                    .setParameter ("arch", arch);
     return q.list!BinaryPackage;
 }
 
@@ -68,14 +70,14 @@ auto binariesForPackage(Session session, ArchiveRepository repo,
 auto debcheckIssuesForPackage(Session session, const string suiteName,
         const string packageName, const string packageVersion, const string architecture)
 {
-    auto q = session.createQuery("FROM DebcheckIssue WHERE packageKind_i=:kind
+    auto q = session.createQuery ("FROM DebcheckIssue WHERE packageKind_i=:kind
                                      AND suiteName=:suite
                                      AND packageName=:name
                                      AND packageVersion=:version
                                      AND architecture=:arch")
-        .setParameter("kind", PackageType.SOURCE)
-        .setParameter("suite", suiteName).setParameter("name", packageName)
-        .setParameter("version", packageVersion).setParameter("arch", architecture);
+                    .setParameter ("kind", PackageType.SOURCE)
+                    .setParameter ("suite", suiteName).setParameter ("name", packageName)
+                    .setParameter ("version", packageVersion).setParameter ("arch", architecture);
     return q.list!DebcheckIssue;
 }
 
@@ -87,24 +89,24 @@ void scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
                            ArchiveSuite incomingSuite, bool simulate)
 {
     // check if we can build the package on the current architecture
-    if (!spkg.architectures.archMatches(arch.name))
+    if (!spkg.architectures.archMatches (arch.name))
         return;
 
     // check if we have already scheduled a job for this in the past and don't create
     // another one in that case
-    auto jobs = conn.getJobsByTriggerVerArch(spkg.sourceUUID, spkg.ver, arch.name, 0);
+    auto jobs = conn.getJobsByTriggerVerArch (spkg.sourceUUID, spkg.ver, arch.name, 0);
     if (jobs.length > 0)
         return;
 
     // check if this package has binaries on already, in that case we don't
     // need a rebuild.
-    auto bins = session.binariesForPackage(incomingSuite.repo, spkg.name, spkg.ver, arch);
+    auto bins = session.binariesForPackage (incomingSuite.repo, spkg.name, spkg.ver, arch);
     if (bins.length > 0)
         return;
 
     // we have no binaries, looks like we might need to schedule a build job
     // check if all dependencies are there
-    auto issues = session.debcheckIssuesForPackage(incomingSuite.name,
+    auto issues = session.debcheckIssuesForPackage (incomingSuite.name,
                                                    spkg.name, spkg.ver, arch.name);
     if (issues.length > 0)
         return;
@@ -119,7 +121,7 @@ void scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
         job.kind = "package-build";
         job.ver = spkg.ver;
         job.architecture = arch.name;
-        conn.addJob(job, spkg.sourceUUID);
+        conn.addJob (job, spkg.sourceUUID);
     }
 }
 
@@ -129,27 +131,23 @@ void scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
 bool scheduleBuilds (bool simulate = false)
 {
     auto db = Database.get;
-    auto sFactory = db.newSessionFactory!(DebcheckIssue);
-    scope (exit)
-        sFactory.close();
-    auto session = sFactory.openSession();
-    scope (exit)
-        session.close();
-    auto conn = db.getConnection();
-    scope (exit)
-        db.dropConnection(conn);
+    auto sFactory = db.newSessionFactory! (DebcheckIssue);
+    scope (exit) sFactory.close ();
+    auto session = sFactory.openSession ();
+    scope (exit) session.close ();
+    auto conn = db.getConnection ();
+    scope (exit) db.dropConnection (conn);
 
-    const baseConfig = db.getBaseConfig();
+    const baseConfig = db.getBaseConfig ();
     immutable incomingSuiteName = baseConfig.archive.incomingSuite;
 
     if (incomingSuiteName.empty)
         throw new Exception("No incoming suite is set in base config.");
-    auto incomingSuite = session.getSuite(incomingSuiteName);
+    auto incomingSuite = session.getSuite (incomingSuiteName);
     if (incomingSuite is null)
-        throw new Exception(
-                "Incoming suite %s was not found in database.".format(incomingSuiteName));
+        throw new Exception("Incoming suite %s was not found in database.".format (incomingSuiteName));
 
-    auto srcPackages = session.getNewestSourcesIndex(incomingSuite);
+    auto srcPackages = session.getNewestSourcesIndex (incomingSuite);
 
     ArchiveArchitecture archAll;
     foreach (ref arch; incomingSuite.architectures) {
