@@ -216,10 +216,10 @@ void updateJob (Connection conn, Job job) @trusted
                             ?,
                             ?,
                             ?,
-                            ?::timestamp,
-                            ?::timestamp,
-                            ?::timestamp,
                             ?,
+                            ?::timestamp,
+                            ?::timestamp,
+                            ?::timestamp,
                             ?,
                             ?,
                             ?,
@@ -315,6 +315,33 @@ auto getJobsByTrigger (Connection conn, UUID triggerId, long limit, long offset 
         ps.setLong  (2, limit);
     else
         ps.setLong  (2, long.max);
+
+    auto ans = ps.executeQuery ();
+    return rowsTo!Job (ans);
+}
+
+/**
+ * Find jobs by their trigger ID and assigned version and architecture.
+ */
+auto getJobsByTriggerVerArch (Connection conn, UUID triggerId, const string ver, const string arch,
+                              long limit, long offset = 0) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE trigger=?
+                                        AND version=?
+                                        AND architecture=?
+                                      ORDER BY time_created DESC
+                                      LIMIT ? OFFSET ?");
+    scope (exit) ps.close ();
+
+    ps.setString (1, triggerId.toString);
+    ps.setString (2, ver);
+    ps.setString (3, arch);
+    ps.setLong   (5, offset);
+
+    if (limit > 0)
+        ps.setLong  (4, limit);
+    else
+        ps.setLong  (4, long.max);
 
     auto ans = ps.executeQuery ();
     return rowsTo!Job (ans);
