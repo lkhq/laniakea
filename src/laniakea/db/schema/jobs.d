@@ -55,6 +55,16 @@ enum JobResult
 }
 
 /**
+ * The different job kind identifier strings used by
+ * the different Laniakea modules which can enqueue jobs.
+ */
+enum JobKind
+{
+    OS_IMAGE_BUILD = "image-build",
+    PACKAGE_BUILD  = "package-build"
+}
+
+/**
  * A task pending to be performed.
  **/
 struct Job
@@ -278,18 +288,20 @@ void updateJob (Connection conn, Job job) @trusted
 /**
  * Add a new job to the database.
  */
-void addJob (Connection conn, Job job, UUID trigger)
+void addJob (Connection conn, Job job, LkModule mod, JobKind kind, UUID trigger)
 {
     import laniakea.utils : currentDateTime;
     import std.array : empty;
     import std.string : format;
 
     job.uuid = randomUUID ();
+    job.kind = kind;
+    job.moduleName = mod;
     job.createdTime = currentDateTime;
     job.status = JobStatus.WAITING;
     job.trigger = trigger;
 
-    logInfo ("Adding job '%s'", job.uuid.toString);
+    logInfo ("Adding job '%s::%s/%s'", mod, kind, job.uuid.toString);
     conn.updateJob (job);
 }
 

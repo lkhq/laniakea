@@ -137,11 +137,11 @@ final class IsotopeAdmin : AdminTool
             data.flavor        = recipe.flavor;
             isojob.architecture  = arch;
             isojob.data = serializeToJson (data);
-            isojob.moduleName = LkModule.ISOTOPE;
-            isojob.kind = "image-build";
 
-
-            conn.addJob (isojob, recipe.uuid);
+            conn.addJob (isojob,
+                         LkModule.ISOTOPE,
+                         JobKind.OS_IMAGE_BUILD,
+                         recipe.uuid);
         }
 
         return true;

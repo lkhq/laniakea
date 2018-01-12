@@ -119,11 +119,12 @@ void scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
         logInfo ("New job for %s on %s", spkg.stringId, arch.name);
     } else {
         Job job;
-        job.moduleName = LkModule.ARIADNE;
-        job.kind = "package-build";
         job.ver = spkg.ver;
         job.architecture = arch.name;
-        conn.addJob (job, spkg.sourceUUID);
+        conn.addJob (job,
+                     LkModule.ARIADNE,
+                     JobKind.PACKAGE_BUILD,
+                     spkg.sourceUUID);
     }
 }
 
