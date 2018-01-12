@@ -130,14 +130,7 @@ final class IsotopeAdmin : AdminTool
 
         foreach (ref arch; recipe.architectures) {
             Job isojob;
-            ImageBuildJobData data;
-            data.distribution  = recipe.distribution;
-            data.suite         = recipe.suite;
-            data.liveBuildGit  = recipe.liveBuildGit;
-            data.flavor        = recipe.flavor;
             isojob.architecture  = arch;
-            isojob.data = serializeToJson (data);
-
             conn.addJob (isojob,
                          LkModule.ISOTOPE,
                          JobKind.OS_IMAGE_BUILD,

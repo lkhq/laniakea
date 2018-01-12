@@ -67,6 +67,7 @@ struct LocalSynchrotronConfig
 struct LocalArchiveDetails
 {
     string rootPath;
+    string url;
 }
 
 final class LocalConfig
@@ -176,6 +177,7 @@ final class LocalConfig
 
         workspace = jroot["Workspace"].to!string;
         archive.rootPath = jroot["Archive"]["path"].to!string;
+        archive.url = jroot["Archive"]["url"].to!string;
 
         // Local synchrotron configuration
         if ("Synchrotron" in jroot) {

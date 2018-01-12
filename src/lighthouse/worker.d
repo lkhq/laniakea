@@ -25,6 +25,7 @@ import std.typecons : Nullable;
 import vibe.data.json;
 
 import c.zmq;
+import laniakea.localconfig : LocalConfig;
 import laniakea.logging;
 import laniakea.db;
 import laniakea.utils : currentDateTime;
@@ -35,6 +36,7 @@ import lighthouse.utils;
 class LighthouseWorker {
     private {
         zsock_t *socket;
+        LocalConfig localConf;
 
         Database db;
         Connection conn;
@@ -44,6 +46,7 @@ class LighthouseWorker {
     this (zsock_t *sock, SessionFactory factory)
     {
         socket = sock;
+        localConf = LocalConfig.get;
 
         db = Database.get;
         conn = db.getConnection ();
@@ -91,6 +94,44 @@ class LighthouseWorker {
         return job;
     }
 
+    private string getJobDetailsJson (Session session, Job job)
+    {
+        if (job.kind == JobKind.PACKAGE_BUILD) {
+            import std.string : endsWith;
+            auto spkg = session.getSourcePackageForJob (job);
+            if (spkg is null)
+                return null.serializeToJsonString ();
+
+            job.data["package_name"] = Json (spkg.name);
+            job.data["package_version"] = Json (spkg.ver);
+            job.data["dsc_url"] = Json (null);
+
+            // FIXME: Fetch the archive URL from the repository database entry
+            auto dscFound = false;
+            foreach (ref f; spkg.files) {
+                if (f.fname.endsWith (".dsc")) {
+                    job.data["dsc_url"] = Json (localConf.archive.url ~ "/" ~ f.fname);
+                    job.data["sha256sum"] = Json (f.sha256sum);
+                    dscFound = true;
+                    break;
+                }
+            }
+            if (!dscFound)
+                return null.serializeToJsonString ();
+
+        } else if (job.kind == JobKind.OS_IMAGE_BUILD) {
+            const recipe = conn.getRecipeById (job.trigger);
+            if (recipe.isNull)
+                return null.serializeToJsonString ();
+            job.data["distribution"]  = Json (recipe.distribution);
+            job.data["suite"]         = Json (recipe.suite);
+            job.data["live_build_git"]  = Json (recipe.liveBuildGit);
+            job.data["flavor"]        = Json (recipe.flavor);
+        }
+
+        return job.serializeToJsonString ();
+    }
+
     /**
      * Read job request and return a job matching the request or
      * JSON-null in case we couldn't find any job.
@@ -134,7 +175,7 @@ class LighthouseWorker {
                 // use the first job with a matching architecture/kind
                 const job = assignSuitableJob (conn, acceptedKind, arch, clientId);
                 if (!job.isNull) {
-                    jobData = job.serializeToJsonString ();
+                    jobData = getJobDetailsJson (session, job);
                     jobAssigned = true;
                     break;
                 }

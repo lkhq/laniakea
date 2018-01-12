@@ -416,6 +416,7 @@ class BinaryPackage
 
 
 import laniakea.db.database : Database;
+import laniakea.db.schema.jobs : Job;
 
 
 /**
@@ -525,4 +526,19 @@ auto getPackageSuites (T) (Session session, string repoName, string component, s
                        .setParameter("pkgName", name).list!ArchiveSuite;
 
     return rows.map! (s => s.name).uniq;
+}
+
+/**
+ * Get the source package that is associated with the selected job.
+ */
+auto getSourcePackageForJob (Session session, const ref Job packageJob) @trusted
+{
+    auto q = session.createQuery ("FROM SourcePackage WHERE sourceUUID_s=:trigger
+                                   AND ver=:version")
+                    .setParameter ("trigger", packageJob.trigger.toString)
+                    .setParameter ("version", packageJob.ver);
+    auto list = q.list!SourcePackage;
+    if (list.empty)
+        return null;
+    return list[0];
 }

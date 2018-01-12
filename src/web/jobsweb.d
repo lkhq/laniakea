@@ -63,16 +63,6 @@ class JobsWebService {
         sFactory = db.newSessionFactory ();
     }
 
-    static private auto getSourcePackageForJob (laniakea.db.database.Session session, const ref Job packageJob)
-    {
-        auto q = session.createQuery ("FROM SourcePackage WHERE sourceUUID_s=:trigger")
-                            .setParameter ("trigger", packageJob.trigger.toString);
-        auto list = q.list!SourcePackage;
-        if (list.empty)
-            return null;
-        return list[0];
-    }
-
     @path("/:job_id")
  	void getJobDetails (HTTPServerRequest req, HTTPServerResponse res)
  	{
@@ -95,7 +85,7 @@ class JobsWebService {
 
         if (job.kind == JobKind.PACKAGE_BUILD) {
             // we have an Ariadne package build job!
-            auto spkg = getSourcePackageForJob (session, job.get);
+            auto spkg = session.getSourcePackageForJob (job.get);
             if (spkg is null) {
                 spkg = new SourcePackage;
                 spkg.name = "Unknown";
@@ -123,7 +113,7 @@ class JobsWebService {
         import std.string : format;
 
         if (job.kind == JobKind.PACKAGE_BUILD) {
-            auto spkg = getSourcePackageForJob (session, job);
+            auto spkg = session.getSourcePackageForJob (job);
             if (spkg is null)
                 return "? Unknown package build";
             return "Package build: %s/%s".format (spkg.name, spkg.ver);

@@ -57,17 +57,6 @@ struct ImageBuildRecipe {
     }
 }
 
-/**
- * Data specific to a job containing an iso-image build task.
- */
-struct ImageBuildJobData {
-    string distribution;  /// Name of the distribution, e.g. "Tanglu"
-    string suite;         /// Suite of the distribution to build an image for
-    string flavor;        /// The flavor to build
-
-    string liveBuildGit;  /// Git repository URL with the live-build scripts
-}
-
 
 import laniakea.db.database;
 
