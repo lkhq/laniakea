@@ -95,6 +95,10 @@ html(lang='en')
                   i.fa.fa-hdd-o.fa-fw
                   | Image Build
               li
+                a(href='/jobs/queue/')
+                  i.fa.fa-clock-o.fa-fw
+                  | Job Queue
+              li
                 a(href='/workers/')
                   i.fa.fa-server.fa-fw
                   | Workers

@@ -73,4 +73,18 @@ class JobsWebService {
         }
  	}
 
+    @path("/queue")
+ 	void getJobQueue (HTTPServerRequest req, HTTPServerResponse res)
+ 	{
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
+
+        // TODO
+        Job[] jobs;
+        immutable pageCount = 0;
+        immutable currentPage = 0;
+
+        render!("jobs/jobqueue.dt", ginfo, jobs, pageCount, currentPage);
+ 	}
+
 }

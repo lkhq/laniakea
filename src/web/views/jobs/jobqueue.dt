@@ -1,0 +1,40 @@
+extends base
+
+block head
+    - auto title = "Job Queue";
+
+block contents
+    - import std.array : empty;
+    h1 Global Job Queue
+
+    br
+
+    .row
+        .col-md-8
+            - if (jobs.empty)
+                .alert.alert-success(role='alert')
+                    span.fa.fa-check(aria-hidden='true')
+                    |  There are no pending jobs!
+
+            .list-group
+                - foreach (ref job; jobs)
+                    a.list-group-item
+                        h4.list-group-item-heading= job.kind
+                        p.list-group-item-text #{job.architecture}
+
+
+    nav(aria-label='Page navigation')
+        ul.pagination
+            li(class='#{(currentPage == 1)? "disabled" : ""}')
+                a(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
+                    span(aria-hidden='true') &laquo;
+            - for (uint i = 1; i <= pageCount; i++)
+                - if (i == currentPage)
+                    li.active
+                        a(href='#{i}')= i
+                - else
+                    li
+                        a(href='#{i}')= i
+            li(class='#{(currentPage >= pageCount)? "disabled" : ""}')
+                a(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
+                    span(aria-hidden='true') &raquo;
