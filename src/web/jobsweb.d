@@ -38,7 +38,20 @@ class JobsWebService {
 
     private {
         WebConfig wconf;
+
         Database db;
+        SessionFactory sFactory;
+
+        immutable jobsPerPage = 50;
+        struct JobInfo {
+            string uuid;
+            string title;
+
+            JobStatus status;
+            string architecture;
+            DateTime createdTime;
+            int priority;
+        }
     }
 
     this (WebConfig conf)
@@ -46,6 +59,18 @@ class JobsWebService {
         wconf = conf;
         db = wconf.db;
         ginfo = wconf.ginfo;
+
+        sFactory = db.newSessionFactory ();
+    }
+
+    static private auto getSourcePackageForJob (laniakea.db.database.Session session, const ref Job packageJob)
+    {
+        auto q = session.createQuery ("FROM SourcePackage WHERE sourceUUID_s=:trigger")
+                            .setParameter ("trigger", packageJob.trigger.toString);
+        auto list = q.list!SourcePackage;
+        if (list.empty)
+            return null;
+        return list[0];
     }
 
     @path("/:job_id")
@@ -56,8 +81,11 @@ class JobsWebService {
             return;
         if (job_id.length != 36)
             return;
+
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
         const job = conn.getJobById (job_id);
         if (job.isNull)
@@ -65,26 +93,89 @@ class JobsWebService {
 
         auto workerName = conn.getJobWorkerName (job);
 
-        if (job.moduleName == LkModule.ISOTOPE) {
-            // we have an isotope job!
-            render!("jobs/details_isojob.dt", ginfo, job, workerName);
+        if (job.kind == JobKind.PACKAGE_BUILD) {
+            // we have an Ariadne package build job!
+            auto spkg = getSourcePackageForJob (session, job.get);
+            if (spkg is null) {
+                spkg = new SourcePackage;
+                spkg.name = "Unknown";
+                spkg.ver = "?";
+            }
+
+            render!("jobs/details_packagejob.dt", ginfo, job, workerName, spkg);
+        } else if (job.kind == JobKind.OS_IMAGE_BUILD) {
+            // we have an Isotope image build job!
+            auto recipe = conn.getRecipeById (job.trigger);
+            if (!recipe.isNull) {
+                recipe = ImageBuildRecipe ();
+                recipe.name = "Unknown";
+                recipe.distribution = "?";
+            }
+
+            render!("jobs/details_isojob.dt", ginfo, job, workerName, recipe);
         } else {
-            return; // FIXME: We need generic details for jobs that aren't treated special
+            render!("jobs/details_generic.dt", ginfo, job, workerName);
         }
  	}
 
-    @path("/queue")
+    static private string makeJobTitle (Connection conn, laniakea.db.database.Session session, ref Job job)
+    {
+        import std.string : format;
+
+        if (job.kind == JobKind.PACKAGE_BUILD) {
+            auto spkg = getSourcePackageForJob (session, job);
+            if (spkg is null)
+                return "? Unknown package build";
+            return "Package build: %s/%s".format (spkg.name, spkg.ver);
+
+        } else if (job.kind == JobKind.PACKAGE_BUILD) {
+            auto recipe = conn.getRecipeById (job.trigger);
+            if (recipe.isNull)
+                return "? Unknown OS image build";
+            return "OS image build: " ~ recipe.name;
+        }
+
+        return "? Alien Job";
+    }
+
+    @path("/queue/:page")
  	void getJobQueue (HTTPServerRequest req, HTTPServerResponse res)
  	{
+        import std.math : ceil;
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
 
-        // TODO
-        Job[] jobs;
-        immutable pageCount = 0;
-        immutable currentPage = 0;
+        uint currentPage = 1;
+        immutable pageStr = req.params.get ("page");
+        if (!pageStr.empty) {
+            try {
+                currentPage = pageStr.to!int;
+            } catch (Throwable) {
+                return; // not an integer, we can't continue
+            }
+        }
 
-        render!("jobs/jobqueue.dt", ginfo, jobs, pageCount, currentPage);
+        immutable jobsCount = conn.countPendingJobs ();
+        immutable pageCount = ceil (jobsCount.to!real / jobsPerPage.to!real);
+
+        auto jobs = conn.getPendingJobs (jobsPerPage, (currentPage - 1) * jobsPerPage);
+        auto infoList = appender! (JobInfo[]);
+        foreach (ref j; jobs) {
+            JobInfo info;
+            info.uuid = j.uuid.toString;
+            info.status = j.status;
+            info.architecture = j.architecture;
+            info.createdTime = j.createdTime;
+            info.priority = j.priority;
+            info.title = makeJobTitle (conn, session, j);
+
+            infoList ~= info;
+        }
+
+        auto jobInfos = infoList.data;
+        render!("jobs/jobqueue.dt", ginfo, jobInfos, pageCount, currentPage);
  	}
 
 }

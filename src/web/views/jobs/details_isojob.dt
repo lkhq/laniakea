@@ -10,13 +10,13 @@ block pre_log
     h3 Details
 
     b Distribution:
-    | #{job.data["distribution"].get!string}
+    |  #{job.data["distribution"].get!string}
     br
 
     b Suite:
-    | #{job.data["suite"].get!string}
+    |  #{job.data["suite"].get!string}
     br
 
     b Architecture:
-    | #{job.architecture}
+    |  #{job.architecture}
     br

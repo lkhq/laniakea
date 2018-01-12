@@ -56,8 +56,8 @@ class DepcheckWebService {
         import std.math : ceil;
         import std.range : take;
 
-        immutable suiteName = req.params.get("suite");
-        immutable packageKindStr = req.params.get("type");
+        immutable suiteName = req.params.get ("suite");
+        immutable packageKindStr = req.params.get ("type");
         PackageType packageKind;
         if (packageKindStr == "binary")
             packageKind = PackageType.BINARY;
@@ -67,7 +67,7 @@ class DepcheckWebService {
             return; // Not found
 
         uint currentPage = 1;
-        immutable pageStr = req.params.get("page");
+        immutable pageStr = req.params.get ("page");
         if (!pageStr.empty) {
             try {
                 currentPage = pageStr.to!int;
@@ -84,8 +84,8 @@ class DepcheckWebService {
                                        WHERE suiteName=:suite
                                          AND packageKind_i=:kind
                                        ORDER BY packageName")
-                        .setParameter("suite", suiteName)
-                        .setParameter("kind", packageKind.to!short);
+                        .setParameter ("suite", suiteName)
+                        .setParameter ("kind", packageKind.to!short);
 
         // FIXME: Hibernated doesn't seem to support LIMIT/OFFSET...
         const allIssues = q.list!DebcheckIssue;

@@ -147,7 +147,7 @@ long countDebcheckIssues (Connection conn, string suiteName, PackageType pkind, 
         ps.setString (1, suiteName);
         ps.setShort  (2, pkind.to!short);
         ps.setString (3, architecture);
-        ps.executeUpdate ();
+        ps.executeUpdate (var);
     }
 
     return var.get!long;

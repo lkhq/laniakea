@@ -197,6 +197,10 @@ void createTables (Database db) @trusted
         )"
     );
 
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS jobs_status_idx ON jobs (status)");
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS jobs_status_kind_idx ON jobs (status, kind)");
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS jobs_trigger_idx ON jobs (trigger)");
+
     // Events table
     stmt.executeUpdate (
         "CREATE TABLE IF NOT EXISTS events (
@@ -350,6 +354,43 @@ auto getJobsByTriggerVerArch (Connection conn, UUID triggerId, const string ver,
 
     auto ans = ps.executeQuery ();
     return rowsTo!Job (ans);
+}
+
+/**
+ * Get jobs that are not complete yet.
+ */
+auto getPendingJobs (Connection conn, long limit, long offset = 0) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE status != ?
+                                      ORDER BY priority, time_created DESC
+                                      LIMIT ? OFFSET ?");
+    scope (exit) ps.close ();
+
+    ps.setShort (1, JobStatus.DONE);
+    ps.setLong  (3, offset);
+
+    if (limit > 0)
+        ps.setLong  (2, limit);
+    else
+        ps.setLong  (2, long.max);
+
+    auto ans = ps.executeQuery ();
+    return rowsTo!Job (ans);
+}
+
+/**
+ * Return the amount of jobs in the queue.
+ */
+auto countPendingJobs (Connection conn) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM jobs WHERE status != ?");
+    scope (exit) ps.close ();
+    ps.setShort (1, JobStatus.DONE);
+
+    Variant var;
+    ps.executeUpdate (var);
+
+    return var.get!long;
 }
 
 /**

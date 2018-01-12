@@ -14,45 +14,45 @@ block contents
     - import laniakea.db;
 
     b Created:
-    | #{job.createdTime.getPastEventAge} ago
+    |  #{job.createdTime.getPastEventAge} ago
     br
 
     - if (!workerName.empty)
         b Assigned:
-        | #{job.assignedTime.getPastEventAge} ago
+        |  #{job.assignedTime.getPastEventAge} ago
         br
 
     - if (job.result != JobResult.UNKNOWN)
         b Finished:
-        | #{job.finishedTime.getPastEventAge} ago
+        |  #{job.finishedTime.getPastEventAge} ago
         br
 
     - if (!workerName.empty)
         b Worker:
-        | #{workerName}
+        |  #{workerName}
         br
 
     b Status:
     - if (job.status == JobStatus.WAITING)
         span(style='font-size: 20px; line-height: 1.5em;')
             i.fa.fa-hourglass-start(aria-hidden='true')
-        | Waiting
+        |  Waiting
     - else if (job.status == JobStatus.SCHEDULED)
         span(style='font-size: 20px; line-height: 1.5em;')
             i.fa.fa-circle-o-notch.fa-spin
-        | Scheduled
+        |  Scheduled
     - else if (job.status == JobStatus.RUNNING)
         span(style='font-size: 20px; line-height: 1.5em;')
             i.fa.fa-cog.fa-spin
-        | Running
+        |  Running
     - else if (job.status == JobStatus.DONE)
         span(style='font-size: 20px; line-height: 1.5em;')
             i.fa.fa-check(aria-hidden='true')
-        | Done
+        |  Done
     - else if (job.status == JobStatus.STARVING)
         span(style='font-size: 20px; line-height: 1.5em;')
             i.fa.fa-clock-o(aria-hidden='true')
-        | Starving
+        |  Starving
     br
 
     - if (job.result != JobResult.UNKNOWN)
@@ -61,20 +61,20 @@ block contents
             span(style='font-size: 20px; line-height: 1.5em;')
                 font.fa.fa-check-circle(aria-hidden='true', color='green')
                 i.fa.fa-question-circle(aria-hidden='true')
-            | Maybe Successful
+            |  Maybe Successful
         - else if (job.result == JobResult.MAYBE_FAILURE)
             span(style='font-size: 20px; line-height: 1.5em;')
                 font.fa.fa-times-circle(aria-hidden='true', color='red')
                 i.fa.fa-question-circle(aria-hidden='true')
-            | Maybe Failed
+            |  Maybe Failed
         - else if (job.result == JobResult.SUCCESS)
             span(style='font-size: 20px; line-height: 1.5em;')
                 font.fa.fa-check-circle(aria-hidden='true', color='green')
-            | Success
+            |  Success
         - else if (job.result == JobResult.FAILURE)
             span(style='font-size: 20px; line-height: 1.5em;')
                 font.fa.fa-times-circle(aria-hidden='true', color='red')
-            | Failed
+            |  Failed
 
     block pre_log
 

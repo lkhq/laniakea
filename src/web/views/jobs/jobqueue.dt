@@ -11,16 +11,27 @@ block contents
 
     .row
         .col-md-8
-            - if (jobs.empty)
+            - if (jobInfos.empty)
                 .alert.alert-success(role='alert')
                     span.fa.fa-check(aria-hidden='true')
                     |  There are no pending jobs!
 
             .list-group
-                - foreach (ref job; jobs)
-                    a.list-group-item
-                        h4.list-group-item-heading= job.kind
-                        p.list-group-item-text #{job.architecture}
+                - foreach (ref job; jobInfos)
+                    - import laniakea.utils : getPastEventAge;
+                    - import laniakea.db.schema.jobs : JobStatus;
+                    - auto hlClass = "";
+                    - if (job.status == JobStatus.RUNNING)
+                        - hlClass = "list-group-item-success";
+                    - else if (job.status == JobStatus.SCHEDULED)
+                        - hlClass = "list-group-item-info";
+                    - else if (job.status == JobStatus.STARVING)
+                        - hlClass = "list-group-item-danger";
+
+                    a.list-group-item(class='#{hlClass}', href='/jobs/#{job.uuid}')
+                        h4.list-group-item-heading= job.title
+                        p.list-group-item-text Created: #{job.createdTime.getPastEventAge} ago
+                        p.list-group-item-text Architecture: #{job.architecture}
 
 
     nav(aria-label='Page navigation')

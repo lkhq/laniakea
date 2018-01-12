@@ -467,6 +467,22 @@ void createTables (Database db) @trusted
          ALTER COLUMN pre_depends TYPE JSONB USING pre_depends::jsonb,
          ALTER COLUMN file        TYPE JSONB USING file::jsonb;"
     );
+
+    // Indices for SourcePackage
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS archive_src_package_source_uuid_idx
+                         ON archive_src_package (source_uuid)");
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS archive_src_package_name_version_idx
+                         ON archive_src_package (name, version)");
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS archive_src_package_ftsearch
+                         ON archive_src_package USING GIN(to_tsvector('english', name));");
+
+    // Indices for BinaryPackage
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS archive_bin_package_name_version_idx
+                         ON archive_bin_package (name, version)");
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS archive_bin_package_source_name_version_idx
+                         ON archive_bin_package (source_name, source_version)");
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS archive_bin_package_ftsearch
+                         ON archive_bin_package USING GIN(to_tsvector('english', name || ' ' || description));");
 }
 
 auto getSuite (Session session, string name, string repo = "master") @trusted
