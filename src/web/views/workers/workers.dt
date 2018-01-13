@@ -25,10 +25,10 @@ block contents
                             |  #{worker.machineName}
                     .panel-body
                         b ID:
-                        | #{worker.uuid.toString}
+                        |  #{worker.uuid.toString}
                         br
                         b Owner:
-                        | #{worker.owner.empty? "None set." : worker.owner}
+                        |  #{worker.owner.empty? "None set." : worker.owner}
                         br
                         b Last Ping:
-                        | #{worker.lastPing.getPastEventAge} ago
+                        |  #{worker.lastPing.getPastEventAge} ago

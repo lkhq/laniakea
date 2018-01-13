@@ -26,13 +26,13 @@ block contents
                             |  #{image.recipe.distribution} #{image.recipe.suite} (#{image.recipe.flavor})
                     .panel-body
                         b ID:
-                        | #{image.recipe.name}
+                        |  #{image.recipe.name}
                         br
                         b Architectures:
-                        | #{image.recipe.architectures.join (" ")}
+                        |  #{image.recipe.architectures.join (" ")}
                         br
                         b Source:
-                        | #{image.recipe.liveBuildGit}
+                        |  #{image.recipe.liveBuildGit}
                         br
                         b Jobs:
                         br
