@@ -12,13 +12,20 @@ RUN apt-get install -yq git build-essential ldc
 # install dependencies for Laniakea
 RUN apt-get install -yq --no-install-recommends \
     pkg-config \
-    meson \
+
+    #meson \
+    python3-pip \
+    python3-setuptools \
+
     libssl-dev \
     libcurl4-gnutls-dev \
     libczmq-dev \
     libarchive-dev \
     libpq-dev \
     postgresql
+
+# Temporarily install Meson from master, we need the bugfixed version
+RUN pip3 install git+https://github.com/mesonbuild/meson.git
 
 # install vibe.d
 RUN apt-get install -yq --no-install-recommends \
