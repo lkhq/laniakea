@@ -217,6 +217,17 @@ bool archMatches (string[] archAliases, string arch)
     return false;
 }
 
+/**
+ * Parse an UUID, but handle empty strings well.
+ */
+UUID safeParseUUID (string uuidStr)
+{
+    import std.array : empty;
+    if (uuidStr.empty)
+        return UUID ();
+    return UUID (uuidStr);
+}
+
 unittest
 {
     // remote checks

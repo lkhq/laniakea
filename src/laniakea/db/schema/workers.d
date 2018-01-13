@@ -93,7 +93,7 @@ void createTables (Database db) @trusted
 
 void updateWorkerPing (Connection conn, string workerId) @trusted
 {
-    auto ps = conn.prepareStatement ("UPDATE workers SET last_ping=now() WHERE uuid=$1");
+    auto ps = conn.prepareStatement ("UPDATE workers SET last_ping=now() WHERE uuid=?");
     scope (exit) ps.close ();
 
     ps.setString (1, workerId);

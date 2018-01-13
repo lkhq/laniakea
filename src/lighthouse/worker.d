@@ -43,6 +43,7 @@ class LighthouseWorker {
         SessionFactory sFactory;
 
         string buildIndepArchAffinity;
+        string incomingSuiteName;
     }
 
     this (zsock_t *sock, SessionFactory factory)
@@ -57,6 +58,8 @@ class LighthouseWorker {
 
         auto ariadneConf = db.getAriadneConfig ();
         buildIndepArchAffinity = ariadneConf.indepArchAffinity;
+        auto conf = db.getBaseConfig ();
+        incomingSuiteName = conf.archive.incomingSuite;
     }
 
     ~this ()
@@ -72,8 +75,8 @@ class LighthouseWorker {
                                             WHERE  status=?
                                               AND (architecture=? OR architecture='any')
                                               AND kind=?
-                                            LIMIT  1
                                             ORDER BY priority, time_created DESC
+                                            LIMIT 1
                                             FOR UPDATE
                                           )
                                           UPDATE jobs j SET
@@ -82,7 +85,7 @@ class LighthouseWorker {
                                             time_assigned=now()
                                           FROM cte
                                             WHERE  j.uuid = cte.uuid
-                                          RETURNING *");
+                                          RETURNING j.*");
         scope (exit) ps.close ();
 
         ps.setShort (1, JobStatus.WAITING.to!short);
@@ -101,26 +104,53 @@ class LighthouseWorker {
 
     private string getJobDetailsJson (Session session, Job job)
     {
+        struct JobDetails {
+            string uuid;
+            JobStatus status;
+
+            @name("module") string moduleName;
+            string kind;
+
+            @name("version") string ver;
+            string architecture;
+
+            DateTime createdTime;
+
+            Json data;
+        }
+
+        JobDetails info;
+        info.uuid       = job.uuid.toString;
+        info.status     = job.status;
+        info.moduleName = job.moduleName;
+        info.kind       = job.kind;
+        info.ver        = job.ver;
+        info.architecture = job.architecture;
+        info.createdTime  = job.createdTime;
+        info.data         = Json.emptyObject;
+
         if (job.kind == JobKind.PACKAGE_BUILD) {
             import std.string : endsWith;
             auto spkg = session.getSourcePackageForJob (job);
             if (spkg is null)
                 return null.serializeToJsonString ();
 
-            job.data["package_name"] = Json (spkg.name);
-            job.data["package_version"] = Json (spkg.ver);
-            job.data["dsc_url"] = Json (null);
+            info.data["package_name"] = Json (spkg.name);
+            info.data["package_version"] = Json (spkg.ver);
+            info.data["maintainer"] = Json (spkg.maintainer);
+            info.data["suite"] = incomingSuiteName;
+            info.data["dsc_url"] = Json ();
 
-            job.data["do_indep"] = Json (false);
+            info.data["do_indep"] = Json (false);
             if ((job.architecture == buildIndepArchAffinity) || (job.architecture == "all"))
-                job.data["do_indep"] = Json (true);
+                info.data["do_indep"] = Json (true);
 
             // FIXME: Fetch the archive URL from the repository database entry
             auto dscFound = false;
             foreach (ref f; spkg.files) {
                 if (f.fname.endsWith (".dsc")) {
-                    job.data["dsc_url"] = Json (localConf.archive.url ~ "/" ~ f.fname);
-                    job.data["sha256sum"] = Json (f.sha256sum);
+                    info.data["dsc_url"] = Json (localConf.archive.url ~ "/" ~ f.fname);
+                    info.data["sha256sum"] = Json (f.sha256sum);
                     dscFound = true;
                     break;
                 }
@@ -132,13 +162,13 @@ class LighthouseWorker {
             const recipe = conn.getRecipeById (job.trigger);
             if (recipe.isNull)
                 return null.serializeToJsonString ();
-            job.data["distribution"]  = Json (recipe.distribution);
-            job.data["suite"]         = Json (recipe.suite);
-            job.data["live_build_git"]  = Json (recipe.liveBuildGit);
-            job.data["flavor"]        = Json (recipe.flavor);
+            info.data["distribution"]  = Json (recipe.distribution);
+            info.data["suite"]         = Json (recipe.suite);
+            info.data["live_build_git"]  = Json (recipe.liveBuildGit);
+            info.data["flavor"]        = Json (recipe.flavor);
         }
 
-        return job.serializeToJsonString ();
+        return info.serializeToJsonString ();
     }
 
     /**
@@ -218,17 +248,17 @@ class LighthouseWorker {
      */
     private string processJobRejectedRequest (Json jreq)
     {
-        auto jobId = jreq["lkid"].get!string;
+        auto jobId = jreq["uuid"].get!string;
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
 
         auto ps1 = conn.prepareStatement ("UPDATE jobs SET
-                                           status=?
-                                           worker_id=?
-                                         WHERE
-                                           uuid=? AND status=?
-                                         RETURNING *");
+                                             status=?
+                                             worker_id=?
+                                           WHERE
+                                             uuid=? AND status=?
+                                           RETURNING *");
         scope (exit) ps1.close ();
 
         ps1.setShort  (1, JobStatus.WAITING.to!short);
@@ -268,7 +298,7 @@ class LighthouseWorker {
      */
     private string processJobFinishedRequest (Json jreq, bool success)
     {
-        auto jobId = jreq["lkid"].get!string;
+        auto jobId = jreq["uuid"].get!string;
         auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
 
@@ -305,12 +335,10 @@ class LighthouseWorker {
     private void processJobStatusRequest (Json jreq)
     {
         auto jobId = UUID (jreq["uuid"].get!string);
-        auto clientName = jreq["machine_name"].get!string;
         auto clientId = jreq["machine_id"].get!string;
         auto logExcerpt = jreq["log_excerpt"].get!string;
 
         // update last seen data
-
         conn.updateWorkerPing (clientId);
 
         // update log & status data

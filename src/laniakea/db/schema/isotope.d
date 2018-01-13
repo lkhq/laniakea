@@ -43,9 +43,10 @@ struct ImageBuildRecipe {
     this (ResultSet r) @trusted
     {
         import vibe.data.json : parseJsonString, deserializeJson;
+        import laniakea.utils : safeParseUUID;
         assert (r.getMetaData.getColumnCount == 8);
 
-        uuid          = UUID (r.getString (1));
+        uuid          = safeParseUUID (r.getString (1));
         name          = r.getString (2);
         distribution  = r.getString (3);
         suite         = r.getString (4);

@@ -100,13 +100,14 @@ struct Job
     {
         import std.conv : to;
         import vibe.data.json : parseJsonString;
+        import laniakea.utils : safeParseUUID;
         assert (r.getMetaData.getColumnCount == 15);
 
-        uuid         = UUID (r.getString (1));
+        uuid         = safeParseUUID (r.getString (1));
         status       = r.getShort (2).to!JobStatus;
         moduleName   = r.getString (3);
         kind         = r.getString (4);
-        trigger      = UUID (r.getString (5));
+        trigger      = safeParseUUID (r.getString (5));
         ver          = r.getString (6);
         architecture = r.getString (7);
 
@@ -115,7 +116,7 @@ struct Job
         finishedTime = r.getDateTime (10);
         priority     = r.getInt (11);
 
-        workerId     = UUID (r.getString (12));
+        workerId     = safeParseUUID (r.getString (12));
 
         result       = r.getShort (13).to!JobResult;
         latestLogExcerpt = r.getString (14);
