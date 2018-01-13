@@ -96,7 +96,7 @@ class JobsWebService {
         } else if (job.kind == JobKind.OS_IMAGE_BUILD) {
             // we have an Isotope image build job!
             auto recipe = conn.getRecipeById (job.trigger);
-            if (!recipe.isNull) {
+            if (recipe.isNull) {
                 recipe = ImageBuildRecipe ();
                 recipe.name = "Unknown";
                 recipe.distribution = "?";
@@ -118,7 +118,7 @@ class JobsWebService {
                 return "? Unknown package build";
             return "Package build: %s/%s".format (spkg.name, spkg.ver);
 
-        } else if (job.kind == JobKind.PACKAGE_BUILD) {
+        } else if (job.kind == JobKind.OS_IMAGE_BUILD) {
             auto recipe = conn.getRecipeById (job.trigger);
             if (recipe.isNull)
                 return "? Unknown OS image build";

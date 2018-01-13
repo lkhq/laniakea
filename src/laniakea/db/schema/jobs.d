@@ -306,7 +306,7 @@ void addJob (Connection conn, Job job, LkModule mod, JobKind kind, UUID trigger)
     job.status = JobStatus.WAITING;
     job.trigger = trigger;
 
-    logInfo ("Adding job '%s::%s/%s'", mod, kind, job.uuid.toString);
+    logInfo ("Adding job '%s::%s/%s'", mod.to!string, kind.to!string, job.uuid.toString);
     conn.updateJob (job);
 }
 
@@ -322,9 +322,9 @@ auto getJobsByTrigger (Connection conn, UUID triggerId, long limit, long offset 
     ps.setLong   (3, offset);
 
     if (limit > 0)
-        ps.setLong  (2, limit);
+        ps.setLong (2, limit);
     else
-        ps.setLong  (2, long.max);
+        ps.setLong (2, long.max);
 
     auto ans = ps.executeQuery ();
     return rowsTo!Job (ans);

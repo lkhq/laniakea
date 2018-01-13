@@ -10,11 +10,15 @@ block pre_log
     h3 Details
 
     b Distribution:
-    |  #{job.data["distribution"].get!string}
+    |  #{recipe.distribution}
     br
 
     b Suite:
-    |  #{job.data["suite"].get!string}
+    |  #{recipe.suite}
+    br
+
+    b Flavor:
+    |  #{recipe.flavor}
     br
 
     b Architecture:
