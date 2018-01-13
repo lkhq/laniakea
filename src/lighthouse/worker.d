@@ -41,6 +41,8 @@ class LighthouseWorker {
         Database db;
         Connection conn;
         SessionFactory sFactory;
+
+        string buildIndepArchAffinity;
     }
 
     this (zsock_t *sock, SessionFactory factory)
@@ -52,6 +54,9 @@ class LighthouseWorker {
         conn = db.getConnection ();
 
         sFactory = factory;
+
+        auto ariadneConf = db.getAriadneConfig ();
+        buildIndepArchAffinity = ariadneConf.indepArchAffinity;
     }
 
     ~this ()
@@ -105,6 +110,10 @@ class LighthouseWorker {
             job.data["package_name"] = Json (spkg.name);
             job.data["package_version"] = Json (spkg.ver);
             job.data["dsc_url"] = Json (null);
+
+            job.data["do_indep"] = Json (false);
+            if ((job.architecture == buildIndepArchAffinity) || (job.architecture == "all"))
+                job.data["do_indep"] = Json (true);
 
             // FIXME: Fetch the archive URL from the repository database entry
             auto dscFound = false;

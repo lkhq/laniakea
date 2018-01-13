@@ -60,7 +60,7 @@ enum JobResult
  */
 enum JobKind
 {
-    OS_IMAGE_BUILD = "image-build",
+    OS_IMAGE_BUILD = "iso-image-build",
     PACKAGE_BUILD  = "package-build"
 }
 

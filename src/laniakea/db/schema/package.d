@@ -10,6 +10,7 @@ public import laniakea.db.schema.spears;
 public import laniakea.db.schema.debcheck;
 public import laniakea.db.schema.workers;
 public import laniakea.db.schema.isotope;
+public import laniakea.db.schema.ariadne;
 
 /// Used internally to automatically call member functions of schema modules
 private import std.typecons : tuple;
@@ -22,5 +23,6 @@ static immutable __laniakea_db_schema_names = tuple(
     "spears",
     "debcheck",
     "workers",
-    "isotope"
+    "isotope",
+    "ariadne"
 );
