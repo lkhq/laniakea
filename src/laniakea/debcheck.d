@@ -314,7 +314,8 @@ class Debcheck
                         foreach (ref dyaml.Node ypkg; yconflict["depchain1"][0]["depchain"]) {
                             PackageIssue pkgissue;
                             setBasicPackageInfo!PackageIssue(pkgissue, ypkg);
-                            pkgissue.depends = ypkg["depends"].as!string;
+                            if (ypkg.containsKey ("depends"))
+                                pkgissue.depends = ypkg["depends"].as!string;
                             conflict.depchain1 ~= pkgissue;
                         }
                     }
@@ -322,7 +323,8 @@ class Debcheck
                         foreach (ref dyaml.Node ypkg; yconflict["depchain2"][0]["depchain"]) {
                             PackageIssue pkgissue;
                             setBasicPackageInfo!PackageIssue(pkgissue, ypkg);
-                            pkgissue.depends = ypkg["depends"].as!string;
+                            if (ypkg.containsKey ("depends"))
+                                pkgissue.depends = ypkg["depends"].as!string;
                             conflict.depchain2 ~= pkgissue;
                         }
                     }
