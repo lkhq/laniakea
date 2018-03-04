@@ -4,7 +4,9 @@
 FROM debian:testing
 
 # prepare
-RUN apt-get update -qq
+ENV LANG C.UTF-8
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update -qq && apt-get upgrade -y
 
 # install build essentials
 RUN apt-get install -yq git build-essential ldc
