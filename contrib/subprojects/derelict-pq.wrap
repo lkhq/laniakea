@@ -1,0 +1,4 @@
+[wrap-git]
+directory = derelict-pq
+url       = https://github.com/lkorigin/DerelictPQ.git
+revision  = head
