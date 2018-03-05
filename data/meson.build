@@ -1,5 +1,6 @@
 
 current_build_dir = meson.current_build_dir()
+lk_data_dir = join_paths(get_option('datadir'), 'laniakea')
 
 lhsd_data = configuration_data()
 lhsd_data.set('LIGHTHOUSE_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/lighthouse')
@@ -30,3 +31,6 @@ if (get_option('webgui'))
     install_data(current_build_dir + '/laniakea-webswview.service',
                  install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 endif
+
+install_data('3rd-party.json', install_dir: lk_data_dir)
+install_data('archive-sections.json', install_dir: lk_data_dir)
