@@ -54,6 +54,27 @@ public string getConfigFile (string fname)
 }
 
 /**
+ * Get a (shared) data file.
+ */
+public string getDataFile (string fname)
+{
+    immutable exeDir = dirName (std.file.thisExePath ());
+
+    if (!exeDir.startsWith ("/usr")) {
+        immutable resPath = buildNormalizedPath (exeDir, "..", "data", fname);
+        if (std.file.exists (resPath))
+            return resPath;
+    }
+
+    // prefer stuff in /usr/local
+    immutable localPath = buildPath ("/usr", "local", "share", "laniakea", fname);
+    if (std.file.exists (localPath))
+        return localPath;
+
+    return buildPath ("/usr", "share", "laniakea", fname);
+}
+
+/**
  * Local configuration specific for the synchrotron tool.
  */
 struct LocalSynchrotronConfig

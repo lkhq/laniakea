@@ -30,8 +30,6 @@ import laniakea.logging;
 import laniakea.localconfig;
 import laniakea.git;
 
-private immutable britneyGitRepository = "https://anonscm.debian.org/git/mirror/britney2.git";
-
 /**
  * Interface to Debian's Archive Migrator (Britney2)
  */
@@ -48,13 +46,23 @@ private:
 
     string britneyExe;
     string britneyDir;
+    string britneyGitRepository;
 
 public:
 
     this ()
     {
+        import laniakea.utils : readJsonFile;
+
         britneyDir = buildPath (LocalConfig.get.workspace, "dist", "britney2");
         britneyExe = buildPath (britneyDir, "britney.py");
+
+        // fetch the location of the Brithey git repository from static data
+        auto jroot = readJsonFile (getDataFile ("3rd-party.json"));
+        if ("Spears" !in jroot)
+            throw new Exception ("Unable to find Git URL for britney in 3rd-party.json static data.");
+        const spearsJ = jroot["Spears"];
+        britneyGitRepository = spearsJ["britneyGitRepository"].to!string;
     }
 
     private BritneyResult runBritney (const string workDir, const string[] args)
