@@ -61,6 +61,8 @@ final class PackageView {
 
         auto session = sFactory.openSession ();
         scope (exit) session.close ();
+        auto conn = db.getConnection ();
+        scope (exit) db.dropConnection (conn);
 
         if (type == "binary") {
             auto pkgs = session.createQuery ("FROM BinaryPackage
@@ -74,8 +76,7 @@ final class PackageView {
             if (pkgs.length == 0)
                 return;
             auto pkg = pkgs[0];
-            //! auto suites = session.getPackageSuites!BinaryPackage ("master", component, pkgName);
-            string[] suites;
+            auto suites = conn.getPackageSuites!BinaryPackage ("master", component, pkgName);
             render!("pkgview/details_binary.dt", ginfo, pkg, suites);
             return;
 
@@ -91,8 +92,7 @@ final class PackageView {
             if (pkgs.length == 0)
                 return;
             auto pkg = pkgs[0];
-            //! auto suites = session.getPackageSuites!SourcePackage ("master", component, pkgName);
-            string[] suites;
+            auto suites = conn.getPackageSuites!SourcePackage ("master", component, pkgName);
             render!("pkgview/details_source.dt", ginfo, pkg, suites);
             return;
 

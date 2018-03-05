@@ -1,0 +1,12 @@
+extends base
+
+block head
+  - auto title = "Package Sections";
+
+block contents
+  h1 Package Sections
+
+  .list-group
+    - foreach (ref sec; pkgSections)
+      a.list-group-item(href='#{sec.name}')
+        h4.list-group-item-heading #{sec.name}

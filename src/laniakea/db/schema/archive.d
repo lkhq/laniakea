@@ -505,27 +505,45 @@ auto getSuites (Session session, string repo = "master") @trusted
     return q.list!ArchiveSuite();
 }
 
-auto getPackageSuites (T) (Session session, string repoName, string component, string name) @trusted
+auto getPackageSuites (T) (Connection conn, string repoName, string component, string name) @trusted
 {
+    import std.array : appender;
     static assert (is(T == SourcePackage) || is(T == BinaryPackage));
 
     import std.algorithm : uniq, map;
 
-    static if (is(T == SourcePackage))
-        enum entityName = "SourcePackage";
-    else
-        enum entityName = "BinaryPackage";
+    static if (is(T == SourcePackage)) {
+        enum entityTabName = "archive_src_package";
+        enum suiteJoinSQL = "LEFT JOIN archive_suite_source_packages AS _t4 ON _t4.source_package_fk=_t1.uuid";
+    } else {
+        enum entityTabName = "archive_bin_package";
+        enum suiteJoinSQL = "LEFT JOIN archive_suite_binary_packages AS _t4 ON _t4.binary_package_fk=_t1.uuid";
+    }
 
-    auto rows = session.createQuery("SELECT pkg.suites
-                                     FROM " ~ entityName ~ " AS pkg
-                                     WHERE pkg.repo.name = :repoName
-                                       AND pkg.component.name=:componentName
-                                       AND pkg.name=:pkgName")
-                       .setParameter("repoName", "master")
-                       .setParameter("componentName", component)
-                       .setParameter("pkgName", name).list!ArchiveSuite;
+    // we need to use raw SQL here because Hibernated doesn't implement all HQL features for such a query and generates garbage
+    auto ps = conn.prepareStatement ("SELECT _t5.* FROM " ~ entityTabName ~ " AS _t1
+                                        LEFT JOIN archive_repository AS _t2 ON _t1.archive_repository_fk=_t2.id
+                                        LEFT JOIN archive_component AS _t3 ON _t1.archive_component_fk=_t3.id
+                                        " ~ suiteJoinSQL ~ "
+                                        LEFT JOIN archive_suite as _t5 ON _t4.archive_suite_fk=_t5.id
+                                      WHERE _t2.name = ? AND _t3.name = ? AND _t1.name = ?");
 
-    return rows.map! (s => s.name).uniq;
+    scope (exit) ps.close ();
+    ps.setString (1, repoName);
+    ps.setString (2, component);
+    ps.setString (3, name);
+
+    auto rs = ps.executeQuery ();
+    rs.first ();
+
+    auto suiteNames = appender!(string[]);
+    if (rs.getFetchSize > 0) {
+        do {
+            suiteNames ~= rs.getString (2);
+        } while (rs.next ());
+    }
+
+    return suiteNames.data.uniq;
 }
 
 /**

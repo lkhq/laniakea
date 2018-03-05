@@ -34,7 +34,13 @@ import laniakea.db.schema.archive;
 import webswview.webconfig;
 
 final class SWWebIndex {
+
+    struct PackageSection {
+        string name;
+    }
+
     GlobalInfo ginfo;
+    PackageSection[] pkgSections;
 
     private {
         WebConfig wconf;
@@ -44,16 +50,27 @@ final class SWWebIndex {
 
     this (WebConfig conf)
     {
+        import laniakea.utils : readJsonFile;
+        import laniakea.localconfig : getDataFile;
+
         wconf = conf;
         ginfo = wconf.ginfo;
         db = wconf.db;
         sFactory = db.newSessionFactory ();
+
+        // fetch the location of the Brithey git repository from static data
+        auto jroot = readJsonFile (getDataFile ("archive-sections.json"));
+        auto pkgSecAppender = appender!(PackageSection[]);
+        foreach (ref jsec; jroot) {
+            PackageSection sec;
+            sec.name = jsec["name"].to!string;
+            pkgSecAppender ~= sec;
+        }
+        pkgSections = pkgSecAppender.data;
     }
 
-	// overrides the path that gets inferred from the method name to
-	// "GET /"
 	@path("/")
-    void getHome()
+    void getHome ()
 	{
 		render!("home.dt", ginfo);
 	}
@@ -78,4 +95,10 @@ final class SWWebIndex {
         // FIXME: Combine the data and make it easier to use
         render!("search_results.dt", ginfo, results, searchTerm);
  	}
+
+    @path("/package_sections")
+    void getPackageSections ()
+	{
+		render!("package_sections.dt", ginfo, pkgSections);
+	}
 }

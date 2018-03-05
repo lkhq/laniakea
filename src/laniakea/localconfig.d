@@ -45,7 +45,7 @@ public string getConfigFile (string fname)
     immutable exeDir = dirName (std.file.thisExePath ());
 
     if (!exeDir.startsWith ("/usr")) {
-        immutable resPath = buildNormalizedPath (exeDir, "..", "data", fname);
+        immutable resPath = buildNormalizedPath (exeDir, "..", "..", "data", fname);
         if (std.file.exists (resPath))
             return resPath;
     }
@@ -61,7 +61,7 @@ public string getDataFile (string fname)
     immutable exeDir = dirName (std.file.thisExePath ());
 
     if (!exeDir.startsWith ("/usr")) {
-        immutable resPath = buildNormalizedPath (exeDir, "..", "data", fname);
+        immutable resPath = buildNormalizedPath (exeDir, "..", "..", "..", "data", fname);
         if (std.file.exists (resPath))
             return resPath;
     }
