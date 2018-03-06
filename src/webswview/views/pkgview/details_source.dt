@@ -20,14 +20,15 @@ block contents
           |
           b Package Maintainer:
           |  #{pkg.maintainer}
-          |
+          br
           - if (!pkg.uploaders.empty)
-            br
             b Uploaders:
             ul
               - foreach (ref perspn; pkg.uploaders)
                 li= perspn
-            |
+          - else
+            br
+          |
           - if (!pkg.homepage.empty)
             a.btn.btn-outline-success(href='#{pkg.homepage}', role='button') Homepage
           |
