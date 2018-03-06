@@ -44,6 +44,8 @@ public import std.variant : Variant;
 
 private static __gshared int OidDebversion = -1; /// The OID of the "Debversion" type, assigned when a "Database" instance is created
 
+public alias HibernatedSession = hibernated.session.Session;
+
 /**
  * A connection to the Laniakea database.
  * This singleton is shared between threads.

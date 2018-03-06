@@ -48,7 +48,21 @@ final class PackageView {
         wconf = conf;
         db = wconf.db;
         ginfo = wconf.ginfo;
-        sFactory = db.newSessionFactory ();
+        sFactory = db.newSessionFactory! (SpearsExcuse);
+    }
+
+    private auto getMigrationExcusesFor (HibernatedSession session, string sourceSuite, string sourcePackage, string newVersion)
+    {
+        const excuses = session.createQuery ("FROM SpearsExcuse
+                                              WHERE sourceSuite=:srcSuite
+                                                AND sourcePackage=:srcPkgname
+                                                AND newVersion=:version")
+                              .setParameter("srcSuite", sourceSuite)
+                              .setParameter("srcPkgname", sourcePackage)
+                              .setParameter("version", newVersion)
+                              .list!SpearsExcuse;
+
+        return excuses;
     }
 
     @path("/:type/:suite/:component/:name")
@@ -110,9 +124,13 @@ final class PackageView {
             if (pkg is null)
                 return; // 404
 
+            // one source package may be in multiple suites
             auto suites = conn.getPackageSuites!SourcePackage ("master", component, pkgName);
 
-            render!("pkgview/details_source.dt", ginfo, pkg, currentSuite, suites);
+            // we display migration excuses immediately on the details page at time
+            auto migrationExcuses = getMigrationExcusesFor (session, currentSuite, pkgName, pkg.ver);
+
+            render!("pkgview/details_source.dt", ginfo, pkg, currentSuite, suites, migrationExcuses);
             return;
 
         } else {
