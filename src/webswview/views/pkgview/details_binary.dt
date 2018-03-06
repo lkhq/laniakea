@@ -11,9 +11,9 @@ block contents
       |
       .list-group
         - foreach (ref suite; suites)
-          a.list-group-item(href='/package/binary/#{suite}/#{pkg.component.name}/#{pkg.name}', class='#{ (suite == currentSuite)? "active" : "" }')= suite
+          a.list-group-item(href='/package/binary/#{suite}/#{pkg.name}', class='#{ (suite == currentSuite)? "active" : "" }')= suite
 
-      a.btn.btn-outline-secondary(href='/package/source/#{pkg.suites[0].name}/#{pkg.component.name}/#{pkg.sourceName}', role='button', style='margin-top: 100%;') Source Package
+      a.btn.btn-outline-secondary(href='/package/source/#{pkg.suites[0].name}/#{pkg.sourceName}', role='button', style='margin-top: 100%;') Source Package
 
     .col-md-9
       .thumbnail

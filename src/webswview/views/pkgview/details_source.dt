@@ -11,7 +11,7 @@ block contents
       |
       .list-group
         - foreach (ref suite; suites)
-          a.list-group-item(href='/package/source/#{suite}/#{pkg.component.name}/#{pkg.name}', class='#{ (suite == currentSuite)? "active" : "" }')= suite
+          a.list-group-item(href='/package/source/#{suite}/#{pkg.name}', class='#{ (suite == currentSuite)? "active" : "" }')= suite
     |
     .col-md-9
       .thumbnail
@@ -52,17 +52,17 @@ block contents
             #collapseMigrations.collapse
               .card.card-body
                 - foreach (excuse; migrationExcuses)
-                  h2 #{excuse.sourceSuite} ➙ #{excuse.targetSuite}
+                  h3 #{excuse.sourceSuite} ➙ #{excuse.targetSuite}
                   p Is candidate:
                     - if (excuse.isCandidate)
                       font.fa.fa-check-circle(color='green')
                     - else
                       font.fa.fa-times-circle(color='red')
-                  h3 Age
+                  h2 Age
                   p Package is #{excuse.age.currentAge} days old (needed #{excuse.age.requiredAge})
 
                   - if (!excuse.oldBinaries.empty)
-                    h3 Old cruft binaries
+                    h2 Old cruft binaries
                     - foreach (item; excuse.oldBinaries)
                       p
                         b= item.pkgVersion
@@ -71,29 +71,29 @@ block contents
                           li= bin
 
                   - if (!excuse.reason.blockedBy.empty)
-                    h3 Blocked by
+                    h2 Blocked by
                     ul
                       - foreach (pkgname; excuse.reason.blockedBy)
                         li= pkgname
 
                   - if (!excuse.reason.migrateAfter.empty)
-                    h3 Waiting for
+                    h2 Waiting for
                     ul
                       - foreach (pkgname; excuse.reason.migrateAfter)
                         li= pkgname
 
                   - if (excuse.reason.manualBlock.length > 0)
-                    h3 Explicit block requests
+                    h2 Explicit block requests
                     ul
                       - foreach (entity; excuse.reason.manualBlock.byKey)
                         li= entity
 
                   - if (!excuse.reason.other.empty)
-                    h3 Other reasons
+                    h2 Other reasons
                     ul
                       - foreach (msg; excuse.reason.other)
                         li= msg
 
                   - if (!excuse.reason.logExcerpt.empty)
-                    h3 Log Excerpt
+                    h2 Log Excerpt
                     pre.well= excuse.reason.logExcerpt

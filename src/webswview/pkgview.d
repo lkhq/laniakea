@@ -65,12 +65,11 @@ final class PackageView {
         return excuses;
     }
 
-    @path("/:type/:suite/:component/:name")
+    @path("/:type/:suite/:name")
     void getPackageDetails (HTTPServerRequest req, HTTPServerResponse res)
     {
         auto type = req.params["type"];
         auto currentSuite = req.params["suite"];
-        auto component = req.params["component"];
         auto pkgName = req.params["name"];
 
         auto session = sFactory.openSession ();
@@ -81,11 +80,9 @@ final class PackageView {
         if (type == "binary") {
             auto q = session.createQuery ("FROM BinaryPackage
                                               WHERE repo.name=:repoName
-                                                AND component.name=:componentName
                                                 AND name=:pkgName
                                               ORDER BY ver")
                                .setParameter("repoName", "master")
-                               .setParameter("componentName", component)
                                .setParameter("pkgName", pkgName);
             BinaryPackage pkg = null;
             foreach (p; q.list!BinaryPackage) {
@@ -99,18 +96,16 @@ final class PackageView {
             if (pkg is null)
                 return; // 404
 
-            auto suites = conn.getPackageSuites!BinaryPackage ("master", component, pkgName);
+            auto suites = conn.getPackageSuites!BinaryPackage ("master", pkgName);
             render!("pkgview/details_binary.dt", ginfo, pkg, currentSuite, suites);
             return;
 
         } else if (type == "source") {
             auto q = session.createQuery ("FROM SourcePackage
                                               WHERE repo.name=:repoName
-                                                AND component.name=:componentName
                                                 AND name=:pkgName
                                               ORDER BY ver")
                                .setParameter("repoName", "master")
-                               .setParameter("componentName", component)
                                .setParameter("pkgName", pkgName);
             SourcePackage pkg = null;
             foreach (p; q.list!SourcePackage) {
@@ -125,7 +120,7 @@ final class PackageView {
                 return; // 404
 
             // one source package may be in multiple suites
-            auto suites = conn.getPackageSuites!SourcePackage ("master", component, pkgName);
+            auto suites = conn.getPackageSuites!SourcePackage ("master", pkgName);
 
             // we display migration excuses immediately on the details page at time
             auto migrationExcuses = getMigrationExcusesFor (session, currentSuite, pkgName, pkg.ver);

@@ -505,7 +505,7 @@ auto getSuites (Session session, string repo = "master") @trusted
     return q.list!ArchiveSuite();
 }
 
-auto getPackageSuites (T) (Connection conn, string repoName, string component, string name) @trusted
+auto getPackageSuites (T) (Connection conn, string repoName, string name) @trusted
 {
     import std.array : appender;
     static assert (is(T == SourcePackage) || is(T == BinaryPackage));
@@ -514,24 +514,22 @@ auto getPackageSuites (T) (Connection conn, string repoName, string component, s
 
     static if (is(T == SourcePackage)) {
         enum entityTabName = "archive_src_package";
-        enum suiteJoinSQL = "LEFT JOIN archive_suite_source_packages AS _t4 ON _t4.source_package_fk=_t1.uuid";
+        enum suiteJoinSQL = "LEFT JOIN archive_suite_source_packages AS _t3 ON _t3.source_package_fk=_t1.uuid";
     } else {
         enum entityTabName = "archive_bin_package";
-        enum suiteJoinSQL = "LEFT JOIN archive_suite_binary_packages AS _t4 ON _t4.binary_package_fk=_t1.uuid";
+        enum suiteJoinSQL = "LEFT JOIN archive_suite_binary_packages AS _t3 ON _t3.binary_package_fk=_t1.uuid";
     }
 
     // we need to use raw SQL here because Hibernated doesn't implement all HQL features for such a query and generates garbage
-    auto ps = conn.prepareStatement ("SELECT _t5.* FROM " ~ entityTabName ~ " AS _t1
+    auto ps = conn.prepareStatement ("SELECT _t4.* FROM " ~ entityTabName ~ " AS _t1
                                         LEFT JOIN archive_repository AS _t2 ON _t1.archive_repository_fk=_t2.id
-                                        LEFT JOIN archive_component AS _t3 ON _t1.archive_component_fk=_t3.id
                                         " ~ suiteJoinSQL ~ "
-                                        LEFT JOIN archive_suite as _t5 ON _t4.archive_suite_fk=_t5.id
-                                      WHERE _t2.name = ? AND _t3.name = ? AND _t1.name = ?");
+                                        LEFT JOIN archive_suite as _t4 ON _t3.archive_suite_fk=_t4.id
+                                      WHERE _t2.name = ? AND _t1.name = ?");
 
     scope (exit) ps.close ();
     ps.setString (1, repoName);
-    ps.setString (2, component);
-    ps.setString (3, name);
+    ps.setString (2, name);
 
     auto rs = ps.executeQuery ();
     rs.first ();
