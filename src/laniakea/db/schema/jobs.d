@@ -331,6 +331,21 @@ auto getJobsByTrigger (Connection conn, UUID triggerId, long limit, long offset 
 }
 
 /**
+ * Return the amount of jobs caused by the given trigger
+ */
+auto countJobsByTrigger (Connection conn, UUID triggerId) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM jobs WHERE trigger=?");
+    scope (exit) ps.close ();
+    ps.setString (1, triggerId.toString);
+
+    Variant var;
+    ps.executeUpdate (var);
+
+    return var.get!long;
+}
+
+/**
  * Find jobs by their trigger ID and assigned version and architecture.
  */
 auto getJobsByTriggerVerArch (Connection conn, UUID triggerId, const string ver, const string arch,

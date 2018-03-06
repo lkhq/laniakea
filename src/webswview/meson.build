@@ -12,7 +12,8 @@ lk_swview_src = [
     'app.d',
     'webconfig.d',
     'swindex.d',
-    'pkgview.d'
+    'pkgview.d',
+    'buildsview.d'
 ]
 
 lkswview_exe = executable ('laniakea-web-swview',

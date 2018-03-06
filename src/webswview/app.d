@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2017-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -32,6 +32,7 @@ import webswview.webconfig;
 
 import webswview.swindex;
 import webswview.pkgview;
+import webswview.buildsview;
 
 private string findPublicDir ()
 {
@@ -63,6 +64,7 @@ shared static this ()
 	// Register individual service classes to the router
 	router.registerWebInterface (new SWWebIndex (wconf));
     router.registerWebInterface (new PackageView (wconf));
+    router.registerWebInterface (new BuildsView (wconf));
 
 	// All requests that haven't been handled by the web interface registered above
 	// will be handled by looking for a matching file in the public/ folder.

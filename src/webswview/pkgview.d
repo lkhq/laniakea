@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module swview.jobsweb;
+module swview.pkgview;
 
 import std.exception : enforce;
 import std.conv : to;
@@ -85,7 +85,7 @@ final class PackageView {
                                               WHERE repo.name=:repoName
                                                 AND component.name=:componentName
                                                 AND name=:pkgName
-                                              ORDER BY ver  ")
+                                              ORDER BY ver")
                                .setParameter("repoName", "master")
                                .setParameter("componentName", component)
                                .setParameter("pkgName", pkgName).list!SourcePackage;

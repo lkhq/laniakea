@@ -1,0 +1,100 @@
+extends base
+
+block head
+    - auto title = "Package build job " ~ job.uuid.toString;
+
+block contents
+    - import std.array : empty;
+
+    h1 Package build job #{job.uuid.toString}
+
+    br
+
+    - import laniakea.utils : getPastEventAge;
+    - import laniakea.db;
+
+    b Created:
+    |  #{job.createdTime.getPastEventAge} ago
+    br
+
+    - if (!workerName.empty)
+        b Assigned:
+        |  #{job.assignedTime.getPastEventAge} ago
+        br
+
+    - if (job.result != JobResult.UNKNOWN)
+        b Finished:
+        |  #{job.finishedTime.getPastEventAge} ago
+        br
+
+    - if (!workerName.empty)
+        b Worker:
+        |  #{workerName}
+        br
+
+    b Status:
+    - if (job.status == JobStatus.WAITING)
+        span(style='font-size: 20px; line-height: 1.5em;')
+            i.fa.fa-hourglass-start(aria-hidden='true')
+        |  Waiting
+    - else if (job.status == JobStatus.SCHEDULED)
+        span(style='font-size: 20px; line-height: 1.5em;')
+            i.fa.fa-circle-o-notch.fa-spin
+        |  Scheduled
+    - else if (job.status == JobStatus.RUNNING)
+        span(style='font-size: 20px; line-height: 1.5em;')
+            i.fa.fa-cog.fa-spin
+        |  Running
+    - else if (job.status == JobStatus.DONE)
+        span(style='font-size: 20px; line-height: 1.5em;')
+            i.fa.fa-check(aria-hidden='true')
+        |  Done
+    - else if (job.status == JobStatus.STARVING)
+        span(style='font-size: 20px; line-height: 1.5em;')
+            i.fa.fa-clock-o(aria-hidden='true')
+        |  Starving
+    br
+
+    - if (job.result != JobResult.UNKNOWN)
+        h3 Result
+        - if (job.result == JobResult.MAYBE_SUCCESS)
+            span(style='font-size: 20px; line-height: 1.5em;')
+                font.fa.fa-check-circle(aria-hidden='true', color='green')
+                i.fa.fa-question-circle(aria-hidden='true')
+            |  Maybe Successful
+        - else if (job.result == JobResult.MAYBE_FAILURE)
+            span(style='font-size: 20px; line-height: 1.5em;')
+                font.fa.fa-times-circle(aria-hidden='true', color='red')
+                i.fa.fa-question-circle(aria-hidden='true')
+            |  Maybe Failed
+        - else if (job.result == JobResult.SUCCESS)
+            span(style='font-size: 20px; line-height: 1.5em;')
+                font.fa.fa-check-circle(aria-hidden='true', color='green')
+            |  Success
+        - else if (job.result == JobResult.FAILURE)
+            span(style='font-size: 20px; line-height: 1.5em;')
+                font.fa.fa-times-circle(aria-hidden='true', color='red')
+            |  Failed
+
+    h3 Details
+
+    b Package:
+    a(href='/package/source/#{sourcePkg.suites[0].name}/#{sourcePkg.component.name}/#{sourcePkg.name}') #{sourcePkg.name}
+    br
+
+    b Version:
+    |  #{sourcePkg.ver}
+    br
+
+    b Repository:
+    |  #{sourcePkg.repo.name}
+    br
+
+    b Architecture:
+    |  #{job.architecture}
+    br
+
+    h3 Log Excerpt
+    .well.well-sm
+        pre
+            code= job.latestLogExcerpt
