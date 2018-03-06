@@ -17,6 +17,9 @@ block contents
       .thumbnail
         .caption-full
           h3 #{pkg.name} - #{pkg.ver}
+            |
+            small
+              span.badge(class='#{ (pkg.component.name == "main")? "badge-primary" : "badge-warning" }')= pkg.component.name
           |
           b Package Maintainer:
           |  #{pkg.maintainer}
