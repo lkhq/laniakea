@@ -79,6 +79,7 @@ block contents
     h3 Details
 
     b Package:
+    |
     a(href='/package/source/#{sourcePkg.suites[0].name}/#{sourcePkg.component.name}/#{sourcePkg.name}') #{sourcePkg.name}
     br
 

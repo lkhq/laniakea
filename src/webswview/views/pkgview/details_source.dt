@@ -4,24 +4,29 @@ block head
   - auto title = pkg.name ~ " source package";
 
 block contents
-  .col-md-3
-    p.lead Suites
+  .row
+    .col-md-3
+      p.lead Suites
+      |
+      .list-group
+        - foreach (ref suite; suites)
+          a.list-group-item(href='/package/source/#{suite}/#{pkg.component.name}/#{pkg.name}')= suite
     |
-    .list-group
-      - foreach (ref suite; suites)
-        a.list-group-item(href='/package/source/#{suite}/#{pkg.component.name}/#{pkg.name}')= suite
-  |
-  .col-md-9
-    .thumbnail
-      .caption-full
-        h3 #{pkg.name} - #{pkg.ver}
-        |
-        p Homepage: #{pkg.homepage}
-        |
-        p VCS Browser: #{pkg.vcsBrowser}
-        |
-        h4 Build Dependencies
-        ul
-          - foreach (ref dep; pkg.buildDepends)
-            li= dep
-    |
+    .col-md-9
+      .thumbnail
+        .caption-full
+          h3 #{pkg.name} - #{pkg.ver}
+          |
+          p Homepage: #{pkg.homepage}
+          |
+          a.btn.btn-outline-info(href='/builds/package/#{pkg.sourceUUID.toString}/1/', role='button') Build Jobs
+          |
+          - if (!pkg.vcsBrowser.empty)
+            a.btn.btn-outline-secondary(href='#{pkg.vcsBrowser}', role='button') VCS Browser
+          |
+          br
+          br
+          h4 Build Dependencies
+          ul
+            - foreach (ref dep; pkg.buildDepends)
+              li= dep
