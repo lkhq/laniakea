@@ -11,7 +11,7 @@ block contents
       |
       .list-group
         - foreach (ref suite; suites)
-          a.list-group-item(href='/package/binary/#{suite}/#{pkg.component.name}/#{pkg.name}')= suite
+          a.list-group-item(href='/package/binary/#{suite}/#{pkg.component.name}/#{pkg.name}', class='#{ (suite == currentSuite)? "active" : "" }')= suite
 
       a.btn.btn-outline-secondary(href='/package/source/#{pkg.suites[0].name}/#{pkg.component.name}/#{pkg.sourceName}', role='button', style='margin-top: 100%;') Source Package
 
@@ -27,9 +27,11 @@ block contents
           br
           b Maintainer:
           |  #{pkg.maintainer}
-          |
+          br
+          br
           - if (!pkg.homepage.empty)
             a.btn.btn-outline-success(href='#{pkg.homepage}', role='button') Homepage
+            br
           |
           - if (!pkg.preDepends.empty)
             h4 Pre-Depends

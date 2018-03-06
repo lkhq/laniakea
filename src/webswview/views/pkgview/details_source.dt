@@ -4,13 +4,14 @@ block head
   - auto title = pkg.name ~ " source package";
 
 block contents
+  - import std.array : empty;
   .row
     .col-md-3
       p.lead Suites
       |
       .list-group
         - foreach (ref suite; suites)
-          a.list-group-item(href='/package/source/#{suite}/#{pkg.component.name}/#{pkg.name}')= suite
+          a.list-group-item(href='/package/source/#{suite}/#{pkg.component.name}/#{pkg.name}', class='#{ (suite == currentSuite)? "active" : "" }')= suite
     |
     .col-md-9
       .thumbnail

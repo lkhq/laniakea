@@ -55,7 +55,7 @@ final class PackageView {
     void getPackageDetails (HTTPServerRequest req, HTTPServerResponse res)
     {
         auto type = req.params["type"];
-        auto suite = req.params["suite"];
+        auto currentSuite = req.params["suite"];
         auto component = req.params["component"];
         auto pkgName = req.params["name"];
 
@@ -65,35 +65,54 @@ final class PackageView {
         scope (exit) db.dropConnection (conn);
 
         if (type == "binary") {
-            auto pkgs = session.createQuery ("FROM BinaryPackage
+            auto q = session.createQuery ("FROM BinaryPackage
                                               WHERE repo.name=:repoName
                                                 AND component.name=:componentName
                                                 AND name=:pkgName
                                               ORDER BY ver")
                                .setParameter("repoName", "master")
                                .setParameter("componentName", component)
-                               .setParameter("pkgName", pkgName).list!BinaryPackage;
-            if (pkgs.length == 0)
-                return;
-            auto pkg = pkgs[0];
+                               .setParameter("pkgName", pkgName);
+            BinaryPackage pkg = null;
+            foreach (p; q.list!BinaryPackage) {
+                foreach (s; p.suites) {
+                    if (s.name == currentSuite) {
+                        pkg = p;
+                        break;
+                    }
+                }
+            }
+            if (pkg is null)
+                return; // 404
+
             auto suites = conn.getPackageSuites!BinaryPackage ("master", component, pkgName);
-            render!("pkgview/details_binary.dt", ginfo, pkg, suites);
+            render!("pkgview/details_binary.dt", ginfo, pkg, currentSuite, suites);
             return;
 
         } else if (type == "source") {
-            auto pkgs = session.createQuery ("FROM SourcePackage
+            auto q = session.createQuery ("FROM SourcePackage
                                               WHERE repo.name=:repoName
                                                 AND component.name=:componentName
                                                 AND name=:pkgName
                                               ORDER BY ver")
                                .setParameter("repoName", "master")
                                .setParameter("componentName", component)
-                               .setParameter("pkgName", pkgName).list!SourcePackage;
-            if (pkgs.length == 0)
-                return;
-            auto pkg = pkgs[0];
+                               .setParameter("pkgName", pkgName);
+            SourcePackage pkg = null;
+            foreach (p; q.list!SourcePackage) {
+                foreach (s; p.suites) {
+                    if (s.name == currentSuite) {
+                        pkg = p;
+                        break;
+                    }
+                }
+            }
+            if (pkg is null)
+                return; // 404
+
             auto suites = conn.getPackageSuites!SourcePackage ("master", component, pkgName);
-            render!("pkgview/details_source.dt", ginfo, pkg, suites);
+
+            render!("pkgview/details_source.dt", ginfo, pkg, currentSuite, suites);
             return;
 
         } else {
