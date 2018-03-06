@@ -17,7 +17,18 @@ block contents
         .caption-full
           h3 #{pkg.name} - #{pkg.ver}
           |
-          p Homepage: #{pkg.homepage}
+          b Package Maintainer:
+          |  #{pkg.maintainer}
+          |
+          - if (!pkg.uploaders.empty)
+            br
+            b Uploaders:
+            ul
+              - foreach (ref perspn; pkg.uploaders)
+                li= perspn
+            |
+          - if (!pkg.homepage.empty)
+            a.btn.btn-outline-success(href='#{pkg.homepage}', role='button') Homepage
           |
           a.btn.btn-outline-info(href='/builds/package/#{pkg.sourceUUID.toString}/1/', role='button') Build Jobs
           |

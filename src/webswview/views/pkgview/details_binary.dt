@@ -22,7 +22,14 @@ block contents
           |
           p= pkg.description
           |
-          p Homepage: #{pkg.homepage}
+          b Section:
+          |  #{pkg.section}
+          br
+          b Maintainer:
+          |  #{pkg.maintainer}
+          |
+          - if (!pkg.homepage.empty)
+            a.btn.btn-outline-success(href='#{pkg.homepage}', role='button') Homepage
           |
           - if (!pkg.preDepends.empty)
             h4 Pre-Depends
@@ -36,5 +43,4 @@ block contents
                 li= dep
       |
       .well
-        p Section: #{pkg.section}
         p Installed Size: #{pkg.installedSize}
