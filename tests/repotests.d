@@ -140,6 +140,7 @@ void testRepositoryRead (const string datadir)
     validateSourcePackages (srcPkgs);
 
     auto binPkgs = repo.getBinaryPackages ("testing", "main", "amd64");
+    binPkgs ~= repo.getBinaryPackages ("testing", "main", "all");
     validateBinaryPackages (binPkgs);
 }
 

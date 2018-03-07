@@ -275,7 +275,7 @@ public:
             immutable pkgname = tf.readField ("Package");
             immutable pkgversion = tf.readField ("Version");
             if (!pkgname || !pkgversion)
-                continue;
+                throw new Exception ("Found invalid block (no Package and Version fields) in Packages file.");
 
             // get the database package to update it, if available
             auto pkgP = SourcePackage.generateUUID (this.repoName, pkgname, pkgversion) in dbPackages;
