@@ -379,10 +379,10 @@ class BinaryPackage
 
     @Null string homepage;
 
-    static auto generateUUID (const string repoName, const string pkgname, const string ver)
+    static auto generateUUID (const string repoName, const string pkgname, const string ver, const string arch)
     {
         import std.uuid : sha1UUID;
-        return sha1UUID (repoName ~ "::" ~ pkgname ~ "/" ~ ver);
+        return sha1UUID (repoName ~ "::" ~ pkgname ~ "/" ~ ver ~ "/" ~ arch);
     }
 
     void ensureUUID (bool regenerate = false) @trusted
@@ -390,6 +390,7 @@ class BinaryPackage
         import std.array : empty;
         if (this.uuid.empty && !regenerate)
             return;
+        assert (this.architecture !is null);
 
         string repo = "";
         if (this.suites.length != 0) {
@@ -398,11 +399,13 @@ class BinaryPackage
                 repo = "?";
         }
 
-        this.uuid = BinaryPackage.generateUUID (repo, this.name, this.ver);
+        this.uuid = BinaryPackage.generateUUID (repo, this.name, this.ver, this.architecture.name);
     }
 
     string stringId () @trusted
     {
+        assert (this.architecture !is null);
+
         string repo = "";
         if (this.suites.length != 0) {
             repo = this.suites[0].repo.name;
@@ -410,7 +413,7 @@ class BinaryPackage
                 repo = "?";
         }
 
-        return repo ~ "::" ~ this.name ~ "/" ~ this.ver;
+        return repo ~ "::" ~ this.name ~ "/" ~ this.ver ~ "/" ~ this.architecture.name;
     }
 }
 

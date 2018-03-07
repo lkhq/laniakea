@@ -408,7 +408,11 @@ public:
                 continue;
 
             // get the database package to update it, if available
-            auto pkgP = BinaryPackage.generateUUID (this.repoName, pkgname, pkgversion) in dbPackages;
+            auto pkgP = BinaryPackage.generateUUID (this.repoName, pkgname, pkgversion, architecture) in dbPackages;
+            // unfortunately, arch:all is included in all binary lists, so we need to check for that as well
+            // TODO: Filter out arch:all and treat is separately
+            if (pkgP is null)
+                pkgP = BinaryPackage.generateUUID (this.repoName, pkgname, pkgversion, "all") in dbPackages;
             BinaryPackage pkg;
             if (pkgP is null)
                 pkg = new BinaryPackage;
@@ -476,7 +480,7 @@ public:
 
             // Do some issue-reporting
             if (pkg.file.fname.empty)
-                logWarning ("Binary package %s/%s seems to have no files.", pkg.name, pkg.ver);
+                logWarning ("Binary package %s/%s/%s seems to have no files.", pkg.name, pkg.ver, pkg.architecture.name);
 
             // update UUID and add package to results set
             pkg.ensureUUID (true);
@@ -489,7 +493,7 @@ public:
                     // create DB copy
                     session.save (pkg);
                     dbPackages[pkg.uuid] = pkg;
-                    logDebug ("Added new binary package '%s::%s/%s' to database", repoName, pkg.name, pkg.ver);
+                    logDebug ("Added new binary package '%s::%s/%s/%s' to database", repoName, pkg.name, pkg.ver, pkg.architecture.name);
                 } else {
                     // update the database copy
                     session.update (pkg);
