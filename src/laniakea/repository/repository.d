@@ -373,7 +373,7 @@ public:
     /**
      * Internal
      */
-    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string componentName, DebType debType,
+    private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string componentName, string architecture, DebType debType,
                                                         Session session = null, bool updateDb = false) @trusted
     {
         if (updateDb)
@@ -388,12 +388,15 @@ public:
         if (updateDb) {
             auto q = session.createQuery ("FROM BinaryPackage WHERE repo.name=:repo
                                             AND component.name=:component
-                                            AND debType_i=:dtype")
+                                            AND debType_i=:dtype
+                                            AND
+                                            (architecture.name='all' OR architecture.name=:arch)")
                             .setParameter ("repo", repoName)
                             .setParameter ("component", componentName)
-                            .setParameter ("dtype", debType.to!short);
+                            .setParameter ("dtype", debType.to!short)
+                            .setParameter ("arch", architecture);
             foreach (bpkg; q.list!BinaryPackage)
-                dbPackages[bpkg.uuid] = bpkg;
+                    dbPackages[bpkg.uuid] = bpkg;
         }
 
         ArchiveArchitecture[string] archEntities;
@@ -534,7 +537,7 @@ public:
         auto tf = new TagFile;
         tf.open (indexFname);
 
-        return readBinaryPackagesFromData (tf, suite, component, DebType.DEB, session, updateDb);
+        return readBinaryPackagesFromData (tf, suite, component, arch, DebType.DEB, session, updateDb);
     }
 
     /**
@@ -553,7 +556,7 @@ public:
         auto tf = new TagFile;
         tf.open (indexFname);
 
-        return readBinaryPackagesFromData (tf, suite, component, DebType.UDEB, session, updateDb);
+        return readBinaryPackagesFromData (tf, suite, component, arch, DebType.UDEB, session, updateDb);
     }
 
     /**
