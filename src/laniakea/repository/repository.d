@@ -515,10 +515,10 @@ public:
 
                     if (pkg.suites.empty) {
                         session.remove (pkg);
-                        logDebug ("Removed binary package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
+                        logDebug ("Removed binary package '%s::%s/%s/%s' from database", repoName, pkg.name, pkg.ver, pkg.architecture.name);
                     } else {
                         session.update (pkg);
-                        logDebug ("Removed binary package '%s::%s/%s' from suite '%s'", repoName, pkg.name, pkg.ver, suiteName);
+                        logDebug ("Removed binary package '%s::%s/%s/%s' from suite '%s'", repoName, pkg.name, pkg.ver, pkg.architecture.name, suiteName);
                     }
                 }
             }
