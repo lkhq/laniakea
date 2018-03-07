@@ -382,6 +382,7 @@ public:
         auto scTuple = getSuiteComponentEntities (session, suiteName, componentName);
         auto suite = scTuple.suite;
         auto component = scTuple.component;
+        immutable requestedArchIsAll = architecture == "all";
 
         BinaryPackage[UUID] dbPackages;
         bool[UUID] validPackages;
@@ -389,8 +390,7 @@ public:
             auto q = session.createQuery ("FROM BinaryPackage WHERE repo.name=:repo
                                             AND component.name=:component
                                             AND debType_i=:dtype
-                                            AND
-                                            (architecture.name='all' OR architecture.name=:arch)")
+                                            AND architecture.name=:arch")
                             .setParameter ("repo", repoName)
                             .setParameter ("component", componentName)
                             .setParameter ("dtype", debType.to!short)
@@ -406,13 +406,19 @@ public:
             auto pkgversion = tf.readField ("Version");
             if (!pkgname || !pkgversion)
                 continue;
+            immutable archName = tf.readField ("Architecture");
+
+            // we deal with arch:all packages separately
+            if (archName == "all" && !requestedArchIsAll)
+                continue;
+
+            // Sanity check
+            if (archName != architecture) {
+                logWarning ("Found package '%s::%s/%s' with unexpeced architecture '%s' (expected '%s')", repoName, pkgname, pkgversion, archName, architecture);
+            }
 
             // get the database package to update it, if available
             auto pkgP = BinaryPackage.generateUUID (this.repoName, pkgname, pkgversion, architecture) in dbPackages;
-            // unfortunately, arch:all is included in all binary lists, so we need to check for that as well
-            // TODO: Filter out arch:all and treat is separately
-            if (pkgP is null)
-                pkgP = BinaryPackage.generateUUID (this.repoName, pkgname, pkgversion, "all") in dbPackages;
             BinaryPackage pkg;
             if (pkgP is null)
                 pkg = new BinaryPackage;
@@ -426,8 +432,7 @@ public:
             if (!pkg.suites.canFind (suite))
                 pkg.suites ~= suite;
 
-            // get the architecture
-            immutable archName = tf.readField ("Architecture");
+            // get the architecture entity
             auto archP = archName in archEntities;
             ArchiveArchitecture arch;
             if (archP is null) {

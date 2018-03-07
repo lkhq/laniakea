@@ -165,6 +165,7 @@ public:
             pkgList = repo.getSourcePackages (suiteName, component);
         } else static if (is(T == BinaryPackage)) {
             pkgList = repo.getBinaryPackages (suiteName, component, arch);
+            pkgList ~= repo.getBinaryPackages (suiteName, component, "all"); // always append arch:all packages
         } else {
             assert (0);
         }
@@ -174,6 +175,7 @@ public:
             if (withInstaller) {
                 // and d-i packages to the mix
                 auto ipkgList = repo.getInstallerPackages (suiteName, component, arch);
+                ipkgList ~= repo.getInstallerPackages (suiteName, component, "all"); // always append arch:all packages
                 auto ipkgMap = getNewestPackagesMap (ipkgList);
 
                 foreach (ref name, ref pkg; ipkgMap)
