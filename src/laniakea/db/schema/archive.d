@@ -309,15 +309,13 @@ class SourcePackage
         if (this.uuid.empty && this.sourceUUID.empty && !regenerate)
             return;
 
-        string repo = "";
-        if (this.suites.length != 0) {
-            repo = this.suites[0].repo.name;
-            if (repo.empty)
-                repo = "?";
+        string repoName = "?";
+        if (this.repo !is null) {
+            repoName = this.repo.name;
         }
 
-        this.uuid = SourcePackage.generateUUID (repo, this.name, this.ver);
-        this.sourceUUID = sha1UUID (repo ~ "::" ~ this.name);
+        this.uuid = SourcePackage.generateUUID (repoName, this.name, this.ver);
+        this.sourceUUID = sha1UUID (repoName ~ "::" ~ this.name);
     }
 
     string stringId () @trusted
@@ -392,14 +390,12 @@ class BinaryPackage
             return;
         assert (this.architecture !is null);
 
-        string repo = "";
-        if (this.suites.length != 0) {
-            repo = this.suites[0].repo.name;
-            if (repo.empty)
-                repo = "?";
+        string repoName = "?";
+        if (this.repo !is null) {
+            repoName = this.repo.name;
         }
 
-        this.uuid = BinaryPackage.generateUUID (repo, this.name, this.ver, this.architecture.name);
+        this.uuid = BinaryPackage.generateUUID (repoName, this.name, this.ver, this.architecture.name);
     }
 
     string stringId () @trusted
