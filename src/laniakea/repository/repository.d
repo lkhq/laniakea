@@ -348,10 +348,12 @@ public:
         if (updateDb) {
             foreach (pkg; dbPackages.byValue) {
                 if (pkg.uuid !in validPackages) {
+                    auto suiteRemoved = false;
                     foreach (i, ref s; pkg.suites) {
                         import std.algorithm : remove;
                         if (s == suite) {
                             pkg.suites = pkg.suites.get.remove (i);
+                            suiteRemoved = true;
                             break;
                         }
                     }
@@ -359,7 +361,7 @@ public:
                     if (pkg.suites.empty) {
                         session.remove (pkg);
                         logDebug ("Removed source package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
-                    } else {
+                    } else if (suiteRemoved) {
                         session.update (pkg);
                         logDebug ("Removed source package '%s::%s/%s' from suite '%s'", repoName, pkg.name, pkg.ver, suiteName);
                     }
@@ -510,10 +512,13 @@ public:
         if (updateDb) {
             foreach (pkg; dbPackages.byValue) {
                 if (pkg.uuid !in validPackages) {
+                    auto suiteRemoved = false;
+
                     foreach (i, ref s; pkg.suites) {
                         import std.algorithm : remove;
                         if (s == suite) {
                             pkg.suites = pkg.suites.get.remove (i);
+                            suiteRemoved = true;
                             break;
                         }
                     }
@@ -521,7 +526,7 @@ public:
                     if (pkg.suites.empty) {
                         session.remove (pkg);
                         logDebug ("Removed binary package '%s::%s/%s/%s' from database", repoName, pkg.name, pkg.ver, pkg.architecture.name);
-                    } else {
+                    } else if (suiteRemoved) {
                         session.update (pkg);
                         logDebug ("Removed binary package '%s::%s/%s/%s' from suite '%s'", repoName, pkg.name, pkg.ver, pkg.architecture.name, suiteName);
                     }
