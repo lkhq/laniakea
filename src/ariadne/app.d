@@ -49,6 +49,8 @@ void main (string[] args)
     bool showHelp;
     bool showVersion;
     bool simulateAction;
+    string archLimit;
+    long limitCount = 0;
 
     // parse command-line options
     try {
@@ -56,7 +58,9 @@ void main (string[] args)
             "help|h", &showHelp,
             "verbose", &verbose,
             "version", &showVersion,
-            "simulate", &simulateAction,);
+            "simulate", &simulateAction,
+            "architecture", &archLimit,
+            "limit", &limitCount);
     } catch (Exception e) {
         writeln ("Unable to parse parameters: ", e.msg);
         exit (1);
@@ -92,7 +96,7 @@ void main (string[] args)
 
     immutable command = args[1];
     if (command == "run") {
-        if (!scheduleBuilds (simulateAction))
+        if (!scheduleBuilds (simulateAction, archLimit, limitCount))
             exit (1);
     } else {
         writeln ("Command ", command, " is unknown.");

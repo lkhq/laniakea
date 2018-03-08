@@ -87,31 +87,31 @@ auto debcheckIssuesForPackage (Session session, const string suiteName,
  * Schedule a job for the given architecture, if the
  * package can be built on it and no prior job was scheduled.
  */
-void scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg, ArchiveArchitecture arch,
+bool scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg, ArchiveArchitecture arch,
                            ArchiveSuite incomingSuite, bool simulate)
 {
     // check if we can build the package on the current architecture
     if (!spkg.architectures.archMatches (arch.name))
-        return;
+        return false;
 
     // check if we have already scheduled a job for this in the past and don't create
     // another one in that case
     auto jobs = conn.getJobsByTriggerVerArch (spkg.sourceUUID, spkg.ver, arch.name, 0);
     if (jobs.length > 0)
-        return;
+        return false;
 
     // check if this package has binaries on already, in that case we don't
     // need a rebuild.
     auto bins = session.binariesForPackage (incomingSuite.repo, spkg.name, spkg.ver, arch);
     if (bins.length > 0)
-        return;
+        return false;
 
     // we have no binaries, looks like we might need to schedule a build job
     // check if all dependencies are there
     auto issues = session.debcheckIssuesForPackage (incomingSuite.name,
                                                     spkg.name, spkg.ver, arch);
     if (issues.length > 0)
-        return;
+        return false;
 
     // no issues found and a build seems required.
     // let's go!
@@ -126,12 +126,14 @@ void scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
                      JobKind.PACKAGE_BUILD,
                      spkg.sourceUUID);
     }
+
+    return true;
 }
 
 /**
  * Schedule builds for packages in the incoming suite.
  */
-bool scheduleBuilds (bool simulate = false)
+bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, long limitCount = 0)
 {
     auto db = Database.get;
     auto sFactory = db.newSessionFactory! (DebcheckIssue);
@@ -162,6 +164,14 @@ bool scheduleBuilds (bool simulate = false)
     if (archAll is null)
         logWarning ("Suite '%s' does not have arch:all in its architecture set, some packages can not be built.", incomingSuite.name);
 
+    if (simulate)
+        logInfo ("Simulation, not scheduling any actual builds.");
+    if (!limitArchitecture.empty)
+        logInfo ("Only scheduling builds for architecture '%s'.", limitArchitecture);
+    if (limitCount > 0)
+        logInfo ("Only scheduling maximally %s builds.", limitCount);
+
+    long scheduledCount = 0;
     foreach (ref spkg; srcPackages.byValue)
     {
         // if the package is arch:all only, it needs a dedicated build job
@@ -169,7 +179,16 @@ bool scheduleBuilds (bool simulate = false)
             if (archAll is null)
                 continue;
 
-            scheduleBuildForArch (conn, session, spkg, archAll, incomingSuite, simulate);
+            if (!limitArchitecture.empty) {
+                if (archAll.name != limitArchitecture)
+                    continue; // Skip, we are not scheduling builds for arch:all
+            }
+
+            if (scheduleBuildForArch (conn, session, spkg, archAll, incomingSuite, simulate))
+                scheduledCount++;
+
+            if ((limitCount > 0) && (scheduledCount >= limitCount))
+                break;
             continue;
         }
 
@@ -178,10 +197,23 @@ bool scheduleBuilds (bool simulate = false)
             // The pseudo-architecture arch:all is treated specially
             if (arch.name == "all")
                 continue;
+            if (!limitArchitecture.empty) {
+                if (arch.name != limitArchitecture)
+                    continue; // Skip, we are not scheduling builds for this architecture
+            }
 
-            scheduleBuildForArch (conn, session, spkg, arch, incomingSuite, simulate);
+            if (scheduleBuildForArch (conn, session, spkg, arch, incomingSuite, simulate))
+                scheduledCount++;
+
+            if ((limitCount > 0) && (scheduledCount >= limitCount))
+                break;
         }
+
+        if ((limitCount > 0) && (scheduledCount >= limitCount))
+            break;
     }
+
+    logDebug ("Scheduled %s build jobs.", scheduledCount);
 
     return true;
 }
