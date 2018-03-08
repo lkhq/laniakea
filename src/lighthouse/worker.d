@@ -21,6 +21,7 @@ module lighthouse.worker;
 
 import std.conv : to;
 import std.string : toStringz, fromStringz;
+import std.array : empty;
 import std.typecons : Nullable;
 import vibe.data.json;
 
@@ -131,6 +132,13 @@ class LighthouseWorker {
 
         if (job.kind == JobKind.PACKAGE_BUILD) {
             import std.string : endsWith;
+
+            // Sanity check for broken configuration (archive URL is not mandatory (yet))
+            if (localConf.archive.url.empty) {
+                logError ("Trying to schedule a package build job, but archive URL is not set in local config. Please fix your configuration!");
+                return null.serializeToJsonString ();
+            }
+
             auto spkg = session.getSourcePackageForJob (job);
             if (spkg is null)
                 return null.serializeToJsonString ();
