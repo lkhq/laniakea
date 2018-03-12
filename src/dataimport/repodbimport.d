@@ -28,6 +28,11 @@ import laniakea.db.schema.archive;
 
 bool syncRepoData (string suiteName, string repoName = "master") @trusted
 {
+    import core.sys.posix.unistd : fork, pid_t;
+    import core.sys.posix.sys.wait;
+    import core.stdc.stdlib : exit;
+    import std.exception : errnoEnforce;
+
     auto db = Database.get;
 
     auto sFactory = db.newSessionFactory ();
@@ -49,18 +54,54 @@ bool syncRepoData (string suiteName, string repoName = "master") @trusted
         assert (0, "The multiple repositories feature is not yet implemented.");
     }
 
+    // FIXME: Hibernated doesn't work well in multithreaded environments, therefore we fork here
+    // to have some temporary parallelization. Ultimately, Hibernated needs to be fixed though.
+
+    bool ret = true;
     foreach (ref component; suite.components) {
         // Source packages
         repo.getSourcePackages (suite.name, component.name, session, true);
 
+        pid_t[] processes;
         foreach (ref arch; suite.architectures) {
-            // binary packages
-            repo.getBinaryPackages (suite.name, component.name, arch.name, session, true);
+            pid_t pid = fork ();
+            errnoEnforce (pid >= 0, "Fork failed");
 
-            // binary packages of the debian-installer
-            repo.getInstallerPackages (suite.name, component.name, arch.name, session, true);
+            if (pid == 0) {
+                // child process
+                logDebug ("Child process forked.");
+
+                auto childDb = Database.get;
+                auto childSFactory = childDb.newSessionFactory ();
+                scope (exit) childSFactory.close ();
+                auto childSession = childSFactory.openSession ();
+                scope (exit) childSession.close ();
+
+                // binary packages
+                repo.getBinaryPackages (suite.name, component.name, arch.name, childSession, true);
+
+                // binary packages of the debian-installer
+                repo.getInstallerPackages (suite.name, component.name, arch.name, childSession, true);
+
+                exit (0);
+            }
+
+            processes ~= pid;
         }
+
+        foreach (pid; processes) {
+            int status = 0;
+            do {
+                errnoEnforce (waitpid (pid, &status, 0) != -1, "Waitpid failed");
+            } while (!WIFEXITED (status));
+
+            if (WEXITSTATUS (status) != 0)
+                ret = false;
+        }
+
+        if (!ret)
+            break;
     }
 
-    return true;
+    return ret;
 }
