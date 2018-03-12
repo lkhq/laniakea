@@ -40,6 +40,7 @@ class TagFile
 private:
     string[] content;
     uint pos;
+    string[string] currentBlock;
 
     string _fname;
 
@@ -75,16 +76,61 @@ public:
     {
         content = data.splitLines ();
         pos = 0;
+        readCurrentBlockData ();
     }
 
     void first () {
         pos = 0;
     }
 
-    bool nextSection () pure
+    private void readCurrentBlockData () pure @trusted
+    {
+        currentBlock.clear ();
+        immutable clen = content.length;
+
+        for (auto i = pos; i < clen; i++) {
+            if (content[i] == "")
+                break;
+
+            // check whether we are in a multiline value field, and just skip forward in that case
+            if (startsWith (content[i], " "))
+                continue;
+
+            immutable separatorIndex = indexOf (content[i], ':');
+            if (separatorIndex <= 0)
+                continue; // this is no field
+
+            auto fieldName = content[i][0..separatorIndex];
+            auto fdata = content[i][separatorIndex+1..$];
+
+            if ((i+1 >= clen)
+                || (!startsWith (content[i+1], " "))) {
+                    // we have a single-line field
+                    currentBlock[fieldName] = fdata.strip ();
+            } else {
+                // we have a multi-line field
+                auto fdata_ml = fdata.strip ();
+                for (auto j = i+1; j < clen; j++) {
+                    auto slice = chompPrefix (content[j], " ");
+                    if (slice == content[j])
+                        break;
+
+                    if (fdata_ml == "")
+                        fdata_ml = slice;
+                    else
+                        fdata_ml ~= "\n" ~ slice;
+                }
+
+                currentBlock[fieldName] = fdata_ml;
+            }
+        }
+    }
+
+    bool nextSection () pure @trusted
     {
         bool breakNext = false;
-        auto clen = content.length;
+        immutable clen = content.length;
+        currentBlock.clear ();
 
         if (pos >= clen)
             return false;
@@ -106,45 +152,17 @@ public:
         if (pos >= clen)
             return false;
 
+        readCurrentBlockData ();
         return true;
     }
 
-    string readField (string name, string defaultValue = null) pure
+    string readField (string name, string defaultValue = null) pure @trusted
     {
-        auto clen = content.length;
-
-        for (auto i = pos; i < clen; i++) {
-            if (content[i] == "")
-                break;
-
-            auto fdata = chompPrefix (content[i], name ~ ":");
-            if (fdata == content[i])
-                continue;
-
-            if ((i+1 >= clen)
-                || (!startsWith (content[i+1], " "))) {
-                    // we have a single-line field
-                    return strip (fdata);
-            } else {
-                // we have a multi-line field
-                auto fdata_ml = strip (fdata);
-                for (auto j = i+1; j < clen; j++) {
-                    auto slice = chompPrefix (content[j], " ");
-                    if (slice == content[j])
-                        break;
-
-                    if (fdata_ml == "")
-                        fdata_ml = slice;
-                    else
-                        fdata_ml ~= "\n" ~ slice;
-                }
-
-                return fdata_ml;
-            }
-        }
-
-        // we found nothing
-        return defaultValue;
+        auto dataP = name in currentBlock;
+        if (dataP is null)
+            return defaultValue; // we found nothing
+        else
+            return *dataP;
     }
 }
 
