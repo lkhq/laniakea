@@ -245,6 +245,7 @@ public:
     SourcePackage[] getSourcePackages (const string suiteName, const string componentName,
                                        Session session = null, bool updateDb = false) @trusted
     {
+        import vibe.utils.hashmap;
         if (updateDb)
             assert (session !is null);
 
@@ -259,8 +260,8 @@ public:
         auto suite = scTuple.suite;
         auto component = scTuple.component;
 
-        SourcePackage[UUID] dbPackages;
-        bool[UUID] validPackages;
+        HashMap!(UUID, SourcePackage) dbPackages;
+        HashMap!(UUID, bool) validPackages;
         if (updateDb) {
             auto q = session.createQuery ("FROM SourcePackage WHERE repo.name=:repo
                                              AND component.name=:component")
@@ -271,6 +272,7 @@ public:
         }
 
         auto pkgs = appender!(SourcePackage[]);
+        pkgs.reserve (dbPackages.length? dbPackages.length : 256);
         do {
             immutable pkgname = tf.readField ("Package");
             immutable pkgversion = tf.readField ("Version");
@@ -378,6 +380,7 @@ public:
     private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string componentName, string architecture, DebType debType,
                                                         Session session = null, bool updateDb = false) @trusted
     {
+        import vibe.utils.hashmap;
         if (updateDb)
             assert (session !is null);
 
@@ -386,8 +389,8 @@ public:
         auto component = scTuple.component;
         immutable requestedArchIsAll = architecture == "all";
 
-        BinaryPackage[UUID] dbPackages;
-        bool[UUID] validPackages;
+        HashMap!(UUID, BinaryPackage) dbPackages;
+        HashMap!(UUID, bool) validPackages;
         if (updateDb) {
             auto q = session.createQuery ("FROM BinaryPackage WHERE repo.name=:repo
                                             AND component.name=:component
@@ -403,6 +406,8 @@ public:
 
         ArchiveArchitecture[string] archEntities;
         auto pkgs = appender!(BinaryPackage[]);
+        pkgs.reserve (dbPackages.length? dbPackages.length : 256);
+
         do {
             auto pkgname = tf.readField ("Package");
             auto pkgversion = tf.readField ("Version");

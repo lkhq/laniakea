@@ -20,9 +20,8 @@
 module laniakea.tagfile;
 @safe:
 
-import std.stdio;
-import std.string;
-import std.array : appender;
+import std.string : startsWith, indexOf, chompPrefix, strip, split, splitLines;
+import std.array : appender, empty;
 import std.conv : to;
 import std.path : buildPath;
 import std.typecons : Flag, Yes;
@@ -30,6 +29,8 @@ import std.typecons : Flag, Yes;
 import laniakea.utils : splitStrip;
 import laniakea.compressed;
 import laniakea.db.schema.archive;
+
+private import vibe.utils.hashmap;
 
 /**
  * Parser for Debians RFC2822-style metadata.
@@ -40,7 +41,7 @@ class TagFile
 private:
     string[] content;
     uint pos;
-    string[string] currentBlock;
+    HashMap!(string, string) currentBlock;
 
     string _fname;
 
@@ -83,7 +84,7 @@ public:
         pos = 0;
     }
 
-    private void readCurrentBlockData () pure @trusted
+    private void readCurrentBlockData () @trusted
     {
         currentBlock.clear ();
         immutable clen = content.length;
@@ -109,24 +110,28 @@ public:
                     currentBlock[fieldName] = fdata.strip ();
             } else {
                 // we have a multi-line field
-                auto fdata_ml = fdata.strip ();
+                auto fdata_ml = appender!string ();
+                fdata_ml ~= fdata.strip ();
                 for (auto j = i+1; j < clen; j++) {
                     auto slice = chompPrefix (content[j], " ");
                     if (slice == content[j])
                         break;
 
-                    if (fdata_ml == "")
-                        fdata_ml = slice;
-                    else
-                        fdata_ml ~= "\n" ~ slice;
+                    if (fdata_ml.data == "") {
+                        fdata_ml = appender!string ();
+                        fdata_ml ~= slice;
+                    } else {
+                        fdata_ml ~= "\n";
+                        fdata_ml ~= slice;
+                    }
                 }
 
-                currentBlock[fieldName] = fdata_ml;
+                currentBlock[fieldName] = fdata_ml.data;
             }
         }
     }
 
-    bool nextSection () pure @trusted
+    bool nextSection () @trusted
     {
         bool breakNext = false;
         immutable clen = content.length;
