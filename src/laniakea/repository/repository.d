@@ -245,6 +245,7 @@ public:
     SourcePackage[] getSourcePackages (const string suiteName, const string componentName,
                                        Session session = null, bool updateDb = false) @trusted
     {
+        import core.memory : GC;
         import vibe.utils.hashmap;
         if (updateDb)
             assert (session !is null);
@@ -273,6 +274,12 @@ public:
 
         auto pkgs = appender!(SourcePackage[]);
         pkgs.reserve (dbPackages.length? dbPackages.length : 256);
+
+        // if we don't pay attention, of a 1m run, this code will spend more than 20s in the GC
+        // so, we control a bit when we run a collection cycle
+        GC.disable ();
+        scope (exit) { GC.collect (); GC.enable (); }
+
         do {
             immutable pkgname = tf.readField ("Package");
             immutable pkgversion = tf.readField ("Version");
@@ -344,7 +351,12 @@ public:
                 }
             }
 
+            // limit RAM usage a little by collecting after processing a batch of packages
+            if (pkgs.data.length % 2500 == 0)
+                GC.collect ();
+
         } while (tf.nextSection ());
+        GC.collect ();
 
         // drop copies from the database that are no longer in the imported data
         if (updateDb) {
@@ -380,6 +392,7 @@ public:
     private BinaryPackage[] readBinaryPackagesFromData (TagFile tf, string suiteName, string componentName, string architecture, DebType debType,
                                                         Session session = null, bool updateDb = false) @trusted
     {
+        import core.memory : GC;
         import vibe.utils.hashmap;
         if (updateDb)
             assert (session !is null);
@@ -407,6 +420,11 @@ public:
         ArchiveArchitecture[string] archEntities;
         auto pkgs = appender!(BinaryPackage[]);
         pkgs.reserve (dbPackages.length? dbPackages.length : 256);
+
+        // if we don't pay attention, of a 1m run, this code will spend more than 20s in the GC
+        // so, we control a bit when we run a collection cycle
+        GC.disable ();
+        scope (exit) { GC.collect (); GC.enable (); }
 
         do {
             auto pkgname = tf.readField ("Package");
@@ -511,7 +529,13 @@ public:
                     session.update (pkg);
                 }
             }
+
+            // limit RAM usage a little by collecting after processing a batch of packages
+            if (pkgs.data.length % 2500 == 0)
+                GC.collect ();
+
         } while (tf.nextSection ());
+        GC.collect ();
 
         // drop copies from the database that are no longer in the imported data
         if (updateDb) {

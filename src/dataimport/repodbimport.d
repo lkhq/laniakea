@@ -20,8 +20,6 @@
 module datasync.repodbsync;
 @safe:
 
-import std.parallelism : parallel;
-
 import laniakea.logging;
 import laniakea.localconfig;
 import laniakea.repository;
@@ -55,7 +53,7 @@ bool syncRepoData (string suiteName, string repoName = "master") @trusted
         // Source packages
         repo.getSourcePackages (suite.name, component.name, session, true);
 
-        foreach (ref arch; parallel (suite.architectures)) {
+        foreach (ref arch; suite.architectures) {
             // binary packages
             repo.getBinaryPackages (suite.name, component.name, arch.name, session, true);
 
