@@ -26,6 +26,8 @@ import laniakea.repository;
 import laniakea.db;
 import laniakea.db.schema.archive;
 
+import core.memory : GC;
+
 bool syncRepoData (string suiteName, string repoName = "master") @trusted
 {
     auto db = Database.get;
@@ -49,9 +51,14 @@ bool syncRepoData (string suiteName, string repoName = "master") @trusted
         assert (0, "The multiple repositories feature is not yet implemented.");
     }
 
+    // if we don't pay attention, of a 1m run, this code will spend more than 20s in the GC
+    // so, we control a bit when we run a collection cycle
+    GC.disable ();
+
     foreach (ref component; suite.components) {
         // Source packages
         repo.getSourcePackages (suite.name, component.name, session, true);
+        GC.collect ();
 
         foreach (ref arch; suite.architectures) {
             // binary packages
@@ -59,8 +66,11 @@ bool syncRepoData (string suiteName, string repoName = "master") @trusted
 
             // binary packages of the debian-installer
             repo.getInstallerPackages (suite.name, component.name, arch.name, session, true);
+
+            GC.collect ();
         }
     }
 
+    GC.enable ();
     return true;
 }
