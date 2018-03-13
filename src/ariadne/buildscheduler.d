@@ -35,13 +35,23 @@ import std.parallelism : parallel;
  */
 auto getNewestSourcesIndex (Session session, ArchiveSuite suite)
 {
+    import laniakea.utils : compareVersions;
+
     SourcePackage[UUID] srcPackages;
     auto q = session.createQuery ("FROM SourcePackage WHERE repo.id=:repoID")
                     .setParameter ("repoID", suite.repo.id);
-    foreach (spkg; q.list!SourcePackage)
-    {
-        if (spkg.suites.canFind (suite))
+    foreach (spkg; q.list!SourcePackage) {
+        if (spkg.suites.canFind (suite)) {
+            auto epkgP = spkg.sourceUUID in srcPackages;
+            if (epkgP !is null) {
+                auto epkg = *epkgP;
+                // don't override if the existing version is newer
+                if (compareVersions (spkg.ver, epkg.ver) <= 0)
+                    continue;
+            }
+
             srcPackages[spkg.sourceUUID] = spkg;
+        }
     }
 
     return srcPackages;
