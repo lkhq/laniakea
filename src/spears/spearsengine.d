@@ -19,7 +19,7 @@
 
 import std.array : empty, array;
 import std.string : format, startsWith, strip, split;
-import std.algorithm : canFind, map;
+import std.algorithm : canFind, map, filter;
 import std.path : buildPath, baseName, dirName;
 import std.array : appender;
 import std.typecons : Tuple;
@@ -131,7 +131,9 @@ public:
             bc.setArchivePaths (buildPath (archiveRootPath, "dists", fromSuite.name),
                                 buildPath (archiveRootPath, "dists", toSuite.name));
             bc.setComponents (map!(c => c.name)(toSuite.components).array);
-            bc.setArchitectures (array (toSuite.architectures.map! (a => a.name)));
+            bc.setArchitectures (array (toSuite.architectures
+                                               .map! (a => a.name)
+                                               .filter! (a => a != "all")));
             bc.setDelays (mentry.delays);
             bc.setHints (mentry.hints);
 
