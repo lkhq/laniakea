@@ -23,6 +23,7 @@ import laniakea.logging;
 import laniakea.db;
 import laniakea.db.schema.archive;
 import laniakea.utils : archMatches;
+import containers : HashMap;
 
 import std.array : empty;
 import std.string : format;
@@ -37,7 +38,7 @@ auto getNewestSourcesIndex (Session session, ArchiveSuite suite)
 {
     import laniakea.utils : compareVersions;
 
-    SourcePackage[UUID] srcPackages;
+    auto srcPackages = HashMap!(UUID, SourcePackage) (64);
     auto q = session.createQuery ("FROM SourcePackage WHERE repo.id=:repoID")
                     .setParameter ("repoID", suite.repo.id);
     foreach (spkg; q.list!SourcePackage) {

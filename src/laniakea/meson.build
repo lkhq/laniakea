@@ -38,6 +38,7 @@ laniakea_lib_src = [
 
 lk_base_deps = [crypto_dep,
                 ssl_dep,
+                dcontainers_dep,
                 archive_dep,
                 curl_dep,
                 czmq_dep,

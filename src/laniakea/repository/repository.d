@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -29,6 +29,7 @@ import std.typecons : Tuple, Flag, Yes, No;
 import std.digest.sha;
 import std.algorithm : canFind;
 static import std.file;
+import containers : DynamicArray, HashMap;
 
 import laniakea.logging;
 import laniakea.net : downloadFile;
@@ -59,7 +60,7 @@ private:
     string[] keyrings;
     bool repoTrusted;
 
-    InReleaseData[string] inRelease;
+    HashMap!(string, InReleaseData) inRelease;
 
 public:
 
@@ -79,6 +80,7 @@ public:
         keyrings = trustedKeyrings;
         repoTrusted = false;
         this.repoName = repoName;
+        inRelease = HashMap!(string, InReleaseData) (16);
     }
 
     @property @safe
@@ -124,7 +126,7 @@ public:
         return null;
     }
 
-    private InReleaseData getRepoInformation (string suite)
+    private InReleaseData getRepoInformation (string suite) @trusted
     {
         import laniakea.utils.gpg : SignedFile;
 
@@ -246,7 +248,6 @@ public:
                                        Session session = null, bool updateDb = false) @trusted
     {
         import core.memory : GC;
-        import vibe.utils.hashmap;
         if (updateDb)
             assert (session !is null);
 
@@ -261,8 +262,8 @@ public:
         auto suite = scTuple.suite;
         auto component = scTuple.component;
 
-        HashMap!(UUID, SourcePackage) dbPackages;
-        HashMap!(UUID, bool) validPackages;
+        auto dbPackages = HashMap!(UUID, SourcePackage) (128);
+        auto validPackages = HashMap!(UUID, bool) (128);
         if (updateDb) {
             auto q = session.createQuery ("FROM SourcePackage WHERE repo.name=:repo
                                              AND component.name=:component")
@@ -393,7 +394,6 @@ public:
                                                         Session session = null, bool updateDb = false) @trusted
     {
         import core.memory : GC;
-        import vibe.utils.hashmap;
         if (updateDb)
             assert (session !is null);
 
@@ -402,8 +402,8 @@ public:
         auto component = scTuple.component;
         immutable requestedArchIsAll = architecture == "all";
 
-        HashMap!(UUID, BinaryPackage) dbPackages;
-        HashMap!(UUID, bool) validPackages;
+        auto dbPackages = HashMap!(UUID, BinaryPackage) (128);
+        auto validPackages = HashMap!(UUID, bool) (128);
         if (updateDb) {
             auto q = session.createQuery ("FROM BinaryPackage WHERE repo.name=:repo
                                             AND component.name=:component
@@ -417,7 +417,7 @@ public:
                     dbPackages[bpkg.uuid] = bpkg;
         }
 
-        ArchiveArchitecture[string] archEntities;
+        auto archEntities = HashMap!(string, ArchiveArchitecture) (8);
         auto pkgs = appender!(BinaryPackage[]);
         pkgs.reserve (dbPackages.length? dbPackages.length : 256);
 
@@ -622,9 +622,36 @@ public:
 
 }
 
-public T[string] getNewestPackagesMap(T) (T[] pkgList)
+/**
+ * Get a standard associative array of newest packages
+ * from @pkgList.
+ */
+public auto getNewestPackagesAA(T) (T[] pkgList) @trusted
 {
     T[string] res;
+
+    foreach (ref pkg; pkgList) {
+        auto epkgP = pkg.name in res;
+        if (epkgP is null) {
+            res[pkg.name] = pkg;
+        } else {
+            auto epkg = *epkgP;
+            if (compareVersions (pkg.ver, epkg.ver) > 0) {
+                res[pkg.name] = pkg;
+            }
+        }
+    }
+
+    return res;
+}
+
+/**
+ * Get a std.experimental.allocator backed HashMap of the newest packages
+ * from @pkgList.
+ */
+public auto getNewestPackagesMap(T) (T[] pkgList) @trusted
+{
+    auto res = HashMap!(string, T) (64);
 
     foreach (ref pkg; pkgList) {
         auto epkgP = pkg.name in res;

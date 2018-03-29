@@ -170,13 +170,13 @@ public:
             assert (0);
         }
 
-        auto pkgMap = getNewestPackagesMap (pkgList);
+        auto pkgMap = getNewestPackagesAA (pkgList);
         static if (is(T == BinaryPackage)) {
             if (withInstaller) {
                 // and d-i packages to the mix
                 auto ipkgList = repo.getInstallerPackages (suiteName, component, arch);
                 ipkgList ~= repo.getInstallerPackages (suiteName, component, "all"); // always append arch:all packages
-                auto ipkgMap = getNewestPackagesMap (ipkgList);
+                auto ipkgMap = getNewestPackagesAA (ipkgList);
 
                 foreach (ref name, ref pkg; ipkgMap)
                     pkgMap[name] = pkg;

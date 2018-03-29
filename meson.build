@@ -16,6 +16,7 @@ archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
 czmq_dep = dependency('libczmq')
 systemd_dep = dependency('systemd')
+dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dcontainers', 'dcontainers_dep'])
 dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_dep'])
 fluentasserts_dep = dependency('fluent-asserts', version: '>= 0.6', fallback: ['fluent-asserts', 'fluentasserts_dep'])
 

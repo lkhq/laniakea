@@ -25,12 +25,11 @@ import std.array : appender, empty;
 import std.conv : to;
 import std.path : buildPath;
 import std.typecons : Flag, Yes;
+import containers : HashMap;
 
 import laniakea.utils : splitStrip;
 import laniakea.compressed;
 import laniakea.db.schema.archive;
-
-private import vibe.utils.hashmap;
 
 /**
  * Parser for Debians RFC2822-style metadata.
@@ -47,8 +46,9 @@ private:
 
 public:
 
-    this ()
+    this () @trusted
     {
+        currentBlock = HashMap!(string, string) (16);
     }
 
     void open (string fname, Flag!"compressed" compressed = Yes.compressed) @trusted
@@ -181,6 +181,7 @@ public PackageInfo[] parsePackageListString (const string pkgListRaw, const stri
     import std.string : splitLines;
 
     auto res = appender!(PackageInfo[]);
+    res.reserve (3);
     foreach (ref line; pkgListRaw.splitLines) {
         auto parts = line.strip.split (" ");
         if (parts.length < 4)
@@ -213,6 +214,7 @@ public PackageInfo[] parsePackageListString (const string pkgListRaw, const stri
 public ArchiveFile[] parseChecksumsList (string dataRaw, string baseDir = null)
 {
     auto files = appender!(ArchiveFile[]);
+    files.reserve (3);
     foreach (ref fileRaw; dataRaw.split ('\n')) {
         auto parts = fileRaw.strip.splitStrip (" "); // f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955 2455 0ad_0.0.20-1.dsc
         if (parts.length != 3)
