@@ -265,7 +265,7 @@ public:
 
         // list of valid architectrures supported by the target
         auto incomingSuite = session.getSuite (baseConfig.archive.incomingSuite);
-        immutable targetArchs = array (incomingSuite.architectures.map!(a => a.name)).idup;
+        immutable targetArchs = array (incomingSuite.architectures[].map!(a => a.name)).idup;
 
         // cache of binary-package mappings for the source
         BinaryPackage[string][string] binPkgArchMap;

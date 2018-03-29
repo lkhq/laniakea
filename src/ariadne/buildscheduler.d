@@ -42,7 +42,7 @@ auto getNewestSourcesIndex (Session session, ArchiveSuite suite)
     auto q = session.createQuery ("FROM SourcePackage WHERE repo.id=:repoID")
                     .setParameter ("repoID", suite.repo.id);
     foreach (spkg; q.list!SourcePackage) {
-        if (spkg.suites.canFind (suite)) {
+        if (spkg.suites[].canFind (suite)) {
             auto epkgP = spkg.sourceUUID in srcPackages;
             if (epkgP !is null) {
                 auto epkg = *epkgP;

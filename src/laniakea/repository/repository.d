@@ -299,7 +299,7 @@ public:
             pkg.name = pkgname;
             pkg.component = component;
             pkg.repo = suite.repo;
-            if (!pkg.suites.canFind (suite))
+            if (!pkg.suites[].canFind (suite))
                 pkg.suites ~= suite;
 
             pkg.ver = pkgversion;
@@ -373,7 +373,7 @@ public:
                         }
                     }
 
-                    if (pkg.suites.empty) {
+                    if (pkg.suites[].empty) {
                         session.remove (pkg);
                         logDebug ("Removed source package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
                     } else if (suiteRemoved) {
@@ -454,7 +454,7 @@ public:
             pkg.component = component;
             pkg.ver = pkgversion;
             pkg.repo = suite.repo;
-            if (!pkg.suites.canFind (suite))
+            if (!pkg.suites[].canFind (suite))
                 pkg.suites ~= suite;
 
             // get the architecture entity
@@ -552,7 +552,7 @@ public:
                         }
                     }
 
-                    if (pkg.suites.empty) {
+                    if (pkg.suites[].empty) {
                         session.remove (pkg);
                         logDebug ("Removed binary package '%s::%s/%s/%s' from database", repoName, pkg.name, pkg.ver, pkg.architecture.name);
                     } else if (suiteRemoved) {

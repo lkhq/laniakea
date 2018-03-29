@@ -130,8 +130,8 @@ public:
 
             bc.setArchivePaths (buildPath (archiveRootPath, "dists", fromSuite.name),
                                 buildPath (archiveRootPath, "dists", toSuite.name));
-            bc.setComponents (map!(c => c.name)(toSuite.components).array);
-            bc.setArchitectures (array (toSuite.architectures
+            bc.setComponents (map!(c => c.name)(toSuite.components[]).array);
+            bc.setArchitectures (array (toSuite.architectures[]
                                                .map! (a => a.name)
                                                .filter! (a => a != "all")));
             bc.setDelays (mentry.delays);

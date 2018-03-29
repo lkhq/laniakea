@@ -182,7 +182,7 @@ class Debcheck
         string[string] archIssueMap;
 
         immutable defaultNativeArch = getDefaultNativeArch (suite);
-        foreach (ref arch; suite.architectures.map! (a => a.name)) {
+        foreach (ref arch; map! (a => a.name) (suite.architectures[])) {
             // fetch source-package-centric index list
             auto indices = getFullIndexFileList (session, suite, arch, true, defaultNativeArch);
             if (indices.fg.empty) {
@@ -220,7 +220,7 @@ class Debcheck
 
         immutable defaultNativeArch = getDefaultNativeArch (suite);
 
-        auto allArchs = array (suite.architectures.map!(a => a.name)) ~ ["all"];
+        auto allArchs = array ((suite.architectures[]).map!(a => a.name)) ~ ["all"];
         foreach (ref arch; allArchs) {
             // fetch binary-package index list
             auto indices = getFullIndexFileList (session, suite, arch, false, defaultNativeArch);
