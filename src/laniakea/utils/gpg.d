@@ -45,8 +45,7 @@ class GPGError: Exception
  */
 class SysError: Exception
 {
-    @trusted
-    this (string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    this (string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) @trusted
     {
         import core.stdc.errno;
         import core.stdc.string;

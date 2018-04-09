@@ -25,9 +25,13 @@ ninja test -v
 DESTDIR=/tmp/lk-install-root ninja install
 
 cd ..
+
+#
+# Style checks
+#
+./tests/ci/run-dscanner.py . tests/dscanner.ini
+
 #
 # Make Documentation
 #
-
-# Make HTMl docs
 ./tests/ci/make-documentation.py . build

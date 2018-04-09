@@ -52,12 +52,12 @@ public:
     }
 
     @property @safe
-    bool useRealFileNames () { return realFileNames; };
+    bool useRealFileNames () { return realFileNames; }
     @property @safe
-    void useRealFileNames (bool v) { realFileNames = v; };
+    void useRealFileNames (bool v) { realFileNames = v; }
 
     @property @safe
-    string root () { return rootDir; };
+    string root () { return rootDir; }
 
     /**
      * Get the hex string hash from another string.

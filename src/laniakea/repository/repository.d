@@ -64,8 +64,7 @@ private:
 
 public:
 
-    @trusted
-    this (string location, string repoName = null, string[] trustedKeyrings = [])
+    this (string location, string repoName = null, string[] trustedKeyrings = []) @trusted
     {
         if (isRemote (location)) {
             auto conf = LocalConfig.get;

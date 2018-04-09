@@ -18,7 +18,6 @@
  */
 
 module laniakea.db.database;
-@trusted:
 
 import std.typecons : Nullable;
 import std.string : format;
