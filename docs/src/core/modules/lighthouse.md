@@ -1,7 +1,11 @@
 # Lighthouse - communication relay
 
-The Lighthouse daemon is used as a communication relay, to make individual services discover each other and to
-distribute jobs.
+Laniakea modules are almost always their own executables or even services. This allows to run them on separate
+machines, to improve security by isolation or to balance load.
+
+The *Lighthouse* core module is a daemon that provides a way for Laniakea modules to get notified about changes,
+distribute jobs to them and receive information to store in the database.
+
 There can be an arbitrary number of Lighthouse instances on multiple servers. Due to Lighthouse directly
 distributing jobs and interacting with the central database, currently each Lighthouse server needs write access
 to a Postgres database.
