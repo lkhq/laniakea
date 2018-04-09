@@ -24,6 +24,7 @@ ninja test -v
 # Test Install
 DESTDIR=/tmp/lk-install-root ninja install
 
+cd ..
 #
 # Make Documentation
 #
