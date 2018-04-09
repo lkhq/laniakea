@@ -1,7 +1,7 @@
 #
 # Docker file for Laniakea CI
 #
-FROM debian:testing
+FROM debian:unstable
 
 # prepare
 ENV LANG C.UTF-8
