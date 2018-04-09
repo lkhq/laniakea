@@ -320,14 +320,14 @@ class SourcePackage
 
     string stringId () @trusted
     {
-        string repo = "";
+        string repoName = "";
         if (this.suites.length != 0) {
-            repo = this.suites[0].repo.name;
-            if (repo.empty)
-                repo = "?";
+            repoName = this.suites[0].repo.name;
+            if (repoName.empty)
+                repoName = "?";
         }
 
-        return repo ~ "::source/" ~ this.name ~ "/" ~ this.ver;
+        return repoName ~ "::source/" ~ this.name ~ "/" ~ this.ver;
     }
 }
 
@@ -402,14 +402,14 @@ class BinaryPackage
     {
         assert (this.architecture !is null);
 
-        string repo = "";
+        string repoName = "";
         if (this.suites.length != 0) {
-            repo = this.suites[0].repo.name;
-            if (repo.empty)
-                repo = "?";
+            repoName = this.suites[0].repo.name;
+            if (repoName.empty)
+                repoName = "?";
         }
 
-        return repo ~ "::" ~ this.name ~ "/" ~ this.ver ~ "/" ~ this.architecture.name;
+        return repoName ~ "::" ~ this.name ~ "/" ~ this.ver ~ "/" ~ this.architecture.name;
     }
 }
 

@@ -212,7 +212,7 @@ public:
      *
      * Returns: A file path to the index file.
      */
-    public string getIndexFile (string suite, string fname)
+    string getIndexFile (string suite, string fname)
     {
         auto ird = getRepoInformation (suite);
         immutable indexFname = getRepoFileInternal (buildPath ("dists", suite, fname));

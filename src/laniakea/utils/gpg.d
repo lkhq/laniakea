@@ -56,7 +56,6 @@ class SysError: Exception
 }
 
 
-
 /**
  * Helper class to create pipes.
  */
@@ -335,19 +334,19 @@ public:
 
             // read stuff from FDs
             foreach (ref fd; readFDs) {
-                char[4096] data;
-                auto len = read (fd, &data, 4096);
+                char[4096] dataBuf;
+                auto len = read (fd, &dataBuf, 4096);
                 if (len <= 0)
                     continue;
 
                 working = true;
-                readLines[fd] ~= to!string (data[0..len]);
+                readLines[fd] ~= to!string (dataBuf[0..len]);
             }
 
             if (writePos >= inputDataLen) {
                 stdin.closeW ();
             } else {
-                auto bytesWritten = write (stdin.w, inputDataZ + writePos, inputDataLen - writePos);
+                immutable bytesWritten = write (stdin.w, inputDataZ + writePos, inputDataLen - writePos);
                 if (bytesWritten < 0)
                     continue;
                     //throw new SysError ("Could not write to pipe");

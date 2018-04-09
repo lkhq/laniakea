@@ -29,7 +29,7 @@ enum CZMQ_VERSION_PATCH = 2;
 
 extern (D) auto CZMQ_MAKE_VERSION(T0, T1, T2)(auto ref T0 major, auto ref T1 minor, auto ref T2 patch)
 {
-    return major * 10000 + minor * 100 + patch;
+    return major * 10_000 + minor * 100 + patch;
 }
 
 enum CZMQ_VERSION = CZMQ_MAKE_VERSION(CZMQ_VERSION_MAJOR, CZMQ_VERSION_MINOR, CZMQ_VERSION_PATCH);

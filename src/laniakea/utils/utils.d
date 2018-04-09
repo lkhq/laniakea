@@ -62,7 +62,7 @@ string[] splitStrip (const string str, const string sep) pure
  */
 @trusted
 string hashFile (Hash) (const string fname)
-        if (isDigest!Hash)
+if (isDigest!Hash)
 {
     import std.digest.sha : digest, toHexString;
 

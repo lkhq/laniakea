@@ -84,7 +84,7 @@ private:
     immutable string dbPassword;
     immutable string dbExtraOptions;
 
-    private this ()
+    this ()
     {
         const conf = LocalConfig.get;
         assert (conf.currentModule != LkModule.UNKNOWN, "A module without identifier tried to access the database.");

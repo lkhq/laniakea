@@ -46,7 +46,7 @@ enum ZMQ_VERSION_PATCH = 1;
 
 extern (D) auto ZMQ_MAKE_VERSION(T0, T1, T2)(auto ref T0 major, auto ref T1 minor, auto ref T2 patch)
 {
-    return major * 10000 + minor * 100 + patch;
+    return major * 10_000 + minor * 100 + patch;
 }
 
 enum ZMQ_VERSION = ZMQ_MAKE_VERSION(ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH);
@@ -71,7 +71,7 @@ enum ZMQ_DEFINED_STDINT = 1;
 
 /*  A number random enough not to collide with different errno ranges on      */
 /*  different OSes. The assumption is that error_t is at least 32-bit type.   */
-enum ZMQ_HAUSNUMERO = 156384712;
+enum ZMQ_HAUSNUMERO = 156_384_712;
 
 /*  On Windows platform some of the standard POSIX errnos are not defined.    */
 

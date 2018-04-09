@@ -51,7 +51,7 @@ class PackageSyncError: Error
 /**
  * Execute package synchronization in Synchrotron
  */
-class SyncEngine
+final class SyncEngine
 {
 
 private:

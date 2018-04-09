@@ -55,6 +55,7 @@ def run(source_root, dscanner_config):
         sys.exit(0)
     else:
         print('\033[91m:( D-Scanner found issues \033[0m')
+        print(pres)
         sys.exit(1)
 
 if __name__ == "__main__":

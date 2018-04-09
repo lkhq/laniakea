@@ -143,7 +143,10 @@ final class LocalConfig
 
     LkModule currentModule;
 
-    void init (LkModule mod)
+    /**
+     * Initialize local configuration for the given module.
+     */
+    void initialize (LkModule mod)
     {
         currentModule = mod;
     }
@@ -153,7 +156,7 @@ final class LocalConfig
     in { assert (!loaded); }
     body
     {
-        init (mod);
+        initialize (mod);
 
         immutable configDir = fname.dirName;
 
