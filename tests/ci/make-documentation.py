@@ -28,10 +28,12 @@ def build_include_dir_cmd(source_root):
 
     extra_inc_dirs = ['/usr/include/d/vibe/',
                       '/usr/include/d/diet/',
+                      '/usr/include/d/stdx-allocator/',
                       './src']
 
     for d in extra_inc_dirs + find_local_include_dirs(source_root):
-        incdirs.append('-I' + d)
+        if os.path.isdir(d):
+            incdirs.append('-I' + d)
     return incdirs
 
 
