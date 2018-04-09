@@ -46,10 +46,12 @@ RUN mkdir -p /build/extra
 WORKDIR /build/extra
 
 # Vibe.d
-RUN git clone -b v0.8.3 --depth 1 https://github.com/vibe-d/vibe.d.git vibe.d
+RUN git clone -b v0.8.1 --depth 1 https://github.com/vibe-d/vibe.d.git vibe.d
 RUN mkdir vibe.d/b
 RUN cd vibe.d/b/ && meson --prefix=/usr ..
 RUN cd vibe.d/b/ && ninja && ninja install
+
+RUN pkg-config --cflags vibe-core
 
 # finish
 WORKDIR /build
