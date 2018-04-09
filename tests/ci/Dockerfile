@@ -1,7 +1,7 @@
 #
 # Docker file for Laniakea CI
 #
-FROM debian:unstable
+FROM debian:testing
 
 # prepare
 ENV LANG C.UTF-8
@@ -22,7 +22,7 @@ RUN apt-get install -yq --no-install-recommends \
     libpq-dev \
     postgresql
 
-# install vibe.d
+# install vibe.d dependencies
 RUN apt-get install -yq --no-install-recommends \
     git \
     systemd \
@@ -32,33 +32,24 @@ RUN apt-get install -yq --no-install-recommends \
     libssl-dev \
     zlib1g-dev
 
+# misc packages
+RUN apt-get install -yq --no-install-recommends \
+    dub
+
+# Meson, to work around bugs in current version in Debian
+RUN git clone --depth 1 https://github.com/mesonbuild/meson.git /opt/meson/
+RUN rm /usr/bin/meson
+RUN ln -s /opt/meson/meson.py /usr/bin/meson
+
 # build & install 3rd-party libraries
 RUN mkdir -p /build/extra
 WORKDIR /build/extra
 
 # Vibe.d
-RUN git clone -b v0.8.1 --depth 1 https://github.com/rejectedsoftware/vibe.d.git vibe.d
+RUN git clone -b v0.8.3 --depth 1 https://github.com/vibe-d/vibe.d.git vibe.d
 RUN mkdir vibe.d/b
 RUN cd vibe.d/b/ && meson --prefix=/usr ..
 RUN cd vibe.d/b/ && ninja && ninja install
-
-# D-YAML
-RUN git clone --depth 1 https://github.com/dlang-community/D-YAML.git dyaml
-RUN mkdir dyaml/b
-RUN cd dyaml/b/ && meson --prefix=/usr ..
-RUN cd dyaml/b/ && ninja && ninja install
-
-# Hibernated
-RUN git clone --depth 1 https://github.com/lkorigin/hibernated.git hibernated
-RUN mkdir hibernated/b
-RUN cd hibernated/b/ && meson --prefix=/usr ..
-RUN cd hibernated/b/ && ninja && ninja install
-
-# FluentAsserts
-RUN git clone --depth 1 https://github.com/lkorigin/fluent-asserts.git fluent-asserts
-RUN mkdir fluent-asserts/b
-RUN cd fluent-asserts/b/ && meson --prefix=/usr ..
-RUN cd fluent-asserts/b/ && ninja && ninja install
 
 # finish
 WORKDIR /build
