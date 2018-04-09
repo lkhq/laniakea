@@ -52,12 +52,16 @@ RUN mkdir -p /build/extra
 WORKDIR /build/extra
 
 # Vibe.d
-RUN git clone -b v0.8.1 --depth 1 https://github.com/vibe-d/vibe.d.git vibe.d
+RUN git clone --depth 1 https://github.com/ximion/vibe.d.git vibe.d
 RUN mkdir vibe.d/b
 RUN cd vibe.d/b/ && meson --prefix=/usr ..
 RUN cd vibe.d/b/ && ninja && ninja install
 
-RUN pkg-config --cflags vibe-core
+# FluentAsserts
+RUN git clone --depth 1 https://github.com/lkorigin/fluent-asserts.git fluent-asserts
+RUN mkdir fluent-asserts/b
+RUN cd fluent-asserts/b/ && meson --prefix=/usr ..
+RUN cd fluent-asserts/b/ && ninja && ninja install
 
 # finish
 WORKDIR /build
