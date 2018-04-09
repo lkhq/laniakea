@@ -48,20 +48,3 @@ subdir('data')
 # Tests
 #
 subdir('tests')
-
-#
-# Documentation
-#
-
-#doc_sources = []
-#foreach s : (laniakea_lib_src + lkadmin_src + synchrotron_src + spears_src + planter_src)
-#  doc_sources += source_root + '/' + s
-#endforeach
-#
-#docs_target = custom_target('documentation',
-#  output : 'documentation.fake',
-#  input : laniakea_lib_src,
-#  command : ['ldc2', '-D', '-dw', '-c', '-o-',
-#             '-Dd=docs/', '-Xf=docs/documentation.json', doc_sources, '-I', source_root + '/src',
-#             '-I/usr/include/d/vibe', '-I/usr/local/include/d/', '-oq']
-#)

@@ -17,6 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module laniakea.db.utils;
 
 // public imports with generaly useful stuff
 public import std.array : empty;

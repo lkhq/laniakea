@@ -34,12 +34,18 @@ RUN apt-get install -yq --no-install-recommends \
 
 # misc packages
 RUN apt-get install -yq --no-install-recommends \
-    dub
+    dub \
+    mkdocs
 
 # Meson, to work around bugs in current version in Debian
 RUN git clone --depth 1 https://github.com/mesonbuild/meson.git /opt/meson/
 RUN rm /usr/bin/meson
 RUN ln -s /opt/meson/meson.py /usr/bin/meson
+
+# Ddox
+RUN git clone --depth 1 https://github.com/rejectedsoftware/ddox.git /opt/ddox
+RUN cd /opt/ddox/ && dub build
+RUN mv /opt/ddox/ddox /usr/local/bin/
 
 # build & install 3rd-party libraries
 RUN mkdir -p /build/extra
