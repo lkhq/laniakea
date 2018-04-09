@@ -32,9 +32,9 @@ import laniakea.compressed;
 import laniakea.db.schema.archive;
 
 /**
- * Parser for Debians RFC2822-style metadata.
+ * Parser for Debian's RFC2822-style metadata.
  */
-class TagFile
+final class TagFile
 {
 
 private:
