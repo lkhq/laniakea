@@ -10,7 +10,7 @@ This software is currently in early development, and used by the PureOS Debian d
 by [Purism](https://puri.sm/).
 
 Laniakea is based on the following principles:
- * Have one source for all confguration
+ * Have one source for all configuration
  * Integrate components tightly, by making them speak the same protocols
  * Minimize human interventions when maintaining a derivative
  * Allow to manage most (all?) functions via a web interface
@@ -18,7 +18,7 @@ Laniakea is based on the following principles:
  * No shell script glue
  * Reuse existing tools whenever possible, via wrappers
 
-It's tasks include, but are not limited to:
+Its tasks include, but are not limited to:
  * Synchronizing packages from the source distribution with the target derivative
  * Migrating packages between suites using Britney2
  * Building disk images for the derivative
