@@ -23,7 +23,7 @@ Its tasks include, but are not limited to:
  * Synchronizing packages from the source distribution with the target derivative
  * Migrating packages between suites using Britney2
  * Building disk images for the derivative
- * Validating installavility of packages
+ * Validating installability of packages
  * Managing default package selections
  * Building packages
  * Automatically taking maintenance action on the archive (e.g. rebuilding packages)
