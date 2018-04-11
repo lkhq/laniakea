@@ -4,6 +4,7 @@ import os
 import sys
 import glob
 import subprocess
+import signal
 
 def get_sources_list(source_root):
     res = list()
@@ -74,7 +75,12 @@ def run_ddox(source_root, build_root):
                 os.path.abspath(os.path.join(build_root, 'docs', 'api'))]
 
     print('RUN: ' + ' '.join(ddox_cmd))
-    subprocess.run(ddox_cmd, check=True)
+    res = subprocess.run(ddox_cmd)
+    if res.returncode == -signal.SIGSEGV:
+        print("DDOX crashed!")
+        print(res)
+    else:
+        res.check_returncode()
 
 
 def run(source_root, build_root):
