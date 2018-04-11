@@ -17,6 +17,8 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+module laniakea.cmdargs;
+
 import std.array : empty;
 public import std.getopt : Option, getopt, GetoptResult;
 import std.getopt : defaultGetoptPrinter;
