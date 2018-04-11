@@ -33,9 +33,9 @@ import admin.admintool;
 final class SpearsAdmin : AdminTool
 {
     @property
-    override string toolId ()
+    override SubcommandInfo toolInfo ()
     {
-        return "spears";
+        return SubcommandInfo ("spears", "Configure the package migrator module.");
     }
 
     override
@@ -73,6 +73,12 @@ final class SpearsAdmin : AdminTool
         if (!ret)
             return 2;
         return 0;
+    }
+
+    override
+    void printHelp (string progname)
+    {
+        printHelpText (progname, toolInfo.summary, "???", [], [], toolInfo.name);
     }
 
     override

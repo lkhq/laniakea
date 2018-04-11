@@ -32,9 +32,9 @@ import admin.admintool;
 final class BaseAdmin : AdminTool
 {
     @property
-    override string toolId ()
+    override SubcommandInfo toolInfo ()
     {
-        return "base";
+        return SubcommandInfo ("base", "Modify fundamental and shared settings.");
     }
 
     override
@@ -59,6 +59,18 @@ final class BaseAdmin : AdminTool
         if (!ret)
             return 2;
         return 0;
+    }
+
+    override
+    void printHelp (string progname)
+    {
+        auto cmds = [SubcommandInfo ("init", "Run initial setup guide."),
+                     SubcommandInfo ("dump", "Print database information."),];
+
+        printHelpText (progname,
+                       toolInfo.summary,
+                       "Modify core settings of Laniakea",
+                       cmds, [], toolInfo.name);
     }
 
     override

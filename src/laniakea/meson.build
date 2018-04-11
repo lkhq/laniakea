@@ -2,6 +2,7 @@
 
 laniakea_lib_src = [
     'localconfig.d',
+    'cmdargs.d',
     'compressed.d',
     'debcheck.d',
     'downloadmanager.d',

@@ -32,9 +32,9 @@ import admin.admintool;
 final class SyncAdmin : AdminTool
 {
     @property
-    override string toolId ()
+    override SubcommandInfo toolInfo ()
     {
-        return "synchrotron";
+        return SubcommandInfo ("synchrotron", "Configure the package synchronization module.");
     }
 
     private SessionFactory sFactory;
@@ -79,6 +79,12 @@ final class SyncAdmin : AdminTool
         if (!ret)
             return 2;
         return 0;
+    }
+
+    override
+    void printHelp (string progname)
+    {
+        printHelpText (progname, toolInfo.summary, "???", [], [], toolInfo.name);
     }
 
     override

@@ -23,6 +23,7 @@ import std.stdio : writeln, writefln, readln;
 import std.string : format;
 
 import laniakea.db;
+public import laniakea.cmdargs;
 public import laniakea.utils : currentDateTime;
 public import vibe.data.json : serializeToPrettyJson;
 
@@ -146,9 +147,14 @@ public:
     }
 
     @property
-    string toolId ()
+    SubcommandInfo toolInfo ()
     {
-        return "unknown";
+        return SubcommandInfo ("unknown", "Dummy text");
+    }
+
+    abstract void printHelp (string progname)
+    {
+        printHelpText (progname, toolInfo.summary, "???", [], [], toolInfo.name);
     }
 
     abstract int run (string[] args);

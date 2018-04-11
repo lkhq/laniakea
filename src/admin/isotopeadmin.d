@@ -32,9 +32,9 @@ import admin.admintool;
 final class IsotopeAdmin : AdminTool
 {
     @property
-    override string toolId ()
+    override SubcommandInfo toolInfo ()
     {
-        return "isotope";
+        return SubcommandInfo ("isotope", "Configure the disk image build module.");
     }
 
     override
@@ -65,6 +65,12 @@ final class IsotopeAdmin : AdminTool
         if (!ret)
             return 2;
         return 0;
+    }
+
+    override
+    void printHelp (string progname)
+    {
+        printHelpText (progname, toolInfo.summary, "???", [], [], toolInfo.name);
     }
 
     void dumpRecipes ()

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -18,12 +18,12 @@
  */
 
 import std.stdio;
-import std.getopt;
 import std.string : format;
 import core.stdc.stdlib : exit;
 
 import laniakea.localconfig;
 import laniakea.logging;
+import laniakea.cmdargs;
 
 import admin.admintool;
 import admin.baseadmin;
@@ -32,53 +32,28 @@ import admin.spearsadmin;
 import admin.syncadmin;
 import admin.isotopeadmin;
 
-private immutable helpText =
-"Usage:
-  lk-admin <subcommand> [OPTION...] - Run CLI admin actions.
+private immutable progname    = "lk-admin";
+private immutable helpSummary = "Run CLI admin actions.";
 
-Laniakea CLI administration.
-
-Subcommands:
-  TODO
-Help Options:
-  -h, --help       Show help options
-
-Application Options:
-  --version        Show the program version.
-  --verbose        Show extra debugging information.";
+private immutable helpDescription = "Laniakea CLI administration.";
 
 void main (string[] args)
 {
     bool verbose;
     bool showHelp;
     bool showVersion;
-    bool forceAction;
 
     // parse command-line options
+    GetoptResult goRes;
     try {
-        getopt (args,
+        goRes = getopt (args,
             std.getopt.config.passThrough,
-            "help|h", &showHelp,
-            "verbose", &verbose,
-            "version", &showVersion);
+            "help|h",  "Show helpful information.", &showHelp,
+            "verbose", "Show extra debugging information.", &verbose,
+            "version", "Show the program version.", &showVersion);
     } catch (Exception e) {
         writeln ("Unable to parse parameters: ", e.msg);
         exit (1);
-    }
-
-    if (showHelp) {
-        writeln (helpText);
-        return;
-    }
-
-    if (showVersion) {
-        writeln ("Version: ", laniakea.localconfig.laniakeaVersion);
-        return;
-    }
-
-    if (args.length < 2) {
-        writeln ("No subcommand specified!");
-        return;
     }
 
     auto conf = LocalConfig.get;
@@ -87,11 +62,6 @@ void main (string[] args)
     } catch (Exception e) {
         writefln ("Unable to load configuration: %s", e.msg);
         exit (4);
-    }
-
-    // globally enable verbose mode, if requested
-    if (verbose) {
-        laniakea.logging.setVerboseLog (true);
     }
 
     // list of tools that we have - needs to be initialized after
@@ -104,6 +74,40 @@ void main (string[] args)
         new SyncAdmin,
         new IsotopeAdmin
     ];
+
+    // create a list of subcommand information
+    SubcommandInfo[] subcommands;
+    subcommands ~= SubcommandInfo ("init-db", "Initialize the database.");
+    subcommands ~= SubcommandInfo ("init", "Configure all modules.");
+    subcommands ~= SubcommandInfo ("config-set", "Set a global configuration option by its key.");
+    subcommands ~= SubcommandInfo ("random-name", "Generate a random memorizable string.");
+    foreach (ref tool; tools) {
+        subcommands ~= tool.toolInfo;
+    }
+
+    if (showHelp && args.length == 1) {
+        printHelpText (progname,
+                       helpSummary,
+                       helpDescription,
+                       subcommands,
+                       goRes.options);
+        return;
+    }
+
+    if (showVersion) {
+        printLaniakeaVersion ();
+        return;
+    }
+
+    if (args.length < 2) {
+        writeln ("No subcommand specified!");
+        return;
+    }
+
+    // globally enable verbose mode, if requested
+    if (verbose) {
+        laniakea.logging.setVerboseLog (true);
+    }
 
     immutable command = args[1];
     switch (command) {
@@ -148,9 +152,11 @@ void main (string[] args)
             break;
         default:
             foreach (ref tool; tools) {
-                if (command == tool.toolId) {
+                if (command == tool.toolInfo.name) {
                     if (args.length < 3) {
                         writeln ("Invalid number of parameters: You need to specify an action.");
+                        writeln ();
+                        tool.printHelp (progname);
                         exit (1);
                     }
 

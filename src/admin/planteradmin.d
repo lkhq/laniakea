@@ -32,9 +32,9 @@ import admin.admintool;
 final class PlanterAdmin : AdminTool
 {
     @property
-    override string toolId ()
+    override SubcommandInfo toolInfo ()
     {
-        return "planter";
+        return SubcommandInfo ("planter", "Configure the Germinator module.");
     }
 
     override
@@ -58,6 +58,12 @@ final class PlanterAdmin : AdminTool
         if (!ret)
             return 2;
         return 0;
+    }
+
+    override
+    void printHelp (string progname)
+    {
+        printHelpText (progname, toolInfo.summary, "???", [], [], toolInfo.name);
     }
 
     override
