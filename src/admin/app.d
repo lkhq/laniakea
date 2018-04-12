@@ -39,6 +39,7 @@ private immutable helpDescription = "Laniakea CLI administration.";
 
 void main (string[] args)
 {
+    static import std.getopt;
     bool verbose;
     bool showHelp;
     bool showVersion;
