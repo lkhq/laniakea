@@ -82,6 +82,12 @@ final class WebConfig
         auto session = sFactory.openSession ();
         scope (exit) session.close ();
         ginfo.suites = session.getSuites ();
+
+        // cache architectures (maybe we should leave the session open instead?)
+        foreach (ref s; ginfo.suites) {
+            s.primaryArchitecture ();
+        }
+
     }
 
     @trusted

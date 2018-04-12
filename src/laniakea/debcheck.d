@@ -74,8 +74,10 @@ class Debcheck
             }
         }
 
-        if (!nativeArchFound)
-            defaultNativeArch = suite.architectures[0].name;
+        if (!nativeArchFound) {
+            if (suite.primaryArchitecture !is null)
+                defaultNativeArch = suite.primaryArchitecture.name;
+        }
 
         if (defaultNativeArch.empty)
             throw new Exception ("Unable to determine a valid default architecture.");

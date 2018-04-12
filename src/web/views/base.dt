@@ -81,11 +81,11 @@ html(lang='en')
                   | Dependency Check
                   span.fa.arrow
                 ul.nav.nav-second-level
-                  - foreach (suite; ginfo.suites)
+                  - foreach (ref s; ginfo.suites)
                     li
-                      a(href='/depcheck/#{suite.name}/binary')
+                      a(href='/depcheck/#{s.name}/binary/#{s.primaryArchitecture.name}')
                         i.fa.fa-bullseye.fa-fw
-                        | #{suite.name}
+                        | #{s.name}
               li.disabled
                 a(href='#')
                   i.fa.fa-tags.fa-fw
@@ -118,6 +118,9 @@ html(lang='en')
 
     //- Scripts
     script(src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js')
+    //script(src='https://code.jquery.com/jquery-3.2.1.slim.min.js', integrity='sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN', crossorigin='anonymous')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js', integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q', crossorigin='anonymous')
+
     script(src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js', integrity='sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa', crossorigin='anonymous')
     script(src='//cdnjs.cloudflare.com/ajax/libs/metisMenu/2.7.0/metisMenu.min.js')
     script(src='/js/laniakea.js')

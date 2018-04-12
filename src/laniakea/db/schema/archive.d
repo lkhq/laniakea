@@ -79,6 +79,23 @@ class ArchiveSuite
     {
         this.name = name;
     }
+
+    private ArchiveArchitecture _primaryArch;
+    auto primaryArchitecture () @trusted
+    {
+        if (_primaryArch !is null)
+            return _primaryArch;
+        if (architectures.length == 0)
+            return null;
+        _primaryArch = architectures[0];
+        foreach (ref arch; architectures) {
+            if (arch.name != "all") {
+                _primaryArch = arch;
+                break;
+            }
+        }
+        return _primaryArch;
+    }
 }
 
 /**

@@ -27,6 +27,7 @@ import vibe.http.router;
 import vibe.http.server;
 import vibe.utils.validation;
 import vibe.web.web;
+import containers : HashMap;
 
 import laniakea.db;
 
@@ -41,6 +42,7 @@ class DepcheckWebService {
         Database db;
 
         immutable issuesPerPage = 100;
+        HashMap!(string, ArchiveSuite) suitesMap;
     }
 
     this (WebConfig conf)
@@ -48,9 +50,12 @@ class DepcheckWebService {
         wconf = conf;
         db = wconf.db;
         ginfo = wconf.ginfo;
+
+        foreach (ref s; ginfo.suites)
+            suitesMap[s.name] = s;
     }
 
-    @path(":suite/:type/:page")
+    @path(":suite/:type/:arch/:page")
  	void getIssueList (HTTPServerRequest req, HTTPServerResponse res)
  	{
         import std.math : ceil;
@@ -58,12 +63,17 @@ class DepcheckWebService {
 
         immutable suiteName = req.params.get ("suite");
         immutable packageKindStr = req.params.get ("type");
+        immutable archName = req.params.get ("arch");
         PackageType packageKind;
         if (packageKindStr == "binary")
             packageKind = PackageType.BINARY;
         else if (packageKindStr == "source")
             packageKind = PackageType.SOURCE;
         else
+            return; // Not found
+
+        auto suite = suitesMap.get (suiteName, null);
+        if (suite is null)
             return; // Not found
 
         uint currentPage = 1;
@@ -83,9 +93,11 @@ class DepcheckWebService {
         auto q = session.createQuery ("FROM DebcheckIssue
                                        WHERE suiteName=:suite
                                          AND packageKind_i=:kind
+                                         AND architecture=:arch
                                        ORDER BY packageName")
                         .setParameter ("suite", suiteName)
-                        .setParameter ("kind", packageKind.to!short);
+                        .setParameter ("kind", packageKind.to!short)
+                        .setParameter ("arch", archName);
 
         // FIXME: Hibernated doesn't seem to support LIMIT/OFFSET...
         const allIssues = q.list!DebcheckIssue;
@@ -95,17 +107,17 @@ class DepcheckWebService {
         const DebcheckIssue[] issues = issuesCount > 0? allIssues[(currentPage - 1) * issuesPerPage .. $].take (issuesPerPage) : [];
 
         render!("depcheck/issues.dt", ginfo,
-                suiteName, packageKind, issues,
+                suite, packageKind, issues,
                 pageCount, currentPage);
  	}
 
-    @path(":suite/:type")
+    @path(":suite/:type/:arch")
     void getIssueListPageOne (HTTPServerRequest req, HTTPServerResponse res)
  	{
-        res.redirect (req.params["type"] ~ "/1");
+        res.redirect (req.params["arch"] ~ "/1");
     }
 
-    @path(":suite/:type/:packageName/:packageVersion")
+    @path("details/:suite/:type/:packageName/:packageVersion")
  	void getDependencyIssueDetails (HTTPServerRequest req, HTTPServerResponse res)
  	{
         immutable suiteName = req.params.get("suite");

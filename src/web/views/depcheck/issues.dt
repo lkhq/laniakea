@@ -1,10 +1,10 @@
 extends base
 
 block head
-    - auto title = "Depcheck Issues in " ~ suiteName;
+    - auto title = "Depcheck Issues in " ~ suite.name;
 
 block contents
-    h1 Package Dependency Issues for #{suiteName}
+    h1 Package Dependency Issues for #{suite.name}
 
     - import laniakea.db.schema.debcheck;
     - import std.array : empty, join;
@@ -24,6 +24,13 @@ block contents
                 .alert.alert-success(role='alert')
                     span.fa.fa-check(aria-hidden='true')
                     |  We have found no problems. Great!
+
+            .dropdown
+                button#archSelectButton.btn.btn-secondary.dropdown-toggle(type='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false')
+                    | Architecture
+                .dropdown-menu(aria-labelledby='archSelectButton')
+                    - foreach (ref a; suite.architectures)
+                        a.dropdown-item(href='../#{a.name}/1') #{a.name}
 
             .list-group
                 - foreach (issue; issues)
