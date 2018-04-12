@@ -3,15 +3,14 @@ extends base
 block head
     - auto title = "Overview";
 
-block pre_contents
-    .jumbotron
-        h1 Laniakea Web
-        p
-        | This is just a technical demo. It doesn't do much yet.
-        p
-        //a.btn.btn-primary.btn-lg(href='#', role='button') Learn more &raquo;
-
 block contents
-    h1 Latest changes
+    .d-flex.justify-content-between.flex-wrap.flex-md-nowrap.align-items-center.pt-3.pb-2.mb-3.border-bottom
+        h1.h2 Laniakea Web
+        .btn-toolbar.mb-2.mb-md-0
+            .btn-group.mr-2
+            button.btn.btn-sm.btn-outline-secondary Report Bug
+            button.btn.btn-sm.btn-outline-secondary Software
+
+    h3 Latest changes
 
     p Not implemented.

@@ -6,8 +6,9 @@ block head
 block contents
     - import std.array : empty;
 
-    h1
-        | Synchronization information
+    .d-flex.justify-content-between.flex-wrap.flex-md-nowrap.align-items-center.pt-3.pb-2.mb-3.border-bottom
+        h1.h2 Synchronization information
+
         .dropdown(style='float: right;')
             button#dropdownMenu1.btn.btn-default.dropdown-toggle.pull-right(type='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false')
                 i.fa.fa-cogs(aria-hidden='true')

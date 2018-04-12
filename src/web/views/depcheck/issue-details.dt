@@ -11,10 +11,11 @@ block head
 
 block contents
     - import std.array : empty;
-    - if (packageKind == PackageType.SOURCE)
-        h2 Build dependency issues for: #{issue.packageName} #{issue.packageVersion}
-    - else
-        h2 Dependency issues for: #{issue.packageName} #{issue.packageVersion}
+    .d-flex.justify-content-between.flex-wrap.flex-md-nowrap.align-items-center.pt-3.pb-2.mb-3.border-bottom
+        - if (packageKind == PackageType.SOURCE)
+            h1.h2 Build dependency issues for: #{issue.packageName} #{issue.packageVersion}
+        - else
+            h1.h2 Dependency issues for: #{issue.packageName} #{issue.packageVersion}
 
     br
     p Architecture:

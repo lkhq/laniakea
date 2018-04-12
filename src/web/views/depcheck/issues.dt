@@ -4,7 +4,8 @@ block head
     - auto title = "Depcheck Issues in " ~ suite.name;
 
 block contents
-    h1 Package Dependency Issues for #{suite.name}
+    .d-flex.justify-content-between.flex-wrap.flex-md-nowrap.align-items-center.pt-3.pb-2.mb-3.border-bottom
+        h1.h2 Package Dependency Issues for #{suite.name}
 
     - import laniakea.db.schema.debcheck;
     - import std.array : empty, join;

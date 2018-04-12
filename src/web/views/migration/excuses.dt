@@ -5,8 +5,8 @@ block head
 
 block contents
     - import std.array : empty;
-    h1 Package Migration Excuses
-
+    .d-flex.justify-content-between.flex-wrap.flex-md-nowrap.align-items-center.pt-3.pb-2.mb-3.border-bottom
+        h1.h2 Package Migration Excuses
 
     p These packages fail to migrate from the #{sourceSuite} suite to the #{targetSuite} suite.
     p Migration issues can happen for many reasons, most commonly a package failed to build on an architecture, will break other packages in the target suite or depends on packages which need to migrate first.

@@ -2,126 +2,88 @@ doctype html
 html(lang='en')
   head
     meta(charset='utf-8')
-    meta(http-equiv='X-UA-Compatible', content='IE=edge')
-    meta(name='viewport', content='width=device-width, initial-scale=1')
+    meta(name='viewport', content='width=device-width, initial-scale=1, shrink-to-fit=no')
     block head
     title #{title} - #{ginfo.serviceName}
-    link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css', integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u', crossorigin='anonymous')
+    link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css', integrity='sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4', crossorigin='anonymous')
+
     link(href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css", rel="stylesheet", integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN", crossorigin="anonymous")
-    link(rel='stylesheet', href='//cdnjs.cloudflare.com/ajax/libs/metisMenu/2.7.0/metisMenu.min.css')
     link(href='/css/laniakea.css', rel='stylesheet')
-    //if lt IE 9
-      script(src='https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js')
-      script(src='https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js')
+
   body
-    #wrapper
-      nav.navbar.navbar-inverse.navbar-fixed-top(role='navigation')
-        .navbar-header
-          a.navbar-brand(href='/') #{ginfo.serviceName}
-        |
-        button.navbar-toggle(type='button', data-toggle='collapse', data-target='.navbar-collapse')
-          span.sr-only Toggle navigation
-          span.icon-bar
-          span.icon-bar
-          span.icon-bar
-        ul.nav.navbar-nav.navbar-left.navbar-top-links
-          li
-            a(href='/')
-              i.fa.fa-home.fa-fw
-              |  Website
-        ul.nav.navbar-right.navbar-top-links
-          li.dropdown.navbar-inverse
-            a.dropdown-toggle(data-toggle='dropdown', href='#')
-              i.fa.fa-bell.fa-fw
-              b.caret
-            ul.dropdown-menu.dropdown-alerts
-              li.divider
-              li
-                a.text-center(href='#')
-                  strong See All Alerts
-                  i.fa.fa-angle-right
-        .navbar-default.sidebar(role='navigation')
-          .sidebar-nav.navbar-collapse
-            ul#side-menu.nav
-              li.sidebar-search
-                .input-group.custom-search-form
-                  input.form-control(type='text', placeholder='Search...')
-                  |
-                  span.input-group-btn
-                    button.btn.btn-primary(type='button')
-                      i.fa.fa-search
-              li
-                a(href='/')
+    nav.navbar.navbar-dark.fixed-top.bg-dark.flex-md-nowrap.p-0.shadow
+      a.navbar-brand.col-sm-3.col-md-2.mr-0(href='/') #{ginfo.serviceName}
+      input.form-control.form-control-dark.w-100(type='text', placeholder='Search', aria-label='Search')
+      ul.navbar-nav.px-3
+        li.nav-item.text-nowrap
+          a.nav-link(href='#') Sign in
+    .container-fluid
+      .row
+        nav.col-md-2.d-none.d-md-block.bg-light.sidebar
+          .sidebar-sticky
+            ul.nav.flex-column
+              li.nav-item
+                a.nav-link(href='/')
                   i.fa.fa-tasks.fa-fw
                   |  Overview
-              li.disabled
-                a(href='#')
+              li.nav-item
+                a.nav-link.disabled(href='#')
                   i.fa.fa-compass.fa-fw
                   | Transitions
-              li
-                a(href='#')
+              li.nav-item.dropdown
+                a#navMigrationDropdown.nav-link.dropdown-toggle(href='#', role='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false')
                   i.fa.fa-paper-plane.fa-fw
                   |  Migration
-                  span.fa.arrow
-                ul.nav.nav-second-level
+                .dropdown-menu(aria-labelledby='navMigrationDropdown')
                   - foreach (item; ginfo.migrations)
-                    li
-                      a(href='/migration/#{item.sourceSuite}/#{item.targetSuite}/excuses')
-                        i.fa.fa-key.fa-fw
-                        | #{item.sourceSuite}
-                        font.fa.fa-long-arrow-right
-                        | #{item.targetSuite}
-              li
-                a(href='/synchrotron/')
+                    a.dropdown-item(href='/migration/#{item.sourceSuite}/#{item.targetSuite}/excuses')
+                      i.fa.fa-key.fa-fw
+                      | #{item.sourceSuite}
+                      font.fa.fa-long-arrow-right
+                      | #{item.targetSuite}
+              li.nav-item
+                a.nav-link(href='/synchrotron/')
                   i.fa.fa-exchange.fa-fw
                   | Synchronization
-              li
-                a(href='#')
+              li.nav-item.dropdown
+                a#navDepcheckDropdown.nav-link.dropdown-toggle(href='#', role='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false')
                   i.fa.fa-puzzle-piece.fa-fw
-                  | Dependency Check
-                  span.fa.arrow
-                ul.nav.nav-second-level
+                  |  Dependency Check
+                .dropdown-menu(aria-labelledby='navDepcheckDropdown')
                   - foreach (ref s; ginfo.suites)
-                    li
-                      a(href='/depcheck/#{s.name}/binary/#{s.primaryArchitecture.name}')
-                        i.fa.fa-bullseye.fa-fw
-                        | #{s.name}
-              li.disabled
-                a(href='#')
+                    a.dropdown-item(href='/depcheck/#{s.name}/binary/#{s.primaryArchitecture.name}')
+                      i.fa.fa-bullseye.fa-fw
+                      | #{s.name}
+              li.nav-item
+                a.nav-link.disabled(href='#')
                   i.fa.fa-tags.fa-fw
                   | Package Seeds
-              li
-                a(href='/isoimages/')
+              li.nav-item
+                a.nav-link(href='/isoimages/')
                   i.fa.fa-hdd-o.fa-fw
                   | Image Build
-              li
-                a(href='/jobs/queue/1')
+              li.nav-item
+                a.nav-link(href='/jobs/queue/1')
                   i.fa.fa-clock-o.fa-fw
                   | Job Queue
-              li
-                a(href='/workers/')
+              li.nav-item
+                a.nav-link(href='/workers/')
                   i.fa.fa-server.fa-fw
                   | Workers
-      #page-wrapper
-        block pre_contents
-        .container-fluid
-          .row
-            .col-lg-12
-              br
-              block contents
-          hr
-          footer
-            p
-              small
-                | Powered by
-                a(href='https://github.com/lkorigin/laniakea') laniakea-web
+
+        main.col-md-9.ml-sm-auto.col-lg-10.px-4(role='main')
+          block contents
+
+    footer
+      p
+        small
+          | Powered by
+          a(href='https://github.com/lkorigin/laniakea') laniakea-web
 
     //- Scripts
-    script(src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js')
-    //script(src='https://code.jquery.com/jquery-3.2.1.slim.min.js', integrity='sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN', crossorigin='anonymous')
-    script(src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js', integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q', crossorigin='anonymous')
+    script(src='https://code.jquery.com/jquery-3.3.1.slim.min.js', integrity='sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo', crossorigin='anonymous')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js', integrity='sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ', crossorigin='anonymous')
+    script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js', integrity='sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm', crossorigin='anonymous')
 
-    script(src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js', integrity='sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa', crossorigin='anonymous')
-    script(src='//cdnjs.cloudflare.com/ajax/libs/metisMenu/2.7.0/metisMenu.min.js')
     script(src='/js/laniakea.js')
     block scripts
