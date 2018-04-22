@@ -51,6 +51,9 @@ final class BaseAdmin : AdminTool
             case "dump":
                 baseDumpConfig ();
                 break;
+            case "add-suite":
+                addNewSuite ();
+                break;
             default:
                 writeln ("The command '%s' is unknown.".format (command));
                 return 1;
@@ -98,56 +101,7 @@ final class BaseAdmin : AdminTool
 
         bool addSuite = true;
         while (addSuite) {
-            import std.algorithm : canFind;
-
-            writeQS ("Adding a new suite. Please set a name");
-            auto suiteName = readString ();
-
-            auto suite = session.createQuery ("FROM ArchiveSuite WHERE name=:sname")
-                                .setParameter ("sname", suiteName)
-                                .uniqueResult!ArchiveSuite;
-            if (suite !is null)
-                session.remove (suite);
-            suite = new ArchiveSuite;
-            suite.repo = repo;
-            suite.name = suiteName;
-
-            writeQS ("List of components for suite '%s'".format (suite.name));
-            auto componentsList = readList ();
-            auto addMainDep = false;
-            addMainDep = componentsList.canFind ("main");
-            foreach (ref cname; componentsList) {
-                auto c = session.createQuery ("FROM ArchiveComponent WHERE name=:cname")
-                                .setParameter ("cname", cname)
-                                .uniqueResult!ArchiveComponent;
-                if (c is null) {
-                    c = new ArchiveComponent;
-                    c.name = cname;
-                    session.save (c);
-                }
-
-                if (addMainDep && c.name != "main")
-                    c.dependencies ~= "main";
-                suite.components ~= c;
-            }
-
-            writeQS ("List of architectures for suite '%s'".format (suite.name));
-            // every suite has the "all" architecture, so add it straight away
-            auto selectedArchs = ["all"] ~ readList ();
-            foreach (archName; selectedArchs) {
-                auto arch = session.createQuery ("FROM ArchiveArchitecture WHERE name=:aname")
-                                   .setParameter ("aname", archName)
-                                   .uniqueResult!ArchiveArchitecture;
-                if (arch is null) {
-                    arch = new ArchiveArchitecture;
-                    arch.name = archName;
-                    session.save (arch);
-                }
-
-                suite.architectures ~= arch;
-            }
-
-            session.save (suite);
+            addNewSuite (repo);
 
             writeQB ("Add another suite?");
             addSuite = readBool ();
@@ -166,6 +120,85 @@ final class BaseAdmin : AdminTool
         db.update (bconf);
 
         return true;
+    }
+
+    /**
+     * Interactively register a new suite.
+     */
+    void addNewSuite (ArchiveRepository repo = null)
+    {
+        import std.algorithm : canFind;
+        import std.string : strip;
+        import std.array : empty;
+
+        auto factory = db.newSessionFactory ();
+        auto session = factory.openSession();
+        scope (exit) session.close();
+
+        if (repo is null) {
+            repo = session.createQuery ("FROM ArchiveRepository WHERE name=:rname")
+                            .setParameter ("rname", "master")
+                            .uniqueResult!ArchiveRepository;
+            if (repo is null) {
+                repo = new ArchiveRepository;
+                repo.name = "master";
+                session.save (repo);
+            }
+        }
+
+        writeQS ("Adding a new suite. Please set a name");
+        auto suiteName = readString ();
+
+        auto suite = session.createQuery ("FROM ArchiveSuite WHERE name=:sname")
+                            .setParameter ("sname", suiteName)
+                            .uniqueResult!ArchiveSuite;
+        if (suite !is null)
+            session.remove (suite);
+        suite = new ArchiveSuite;
+        suite.repo = repo;
+        suite.name = suiteName;
+
+        writeQS ("List of components for suite '%s'".format (suite.name));
+        auto componentsList = readList ();
+        auto addMainDep = false;
+        addMainDep = componentsList.canFind ("main");
+        foreach (ref cname; componentsList) {
+            auto c = session.createQuery ("FROM ArchiveComponent WHERE name=:cname")
+                            .setParameter ("cname", cname)
+                            .uniqueResult!ArchiveComponent;
+            if (c is null) {
+                c = new ArchiveComponent;
+                c.name = cname;
+                session.save (c);
+            }
+
+            if (addMainDep && c.name != "main")
+                c.dependencies ~= "main";
+            suite.components ~= c;
+        }
+
+        writeQS ("List of architectures for suite '%s'".format (suite.name));
+        // every suite has the "all" architecture, so add it straight away
+        auto selectedArchs = ["all"] ~ readList ();
+        foreach (archName; selectedArchs) {
+            auto arch = session.createQuery ("FROM ArchiveArchitecture WHERE name=:aname")
+                                .setParameter ("aname", archName)
+                                .uniqueResult!ArchiveArchitecture;
+            if (arch is null) {
+                arch = new ArchiveArchitecture;
+                arch.name = archName;
+                session.save (arch);
+            }
+
+            suite.architectures ~= arch;
+        }
+
+        writeQS ("Set a name of the suite this suite is an overlay to. Leave empty for primary suite.");
+        auto baseSuiteName = readString ();
+        if (!baseSuiteName.strip.empty)
+            suite.baseSuiteName = baseSuiteName;
+
+        session.save (suite);
     }
 
     void baseDumpConfig ()
