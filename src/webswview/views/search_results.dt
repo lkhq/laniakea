@@ -12,4 +12,4 @@ block contents
       - immutable archName = (res.architecture is null)? "???" : res.architecture.name;
       a.list-group-item(href='/package/binary/#{res.suites[0].name}/#{res.name}')
         h4.list-group-item-heading #{res.name} - #{res.ver}
-        p.list-group-item-text #{res.suites[0].name}/#{res.component.name} - [#{archName}]
+        p.mb-1 #{res.suites[0].name}/#{res.component.name} - [#{archName}]

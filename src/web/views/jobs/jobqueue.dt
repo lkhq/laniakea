@@ -31,8 +31,8 @@ block contents
 
                     a.list-group-item(class='#{hlClass}', href='/jobs/#{job.uuid}')
                         h4.list-group-item-heading= job.title
-                        p.list-group-item-text Created: #{job.createdTime.getPastEventAge} ago
-                        p.list-group-item-text Architecture: #{job.architecture}
+                        p.mb-1 Created: #{job.createdTime.getPastEventAge} ago
+                        p.mb-1 Architecture: #{job.architecture}
 
 
     nav(aria-label='Page navigation')

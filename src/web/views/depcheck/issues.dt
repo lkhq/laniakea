@@ -12,11 +12,10 @@ block contents
     - import std.algorithm : map;
 
     ul.nav.nav-tabs
-        li(role='presentation', class='#{ (packageKind == PackageType.BINARY)? "active" : "" }')
-            a(href='../binary') Binary Packages
-        li(role='presentation', class='#{ (packageKind == PackageType.SOURCE)? "active" : "" }')
-            a(href='../source') Source Packages
-
+        li.nav-item
+            a.nav-link(href='../binary', class='#{ (packageKind == PackageType.BINARY)? "active" : "" }') Binary Packages
+        li.nav-item
+            a.nav-link(href='../source', class='#{ (packageKind == PackageType.SOURCE)? "active" : "" }') Source Packages
     br
 
     .row
@@ -37,11 +36,11 @@ block contents
                 - foreach (issue; issues)
                     a.list-group-item(href='#{issue.packageName}/#{issue.packageVersion}')
                         h4.list-group-item-heading= issue.packageName
-                        p.list-group-item-text Architecture: #{issue.architecture}
+                        p.mb-1 Architecture: #{issue.architecture}
                         - if (!issue.missing.empty)
-                            p.list-group-item-text Missing: #{issue.missing.map!(p => p.unsatDependency).join (" ")}
+                            p.mb-1 Missing: #{issue.missing.map!(p => p.unsatDependency).join (" ")}
                         - if (!issue.conflicts.empty)
-                            p.list-group-item-text Conflict: #{issue.conflicts.map!(c => c.pkg1.packageName ~ " vs. " ~ c.pkg2.packageName).join (", ")}
+                            p.mb-1 Conflict: #{issue.conflicts.map!(c => c.pkg1.packageName ~ " vs. " ~ c.pkg2.packageName).join (", ")}
 
 
     nav(aria-label='Page navigation')

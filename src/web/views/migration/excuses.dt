@@ -28,7 +28,7 @@ block contents
                         - hlClass = "list-group-item-warning";
                     a.list-group-item(class='#{hlClass}', href='#{entry.sourcePackage}/#{entry.newVersion}')
                         h4.list-group-item-heading= entry.sourcePackage
-                        p.list-group-item-text #{entry.oldVersion}
+                        p.mb-1 #{entry.oldVersion}
                             font.fa.fa-long-arrow-right
                             | #{entry.newVersion}
 

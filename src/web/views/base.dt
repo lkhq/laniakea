@@ -74,11 +74,18 @@ html(lang='en')
         main.col-md-9.ml-sm-auto.col-lg-10.px-4(role='main')
           block contents
 
-    footer
-      p
-        small
-          | Powered by
-          a(href='https://github.com/lkorigin/laniakea') laniakea-web
+    footer.text-muted
+      .container
+        br
+        br
+        p.float-right
+          small
+            a(href='#') Back to top
+        p
+          small
+            | Powered by
+            a(href='https://github.com/lkorigin/laniakea') laniakea-web
+            | .
 
     //- Scripts
     script(src='https://code.jquery.com/jquery-3.3.1.slim.min.js', integrity='sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo', crossorigin='anonymous')

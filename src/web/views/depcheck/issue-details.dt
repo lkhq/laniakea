@@ -30,7 +30,7 @@ block contents
                 - foreach (ref pkg; issue.missing)
                     li.list-group-item
                         h4.list-group-item-heading= pkg.unsatDependency
-                        p.list-group-item-text
+                        p.mb-1
                         | Required by: #{pkg.packageName}
                         br
                         | Version: #{pkg.packageVersion}
@@ -45,8 +45,8 @@ block contents
                 ul.list-group
                 - foreach (ref conflict; issue.conflicts)
                     h4= conflict.pkg1.packageName ~ " vs. " ~ conflict.pkg2.packageName
-                    .panel.panel-default
-                        .panel-body
+                    .card
+                        .card-body
                             // Package 1
                             h5 Package 1: #{conflict.pkg1.packageName} #{conflict.pkg1.packageVersion} on
                                 font.fa.fa-microchip

@@ -19,17 +19,17 @@ block contents
 
             - import laniakea.utils : getPastEventAge;
             - foreach (ref worker; workers)
-                .panel.panel-default
-                    .panel-heading
-                        h3.panel-title
+                .card
+                    .card-body
+                        h3.card-title
                             i.fa.fa-server(aria-hidden='true')
                             |  #{worker.machineName}
-                    .panel-body
-                        b ID:
-                        |  #{worker.uuid.toString}
-                        br
-                        b Owner:
-                        |  #{worker.owner.empty? "None set." : worker.owner}
-                        br
-                        b Last Ping:
-                        |  #{worker.lastPing.getPastEventAge} ago
+                        p.card-text
+                            b ID:
+                            |  #{worker.uuid.toString}
+                            br
+                            b Owner:
+                            |  #{worker.owner.empty? "None set." : worker.owner}
+                            br
+                            b Last Ping:
+                            |  #{worker.lastPing.getPastEventAge} ago
