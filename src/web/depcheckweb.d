@@ -108,7 +108,7 @@ class DepcheckWebService {
 
         render!("depcheck/issues.dt", ginfo,
                 suite, packageKind, issues,
-                pageCount, currentPage);
+                pageCount, currentPage, archName);
  	}
 
     @path(":suite/:type/:arch")

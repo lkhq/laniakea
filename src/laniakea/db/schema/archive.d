@@ -524,9 +524,8 @@ auto getSuites (Session session, string repo = "master") @trusted
 auto getPackageSuites (T) (Connection conn, string repoName, string name) @trusted
 {
     import std.array : appender;
+    import containers : OpenHashSet;
     static assert (is(T == SourcePackage) || is(T == BinaryPackage));
-
-    import std.algorithm : uniq, map;
 
     static if (is(T == SourcePackage)) {
         enum entityTabName = "archive_src_package";
@@ -550,14 +549,14 @@ auto getPackageSuites (T) (Connection conn, string repoName, string name) @trust
     auto rs = ps.executeQuery ();
     rs.first ();
 
-    auto suiteNames = appender!(string[]);
+    OpenHashSet!string suiteNames;
     if (rs.getFetchSize > 0) {
         do {
-            suiteNames ~= rs.getString (2);
+            suiteNames.insert (rs.getString (2));
         } while (rs.next ());
     }
 
-    return suiteNames.data.uniq;
+    return suiteNames;
 }
 
 /**

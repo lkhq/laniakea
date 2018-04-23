@@ -13,24 +13,25 @@ block contents
 
     ul.nav.nav-tabs
         li.nav-item
-            a.nav-link(href='../binary', class='#{ (packageKind == PackageType.BINARY)? "active" : "" }') Binary Packages
+            a.nav-link(href='../../binary/#{archName}/', class='#{ (packageKind == PackageType.BINARY)? "active" : "" }') Binary Packages
         li.nav-item
-            a.nav-link(href='../source', class='#{ (packageKind == PackageType.SOURCE)? "active" : "" }') Source Packages
+            a.nav-link(href='../../source/#{archName}/', class='#{ (packageKind == PackageType.SOURCE)? "active" : "" }') Source Packages
     br
 
     .row
         .col-md-8
-            - if (issues.empty)
-                .alert.alert-success(role='alert')
-                    span.fa.fa-check(aria-hidden='true')
-                    |  We have found no problems. Great!
-
             .dropdown
                 button#archSelectButton.btn.btn-secondary.dropdown-toggle(type='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false')
                     | Architecture
                 .dropdown-menu(aria-labelledby='archSelectButton')
                     - foreach (ref a; suite.architectures)
                         a.dropdown-item(href='../#{a.name}/1') #{a.name}
+            br
+
+            - if (issues.empty)
+                .alert.alert-success(role='alert')
+                    span.fa.fa-check(aria-hidden='true')
+                    |  We have found no problems. Great!
 
             .list-group
                 - foreach (issue; issues)
@@ -44,17 +45,17 @@ block contents
 
 
     nav(aria-label='Page navigation')
-        ul.pagination
-            li(class='#{(currentPage == 1)? "disabled" : ""}')
-                a(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
+        ul.pagination.pagination-sm.flex-wrap.justify-content-center
+            li.page-item(class='#{(currentPage == 1)? "disabled" : ""}')
+                a.page-link(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
                     span(aria-hidden='true') &laquo;
             - for (uint i = 1; i <= pageCount; i++)
                 - if (i == currentPage)
-                    li.active
-                        a(href='#{i}')= i
+                    li.page-item.active
+                        a.page-link(href='#{i}')= i
                 - else
-                    li
-                        a(href='#{i}')= i
-            li(class='#{(currentPage >= pageCount)? "disabled" : ""}')
-                a(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
+                    li.page-item
+                        a.page-link(href='#{i}')= i
+            li.page-item(class='#{(currentPage >= pageCount)? "disabled" : ""}')
+                a.page-link(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
                     span(aria-hidden='true') &raquo;

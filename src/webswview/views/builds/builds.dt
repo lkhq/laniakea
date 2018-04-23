@@ -35,17 +35,17 @@ block contents
 
 
         nav(aria-label='Page navigation')
-            ul.pagination
-                li(class='#{(currentPage == 1)? "disabled" : ""}')
-                    a(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
+            ul.pagination.pagination-sm.flex-wrap.justify-content-center
+                li.page-item(class='#{(currentPage == 1)? "disabled" : ""}')
+                    a.page-link(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
                         span(aria-hidden='true') &laquo;
                 - for (uint i = 1; i <= pageCount; i++)
                     - if (i == currentPage)
-                        li.active
-                            a(href='#{i}')= i
+                        li.page-item.active
+                            a.page-link(href='#{i}')= i
                     - else
-                        li
-                            a(href='#{i}')= i
-                li(class='#{(currentPage >= pageCount)? "disabled" : ""}')
-                    a(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
+                        li.page-item
+                            a.page-link(href='#{i}')= i
+                li.page-item(class='#{(currentPage >= pageCount)? "disabled" : ""}')
+                    a.page-link(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
                         span(aria-hidden='true') &raquo;
