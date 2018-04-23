@@ -96,6 +96,7 @@ block contents
     br
 
     h3 Log Excerpt
-    .well.well-sm
-        pre
-            code= job.latestLogExcerpt
+    .card
+        .card-body
+            pre
+                code= job.latestLogExcerpt

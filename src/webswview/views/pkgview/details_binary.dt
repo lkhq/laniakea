@@ -47,5 +47,5 @@ block contents
               - foreach (ref dep; pkg.depends)
                 li= dep
       |
-      .well
+      .card
         p Installed Size: #{pkg.installedSize}

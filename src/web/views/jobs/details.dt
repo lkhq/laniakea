@@ -79,8 +79,9 @@ block contents
     block pre_log
 
     h3 Log Excerpt
-    .well.well-sm
-        pre
-            code= job.latestLogExcerpt
+    .card
+        .card-body
+            pre
+                code= job.latestLogExcerpt
 
     block post_log

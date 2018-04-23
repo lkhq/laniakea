@@ -54,4 +54,4 @@ block contents
 
     - if (!excuse.reason.logExcerpt.empty)
         h3 Log Excerpt
-        pre.well= excuse.reason.logExcerpt
+        pre.card= excuse.reason.logExcerpt
