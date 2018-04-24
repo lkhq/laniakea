@@ -285,7 +285,7 @@ public:
             immutable pkgversion = tf.readField ("Version");
             if (!pkgname || !pkgversion) {
                 if (!tf.isEmpty)
-                    throw new Exception ("Found invalid block (no Package and Version fields) in Sources file.");
+                    throw new Exception ("Found invalid block (no Package and Version fields) in Sources file '%s'.".format (tf.fname));
                 logWarning ("Found empty Sources file in repository: %s", tf.fname);
                 break;
             }
@@ -434,7 +434,7 @@ public:
             auto pkgversion = tf.readField ("Version");
             if (!pkgname || !pkgversion) {
                 if (!tf.isEmpty)
-                    throw new Exception ("Found invalid block (no Package and Version fields) in Packages file.");
+                    throw new Exception ("Found invalid block (no Package and Version fields) in Packages file '%s'.".format (tf.fname));
                 logWarning ("Found empty Packages file in repository: %s", tf.fname);
                 break;
             }
