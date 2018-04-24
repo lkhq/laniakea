@@ -13,9 +13,9 @@ block contents
 
     ul.nav.nav-tabs
         li.nav-item
-            a.nav-link(href='../../binary/#{archName}/', class='#{ (packageKind == PackageType.BINARY)? "active" : "" }') Binary Packages
+            a.nav-link(href='../../binary/#{archName}/1', class='#{ (packageKind == PackageType.BINARY)? "active" : "" }') Binary Packages
         li.nav-item
-            a.nav-link(href='../../source/#{archName}/', class='#{ (packageKind == PackageType.SOURCE)? "active" : "" }') Source Packages
+            a.nav-link(href='../../source/#{archName}/1', class='#{ (packageKind == PackageType.SOURCE)? "active" : "" }') Source Packages
     br
 
     .row
