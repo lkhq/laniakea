@@ -43,12 +43,23 @@ private:
     HashMap!(string, string) currentBlock;
 
     string _fname;
+    bool _isEmpty;
 
 public:
 
     this () @trusted
     {
         currentBlock = HashMap!(string, string) (16);
+        _isEmpty = true;
+    }
+
+    /**
+     * Check if the file is empty, return true in that case.
+     */
+    @property
+    bool isEmpty () const
+    {
+        return this.isEmpty;
     }
 
     void open (string fname, Flag!"compressed" compressed = Yes.compressed) @trusted
@@ -78,6 +89,8 @@ public:
         content = data.splitLines ();
         pos = 0;
         readCurrentBlockData ();
+
+        _isEmpty = content.length <= 1;
     }
 
     void first () {
