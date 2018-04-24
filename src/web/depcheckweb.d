@@ -117,13 +117,14 @@ class DepcheckWebService {
         res.redirect (req.params["arch"] ~ "/1");
     }
 
-    @path("details/:suite/:type/:packageName/:packageVersion")
+    @path(":suite/:type/:arch/details/:packageName/:packageVersion")
  	void getDependencyIssueDetails (HTTPServerRequest req, HTTPServerResponse res)
  	{
         immutable suiteName = req.params.get("suite");
         immutable packageName = req.params.get("packageName");
         immutable packageVersion = req.params.get("packageVersion");
         immutable packageKindStr = req.params.get("type");
+        immutable archName       = req.params.get ("arch");
         PackageType packageKind;
         if (packageKindStr == "binary")
             packageKind = PackageType.BINARY;
@@ -140,11 +141,13 @@ class DepcheckWebService {
                                        WHERE suiteName=:suite
                                          AND packageKind_i=:kind
                                          AND packageName=:pkgname
-                                         AND packageVersion=:version")
+                                         AND packageVersion=:version
+                                         AND architecture=:arch")
                              .setParameter("suite", suiteName)
                              .setParameter("kind", packageKind.to!short)
                              .setParameter("pkgname", packageName)
                              .setParameter("version", packageVersion)
+                             .setParameter("arch", archName)
                              .uniqueResult!DebcheckIssue;
         if (issue is null)
             return;

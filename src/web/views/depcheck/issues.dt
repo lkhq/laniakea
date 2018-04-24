@@ -35,7 +35,7 @@ block contents
 
             .list-group
                 - foreach (issue; issues)
-                    a.list-group-item(href='#{issue.packageName}/#{issue.packageVersion}')
+                    a.list-group-item(href='details/#{issue.packageName}/#{issue.packageVersion}')
                         h4.list-group-item-heading= issue.packageName
                         p.mb-1 Architecture: #{issue.architecture}
                         - if (!issue.missing.empty)
