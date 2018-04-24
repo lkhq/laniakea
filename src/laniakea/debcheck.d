@@ -270,7 +270,11 @@ class Debcheck
 
         auto yroot = dyaml.Loader.fromString (yamlData.to!(char[])).load ();
         auto report = yroot["report"];
-        auto archAll = arch == "all";
+        immutable archAll = arch == "all";
+
+        // if the report is empty, we have no issues to generate and can quit
+        if (!report.isSequence || report.isNull)
+            return res.data;
 
         foreach (ref dyaml.Node entry; report) {
             auto issue = new DebcheckIssue;
