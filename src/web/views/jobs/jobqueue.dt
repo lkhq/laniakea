@@ -35,19 +35,19 @@ block contents
                         p.mb-1 Architecture: #{job.architecture}
 
 
-        br
-        nav(aria-label='Page navigation')
-            ul.pagination.pagination-sm.flex-wrap.justify-content-center
-                li.page-item(class='#{(currentPage == 1)? "disabled" : ""}')
-                    a.page-link(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
-                        span(aria-hidden='true') &laquo;
-                - for (uint i = 1; i <= pageCount; i++)
-                    - if (i == currentPage)
-                        li.page-item.active
-                            a.page-link(href='#{i}')= i
-                    - else
-                        li.page-item
-                            a.page-link(href='#{i}')= i
-                li.page-item(class='#{(currentPage >= pageCount)? "disabled" : ""}')
-                    a.page-link(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
-                        span(aria-hidden='true') &raquo;
+    br
+    nav(aria-label='Page navigation')
+        ul.pagination.pagination-sm.flex-wrap
+            li.page-item(class='#{(currentPage == 1)? "disabled" : ""}')
+                a.page-link(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
+                    span(aria-hidden='true') &laquo;
+            - for (uint i = 1; i <= pageCount; i++)
+                - if (i == currentPage)
+                    li.page-item.active
+                        a.page-link(href='#{i}')= i
+                - else
+                    li.page-item
+                        a.page-link(href='#{i}')= i
+            li.page-item(class='#{(currentPage >= pageCount)? "disabled" : ""}')
+                a.page-link(href='#{(currentPage >= pageCount)? "#" : (currentPage + 1).to!string}', aria-label='Next')
+                    span(aria-hidden='true') &raquo;

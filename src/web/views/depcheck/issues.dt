@@ -44,8 +44,9 @@ block contents
                             p.mb-1 Conflict: #{issue.conflicts.map!(c => c.pkg1.packageName ~ " vs. " ~ c.pkg2.packageName).join (", ")}
 
 
+    br
     nav(aria-label='Page navigation')
-        ul.pagination.pagination-sm.flex-wrap.justify-content-center
+        ul.pagination.pagination-sm.flex-wrap
             li.page-item(class='#{(currentPage == 1)? "disabled" : ""}')
                 a.page-link(href='#{(currentPage == 1)? "#" : (currentPage - 1).to!string}', aria-label='Previous')
                     span(aria-hidden='true') &laquo;
