@@ -59,7 +59,7 @@ public:
     @property
     bool isEmpty () const
     {
-        return this.isEmpty;
+        return this._isEmpty;
     }
 
     void open (string fname, Flag!"compressed" compressed = Yes.compressed) @trusted
