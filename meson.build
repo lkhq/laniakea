@@ -1,5 +1,5 @@
 project('Laniakea', 'd',
-    meson_version: '>=0.40.0',
+    meson_version: '>=0.46',
     subproject_dir: 'contrib/subprojects',
     license: 'GPL-3.0+',
     version: '0.1'
