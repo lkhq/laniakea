@@ -147,15 +147,15 @@ bool scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
  */
 void deleteOrphanedJobs (Connection conn, Session session, bool simulate)
 {
-    auto pendingJobs = getPendingJobs (conn, LkModule.ARIADNE, 0);
+    const pendingJobs = getPendingJobs (conn, LkModule.ARIADNE, 0);
     foreach (ref job; pendingJobs) {
-        auto spkg = session.getSourcePackageForJob (job);
+        const spkg = session.getSourcePackageForJob (job);
         if (spkg is null) {
             // we have no source package for this job, so this job is orphaned and can never be processed.
             // This happens if a job is scheduled for a package, and then the package is removed entirely from
             // all archive suites while the job has not finished yet.
             if (simulate)
-                logInfo ("Delete orphaned job for %s (%s)", spkg.stringId, job.uuid.toString);
+                logInfo ("Delete orphaned job: %s", job.uuid.toString);
             else
                 conn.deleteJob (job.uuid);
         }
@@ -182,7 +182,7 @@ bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, lon
         throw new Exception("No incoming suite is set in base config.");
     auto incomingSuite = session.getSuite (incomingSuiteName);
     if (incomingSuite is null)
-        throw new Exception("Incoming suite %s was not found in database.".format (incomingSuiteName));
+        throw new Exception ("Incoming suite %s was not found in database.".format (incomingSuiteName));
 
     auto srcPackages = session.getNewestSourcesIndex (incomingSuite);
 
@@ -244,7 +244,7 @@ bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, lon
     }
 
     // cleanup
-    conn.deleteOrphanedJobs (session, simulate);
+    deleteOrphanedJobs (conn, session, simulate);
 
     logDebug ("Scheduled %s build jobs.", scheduledCount);
 
