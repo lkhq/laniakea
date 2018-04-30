@@ -395,6 +395,29 @@ auto getPendingJobs (Connection conn, long limit, long offset = 0) @trusted
 }
 
 /**
+ * Get jobs that are not complete yet for a specific module @mod
+ */
+auto getPendingJobs (Connection conn, LkModule mod, long limit, long offset = 0) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE status != ? AND module = ?
+                                      ORDER BY priority, time_created DESC
+                                      LIMIT ? OFFSET ?");
+    scope (exit) ps.close ();
+
+    ps.setShort (1, JobStatus.DONE);
+    ps.setString (2, mod);
+    ps.setLong  (4, offset);
+
+    if (limit > 0)
+        ps.setLong  (3, limit);
+    else
+        ps.setLong  (3, long.max);
+
+    auto ans = ps.executeQuery ();
+    return rowsTo!Job (ans);
+}
+
+/**
  * Return the amount of jobs in the queue.
  */
 auto countPendingJobs (Connection conn) @trusted
@@ -486,6 +509,19 @@ bool setJobLogExcerpt (Connection conn, UUID jobId, string excerpt) @trusted
 
     ps.executeUpdate ();
     return true;
+}
+
+
+/**
+ * Remove a job from the database entirely.
+ */
+void deleteJob (Connection conn, UUID jobId) @trusted
+{
+    auto ps = conn.prepareStatement ("DELETE FROM jobs WHERE uuid=?");
+    scope (exit) ps.close ();
+
+    ps.setString (1, jobId.toString);
+    ps.executeUpdate ();
 }
 
 /**

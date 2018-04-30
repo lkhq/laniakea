@@ -142,6 +142,27 @@ bool scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
 }
 
 /**
+ * Clean up jobs thet were scheduled for source packages that have meanwhile been removed from
+ * the archive entirely.
+ */
+void deleteOrphanedJobs (Connection conn, Session session, bool simulate)
+{
+    auto pendingJobs = getPendingJobs (conn, LkModule.ARIADNE, 0);
+    foreach (ref job; pendingJobs) {
+        auto spkg = session.getSourcePackageForJob (job);
+        if (spkg is null) {
+            // we have no source package for this job, so this job is orphaned and can never be processed.
+            // This happens if a job is scheduled for a package, and then the package is removed entirely from
+            // all archive suites while the job has not finished yet.
+            if (simulate)
+                logInfo ("Delete orphaned job for %s (%s)", spkg.stringId, job.uuid.toString);
+            else
+                conn.deleteJob (job.uuid);
+        }
+    }
+}
+
+/**
  * Schedule builds for packages in the incoming suite.
  */
 bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, long limitCount = 0)
@@ -183,8 +204,7 @@ bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, lon
         logInfo ("Only scheduling maximally %s builds.", limitCount);
 
     long scheduledCount = 0;
-    foreach (ref spkg; srcPackages.byValue)
-    {
+    foreach (ref spkg; srcPackages.byValue) {
         // if the package is arch:all only, it needs a dedicated build job
         if (spkg.architectures.equal (["all"])) {
             if (archAll is null)
@@ -203,8 +223,7 @@ bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, lon
             continue;
         }
 
-        foreach (ref arch; incomingSuite.architectures)
-        {
+        foreach (ref arch; incomingSuite.architectures) {
             // The pseudo-architecture arch:all is treated specially
             if (arch.name == "all")
                 continue;
@@ -223,6 +242,9 @@ bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, lon
         if ((limitCount > 0) && (scheduledCount >= limitCount))
             break;
     }
+
+    // cleanup
+    conn.deleteOrphanedJobs (session, simulate);
 
     logDebug ("Scheduled %s build jobs.", scheduledCount);
 
