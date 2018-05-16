@@ -194,7 +194,7 @@ final class BaseAdmin : AdminTool
         }
 
         writeQS ("Set a name of the suite this suite is an overlay to. Leave empty for primary suite.");
-        auto baseSuiteName = readString ();
+        auto baseSuiteName = readString (true);
         if (!baseSuiteName.strip.empty)
             suite.baseSuiteName = baseSuiteName;
 

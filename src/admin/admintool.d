@@ -40,14 +40,16 @@ private:
 protected:
     Database db;
 
-    final string readString ()
+    final string readString (bool allowEmpty = false)
     {
-        import std.string;
-        import std.stdio;
+        import std.string : strip;
+        import std.stdio : readln, write;
         string s;
         do {
             s = readln ();
             s = s.strip;
+            if (allowEmpty)
+                break;
             if (s.empty)
                 write (m_currentMsg);
         } while (s.empty);
