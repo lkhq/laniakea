@@ -523,7 +523,8 @@ auto getSuites (Session session, string repo = "master") @trusted
 
 auto getPackageSuites (T) (Connection conn, string repoName, string name) @trusted
 {
-    import std.array : appender;
+    import std.array : appender, array;
+    import std.algorithm : sort;
     import containers : OpenHashSet;
     static assert (is(T == SourcePackage) || is(T == BinaryPackage));
 
@@ -556,7 +557,7 @@ auto getPackageSuites (T) (Connection conn, string repoName, string name) @trust
         } while (rs.next ());
     }
 
-    return suiteNames;
+    return array (suiteNames[]).sort;
 }
 
 /**
