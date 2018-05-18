@@ -200,6 +200,9 @@ public:
         immutable fakeDistsDir = getSourceSuiteDistsDir (miWorkspace, sourceSuites);
 
         foreach (ref component; targetSuite.components) {
+            import std.path : dirName;
+            import std.file : mkdirRecurse;
+
             foreach (ref arch; targetSuite.architectures) {
                 string[] packagesFiles;
                 foreach (ref sourceSuite; sourceSuites) {
@@ -207,12 +210,13 @@ public:
                                                  "dists",
                                                  sourceSuite.name,
                                                  component.name,
-                                                 "binary-%s".format (arch),
+                                                 "binary-%s".format (arch.name),
                                                  "Packages.xz");
 
-                    logDebug ("Looking for packages in: %s", pfile);
-                    if (pfile.exists)
+                    if (pfile.exists) {
+                        logDebug ("Looking for packages in: %s", pfile);
                         packagesFiles ~= pfile;
+                    }
                 }
 
                 if (packagesFiles.empty)
@@ -227,6 +231,7 @@ public:
                                                           "binary-%s".format (arch.name),
                                                           "Packages.xz");
                 logDebug ("Generating combined new fake packages file: %s", targetPackagesFile);
+                mkdirRecurse (targetPackagesFile.dirName);
                 auto data = appender!(ubyte[]);
                 foreach (fname; packagesFiles)
                     data ~= decompressFile (fname);
@@ -236,14 +241,15 @@ public:
             string[] sourcesFiles;
             foreach (ref sourceSuite; sourceSuites) {
                 immutable sfile = buildPath (archiveRootPath,
-                                            sourceSuite.name,
-                                            component.name,
-                                            "source",
-                                            "Sources.xz");
-
-                logDebug ("Looking for source packages in: %s", sfile);
-                if (sfile.exists)
+                                             "dists",
+                                             sourceSuite.name,
+                                             component.name,
+                                             "source",
+                                             "Sources.xz");
+                if (sfile.exists) {
+                    logDebug ("Looking for source packages in: %s", sfile);
                     sourcesFiles ~= sfile;
+                }
             }
 
             if (sourcesFiles.empty)
@@ -256,6 +262,7 @@ public:
                                                      "source",
                                                      "Sources.xz");
             logDebug ("Generating combined new fake sources file: %s", targetSourcesFile);
+            mkdirRecurse (targetSourcesFile.dirName);
             auto data = appender!(ubyte[]);
             foreach (fname; sourcesFiles)
                 data ~= decompressFile (fname);
