@@ -93,8 +93,8 @@ final class SpearsAdmin : AdminTool
         bool addMigration = true;
         while (addMigration) {
             SpearsConfigEntry migration;
-            writeQS ("Migrate from suite (source name)");
-            migration.sourceSuite = readString ();
+            writeQS ("Migrate from suites (source names)");
+            migration.sourceSuites = readList ();
 
             writeQS ("Migrate to suite (target name)");
             migration.targetSuite = readString ();
@@ -105,7 +105,7 @@ final class SpearsAdmin : AdminTool
                 migration.delays[prio] = delay;
             }
 
-            spconf.migrations ~= migration;
+            spconf.migrations[migration.migrationId] = migration;
 
             writeQB ("Add another migration task?");
             addMigration = readBool ();
@@ -124,6 +124,8 @@ final class SpearsAdmin : AdminTool
 
     void spearsAddHint (string sourceSuite, string targetSuite, string hint, string reason)
     {
+        import std.array : join;
+
         SpearsHint bhint;
         bhint.hint = hint;
         bhint.reason = reason;
@@ -131,7 +133,7 @@ final class SpearsAdmin : AdminTool
 
         auto spearsConf = db.getSpearsConfig ();
         foreach (ref migration; spearsConf.migrations) {
-            if ((migration.sourceSuite == sourceSuite) && (migration.targetSuite == targetSuite)) {
+            if ((migration.sourceSuites.join ("+") == sourceSuite) && (migration.targetSuite == targetSuite)) {
                 migration.hints ~= bhint;
 
                 db.update (spearsConf);
@@ -145,10 +147,11 @@ final class SpearsAdmin : AdminTool
     void spearsRemoveHint (string sourceSuite, string targetSuite, string hint)
     {
         import std.algorithm : remove;
+        import std.array : join;
 
         auto spearsConf = db.getSpearsConfig ();
         foreach (ref migration; spearsConf.migrations) {
-            if ((migration.sourceSuite == sourceSuite) && (migration.targetSuite == targetSuite)) {
+            if ((migration.sourceSuites.join ("+") == sourceSuite) && (migration.targetSuite == targetSuite)) {
                 for (uint i; i < migration.hints.length; i++) {
                     auto bhint = migration.hints[i];
                     if (bhint.hint == hint) {

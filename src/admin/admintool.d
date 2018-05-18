@@ -42,6 +42,7 @@ protected:
 
     final string readString (bool allowEmpty = false)
     {
+        import std.array : empty;
         import std.string : strip;
         import std.stdio : readln, write;
         string s;

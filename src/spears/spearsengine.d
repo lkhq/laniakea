@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2016-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -17,9 +17,9 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import std.array : empty, array;
+import std.array : empty, array, join;
 import std.string : format, startsWith, strip, split;
-import std.algorithm : canFind, map, filter;
+import std.algorithm : canFind, map, filter, sort;
 import std.path : buildPath, baseName, dirName;
 import std.array : appender;
 import std.typecons : Tuple;
@@ -73,21 +73,23 @@ public:
         std.file.mkdirRecurse (workspace);
     }
 
-    alias SuiteCheckResult = Tuple!(ArchiveSuite, "from", ArchiveSuite, "to", bool, "error");
+    alias SuiteCheckResult = Tuple!(ArchiveSuite[], "from", ArchiveSuite, "to", bool, "error");
     private SuiteCheckResult suitesFromConfigEntry (Session session, SpearsConfigEntry centry)
     {
         SuiteCheckResult res;
         res.error = false;
 
-        auto maybeSuite = session.getSuite (centry.sourceSuite);
-        if (maybeSuite is null) {
-            logError ("Migration source suite '%s' does not exist. Can not create configuration.", centry.sourceSuite);
-            res.error = true;
-            return res;
+        foreach (suiteName; centry.sourceSuites) {
+            auto maybeSuite = session.getSuite (suiteName);
+            if (maybeSuite is null) {
+                logError ("Migration source suite '%s' does not exist. Can not create configuration.", suiteName);
+                res.error = true;
+                return res;
+            }
+            res.from ~= maybeSuite;
         }
-        res.from = maybeSuite;
 
-        maybeSuite = session.getSuite (centry.targetSuite);
+        auto maybeSuite = session.getSuite (centry.targetSuite);
         if (maybeSuite is null) {
             logError ("Migration target suite '%s' does not exist. Can not create configuration.", centry.targetSuite);
             res.error = true;
@@ -95,8 +97,8 @@ public:
         }
         res.to = maybeSuite;
 
-        if (res.from == res.to) {
-            logError ("Migration source and target suite (%s) are the same.", res.from.name);
+        if (res.from.canFind (res.to)) {
+            logError ("Migration target suite (%s) is contained in source suite list.", res.to.name);
             res.error = true;
             return res;
         }
@@ -104,9 +106,41 @@ public:
         return res;
     }
 
-    private string getMigrateWorkspace (string suiteFrom, string suiteTo)
+    private string getMigrationId (ArchiveSuite[] suitesFrom, string suiteTo)
     {
-        return buildPath (workspace, "%s-to-%s".format (suiteFrom, suiteTo));
+        return "%s-to-%s".format (suitesFrom.map! (s => s.name).array.sort.join ("+"), suiteTo);
+    }
+
+    private string getMigrationName (ArchiveSuite[] suitesFrom, ArchiveSuite suiteTo)
+    {
+        return "%s -> %s".format (suitesFrom.map! (s => s.name).array.sort.join ("+"), suiteTo.name);
+    }
+
+    private string getMigrateWorkspace (ArchiveSuite[] suitesFrom, string suiteTo)
+    {
+        return buildPath (workspace, getMigrationId (suitesFrom, suiteTo));
+    }
+
+    /**
+     * If our source suite is a single suite, we can just use the archive's vanilla dists/
+     * directory as source of package information for Britnay.
+     * If we use Britney to migrate packages from two suites together however, we need
+     * an amalgamation of the two suites' Packages/Sources files, which resides in Britney's
+     * workspace directory.
+     * This function returns the correct dists/ path, depending on the case.
+     */
+    private string getSourceSuiteDistsDir (string miWorkspace, ArchiveSuite[] sourceSuites)
+    {
+        import std.file : mkdirRecurse;
+
+        if (sourceSuites.length == 1) {
+            immutable archiveRootPath = localConf.archive.rootPath;
+            return buildPath (archiveRootPath, "dists", sourceSuites[0].name);
+        }
+
+        auto distsDir = buildPath (miWorkspace, "input", "dists", sourceSuites.map! (s => s.name).join ("+"));
+        mkdirRecurse (distsDir);
+        return distsDir;
     }
 
     bool updateConfig ()
@@ -117,18 +151,19 @@ public:
         scope (exit) session.close ();
 
         immutable archiveRootPath = localConf.archive.rootPath;
-        foreach (ref mentry; spearsConf.migrations) {
+        foreach (ref mentry; spearsConf.migrations.byValue) {
             auto scRes = suitesFromConfigEntry (session, mentry);
             if (scRes.error)
                 continue;
-            auto fromSuite = scRes.from;
+            auto fromSuites = scRes.from;
             auto toSuite = scRes.to;
+            assert (fromSuites.length >= 1);
 
-            logInfo ("Refreshing Britney config for '%s -> %s'", fromSuite.name, toSuite.name);
-            immutable miWorkspace = getMigrateWorkspace (fromSuite.name, toSuite.name);
+            logInfo ("Refreshing Britney config for '%s'", getMigrationName (fromSuites, toSuite));
+            immutable miWorkspace = getMigrateWorkspace (fromSuites, toSuite.name);
             auto bc = new BritneyConfig (miWorkspace);
 
-            bc.setArchivePaths (buildPath (archiveRootPath, "dists", fromSuite.name),
+            bc.setArchivePaths (getSourceSuiteDistsDir (miWorkspace, fromSuites),
                                 buildPath (archiveRootPath, "dists", toSuite.name));
             bc.setComponents (map!(c => c.name)(toSuite.components[]).array);
             bc.setArchitectures (array (toSuite.architectures[]
@@ -144,6 +179,81 @@ public:
         britney.updateDist ();
 
         return true;
+    }
+
+    /**
+     * If there is more than one source suite, we need to give britney an amalgamation
+     * of the data of the two source suites.
+     * This function prepares this data.
+     */
+    private void prepareSourceData (string miWorkspace, ArchiveSuite[] sourceSuites, ArchiveSuite targetSuite)
+    {
+        import std.file : exists;
+        import laniakea.compressed : decompressFile, compressAndSave, ArchiveType;
+
+        // only one suite means we can use the suite's data directky
+        if (sourceSuites.length <= 1)
+            return;
+
+        immutable archiveRootPath = localConf.archive.rootPath;
+        immutable fakeDistsDir = getSourceSuiteDistsDir (miWorkspace, sourceSuites);
+
+        foreach (ref component; targetSuite.components) {
+            foreach (ref arch; targetSuite.architectures) {
+                string[] packagesFiles;
+                foreach (ref sourceSuite; sourceSuites) {
+                    immutable pfile = buildPath (archiveRootPath,
+                                                 "dists",
+                                                 sourceSuite.name,
+                                                 component.name,
+                                                 "binary-%s".format (arch),
+                                                 "Packages.xz");
+                    if (pfile.exists)
+                        packagesFiles ~= pfile;
+                }
+
+                if (packagesFiles.empty)
+                    throw new Exception ("No packages found on %s/%s in sources for migration '%s': Can not continue."
+                                             .format (component.name,
+                                                      arch.name,
+                                                      getMigrationId (sourceSuites, targetSuite.name)));
+
+                // create new merged Packages file
+                immutable targetPackagesFile = buildPath (fakeDistsDir,
+                                                          component.name,
+                                                          "binary-%s".format (arch.name),
+                                                          "Packages.xz");
+                auto data = appender!(ubyte[]);
+                foreach (fname; packagesFiles)
+                    data ~= decompressFile (fname);
+                compressAndSave (data.data, targetPackagesFile, ArchiveType.XZ);
+            }
+
+            string[] sourcesFiles;
+            foreach (ref sourceSuite; sourceSuites) {
+                immutable sfile = buildPath (archiveRootPath,
+                                            sourceSuite.name,
+                                            component.name,
+                                            "source",
+                                            "Sources.xz");
+                if (sfile.exists)
+                    sourcesFiles ~= sfile;
+            }
+
+            if (sourcesFiles.empty)
+                throw new Exception ("No source packages found in '%s' sources for migration '%s': Can not continue."
+                                     .format (component.name, getMigrationId (sourceSuites, targetSuite.name)));
+
+            // Create new merged Sources file
+            immutable targetSourcesFile = buildPath (fakeDistsDir,
+                                                     component.name,
+                                                     "source",
+                                                     "Sources.xz");
+            auto data = appender!(ubyte[]);
+            foreach (fname; sourcesFiles)
+                data ~= decompressFile (fname);
+            compressAndSave (data.data, targetSourcesFile, ArchiveType.XZ);
+        }
     }
 
     private void collectUrgencies (string miWorkspace)
@@ -256,7 +366,7 @@ public:
         return processedResult;
     }
 
-    private bool updateDatabase (Session session, string miWorkspace, ArchiveSuite fromSuite, ArchiveSuite toSuite)
+    private bool updateDatabase (Session session, string miWorkspace, ArchiveSuite[] fromSuites, ArchiveSuite toSuite)
     {
         import std.file : exists;
         import std.typecons : tuple;
@@ -272,30 +382,46 @@ public:
             return false;
         }
 
-        auto efile = new ExcusesFile (excusesYaml, logFile, fromSuite.name, toSuite.name);
+        ExcusesFile efile;
+        if (fromSuites.length <= 1)
+            efile = new ExcusesFile (excusesYaml, logFile, fromSuites[0].name, toSuite.name);
+        else
+            efile = new ExcusesFile (excusesYaml, logFile, null, toSuite.name);
+
+        // get a unique identifier for this migration task
+        immutable migrationId = getMigrationId (fromSuites, toSuite.name);
+
         // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
         // day, it needs to be optimized to just update stuff that is needed.
-        conn.removeSpearsExcusesForSuites (fromSuite.name, toSuite.name);
-        foreach (excuse; efile.getExcuses ().byValue) {
+        conn.removeSpearsExcusesForMigration (migrationId);
+
+        foreach (id, excuse; efile.getExcuses) {
             import std.uuid : randomUUID;
             excuse.uuid = randomUUID ();
+            excuse.migrationId = migrationId;
+
+            if (fromSuites.length > 1) {
+                assert (0, "Multiple source suites feature is not yet implemented!"); // TODO
+            }
+
             session.save (excuse);
         }
 
         return true;
     }
 
-    private bool runMigrationInternal (Session session, ArchiveSuite fromSuite, ArchiveSuite toSuite)
+    private bool runMigrationInternal (Session session, ArchiveSuite[] fromSuites, ArchiveSuite toSuite)
     {
-        immutable miWorkspace = getMigrateWorkspace (fromSuite.name, toSuite.name);
+        immutable miWorkspace = getMigrateWorkspace (fromSuites, toSuite.name);
         immutable britneyConf = buildPath (miWorkspace, "britney.conf");
         if (!std.file.exists (britneyConf)) {
-            logWarning ("No Britney config for migration run '%s -> %s' - maybe the configuration was not yet updated?", fromSuite.name, toSuite.name);
+            logWarning ("No Britney config for migration run '%s' - maybe the configuration was not yet updated?", getMigrationName (fromSuites, toSuite));
             return false;
         }
 
-        logInfo ("Migration run for '%s -> %s'", fromSuite.name, toSuite.name);
+        logInfo ("Migration run for '%s -> %s'", getMigrationName (fromSuites, toSuite));
         // ensure prerequisites are met and Britney is fed with all the data it needs
+        prepareSourceData (miWorkspace, fromSuites, toSuite);
         collectUrgencies (miWorkspace);
         setupDates (miWorkspace);
         setupVarious (miWorkspace);
@@ -308,11 +434,11 @@ public:
         auto ret = dak.setSuiteToBritneyResult (toSuite.name, heidiResult);
 
         // add the results to our database
-        ret = updateDatabase (session, miWorkspace, fromSuite, toSuite) && ret;
+        ret = updateDatabase (session, miWorkspace, fromSuites, toSuite) && ret;
         return ret;
     }
 
-    bool runMigration (string fromSuite, string toSuite)
+    bool runMigration (string fromSuiteStr, string toSuite)
     {
         bool done = false;
         bool ret = true;
@@ -321,7 +447,7 @@ public:
         scope (exit) session.close ();
 
         foreach (ref mentry; spearsConf.migrations) {
-            if ((mentry.sourceSuite == fromSuite) && (mentry.targetSuite == toSuite)) {
+            if ((mentry.sourceSuites.join ("+") == fromSuiteStr) && (mentry.targetSuite == toSuite)) {
                 auto scRes = suitesFromConfigEntry (session, mentry);
                 if (scRes.error)
                     continue;
@@ -332,7 +458,7 @@ public:
         }
 
         if (!done) {
-            logError ("Unable to find migration setup for '%s -> %s'", fromSuite, toSuite);
+            logError ("Unable to find migration setup for '%s -> %s'", fromSuiteStr, toSuite);
             return false;
         }
 

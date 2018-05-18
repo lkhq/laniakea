@@ -66,9 +66,9 @@ final class WebConfig
         baseConf = db.getBaseConfig;
 
         auto spearsConf = db.getSpearsConfig;
-        foreach (item; spearsConf.migrations) {
+        foreach (item; spearsConf.migrations.byValue) {
             GlobalInfo.MigrationsInfo minfo;
-            minfo.sourceSuite = item.sourceSuite;
+            minfo.sourceSuite = item.sourceSuitesId;
             minfo.targetSuite = item.targetSuite;
 
             ginfo.migrations ~= minfo;

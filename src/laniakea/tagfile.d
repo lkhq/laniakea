@@ -67,10 +67,10 @@ public:
         _fname = fname;
 
         if (compressed) {
-            auto data = decompressFile (fname);
+            auto data = decompressFileToString (fname);
             load (data);
         } else {
-            import std.stdio;
+            import std.stdio : File, readln;
 
             auto f = File (fname, "r");
             auto data = appender!string;

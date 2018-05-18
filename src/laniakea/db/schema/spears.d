@@ -44,18 +44,39 @@ struct SpearsHint
  */
 struct SpearsConfigEntry
 {
-    string sourceSuite; /// Name of the suite packages migrate from
-    string targetSuite; /// Name of the suite packages migrate to
+    string[] sourceSuites; /// Names of the suites packages migrate from
+    string targetSuite;    /// Name of the suite packages migrate to
 
     int[VersionPriority] delays;
     SpearsHint[] hints;
+
+    /**
+     * Get a string identifying the source suites packages are migrated from.
+     */
+    string sourceSuitesId ()
+    {
+        import std.algorithm : sort;
+        import std.array : join;
+
+        return sourceSuites.sort.join ("+");
+    }
+
+    /**
+     * Get a unique identifier for this migration task
+     */
+    string migrationId ()
+    {
+        import std.string : format;
+
+        return "%s-to-%s".format (this.sourceSuitesId, targetSuite);
+    }
 }
 
 /**
  * Basic project configuration
  **/
 struct SpearsConfig {
-    SpearsConfigEntry[] migrations;
+    SpearsConfigEntry[string] migrations;
 }
 
 /**
@@ -102,6 +123,8 @@ class SpearsExcuse {
     mixin UUIDProperty;
 
     DateTime date;        /// Time when this excuse was created
+
+    string migrationId;   /// Identifier for the respective migration task, in the form of "source1+source2-to-target"
 
     string sourceSuite;   /// Source suite of this package
     string targetSuite;   /// Target suite of this package
@@ -176,7 +199,7 @@ auto getSpearsConfig (Database db)
     scope (exit) db.dropConnection (conn);
 
     SpearsConfig conf;
-    conf.migrations = db.getConfigEntry!(SpearsConfigEntry[]) (conn, LkModule.SPEARS, "migrations");
+    conf.migrations = db.getConfigEntry!(SpearsConfigEntry[string]) (conn, LkModule.SPEARS, "migrations");
 
     return conf;
 }
@@ -189,6 +212,15 @@ void removeSpearsExcusesForSuites (Connection conn, string sourceSuite, string t
     ps.setString (1, sourceSuite);
     ps.setString (2, targetSuite);
 
+    ps.executeUpdate ();
+}
+
+void removeSpearsExcusesForMigration (Connection conn, string migrationId) @trusted
+{
+    auto ps = conn.prepareStatement ("DELETE FROM spears_excuse WHERE migration_id=?");
+    scope (exit) ps.close ();
+
+    ps.setString (1, migrationId);
     ps.executeUpdate ();
 }
 

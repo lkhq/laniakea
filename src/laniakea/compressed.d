@@ -83,7 +83,7 @@ private string readArchiveData (archive *ar, string name = null)
  * Decompress a file into memory and return the result as string.
  */
 @trusted
-string decompressFile (string fname)
+string decompressFileToString (string fname)
 {
     int ret;
 
@@ -99,6 +99,28 @@ string decompressFile (string fname)
         throw new Exception (format ("Unable to open compressed file '%s': %s", fname, fromStringz (archive_error_string (ar))));
 
     return readArchiveData (ar, fname);
+}
+
+/**
+ * Decompress a file into memory and return the result as bytes.
+ */
+@trusted
+ubyte[] decompressFile (string fname)
+{
+    int ret;
+
+    archive *ar = archive_read_new ();
+    scope(exit) archive_read_free (ar);
+
+    archive_read_support_format_raw (ar);
+    archive_read_support_format_empty (ar);
+    archive_read_support_filter_all (ar);
+
+    ret = archive_read_open_filename (ar, toStringz (fname), DEFAULT_BLOCK_SIZE);
+    if (ret != ARCHIVE_OK)
+        throw new Exception (format ("Unable to open compressed file '%s': %s", fname, fromStringz (archive_error_string (ar))));
+
+    return cast(ubyte[]) readArchiveData (ar, fname);
 }
 
 /**
