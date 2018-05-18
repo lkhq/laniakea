@@ -209,6 +209,8 @@ public:
                                                  component.name,
                                                  "binary-%s".format (arch),
                                                  "Packages.xz");
+
+                    logDebug ("Looking for packages in: %s", pfile);
                     if (pfile.exists)
                         packagesFiles ~= pfile;
                 }
@@ -224,6 +226,7 @@ public:
                                                           component.name,
                                                           "binary-%s".format (arch.name),
                                                           "Packages.xz");
+                logDebug ("Generating combined new fake packages file: %s", targetPackagesFile);
                 auto data = appender!(ubyte[]);
                 foreach (fname; packagesFiles)
                     data ~= decompressFile (fname);
@@ -237,6 +240,8 @@ public:
                                             component.name,
                                             "source",
                                             "Sources.xz");
+
+                logDebug ("Looking for source packages in: %s", sfile);
                 if (sfile.exists)
                     sourcesFiles ~= sfile;
             }
@@ -250,6 +255,7 @@ public:
                                                      component.name,
                                                      "source",
                                                      "Sources.xz");
+            logDebug ("Generating combined new fake sources file: %s", targetSourcesFile);
             auto data = appender!(ubyte[]);
             foreach (fname; sourcesFiles)
                 data ~= decompressFile (fname);
@@ -441,7 +447,7 @@ public:
             return false;
         }
 
-        logInfo ("Migration run for '%s -> %s'", getMigrationName (fromSuites, toSuite));
+        logInfo ("Migration run for '%s'", getMigrationName (fromSuites, toSuite));
         // ensure prerequisites are met and Britney is fed with all the data it needs
         prepareSourceData (miWorkspace, fromSuites, toSuite);
         collectUrgencies (miWorkspace);
