@@ -31,14 +31,8 @@ import laniakea.db;
  * template for rendering.
  */
 struct GlobalInfo {
-    struct MigrationsInfo {
-        string sourceSuite;
-        string targetSuite;
-    }
-
     string serviceName;
 
-    MigrationsInfo[] migrations;
     ArchiveSuite[] suites;
 }
 
@@ -64,15 +58,6 @@ final class WebConfig
         db = Database.get;
 
         baseConf = db.getBaseConfig;
-
-        auto spearsConf = db.getSpearsConfig;
-        foreach (item; spearsConf.migrations.byValue) {
-            GlobalInfo.MigrationsInfo minfo;
-            minfo.sourceSuite = item.sourceSuitesId;
-            minfo.targetSuite = item.targetSuite;
-
-            ginfo.migrations ~= minfo;
-        }
 
         // FIXME: This is dirty - the session is no longer alive when the suites
         // are accessed, so any attempt to access a lazy-loaded property will fail

@@ -30,17 +30,10 @@ html(lang='en')
                 a.nav-link.disabled(href='#')
                   i.fa.fa-compass.fa-fw
                   | Transitions
-              li.nav-item.dropdown
-                a#navMigrationDropdown.nav-link.dropdown-toggle(href='#', role='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false')
+              li.nav-item
+                a.nav-link(href='/migration/')
                   i.fa.fa-paper-plane.fa-fw
-                  |  Migration
-                .dropdown-menu(aria-labelledby='navMigrationDropdown')
-                  - foreach (item; ginfo.migrations)
-                    a.dropdown-item(href='/migration/#{item.sourceSuite}/#{item.targetSuite}/excuses')
-                      i.fa.fa-key.fa-fw
-                      | #{item.sourceSuite}
-                      font.fa.fa-long-arrow-right
-                      | #{item.targetSuite}
+                  | Migration
               li.nav-item
                 a.nav-link(href='/synchrotron/')
                   i.fa.fa-exchange.fa-fw

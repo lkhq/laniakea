@@ -237,3 +237,15 @@ long countSpearsExcusesForSuites (Connection conn, string sourceSuite, string ta
 
     return var.get!long;
 }
+
+long countSpearsExcusesForMigration (Connection conn, string migrationId) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM spears_excuse WHERE migration_id=?");
+    scope (exit) ps.close ();
+
+    ps.setString (1, migrationId);
+    Variant var;
+    ps.executeUpdate (var);
+
+    return var.get!long;
+}

@@ -41,6 +41,7 @@ class SpearsWebService {
         Database db;
         SessionFactory sFactory;
 
+        SpearsConfigEntry[string] migrationTasks;
         immutable excusesPerPage = 100;
     }
 
@@ -51,15 +52,24 @@ class SpearsWebService {
         ginfo = wconf.ginfo;
 
         sFactory = db.newSessionFactory! (SpearsExcuse);
+
+        auto spearsConf = db.getSpearsConfig;
+        migrationTasks = spearsConf.migrations;
     }
 
-    @path(":from/:to/excuses/:page")
+    @path("/")
+ 	void getMigrationOverview (HTTPServerRequest req, HTTPServerResponse res)
+ 	{
+        auto migrations = migrationTasks.byValue;
+        render!("migration/excuses.dt", ginfo, migrations);
+ 	}
+
+    @path(":migrationId/excuses/:page")
  	void getMigrationExcuses (HTTPServerRequest req, HTTPServerResponse res)
  	{
         import std.math : ceil;
         import std.range : take;
-        immutable sourceSuite = req.params["from"];
-        immutable targetSuite = req.params["to"];
+        immutable migrationId = req.params["migrationId"];
 
         uint currentPage = 1;
         immutable pageStr = req.params.get("page");
@@ -70,6 +80,11 @@ class SpearsWebService {
                 return; // not an integer, we can't continue
             }
         }
+
+        logDebug ("Hello! %s", migrationId);
+        if (migrationId !in migrationTasks)
+            return;
+        const migrationDetails = migrationTasks[migrationId];
 
         auto session = sFactory.openSession ();
         scope (exit) session.close ();
@@ -84,30 +99,28 @@ class SpearsWebService {
         immutable pageCount = ceil (excusesCount.to!real / excusesPerPage.to!real);
 
         auto q = session.createQuery ("FROM SpearsExcuse as e
-                                       WHERE sourceSuite=:srcSuite AND targetSuite=:dstSuite
+                                       WHERE migrationId=:mID
                                        ORDER BY sourcePackage")
-                        .setParameter("srcSuite", sourceSuite)
-                        .setParameter("dstSuite", targetSuite);
+                        .setParameter("mID", migrationId);
 
         // FIXME: Hibernated doesn't seem to support LIMIT/OFFSET...
         const excuses = (q.list!SpearsExcuse)[(currentPage - 1) * excusesPerPage .. $].take (excusesPerPage);
 
-        render!("migration/excuses.dt", ginfo,
+        render!("migration/excuses-list.dt", ginfo,
                 currentPage, pageCount,
-                sourceSuite, targetSuite, excuses);
+                migrationDetails, excuses);
  	}
 
-    @path(":from/:to/excuses")
+    @path(":migrationId/excuses")
  	void getMigrationExcusesPageOne (HTTPServerRequest req, HTTPServerResponse res)
  	{
         res.redirect ("excuses/1");
     }
 
-    @path(":from/:to/excuses/:source/:version")
+    @path(":migrationId/excuses/:source/:version")
     void getMigrationExcuseDetails (HTTPServerRequest req, HTTPServerResponse res)
     {
-        immutable sourceSuite = req.params["from"];
-        immutable targetSuite = req.params["to"];
+        immutable migrationId = req.params["migrationId"];
 
         immutable sourcePackage = req.params["source"];
         immutable newVersion = req.params["version"];
@@ -116,12 +129,10 @@ class SpearsWebService {
         scope (exit) session.close ();
 
         const excuse = session.createQuery ("FROM SpearsExcuse
-                                       WHERE sourceSuite=:srcSuite
-                                         AND targetSuite=:dstSuite
+                                       WHERE migrationId=:mID
                                          AND sourcePackage=:srcPkgname
                                          AND newVersion=:version")
-                              .setParameter("srcSuite", sourceSuite)
-                              .setParameter("dstSuite", targetSuite)
+                              .setParameter("mID", migrationId)
                               .setParameter("srcPkgname", sourcePackage)
                               .setParameter("version", newVersion)
                               .uniqueResult!SpearsExcuse;
