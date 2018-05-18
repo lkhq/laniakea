@@ -201,41 +201,46 @@ public:
 
         foreach (ref component; targetSuite.components) {
             import std.path : dirName;
-            import std.file : mkdirRecurse;
+            import std.file : mkdirRecurse, exists;
 
             foreach (ref arch; targetSuite.architectures) {
                 string[] packagesFiles;
-                foreach (ref sourceSuite; sourceSuites) {
-                    immutable pfile = buildPath (archiveRootPath,
-                                                 "dists",
-                                                 sourceSuite.name,
-                                                 component.name,
-                                                 "binary-%s".format (arch.name),
-                                                 "Packages.xz");
 
-                    if (pfile.exists) {
-                        logDebug ("Looking for packages in: %s", pfile);
-                        packagesFiles ~= pfile;
+                foreach (ref installerDir; ["", "debian-installer"]) {
+                    foreach (ref sourceSuite; sourceSuites) {
+                        immutable pfile = buildPath (archiveRootPath,
+                                                    "dists",
+                                                    sourceSuite.name,
+                                                    component.name,
+                                                    installerDir,
+                                                    "binary-%s".format (arch.name),
+                                                    "Packages.xz");
+
+                        if (pfile.exists) {
+                            logDebug ("Looking for packages in: %s", pfile);
+                            packagesFiles ~= pfile;
+                        }
                     }
+
+                    if (packagesFiles.empty && installerDir.empty)
+                        throw new Exception ("No packages found on %s/%s in sources for migration '%s': Can not continue."
+                                                .format (component.name,
+                                                        arch.name,
+                                                        getMigrationId (sourceSuites, targetSuite.name)));
+
+                    // create new merged Packages file
+                    immutable targetPackagesFile = buildPath (fakeDistsDir,
+                                                            component.name,
+                                                            installerDir,
+                                                            "binary-%s".format (arch.name),
+                                                            "Packages.xz");
+                    logDebug ("Generating combined new fake packages file: %s", targetPackagesFile);
+                    mkdirRecurse (targetPackagesFile.dirName);
+                    auto data = appender!(ubyte[]);
+                    foreach (fname; packagesFiles)
+                        data ~= decompressFile (fname);
+                    compressAndSave (data.data, targetPackagesFile, ArchiveType.XZ);
                 }
-
-                if (packagesFiles.empty)
-                    throw new Exception ("No packages found on %s/%s in sources for migration '%s': Can not continue."
-                                             .format (component.name,
-                                                      arch.name,
-                                                      getMigrationId (sourceSuites, targetSuite.name)));
-
-                // create new merged Packages file
-                immutable targetPackagesFile = buildPath (fakeDistsDir,
-                                                          component.name,
-                                                          "binary-%s".format (arch.name),
-                                                          "Packages.xz");
-                logDebug ("Generating combined new fake packages file: %s", targetPackagesFile);
-                mkdirRecurse (targetPackagesFile.dirName);
-                auto data = appender!(ubyte[]);
-                foreach (fname; packagesFiles)
-                    data ~= decompressFile (fname);
-                compressAndSave (data.data, targetPackagesFile, ArchiveType.XZ);
             }
 
             string[] sourcesFiles;
@@ -268,6 +273,19 @@ public:
                 data ~= decompressFile (fname);
             compressAndSave (data.data, targetSourcesFile, ArchiveType.XZ);
         }
+
+        // Britney needs a Release file to determine the source suites components and architectures.
+        // To keep things simple, we just copy one of the source Release files.
+        // TODO: Synthesis a dedicated file instead and be less lazy
+        immutable releaseFile = buildPath (archiveRootPath,
+                                                 "dists",
+                                                 sourceSuites[0].name,
+                                                 "Release");
+        immutable targetReleaseFile = buildPath (fakeDistsDir, "Release");
+        logDebug ("Using Release file for fake suite: %s", releaseFile);
+        if (targetReleaseFile.exists)
+            std.file.remove (targetReleaseFile);
+        std.file.copy (releaseFile, targetReleaseFile);
     }
 
     private void collectUrgencies (string miWorkspace)
