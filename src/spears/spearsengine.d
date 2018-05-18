@@ -23,6 +23,7 @@ import std.algorithm : canFind, map, filter, sort;
 import std.path : buildPath, baseName, dirName;
 import std.array : appender;
 import std.typecons : Tuple;
+import std.parallelism : parallel;
 static import std.file;
 import containers : HashMap;
 
@@ -203,7 +204,7 @@ public:
             import std.path : dirName;
             import std.file : mkdirRecurse, exists;
 
-            foreach (ref arch; targetSuite.architectures) {
+            foreach (arch; parallel (array (targetSuite.architectures))) {
                 string[] packagesFiles;
 
                 foreach (ref installerDir; ["", "debian-installer"]) {
@@ -454,8 +455,11 @@ public:
             excuse.uuid = randomUUID ();
             excuse.migrationId = migrationId;
 
-            if (!pkgSourceSuiteMap.empty)
+            if (!pkgSourceSuiteMap.empty) {
                 excuse.sourceSuite = pkgSourceSuiteMap.get (excuse.sourcePackage ~ "/" ~ excuse.newVersion, null);
+                if (excuse.sourceSuite is null)
+                    excuse.sourceSuite = pkgSourceSuiteMap.get (excuse.sourcePackage ~ "/" ~ excuse.oldVersion, "-");
+            }
 
             session.save (excuse);
         }
