@@ -53,50 +53,53 @@ block contents
               button.btn.btn-outline-warning(type='button', data-toggle='collapse', data-target='#collapseMigrations', aria-expanded='false', aria-controls='collapseMigrations')
                 | Show Migration Excuses
             #collapseMigrations.collapse
-              .card.card-body
+              .list-group
                 - foreach (excuse; migrationExcuses)
-                  h3 #{excuse.sourceSuite} ➙ #{excuse.targetSuite}
-                  p Is candidate:
-                    - if (excuse.isCandidate)
-                      font.fa.fa-check-circle(color='green')
-                    - else
-                      font.fa.fa-times-circle(color='red')
-                  h2 Age
-                  p Package is #{excuse.age.currentAge} days old (needed #{excuse.age.requiredAge})
+                  a.list-group-item.list-group-item-action.flex-column.align-items-start
+                    .d-flex.w-100.justify-content-between
+                      h5.mb-1 #{excuse.sourceSuite} ➙ #{excuse.targetSuite} / #{excuse.migrationId}
+                      small.text-muted
+                        - if (excuse.isCandidate)
+                          font.fa.fa-check-circle(color='green')
+                        - else
+                          font.fa.fa-times-circle(color='red')
 
-                  - if (!excuse.oldBinaries.empty)
-                    h2 Old cruft binaries
-                    - foreach (item; excuse.oldBinaries)
-                      p
-                        b= item.pkgVersion
+                    h6 Age
+                    p Package is #{excuse.age.currentAge} days old (needed #{excuse.age.requiredAge})
+
+                    - if (!excuse.oldBinaries.empty)
+                      h6 Old cruft binaries
+                      - foreach (item; excuse.oldBinaries)
+                        p
+                          b= item.pkgVersion
+                        ul
+                          - foreach (bin; item.binaries)
+                            li= bin
+
+                    - if (!excuse.reason.blockedBy.empty)
+                      h6 Blocked by
                       ul
-                        - foreach (bin; item.binaries)
-                          li= bin
+                        - foreach (pkgname; excuse.reason.blockedBy)
+                          li= pkgname
 
-                  - if (!excuse.reason.blockedBy.empty)
-                    h2 Blocked by
-                    ul
-                      - foreach (pkgname; excuse.reason.blockedBy)
-                        li= pkgname
+                    - if (!excuse.reason.migrateAfter.empty)
+                      h6 Waiting for
+                      ul
+                        - foreach (pkgname; excuse.reason.migrateAfter)
+                          li= pkgname
 
-                  - if (!excuse.reason.migrateAfter.empty)
-                    h2 Waiting for
-                    ul
-                      - foreach (pkgname; excuse.reason.migrateAfter)
-                        li= pkgname
+                    - if (excuse.reason.manualBlock.length > 0)
+                      h6 Explicit block requests
+                      ul
+                        - foreach (entity; excuse.reason.manualBlock.byKey)
+                          li= entity
 
-                  - if (excuse.reason.manualBlock.length > 0)
-                    h2 Explicit block requests
-                    ul
-                      - foreach (entity; excuse.reason.manualBlock.byKey)
-                        li= entity
+                    - if (!excuse.reason.other.empty)
+                      h6 Other reasons
+                      ul
+                        - foreach (msg; excuse.reason.other)
+                          li= msg
 
-                  - if (!excuse.reason.other.empty)
-                    h2 Other reasons
-                    ul
-                      - foreach (msg; excuse.reason.other)
-                        li= msg
-
-                  - if (!excuse.reason.logExcerpt.empty)
-                    h2 Log Excerpt
-                    pre.card= excuse.reason.logExcerpt
+                    - if (!excuse.reason.logExcerpt.empty)
+                      h6 Log Excerpt
+                      pre.card= excuse.reason.logExcerpt

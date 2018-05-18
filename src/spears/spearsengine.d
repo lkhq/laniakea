@@ -458,7 +458,7 @@ public:
             if (!pkgSourceSuiteMap.empty) {
                 excuse.sourceSuite = pkgSourceSuiteMap.get (excuse.sourcePackage ~ "/" ~ excuse.newVersion, null);
                 if (excuse.sourceSuite is null)
-                    excuse.sourceSuite = pkgSourceSuiteMap.get (excuse.sourcePackage ~ "/" ~ excuse.oldVersion, "-");
+                    excuse.sourceSuite = pkgSourceSuiteMap.get (excuse.sourcePackage ~ "/" ~ excuse.oldVersion, fromSuites[0].name);
             }
 
             session.save (excuse);
