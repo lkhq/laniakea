@@ -87,6 +87,9 @@ public:
         // updates but still allow removals to occur
         contents ~=  "SMOOTH_UPDATES = libs oldlibs";
         contents ~=  "IGNORE_CRUFT   = 1";
+
+        // we don't support autopkgtest yet
+        contents ~= "ADT_ENABLE      = no";
     }
 
     void setArchivePaths (string fromPath, string toPath)

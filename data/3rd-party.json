@@ -1,5 +1,5 @@
 {
   "Spears": {
-    "britneyGitRepository": "https://anonscm.debian.org/git/mirror/britney2.git"
+    "britneyGitRepository": "https://github.com/Debian/britney2.git"
   }
 }
