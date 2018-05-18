@@ -24,6 +24,7 @@ import std.path : buildPath, baseName, dirName;
 import std.array : appender;
 import std.typecons : Tuple;
 static import std.file;
+import containers : HashMap;
 
 import laniakea.repository.dak;
 import laniakea.db.schema.archive;
@@ -395,14 +396,35 @@ public:
         // day, it needs to be optimized to just update stuff that is needed.
         conn.removeSpearsExcusesForMigration (migrationId);
 
+        // read repository information to match packages to their source suites before adding
+        // their excuses to the database.
+        // This is only needed for multi-source-suite combined migrations, otherwise there is only one
+        // source suites packages can originate from.
+        auto pkgSourceSuiteMap = HashMap!(string, string) (32);
+        if (fromSuites.length > 1) {
+            import laniakea.repository : Repository;
+
+            // we need repository information to attribute packages to their right suites
+            auto repo = new Repository (localConf.archive.rootPath,
+                                        "master"); // FIXME: Use the correct repo vendor name here?
+            repo.setTrusted (true);
+
+            foreach (suite; fromSuites) {
+                foreach (component; suite.components) {
+                    foreach (spkg; repo.getSourcePackages (suite.name, component.name))
+                        pkgSourceSuiteMap[spkg.name ~ "/" ~ spkg.ver] = suite.name;
+                }
+            }
+        }
+
+        // add excuses to database
         foreach (id, excuse; efile.getExcuses) {
             import std.uuid : randomUUID;
             excuse.uuid = randomUUID ();
             excuse.migrationId = migrationId;
 
-            if (fromSuites.length > 1) {
-                assert (0, "Multiple source suites feature is not yet implemented!"); // TODO
-            }
+            if (!pkgSourceSuiteMap.empty)
+                excuse.sourceSuite = pkgSourceSuiteMap.get (excuse.sourcePackage ~ "/" ~ excuse.newVersion, null);
 
             session.save (excuse);
         }
