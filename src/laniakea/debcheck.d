@@ -244,8 +244,15 @@ class Debcheck
                                 doseArgs,
                                 indices.bg.map! (f => ("--bg=" ~ f)).array ~
                                 indices.fg.map! (f => ("--fg=" ~ f)).array);
-            if (!doseResult.success)
+            if (!doseResult.success) {
+                import std.array : join;
+                logError ("Dose command failed: %s",
+                            "dose-debcheck " ~
+                                doseArgs.join (" ") ~ " " ~
+                                indices.bg.map! (f => ("--bg=" ~ f)).array.join (" ") ~ " " ~
+                                indices.fg.map! (f => ("--fg=" ~ f)).array.join (" "));
                 throw new Exception ("Unable to run Dose for %s/%s: %s".format (suite.name, arch, doseResult.data));
+            }
             archIssueMap[arch] = doseResult.data;
         }
 
