@@ -81,7 +81,6 @@ class SpearsWebService {
             }
         }
 
-        logDebug ("Hello! %s", migrationId);
         if (migrationId !in migrationTasks)
             return;
         const migrationDetails = migrationTasks[migrationId];
@@ -91,7 +90,8 @@ class SpearsWebService {
         auto conn = db.getConnection ();
         scope (exit) db.dropConnection (conn);
 
-        auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM spears_excuse;");
+        auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM spears_excuse WHERE migration_id=?;");
+        ps.setString (1, migrationId);
         scope (exit) ps.close ();
         Variant v;
         ps.executeUpdate (v);
