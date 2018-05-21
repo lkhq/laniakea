@@ -32,6 +32,7 @@ import laniakea.db;
  */
 struct GlobalInfo {
     string serviceName;
+    string projectName;
 
     ArchiveSuite[] suites;
 }
@@ -82,6 +83,11 @@ final class WebConfig
         port = 8080;
         if ("Port" in jroot)
             port = jroot["Port"].to!ushort;
+
+
+        db = Database.get;
+        const baseConfig = db.getBaseConfig;
+        ginfo.projectName = baseConfig.projectName;
 
         m_loaded = true;
     }

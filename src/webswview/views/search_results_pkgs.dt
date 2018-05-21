@@ -1,12 +1,12 @@
 extends base
 
 block head
-  - auto title = "Search Results";
+  - auto title = "Package search results for " ~ searchTerm;
 
 block contents
-  h1 Results for search for '#{searchTerm}'
+  h1 Package search results for '#{searchTerm}'
 
-  h3 Binary Packages
+  h3.mt-md-5 Binary Packages
   .list-group
     - foreach (ref res; results)
       - immutable archName = (res.architecture is null)? "???" : res.architecture.name;

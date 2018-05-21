@@ -1,0 +1,13 @@
+extends base
+
+block head
+  - auto title = "Search results for " ~ searchTerm;
+
+block contents
+  h1 Search results for '#{searchTerm}'
+
+  .list-group.mt-md-5
+    - foreach (ref res; results)
+      a.list-group-item(href='/component/#{res.cid}/#{res.uuid}')
+        h4.list-group-item-heading #{res.name}
+        p.mb-1 #{res.summary}

@@ -452,7 +452,8 @@ class SoftwareComponent
     ASComponentKind kind; /// The component type
     mixin (EnumDatabaseField! ("kind", "kind", "ASComponentKind", true));
 
-    string cid; /// The component ID of this software
+    string cid;        /// The component ID of this software
+    @Null string gcid; /// The global component ID as used by appstream-generator
 
     string name;              /// Name of this component
     string summary;           /// Short description of this component
@@ -513,7 +514,9 @@ class SoftwareComponent
     public void updateUUID ()
     {
         import std.uuid : sha1UUID;
-        if (!xml.empty)
+        if (!gcid.empty)
+            this.uuid = sha1UUID (gcid);
+        else if (!xml.empty)
             this.uuid = sha1UUID (xml);
         else if (!yaml.empty)
             this.uuid = sha1UUID (yaml);
@@ -595,6 +598,10 @@ void createTables (Database db) @trusted
                          ON archive_bin_package (source_name, source_version)");
     stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS archive_bin_package_ftsearch
                          ON archive_bin_package USING GIN(to_tsvector('english', name || ' ' || description));");
+
+    // Indices for SoftwareComponent
+    stmt.executeUpdate ("CREATE INDEX IF NOT EXISTS archive_sw_component_ftsearch
+                         ON archive_sw_component USING GIN(to_tsvector('english', name || ' ' || summary || ' ' || description));");
 }
 
 auto getSuite (Session session, string name, string repo = "master") @trusted

@@ -75,12 +75,14 @@ final class SWWebIndex {
 		render!("home.dt", ginfo);
 	}
 
-    @method(HTTPMethod.GET) @path("/search")
+    @method(HTTPMethod.GET) @path("/search_pkg")
  	void getPackageSearch (HTTPServerRequest req, HTTPServerResponse res)
  	{
         immutable searchTerm = req.query["term"];
         if (searchTerm.empty)
             return;
+        if (searchTerm.length < 3)
+            return; // FIXME: Emit better error message than 404
 
         auto session = sFactory.openSession ();
         scope (exit) session.close ();
@@ -93,7 +95,33 @@ final class SWWebIndex {
         auto results = q.list!BinaryPackage;
 
         // FIXME: Combine the data and make it easier to use
-        render!("search_results.dt", ginfo, results, searchTerm);
+        render!("search_results_pkgs.dt", ginfo, results, searchTerm);
+ 	}
+
+    @method(HTTPMethod.GET) @path("/search_sw")
+ 	void getComponentSearch (HTTPServerRequest req, HTTPServerResponse res)
+ 	{
+        import std.array : replace;
+
+        immutable tmpSearchTerm = req.query["term"];
+        immutable searchTerm = tmpSearchTerm.replace ("<", "").replace ("<", "");
+        if (searchTerm.empty)
+            return;
+        if (searchTerm.length < 3)
+            return; // FIXME: Emit better error message than 404
+
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        auto q = session.createQuery ("FROM SoftwareComponent as cpt
+                                       WHERE (name LIKE :term) OR (summary LIKE :term) OR (description LIKE :term)
+                                       ORDER BY name")
+                        .setParameter("term", "%" ~ searchTerm ~ "%");
+
+        auto results = q.list!SoftwareComponent;
+
+        // FIXME: Combine the data and make it easier to use
+        render!("search_results_cpts.dt", ginfo, results, searchTerm);
  	}
 
     @path("/suites/")
