@@ -19,6 +19,10 @@ RUN apt-get install -yq --no-install-recommends \
     libcurl4-gnutls-dev \
     libczmq-dev \
     libarchive-dev \
+    libglib2.0-dev \
+    libgirepository1.0-dev \
+    libappstream-dev \
+    gir-to-d \
     libpq-dev \
     postgresql
 
