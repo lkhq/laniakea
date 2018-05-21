@@ -23,6 +23,11 @@ module laniakea.db.schema.archive;
 import laniakea.db.utils;
 import hibernated.core;
 
+import appstream.c.types : ComponentKind;
+import appstream.Component : Component;
+public alias ASComponent = Component;
+public alias ASComponentKind = ComponentKind;
+
 
 /**
  * A system architecture software can be compiled for.
@@ -367,6 +372,9 @@ class BinaryPackage
     ArchiveComponent component;         /// Component this package is in
     ArchiveRepository repo;             /// Repository this package is part of
 
+    @ManyToMany
+    LazyCollection!SoftwareComponent softwareComponents; /// The software components / AppStream components associated with this package
+
     ArchiveArchitecture architecture; /// Architecture this binary was built for
     int installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
 
@@ -430,6 +438,88 @@ class BinaryPackage
     }
 }
 
+/**
+ * Description of a software component as described by the AppStream
+ * specification.
+ */
+@Table("archive_sw_component")
+class SoftwareComponent
+{
+    import appstream.Metadata : Metadata;
+
+    mixin UUIDProperty;
+
+    ASComponentKind kind; /// The component type
+    mixin (EnumDatabaseField! ("kind", "kind", "ASComponentKind", true));
+
+    string cid; /// The component ID of this software
+
+    string name;              /// Name of this component
+    string summary;           /// Short description of this component
+    @Null string description; /// Description of this component
+
+    @Null string iconName;       /// Name of the primary cached icon of this component
+
+    @Null string projectLicense; /// License of this software
+    @Null string developerName;  /// Name of the developer of this software
+
+    string[] categories;      /// Categories this component is in
+    mixin (JsonDatabaseField! ("categories", "categories", "string[]"));
+
+    @ManyToMany
+    LazyCollection!BinaryPackage binPackages;
+
+    @Transient
+    ASComponent _cpt; /// The AppStream component this database entity represents
+
+    @Null string xml;  /// XML representation in AppStream collection XML for this component
+    @Null string yaml; /// YAML representation of the AppStream component data
+
+    alias _cpt this;
+
+    /**
+     * Load the actual AppStream component from stored XML or YAML data,
+     * using an existing AppStream metadata parser instance.
+     */
+    public void load (Metadata mdata) @trusted
+    {
+        import appstream.c.types : FormatStyle, FormatKind;
+
+        mdata.clearComponents ();
+        mdata.setFormatStyle (FormatStyle.COLLECTION);
+
+        if (!xml.empty)
+            mdata.parse (xml, FormatKind.XML);
+        else if (!yaml.empty)
+            mdata.parse (yaml, FormatKind.YAML);
+        else
+            throw new Exception("Can not load AppStream component from empty data.");
+
+        _cpt = mdata.getComponent ();
+    }
+
+    /**
+     * Load the actual AppStream component from stored XML or YAML data.
+     */
+    public void load () @trusted
+    {
+        auto mdata = new Metadata;
+        load (mdata);
+    }
+
+    /**
+     * Update the unique identifier for this component.
+     */
+    public void updateUUID ()
+    {
+        import std.uuid : sha1UUID;
+        if (!xml.empty)
+            this.uuid = sha1UUID (xml);
+        else if (!yaml.empty)
+            this.uuid = sha1UUID (yaml);
+    }
+}
+
 
 import laniakea.db.database : Database;
 import laniakea.db.schema.jobs : Job;
@@ -483,6 +573,11 @@ void createTables (Database db) @trusted
          ALTER COLUMN depends     TYPE JSONB USING depends::jsonb,
          ALTER COLUMN pre_depends TYPE JSONB USING pre_depends::jsonb,
          ALTER COLUMN file        TYPE JSONB USING file::jsonb;"
+    );
+
+    stmt.executeUpdate (
+        "ALTER TABLE archive_sw_component
+         ALTER COLUMN categories  TYPE JSONB USING categories::jsonb;"
     );
 
     // Indices for SourcePackage

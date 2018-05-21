@@ -267,6 +267,7 @@ public:
                                            ArchiveSuite,
                                            SourcePackage,
                                            BinaryPackage,
+                                           SoftwareComponent,
                                            T);
         return new SessionFactoryImpl (schema, dialect, dsource);
     }
@@ -284,7 +285,8 @@ public:
                                            ArchiveArchitecture,
                                            ArchiveSuite,
                                            SourcePackage,
-                                           BinaryPackage);
+                                           BinaryPackage,
+                                           SoftwareComponent);
         return new SessionFactoryImpl (schema, dialect, dsource);
     }
 }

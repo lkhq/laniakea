@@ -47,30 +47,31 @@ lk_base_deps = [crypto_dep,
                 ddbc_pg_dep,
                 hibernated_pg_dep,
                 vibe_core_dep,
-                vibe_data_dep
+                vibe_data_dep,
+                glib_dep,
+                appstream_dep
 ]
 
 laniakea_lib = static_library ('laniakea',
     [laniakea_lib_src],
     include_directories: [src_dir],
     link_with: [lk_cbind_lib],
-    dependencies: [lk_base_deps],
+    dependencies: [lk_base_deps, girbinding_dep],
     d_args: ['-J' + source_root + '/data/']
 )
 
 laniakea_shared_dep = declare_dependency(
     dependencies: [lk_base_deps],
     link_with: [laniakea_lib],
-    include_directories: [src_dir],
-
+    include_directories: [src_dir, gir_bind_dir],
 )
 
 # Test
 lk_shared_test_exe = executable ('lk_test_self-core',
     [laniakea_lib_src],
-    include_directories: [src_dir],
+    include_directories: [src_dir, gir_bind_dir],
     link_with: [lk_cbind_lib],
-    dependencies: [lk_base_deps],
+    dependencies: [lk_base_deps, girbinding_dep],
     d_args: d_unittest_args + ['-J' + source_root + '/data/'],
     link_args: '-main',
 )

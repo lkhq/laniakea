@@ -6,6 +6,7 @@ project('Laniakea', 'd',
 )
 
 source_root = meson.source_root()
+build_root  = meson.build_root()
 
 #
 # Dependencies
@@ -20,6 +21,9 @@ dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dco
 dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_dep'])
 fluentasserts_dep = dependency('fluent-asserts', version: '>= 0.6', fallback: ['fluent-asserts', 'fluentasserts_dep'])
 
+glib_dep = dependency('glib-2.0')
+appstream_dep = dependency('appstream')
+
 # Database
 ddbc_pg_dep = dependency('ddbc-pgsql', version: '>= 0.3.7', fallback: ['ddbc', 'ddbc_pg_dep'])
 hibernated_pg_dep = dependency('hibernated-pgsql', version: '>= 0.3.2', fallback: ['hibernated', 'hibernated_pg_dep'])
@@ -33,6 +37,11 @@ vibe_data_dep = dependency('vibe-data')
 #
 dc = meson.get_compiler('d')
 d_unittest_args = dc.unittest_args() # dc.feature_args(unittest: true)
+
+#
+# GIR wrapping
+#
+subdir('contrib/wrap')
 
 #
 # Lanikaea Modules

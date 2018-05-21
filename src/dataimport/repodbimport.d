@@ -20,11 +20,126 @@
 module datasync.repodbsync;
 @safe:
 
+import std.typecons : scoped;
+import std.array : empty, appender;
+import std.string : format;
+import std.algorithm : canFind;
+import std.path : buildPath;
+
 import laniakea.logging;
 import laniakea.localconfig;
 import laniakea.repository;
 import laniakea.db;
 import laniakea.db.schema.archive;
+
+
+private void experimental_SyncAppStreamData (Session session, Repository repo,
+                                            string suiteName, string componentName, string archName,
+                                            BinaryPackage[] binPackages) @trusted
+{
+    import appstream.c.types : FormatStyle, FormatKind, AsComponent, AsIcon, IconKind;
+    import appstream.Metadata : Metadata;
+    import laniakea.compressed : decompressFileToString;
+
+
+    immutable yamlFile = repo.getIndexFile (suiteName,
+                                            buildPath (componentName, "dep11", "Components-%s.yml.xz".format (archName)));
+    if (yamlFile.empty)
+        return;
+
+    immutable yamlCollectiondata = decompressFileToString (yamlFile);
+
+    auto mdata = new Metadata;
+    mdata.setLocale ("ALL");
+    mdata.setFormatStyle (FormatStyle.COLLECTION);
+    mdata.parse (yamlCollectiondata, FormatKind.YAML);
+
+    auto binPkgMap = getNewestPackagesMap (binPackages);
+
+    auto cptArr = mdata.getComponents;
+    if (cptArr.len == 0)
+        return;
+
+    logInfo ("Found %s software components in %s/%s", cptArr.len, suiteName, componentName);
+
+    auto tmpMdata = new Metadata;
+    tmpMdata.setLocale ("ALL");
+    tmpMdata.setFormatStyle (FormatStyle.COLLECTION);
+
+    for (uint i = 0; i < cptArr.len; i++) {
+        // cast array data to D Component and keep a reference to the C struct
+        auto cpt = scoped!ASComponent (cast (AsComponent*) cptArr.index (i));
+        cpt.setActiveLocale ("C");
+
+        immutable pkgname = cpt.getPkgname;
+        if (pkgname.empty) {
+            // we skip these for now, web-apps have no package assigned - we might need a better way to map
+            // those to their packages, likely with an improved appstream-generator integration
+            logDebug ("Found DEP-11 component without package name in %s/%s: %s", suiteName, componentName, cpt.getId);
+            continue;
+        }
+
+        auto dbCpt = new SoftwareComponent;
+        tmpMdata.clearComponents ();
+        tmpMdata.addComponent (cpt);
+        dbCpt.xml = tmpMdata.componentsToCollection (FormatKind.XML);
+        dbCpt.updateUUID ();
+
+        auto dbPkg = binPkgMap.get (cpt.getPkgname, null);
+        auto existingCpt = session.createQuery ("FROM SoftwareComponent
+                                                 WHERE uuid_s=:uuid")
+                           .setParameter("uuid", dbCpt.uuid_s).uniqueResult!SoftwareComponent;
+        if (existingCpt !is null) {
+            if (dbPkg !is null) {
+                if (!existingCpt.binPackages[].canFind (dbPkg)) {
+                    existingCpt.binPackages ~= dbPkg;
+                    session.update (existingCpt);
+                }
+            }
+            continue; // we already have this component, no need to add it again
+        }
+
+        if (dbPkg is null) {
+            logWarning ("Found orphaned DEP-11 component in %s/%s: %s", suiteName, componentName, cpt.getId);
+            continue;
+        }
+        dbCpt.binPackages ~= dbPkg;
+
+        dbCpt.kind = cpt.getKind;
+        dbCpt.cid = cpt.getId;
+        dbCpt.name = cpt.getName;
+        dbCpt.summary = cpt.getSummary;
+        dbCpt.description = cpt.getDescription;
+
+        auto iconsArr = cpt.getIcons ();
+        assert (iconsArr !is null);
+        for (uint j = 0; j < iconsArr.len; j++) {
+            import appstream.Icon : Icon;
+            auto icon = scoped!Icon (cast (AsIcon*) iconsArr.index (j));
+
+            if (icon.getKind () == IconKind.CACHED) {
+                dbCpt.iconName = icon.getName ();
+                break;
+            }
+        }
+
+        dbCpt.projectLicense = cpt.getProjectLicense;
+        dbCpt.developerName = cpt.getDeveloperName;
+
+        auto catArr = cpt.getCategories;
+        auto catAppender = appender!(string[]);
+        for (uint j = 0; j < catArr.len; j++) {
+            import std.string : fromStringz;
+            import std.conv : to;
+
+            catAppender ~=to!string ((cast(char*) catArr.index (j)).fromStringz);
+        }
+        dbCpt.categories = catAppender.data;
+
+        session.save (dbCpt);
+        logDebug ("Added new software component '%s' to database", dbCpt.cid);
+    }
+}
 
 bool syncRepoData (string suiteName, string repoName = "master") @trusted
 {
@@ -78,10 +193,26 @@ bool syncRepoData (string suiteName, string repoName = "master") @trusted
                 scope (exit) childSession.close ();
 
                 // binary packages
-                repo.getBinaryPackages (suite.name, component.name, arch.name, childSession, true);
+                auto binPackages = repo.getBinaryPackages (suite.name,
+                                                           component.name,
+                                                           arch.name,
+                                                           childSession,
+                                                           true);
 
                 // binary packages of the debian-installer
-                repo.getInstallerPackages (suite.name, component.name, arch.name, childSession, true);
+                repo.getInstallerPackages (suite.name,
+                                           component.name,
+                                           arch.name,
+                                           childSession,
+                                           true);
+
+                // Experimental AppStream netadata sync
+                experimental_SyncAppStreamData (session,
+                                                repo,
+                                                suite.name,
+                                                component.name,
+                                                arch.name,
+                                                binPackages);
 
                 exit (0);
             }
