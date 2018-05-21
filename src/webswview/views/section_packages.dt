@@ -1,0 +1,9 @@
+extends base
+
+block head
+    - auto title = "Packages in " ~ currentSuite ~ "/" ~ sectionName;
+
+block contents
+    h1 Packages in #{currentSuite}/#{sectionName}
+
+    .h4 Packages found: #{packageCount}

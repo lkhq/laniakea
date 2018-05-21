@@ -26,9 +26,9 @@ html(lang='en')
             li.nav-item
               a.nav-link(href='#') Packages
             li.nav-item
-              a.nav-link(href='#') Suites
+              a.nav-link(href='/suites/') Suites
             li.nav-item
-              a.nav-link(href='#') Search
+              a.nav-link(href='/') Search
     // Page Content
     .container
       br

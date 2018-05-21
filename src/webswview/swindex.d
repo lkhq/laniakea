@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2017-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -96,9 +96,49 @@ final class SWWebIndex {
         render!("search_results.dt", ginfo, results, searchTerm);
  	}
 
-    @path("/package_sections")
-    void getPackageSections ()
+    @path("/suites")
+    void getArchiveSuites ()
 	{
-		render!("package_sections.dt", ginfo, pkgSections);
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        auto suites = session.createQuery ("FROM ArchiveSuite
+                                       ORDER BY name")
+                                       .list!ArchiveSuite;
+
+		render!("archive_suites.dt", ginfo, suites, pkgSections);
+	}
+
+    @path("/suites/:suite/")
+    void getPackageSections (HTTPServerRequest req)
+	{
+        immutable currentSuite = req.params["suite"];
+        if (currentSuite.empty)
+            return;
+
+		render!("package_sections.dt", ginfo, currentSuite, pkgSections);
+	}
+
+    @path("/suites/:suite/:section/")
+    void getSectionPackages (HTTPServerRequest req)
+	{
+        immutable currentSuite = req.params["suite"];
+        immutable sectionName = req.params["section"];
+        if (currentSuite.empty)
+            return;
+        if (sectionName.empty)
+            return;
+
+        auto session = sFactory.openSession ();
+        scope (exit) session.close ();
+
+        auto binPackages = session.createQuery ("FROM BinaryPackage
+                                                 WHERE section=:sect
+                                                 ORDER BY name")
+                                  .setParameter("sect", sectionName)
+                                  .list!BinaryPackage;
+        immutable packageCount = binPackages.length;
+
+		render!("section_packages.dt", ginfo, currentSuite, sectionName, packageCount);
 	}
 }
