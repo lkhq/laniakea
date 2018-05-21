@@ -96,15 +96,15 @@ final class SWWebIndex {
         render!("search_results.dt", ginfo, results, searchTerm);
  	}
 
-    @path("/suites")
+    @path("/suites/")
     void getArchiveSuites ()
 	{
         auto session = sFactory.openSession ();
         scope (exit) session.close ();
 
         auto suites = session.createQuery ("FROM ArchiveSuite
-                                       ORDER BY name")
-                                       .list!ArchiveSuite;
+                                            ORDER BY name")
+                                          .list!ArchiveSuite;
 
 		render!("archive_suites.dt", ginfo, suites, pkgSections);
 	}

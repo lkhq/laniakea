@@ -13,6 +13,7 @@ lk_swview_src = [
     'webconfig.d',
     'swindex.d',
     'pkgview.d',
+    'cptview.d',
     'buildsview.d'
 ]
 

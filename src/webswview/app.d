@@ -31,6 +31,7 @@ import laniakea.localconfig;
 import webswview.webconfig;
 
 import webswview.swindex;
+import webswview.cptview;
 import webswview.pkgview;
 import webswview.buildsview;
 
@@ -63,6 +64,7 @@ shared static this ()
 
 	// Register individual service classes to the router
 	router.registerWebInterface (new SWWebIndex (wconf));
+    router.registerWebInterface (new ComponentView (wconf));
     router.registerWebInterface (new PackageView (wconf));
     router.registerWebInterface (new BuildsView (wconf));
 
