@@ -33,6 +33,8 @@ def find_include_dirs(source_root):
     incdirs.extend(glob.glob('/usr/lib/ldc/*/include/d/'))
     incdirs.extend(glob.glob('/usr/lib/ldc/*/include/d/ldc/'))
 
+    incdirs.append(os.path.join(source_root, 'build', 'wrap'))
+
     return ['-I' + d for d in incdirs]
 
 
