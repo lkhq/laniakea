@@ -1,5 +1,30 @@
 # Build options for Laniakea
 
+option('clitools',
+    type: 'boolean',
+    value: true,
+    description: 'Build CLI administration tools.'
+)
+option('lighthouse',
+    type: 'boolean',
+    value: true,
+    description: 'Build Lighthouse message relay and queue service'
+)
+option('dataimport',
+    type: 'boolean',
+    value: true,
+    description: 'Build utility to import data from existing archives'
+)
+option('debcheck',
+    type: 'boolean',
+    value: true,
+    description: 'Build dose/debcheck integration helper binary'
+)
+option('rubicon',
+    type: 'boolean',
+    value: true,
+    description: 'Build rubicon upload accepting tool'
+)
 option('webgui',
     type: 'boolean',
     value: true,

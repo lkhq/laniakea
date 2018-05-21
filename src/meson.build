@@ -16,22 +16,34 @@ subdir('c')
 subdir('laniakea')
 
 # Admin cli tool
-subdir('admin')
+if (get_option('clitools'))
+    subdir('admin')
+endif
 
 # Key management cli tool
-subdir('keytool')
+if (get_option('clitools'))
+    subdir('keytool')
+endif
 
 # Lighthouse relay
-subdir('lighthouse')
+if (get_option('lighthouse'))
+    subdir('lighthouse')
+endif
 
 # Dataimport
-subdir('dataimport')
+if (get_option('dataimport'))
+    subdir('dataimport')
+endif
 
 # Debcheck
-subdir('debcheck')
+if (get_option('debcheck'))
+    subdir('debcheck')
+endif
 
 # Rubicon data importer
-subdir('rubicon')
+if (get_option('rubicon'))
+    subdir('rubicon')
+endif
 
 # Planter
 if (get_option('planter'))
