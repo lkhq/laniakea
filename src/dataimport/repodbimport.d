@@ -37,9 +37,10 @@ private void experimental_SyncAppStreamData (Session session, Repository repo,
                                             string suiteName, string componentName, string archName,
                                             BinaryPackage[] binPackages) @trusted
 {
-    import appstream.c.types : FormatStyle, FormatKind, AsComponent, AsIcon, IconKind, ParseFlags;
+    import appstream.c.types : FormatStyle, FormatKind, AsComponent, AsIcon, IconKind;
     import appstream.Metadata : Metadata;
     import laniakea.compressed : decompressFileToString;
+    version(ExperimentalAppStream) import appstream.c.types : ParseFlags;
 
 
     immutable yamlFile = repo.getIndexFile (suiteName,
@@ -58,7 +59,7 @@ private void experimental_SyncAppStreamData (Session session, Repository repo,
     auto mdata = new Metadata;
     mdata.setLocale ("ALL");
     mdata.setFormatStyle (FormatStyle.COLLECTION);
-    mdata.setParseFlags(ParseFlags.IGNORE_MEDIABASEURL);
+    version(ExperimentalAppStream) mdata.setParseFlags(ParseFlags.IGNORE_MEDIABASEURL);
     mdata.parse (yamlCollectiondata, FormatKind.YAML);
 
     auto binPkgMap = getNewestPackagesMap (binPackages);
@@ -221,6 +222,7 @@ bool syncRepoData (string suiteName, string repoName = "master") @trusted
                                            true);
 
                 // Experimental AppStream netadata sync
+                version (ExperimentalAppStream)
                 experimental_SyncAppStreamData (session,
                                                 repo,
                                                 suite.name,

@@ -50,3 +50,9 @@ option('ariadne',
     value: true,
     description: 'Build the "Ariadne" package build planner'
 )
+
+option('experimental-appstream',
+    type: 'boolean',
+    value: false,
+    description: 'Build with some experimental AppStream support'
+)
