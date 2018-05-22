@@ -46,12 +46,16 @@ private void experimental_SyncAppStreamData (Session session, Repository repo,
 
     immutable yamlFile = repo.getIndexFile (suiteName,
                                             buildPath (componentName, "dep11", "Components-%s.yml.xz".format (archName)));
-    if (yamlFile.empty)
+    if (yamlFile.empty) {
+        logDebug ("No AppStream data found in %s/%s/%s, skipping.", suiteName, componentName, archName);
         return;
+    }
     immutable cidMapFile = repo.getIndexFile (suiteName,
                                             buildPath (componentName, "dep11", "CID-Index-%s.json.gz".format (archName)));
-    if (cidMapFile.empty)
+    if (cidMapFile.empty) {
+        logDebug ("No AppStream ID index found in %s/%s/%s, skipping.", suiteName, componentName, archName);
         return;
+    }
 
     auto cidMap = parseJsonString (decompressFileToString (cidMapFile), cidMapFile);
 
