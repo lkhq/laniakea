@@ -13,7 +13,7 @@ block contents
                 a.list-group-item(href='#', class='active')= "Placeholder"
 
         .col-md-9
-            img.pr-2.rounded.float-left(src='https://appstream.debian.org/media/pool/net/displaycal/DisplayCAL/3680151FA3E45BD17477CEFC64DB73A1/icons/64x64/dispcalgui_displaycal.png', alt='...')
+            img.pr-2.rounded.float-left(src='#{iconUrl}', alt='Icon')
             h3 #{cpt.name}
             p.lead.text-muted
                 | #{cpt.summary}

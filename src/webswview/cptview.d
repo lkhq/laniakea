@@ -60,6 +60,8 @@ final class ComponentView {
     @path("/:cid/:uuid")
     void getComponentDetails (HTTPServerRequest req, HTTPServerResponse res)
     {
+        import std.path : buildPath;
+
         immutable cid = req.params["cid"];
         immutable cptUuid = req.params["uuid"];
 
@@ -81,6 +83,8 @@ final class ComponentView {
         foreach (ref pkg; cpt.binPackages)
             binPackagesByArch[pkg.architecture.name] ~= pkg;
 
-        render!("cptview/details.dt", ginfo, cpt, binPackagesByArch);
+        immutable iconUrl = cpt.iconName? buildPath (wconf.appstreamMediaUrl, cpt.gcid, "icons", "64x64", cpt.iconName) : "#";
+
+        render!("cptview/details.dt", ginfo, cpt, binPackagesByArch, iconUrl);
     }
 }

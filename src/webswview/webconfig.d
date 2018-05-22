@@ -51,6 +51,8 @@ final class WebConfig
 
         GlobalInfo ginfo;
         ushort port;
+
+        string appstreamMediaUrl;
     }
 
     this (LocalConfig lconf)
@@ -84,6 +86,8 @@ final class WebConfig
         if ("Port" in jroot)
             port = jroot["Port"].to!ushort;
 
+        if ("AppStreamMediaUrl" in jroot)
+            appstreamMediaUrl = jroot["AppStreamMediaUrl"].get!string;
 
         db = Database.get;
         const baseConfig = db.getBaseConfig;

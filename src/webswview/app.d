@@ -44,7 +44,7 @@ private string findPublicDir ()
     string staticDir = buildPath (exePath, "public");
     if (staticDir.exists)
         return staticDir;
-    staticDir = buildNormalizedPath (exePath, "..", "..", "..", "..", "src", "web", "public");
+    staticDir = buildNormalizedPath (exePath, "..", "..", "..", "..", "src", "webswview", "public");
     if (staticDir.exists)
         return staticDir;
     return "public/";

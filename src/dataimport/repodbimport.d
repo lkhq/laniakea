@@ -37,7 +37,7 @@ private void experimental_SyncAppStreamData (Session session, Repository repo,
                                             string suiteName, string componentName, string archName,
                                             BinaryPackage[] binPackages) @trusted
 {
-    import appstream.c.types : FormatStyle, FormatKind, AsComponent, AsIcon, IconKind;
+    import appstream.c.types : FormatStyle, FormatKind, AsComponent, AsIcon, IconKind, ParseFlags;
     import appstream.Metadata : Metadata;
     import laniakea.compressed : decompressFileToString;
 
@@ -46,12 +46,19 @@ private void experimental_SyncAppStreamData (Session session, Repository repo,
                                             buildPath (componentName, "dep11", "Components-%s.yml.xz".format (archName)));
     if (yamlFile.empty)
         return;
+    immutable cidMapFile = repo.getIndexFile (suiteName,
+                                            buildPath (componentName, "dep11", "CID-Index-%s.json.gz".format (archName)));
+    if (cidMapFile.empty)
+        return;
+
+    auto cidMap = parseJsonString (decompressFileToString (cidMapFile), cidMapFile);
 
     immutable yamlCollectiondata = decompressFileToString (yamlFile);
 
     auto mdata = new Metadata;
     mdata.setLocale ("ALL");
     mdata.setFormatStyle (FormatStyle.COLLECTION);
+    mdata.setParseFlags(ParseFlags.IGNORE_MEDIABASEURL);
     mdata.parse (yamlCollectiondata, FormatKind.YAML);
 
     auto binPkgMap = getNewestPackagesMap (binPackages);
@@ -105,8 +112,15 @@ private void experimental_SyncAppStreamData (Session session, Repository repo,
         }
         dbCpt.binPackages ~= dbPkg;
 
+        string gcid;
+        if (cpt.getId in cidMap)
+            gcid = cidMap[cpt.getId].get!string;
+        if (gcid.empty)
+            logWarning ("Found DEP-11 component '%s' in %s/%s, but could not find a global ID for it.", cpt.getId, suiteName, componentName);
+
         dbCpt.kind = cpt.getKind;
         dbCpt.cid = cpt.getId;
+        dbCpt.gcid = gcid;
         dbCpt.name = cpt.getName;
         dbCpt.summary = cpt.getSummary;
         dbCpt.description = cpt.getDescription;
