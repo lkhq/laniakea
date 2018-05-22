@@ -21,7 +21,8 @@ def find_include_dirs(source_root):
     extra_inc = ['vibe',
                  'diet',
                  'stdx-allocator',
-                 'fluentasserts']
+                 'fluentasserts',
+                 'glibd-2']
 
     for d in extra_inc:
         for inc_root in ['/usr/include/d/', '/usr/local/include/d/']:

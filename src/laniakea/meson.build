@@ -48,7 +48,7 @@ lk_base_deps = [crypto_dep,
                 hibernated_pg_dep,
                 vibe_core_dep,
                 vibe_data_dep,
-                glib_dep,
+                glibd_dep,
                 appstream_dep
 ]
 

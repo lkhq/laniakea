@@ -63,6 +63,12 @@ RUN dscanner --version
 RUN mkdir -p /build/extra
 WORKDIR /build/extra
 
+# GLibD
+RUN git clone --depth 1 https://github.com/ximion/GlibD.git glibd
+RUN mkdir glibd/b
+RUN cd glibd/b/ && meson --prefix=/usr ..
+RUN cd glibd/b/ && ninja && ninja install
+
 # Vibe.d
 RUN git clone --depth 1 https://github.com/ximion/vibe.d.git vibe.d
 RUN mkdir vibe.d/b

@@ -21,7 +21,7 @@ dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dco
 dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_dep'])
 fluentasserts_dep = dependency('fluent-asserts', version: '>= 0.6', fallback: ['fluent-asserts', 'fluentasserts_dep'])
 
-glib_dep = dependency('glib-2.0')
+glibd_dep = dependency('glibd-2.0', fallback: ['glibd', 'glibd_dep'])
 appstream_dep = dependency('appstream')
 
 # Database

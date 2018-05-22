@@ -30,6 +30,7 @@ def build_include_dir_cmd(source_root):
     extra_inc_dirs = ['/usr/include/d/vibe/',
                       '/usr/include/d/diet/',
                       '/usr/include/d/stdx-allocator/',
+                      '/usr/include/d/glibd-2/',
                       './src',
                       './build/wrap/']
 

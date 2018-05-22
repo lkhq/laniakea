@@ -26,6 +26,7 @@ gir_bind_dir = include_directories('../../wrap')
 # static library of bindings automatically generated from GIR
 girbind_lib = static_library('girbindings',
     [gir_binding_sources],
+    dependencies: [glibd_dep],
     include_directories: [gir_bind_dir]
 )
 
