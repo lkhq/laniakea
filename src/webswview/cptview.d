@@ -22,6 +22,7 @@ module swview.cptview;
 import std.exception : enforce;
 import std.conv : to;
 import std.array : empty, appender;
+import std.typecons : scoped;
 import vibe.core.log;
 import vibe.http.router;
 import vibe.http.server;
@@ -33,6 +34,8 @@ import laniakea.db.schema.archive;
 
 import webswview.webconfig;
 
+import appstream.Metadata : Metadata;
+
 @path("/component")
 final class ComponentView {
     GlobalInfo ginfo;
@@ -41,6 +44,16 @@ final class ComponentView {
         WebConfig wconf;
         Database db;
         SessionFactory sFactory;
+
+        Metadata mdata;
+    }
+
+    struct PreparedScreenshot
+    {
+        string imageUrl;
+        string caption;
+
+        bool primary;
     }
 
     this (WebConfig conf)
@@ -49,6 +62,8 @@ final class ComponentView {
         db = wconf.db;
         ginfo = wconf.ginfo;
         sFactory = db.newSessionFactory! (SpearsExcuse);
+
+        mdata = new Metadata;
     }
 
     @path("/:cid")
@@ -85,6 +100,48 @@ final class ComponentView {
 
         immutable iconUrl = cpt.iconName? buildPath (wconf.appstreamMediaUrl, cpt.gcid, "icons", "64x64", cpt.iconName) : "#";
 
-        render!("cptview/details.dt", ginfo, cpt, binPackagesByArch, iconUrl);
+        cpt.load (mdata);
+
+        // prepare screenshots
+        auto scrArr = cpt.getScreenshots ();
+        PreparedScreenshot[] screenshots;
+        if (scrArr.len > 0) {
+            import appstream.c.types : AsScreenshot, AsImage, ImageKind, ScreenshotKind;
+            import appstream.Screenshot : Screenshot;
+            import appstream.Image : Image;
+
+            bool primarySet;
+            for (uint i = 0; i < scrArr.len; i++) {
+                // cast array data to D Screenshot and keep a reference to the C struct
+                auto scr = scoped!Screenshot (cast (AsScreenshot*) scrArr.index (i));
+
+                auto imgArr = scr.getImagesAll ();
+                if (imgArr.len > 0) {
+                    for (uint j = 0; j < imgArr.len; j++) {
+                        auto img = scoped!Image (cast (AsImage*) imgArr.index (j));
+
+                        if (img.getKind != ImageKind.SOURCE)
+                            continue;
+
+                        PreparedScreenshot pscr;
+                        pscr.caption = scr.getCaption;
+                        pscr.imageUrl = buildPath (wconf.appstreamMediaUrl, img.getUrl);
+                        pscr.primary = scr.getKind == ScreenshotKind.DEFAULT;
+                        screenshots ~= pscr;
+
+                        if (pscr.primary)
+                            primarySet = true;
+                    }
+                }
+            }
+
+            if (!primarySet && !screenshots.empty)
+                screenshots[0].primary = true;
+        }
+
+        import std.stdio : writeln;
+        logInfo ("Screenshots: %s", screenshots);
+
+        render!("cptview/details.dt", ginfo, cpt, binPackagesByArch, iconUrl, screenshots);
     }
 }

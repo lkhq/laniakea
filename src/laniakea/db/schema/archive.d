@@ -497,6 +497,7 @@ class SoftwareComponent
             throw new Exception("Can not load AppStream component from empty data.");
 
         _cpt = mdata.getComponent ();
+        _cpt.setActiveLocale ("C");
     }
 
     /**

@@ -18,6 +18,24 @@ block contents
             p.lead.text-muted
                 | #{cpt.summary}
 
+
+            - if (!screenshots.empty)
+                #carouselScreenshots.carousel.slide.border.mb-md-2(data-ride='carousel')
+                    .carousel-inner
+                        - foreach (ref scr; screenshots)
+                            .carousel-item(class='#{ (scr.primary)? "active" : ""}')
+                                img(src='#{scr.imageUrl}', alt='...')
+                            - if (!scr.caption.empty)
+                                .carousel-caption.d-none.d-md-block
+                                    p= scr.caption
+                    a.carousel-control-prev(href='#carouselScreenshots', role='button', data-slide='prev')
+                        span.carousel-control-prev-icon(aria-hidden='true')
+                        span.sr-only Previous
+                    a.carousel-control-next(href='#carouselScreenshots', role='button', data-slide='next')
+                        span.carousel-control-next-icon(aria-hidden='true')
+                        span.sr-only Next
+
+
             div!= cpt.description
 
             b Developer:
