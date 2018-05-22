@@ -40,6 +40,7 @@ private void experimental_SyncAppStreamData (Session session, Repository repo,
     import appstream.c.types : FormatStyle, FormatKind, AsComponent, AsIcon, IconKind;
     import appstream.Metadata : Metadata;
     import laniakea.compressed : decompressFileToString;
+    import vibe.data.json : parseJsonString;
     version(ExperimentalAppStream) import appstream.c.types : ParseFlags;
 
 
