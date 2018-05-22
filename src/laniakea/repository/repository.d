@@ -334,7 +334,7 @@ public:
             }
 
             // Do some issue-reporting
-            if (pkg.files.empty)
+            if (pkg.files.empty && pkg.format != "1.0")
                 logWarning ("Source package %s/%s seems to have no files (in %s).", pkg.name, pkg.ver, repoLocation);
 
             // add package to results set
