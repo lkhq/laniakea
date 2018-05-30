@@ -131,7 +131,6 @@ public:
 
         // if you're in this list, your packages may not stay in sync with the source
         contents ~= "OUTOFSYNC_ARCHES  = %s".format (archStr);
-        contents ~= "FUCKED_ARCHES     = %s".format (archStr);
 
         // if you're in this list, your uninstallability count may increase
         contents ~= "BREAK_ARCHES      = %s".format (archStr);
