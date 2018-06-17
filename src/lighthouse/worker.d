@@ -149,9 +149,15 @@ class LighthouseWorker {
             info.data["suite"] = incomingSuiteName;
             info.data["dsc_url"] = Json ();
 
+            // handle arch-indep builds
             info.data["do_indep"] = Json (false);
             if ((job.architecture == buildIndepArchAffinity) || (job.architecture == "all"))
                 info.data["do_indep"] = Json (true);
+
+            // for arch:all jobs, we cheat and set the arch affinity as the actual architecture this job will be running on,
+            // since nothing can be built on an arch:all chroot
+            if (job.architecture == "all")
+                info.architecture = buildIndepArchAffinity;
 
             // FIXME: Fetch the archive URL from the repository database entry
             auto dscFound = false;
@@ -219,8 +225,17 @@ class LighthouseWorker {
             auto jobAssigned = false;
             foreach (ref archJ; architectures) {
                 immutable arch = archJ.get!string;
-                // use the first job with a matching architecture/kind
-                const job = assignSuitableJob (conn, acceptedKind, arch, clientId);
+
+                Nullable!Job job;
+                if (arch == buildIndepArchAffinity) {
+                    // we can  maybe assign an arch:all job to this machine
+                    job = assignSuitableJob (conn, acceptedKind, "all", clientId);
+                }
+
+                // use the first job with a matching architecture/kind if we didn't find an arch:all job previously
+                if (job.isNull)
+                    job = assignSuitableJob (conn, acceptedKind, arch, clientId);
+
                 if (!job.isNull) {
                     jobData = getJobDetailsJson (session, job);
                     jobAssigned = true;
