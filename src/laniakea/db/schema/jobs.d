@@ -378,35 +378,13 @@ auto getJobsByTriggerVerArch (Connection conn, UUID triggerId, const string ver,
  */
 auto getPendingJobs (Connection conn, long limit, long offset = 0) @trusted
 {
-    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE status != ?
+    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE status != ? AND status != ?
                                       ORDER BY priority, time_created DESC
                                       LIMIT ? OFFSET ?");
     scope (exit) ps.close ();
 
     ps.setShort (1, JobStatus.DONE);
-    ps.setLong  (3, offset);
-
-    if (limit > 0)
-        ps.setLong  (2, limit);
-    else
-        ps.setLong  (2, long.max);
-
-    auto ans = ps.executeQuery ();
-    return rowsTo!Job (ans);
-}
-
-/**
- * Get jobs that are not complete yet for a specific module @mod
- */
-auto getPendingJobs (Connection conn, LkModule mod, long limit, long offset = 0) @trusted
-{
-    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE status != ? AND module = ?
-                                      ORDER BY priority, time_created DESC
-                                      LIMIT ? OFFSET ?");
-    scope (exit) ps.close ();
-
-    ps.setShort (1, JobStatus.DONE);
-    ps.setString (2, mod);
+    ps.setShort (2, JobStatus.TERMINATED);
     ps.setLong  (4, offset);
 
     if (limit > 0)
@@ -419,13 +397,38 @@ auto getPendingJobs (Connection conn, LkModule mod, long limit, long offset = 0)
 }
 
 /**
+ * Get jobs that are not complete yet for a specific module @mod
+ */
+auto getPendingJobs (Connection conn, LkModule mod, long limit, long offset = 0) @trusted
+{
+    auto ps = conn.prepareStatement ("SELECT * FROM jobs WHERE status != ? AND status != ? AND module = ?
+                                      ORDER BY priority, time_created DESC
+                                      LIMIT ? OFFSET ?");
+    scope (exit) ps.close ();
+
+    ps.setShort (1, JobStatus.DONE);
+    ps.setShort (2, JobStatus.TERMINATED);
+    ps.setString (3, mod);
+    ps.setLong   (5, offset);
+
+    if (limit > 0)
+        ps.setLong  (4, limit);
+    else
+        ps.setLong  (4, long.max);
+
+    auto ans = ps.executeQuery ();
+    return rowsTo!Job (ans);
+}
+
+/**
  * Return the amount of jobs in the queue.
  */
 auto countPendingJobs (Connection conn) @trusted
 {
-    auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM jobs WHERE status != ?");
+    auto ps = conn.prepareStatement ("SELECT COUNT(*) FROM jobs WHERE status != ? AND status != ?");
     scope (exit) ps.close ();
     ps.setShort (1, JobStatus.DONE);
+    ps.setShort (2, JobStatus.TERMINATED);
 
     Variant var;
     ps.executeUpdate (var);
