@@ -177,7 +177,7 @@ class LighthouseWorker {
             if (!dscFound) {
                 conn.setJobStatus (job.uuid, JobStatus.TERMINATED);
                 conn.setJobLogExcerpt (job.uuid,
-                                       "We were unable to find the a source package .dsc file for this build. The job has been terminated.");
+                                       "We were unable to find a source package .dsc file for this build. The job has been terminated.");
                 return null.serializeToJsonString ();
             }
 
