@@ -52,7 +52,7 @@ public:
         sourceSuite = source;
         targetSuite = target;
 
-        yroot = dyaml.Loader (excusesFname).load ();
+        yroot = dyaml.Loader.fromFile (excusesFname).load ();
 
         auto f = File (logFname, "r");
         auto lData = appender!string;
