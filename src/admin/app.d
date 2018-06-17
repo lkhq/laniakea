@@ -31,6 +31,7 @@ import admin.planteradmin;
 import admin.spearsadmin;
 import admin.syncadmin;
 import admin.isotopeadmin;
+import admin.ariadneadmin;
 
 private immutable progname    = "lk-admin";
 private immutable helpSummary = "Run CLI admin actions.";
@@ -73,7 +74,8 @@ void main (string[] args)
         new PlanterAdmin,
         new SpearsAdmin,
         new SyncAdmin,
-        new IsotopeAdmin
+        new IsotopeAdmin,
+        new AriadneAdmin
     ];
 
     // create a list of subcommand information

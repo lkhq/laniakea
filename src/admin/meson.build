@@ -6,7 +6,8 @@ lk_admin_src = [
     'planteradmin.d',
     'spearsadmin.d',
     'syncadmin.d',
-    'isotopeadmin.d'
+    'isotopeadmin.d',
+    'ariadneadmin.d'
 ]
 
 lk_admin_exe = executable ('lk-admin',
