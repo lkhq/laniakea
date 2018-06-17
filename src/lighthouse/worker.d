@@ -136,12 +136,17 @@ class LighthouseWorker {
             // Sanity check for broken configuration (archive URL is not mandatory (yet))
             if (localConf.archive.url.empty) {
                 logError ("Trying to schedule a package build job, but archive URL is not set in local config. Please fix your configuration!");
+
+                conn.setJobStatus (job.uuid, JobStatus.WAITING);
                 return null.serializeToJsonString ();
             }
 
             auto spkg = session.getSourcePackageForJob (job);
-            if (spkg is null)
+            if (spkg is null) {
+                conn.setJobStatus (job.uuid, JobStatus.TERMINATED);
+                conn.setJobLogExcerpt (job.uuid, "We were unable to find a source package for this build job. The job has been terminated.");
                 return null.serializeToJsonString ();
+            }
 
             info.data["package_name"] = Json (spkg.name);
             info.data["package_version"] = Json (spkg.ver);
@@ -169,13 +174,22 @@ class LighthouseWorker {
                     break;
                 }
             }
-            if (!dscFound)
+            if (!dscFound) {
+                conn.setJobStatus (job.uuid, JobStatus.TERMINATED);
+                conn.setJobLogExcerpt (job.uuid,
+                                       "We were unable to find the a source package .dsc file for this build. The job has been terminated.");
                 return null.serializeToJsonString ();
+            }
 
         } else if (job.kind == JobKind.OS_IMAGE_BUILD) {
             const recipe = conn.getRecipeById (job.trigger);
-            if (recipe.isNull)
+            if (recipe.isNull) {
+                conn.setJobStatus (job.uuid, JobStatus.TERMINATED);
+                conn.setJobLogExcerpt (job.uuid,
+                                       "No recipe found for this image build job. The job has been terminated.");
                 return null.serializeToJsonString ();
+            }
+
             info.data["distribution"]  = Json (recipe.distribution);
             info.data["suite"]         = Json (recipe.suite);
             info.data["live_build_git"]  = Json (recipe.liveBuildGit);

@@ -53,6 +53,10 @@ block contents
         span(style='font-size: 20px; line-height: 1.5em;')
             i.fa.fa-clock-o(aria-hidden='true')
         |  Starving
+    - else if (job.status == JobStatus.TERMINATED)
+        span(style='font-size: 20px; line-height: 1.5em;')
+            i.fa.fa-skull(aria-hidden='true')
+        |  Terminated
     br
 
     - if (job.result != JobResult.UNKNOWN)

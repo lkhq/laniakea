@@ -39,7 +39,8 @@ enum JobStatus
     SCHEDULED, /// job has been assigned,
     RUNNING,
     DONE,
-    STARVING   /// the job was left abandoned for too long
+    TERMINATED, /// the job was terminated
+    STARVING    /// the job was denied computing resources for an extended period of time
 }
 
 /**
@@ -451,7 +452,7 @@ auto getJobById (Connection conn, string uuid) @trusted
  */
 auto getJobWorkerName (Connection conn, Job job) @trusted
 {
-    auto ps = conn.prepareStatement ("SELECT name FROM workers WHERE uuid=?");
+    auto ps = conn.prepareStatement ("SELECT machine_name FROM workers WHERE uuid=?");
     scope (exit) ps.close ();
 
     ps.setString (1, job.workerId.toString);
