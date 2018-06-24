@@ -1,4 +1,4 @@
 [wrap-git]
 directory = glibd
-url       = https://github.com/ximion/GlibD.git
+url       = https://github.com/gtkd-developers/GlibD.git
 revision  = head
