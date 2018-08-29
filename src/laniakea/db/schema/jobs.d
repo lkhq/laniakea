@@ -35,10 +35,11 @@ public import std.uuid : UUID;
 enum JobStatus
 {
     UNKNOWN,
-    WAITING,   /// waiting for someone to take the job
-    SCHEDULED, /// job has been assigned,
-    RUNNING,
-    DONE,
+    WAITING,    /// waiting for someone to take the job
+    DEPWAIT,    /// waiting for a dependency
+    SCHEDULED,  /// job has been assigned,
+    RUNNING,    /// the job is running
+    DONE,       /// the job is done
     TERMINATED, /// the job was terminated
     STARVING    /// the job was denied computing resources for an extended period of time
 }
@@ -49,10 +50,11 @@ enum JobStatus
 enum JobResult
 {
     UNKNOWN,
-    SUCCESS,
-    FAILURE,
-    MAYBE_SUCCESS,
-    MAYBE_FAILURE
+    SUCCESS_PENDING,     /// job was successful, but artifacts are still missing
+    SUCCESS,             /// job was successful
+    FAILURE_DEPENDENCY,  /// job was aborted because of a dependency issue
+    FAILURE_PENDING,     /// job failed, but artifacts and reports are still missing
+    FAILURE              /// job failed
 }
 
 /**

@@ -342,9 +342,9 @@ class LighthouseWorker {
         // we use the maybe values here, as we can only be really sure as soon as
         // the worker has uploaded the job artifacts and the responsible Laniakea
         // module has verified them.
-        auto jobResult = JobResult.MAYBE_SUCCESS;
+        auto jobResult = JobResult.SUCCESS_PENDING;
         if (!success)
-            jobResult = JobResult.MAYBE_FAILURE;
+            jobResult = JobResult.FAILURE_PENDING;
 
 
         auto ps = conn.prepareStatement ("UPDATE jobs SET
