@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2017-2018 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -104,14 +104,26 @@ final class IsotopeAdmin : AdminTool
         writeQL ("List of architectures to build for");
         recipe.architectures = readList ();
 
-        writeQS ("Git repository URL containing the live-build configuration");
-        recipe.liveBuildGit = readString ();
+        while (true) {
+            writeQS ("Type of image that we are building (iso/img)");
+            recipe.kind = imageKindFromString (readString ());
+            if (recipe.kind == ImageKind.UNKNOWN)
+                writeNote ("The selected image kind is unknown.");
+            else
+                break;
+        }
+
+        writeQS ("Git repository URL containing the image build configuration");
+        recipe.gitUrl = readString ();
 
         writeQS ("Place to move the build result to (placeholders like %{DATE} are allowed)");
         recipe.resultMoveTo = readString ();
 
         // ensure we have a name
-        recipe.name = "%s-%s-%s".format (recipe.distribution, recipe.suite, recipe.flavor).toLower;
+        recipe.name = "%s:%s-%s-%s".format (recipe.kind.toString,
+                                            recipe.distribution,
+                                            recipe.suite,
+                                            recipe.flavor).toLower;
 
         // add recipe to the database
         auto conn = db.getConnection ();

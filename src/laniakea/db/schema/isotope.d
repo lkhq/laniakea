@@ -20,9 +20,38 @@
 module laniakea.db.schema.isotope;
 @safe:
 
+import std.conv : to;
 import laniakea.db.schema.jobs;
 import laniakea.db.schema.core;
 
+
+/**
+ * Kind of the image to build.
+ **/
+enum ImageKind {
+    UNKNOWN,
+    ISO,
+    IMG
+}
+
+string toString (ImageKind kind) {
+    switch (kind) {
+        case ImageKind.ISO: return "iso";
+        case ImageKind.IMG: return "img";
+
+        default: return "unknown";
+    }
+}
+
+ImageKind imageKindFromString (string s)
+{
+    switch (s) {
+        case "iso": return ImageKind.ISO;
+        case "img": return ImageKind.IMG;
+
+        default: return ImageKind.UNKNOWN;
+    }
+}
 
 /**
  * Instructions on how to do an automatic ISO image build.
@@ -30,13 +59,15 @@ import laniakea.db.schema.core;
 struct ImageBuildRecipe {
     UUID uuid;              /// Laniakea object ID
 
+    ImageKind kind;         /// The kind of image to build
+
     string name;            /// A unique name identifying this recipe
     string distribution;    /// Name of the distribution, e.g. "Tanglu"
     string suite;           /// Suite of the distribution to build an image for
     string flavor;          /// The flavor to build
     string[] architectures; /// Architectures to build the image for
 
-    string liveBuildGit;    /// Git repository URL with the live-build scripts
+    string gitUrl;          /// Git repository URL with the live-build scripts / other build recipes
     string resultMoveTo;    /// Local or remote URL to copy the resulting build artifacts to
 
 
@@ -47,14 +78,15 @@ struct ImageBuildRecipe {
         assert (r.getMetaData.getColumnCount == 8);
 
         uuid          = safeParseUUID (r.getString (1));
-        name          = r.getString (2);
-        distribution  = r.getString (3);
-        suite         = r.getString (4);
-        flavor        = r.getString (5);
-        architectures = deserializeJson!(string[]) (r.getString (6));
+        kind          = r.getShort  (2).to!ImageKind;
+        name          = r.getString (3);
+        distribution  = r.getString (4);
+        suite         = r.getString (5);
+        flavor        = r.getString (6);
+        architectures = deserializeJson!(string[]) (r.getString (7));
 
-        liveBuildGit  = r.getString (7);
-        resultMoveTo  = r.getString (8);
+        gitUrl        = r.getString (8);
+        resultMoveTo  = r.getString (9);
     }
 }
 
@@ -74,12 +106,13 @@ void createTables (Database db) @trusted
     stmt.executeUpdate (
         "CREATE TABLE IF NOT EXISTS isotope_recipes (
           uuid             UUID PRIMARY KEY,
+          kind             SMALLINT,
           name             TEXT NOT NULL UNIQUE,
           distribution     TEXT NOT NULL,
           suite            TEXT NOT NULL,
           flavor           TEXT,
           architectures    JSONB,
-          livebuild_git    TEXT NOT NULL,
+          git_url          TEXT NOT NULL,
           result_move_to   TEXT
         )"
     );
@@ -98,38 +131,42 @@ void update (Connection conn, ImageBuildRecipe recipe) @trusted
                             ?,
                             ?,
                             ?,
+                            ?,
                             ?::jsonb,
                             ?,
                             ?
                         )
                     ON CONFLICT (uuid) DO UPDATE SET
                       name           = ?,
+                      kind           = ?,
                       distribution   = ?,
                       suite          = ?,
                       flavor         = ?,
                       architectures  = ?::jsonb,
-                      livebuild_git  = ?,
+                      git_url        = ?,
                       result_move_to = ?";
 
     auto ps = conn.prepareStatement (sql);
     scope (exit) ps.close ();
 
     ps.setString (1, recipe.uuid.toString);
-    ps.setString (2, recipe.name);
-    ps.setString (3, recipe.distribution);
-    ps.setString (4, recipe.suite);
-    ps.setString (5, recipe.flavor);
-    ps.setString (6, recipe.architectures.serializeToJsonString);
-    ps.setString (7, recipe.liveBuildGit);
-    ps.setString (8, recipe.resultMoveTo);
+    ps.setShort  (2, recipe.kind.to!short);
+    ps.setString (3, recipe.name);
+    ps.setString (4, recipe.distribution);
+    ps.setString (5, recipe.suite);
+    ps.setString (6, recipe.flavor);
+    ps.setString (7, recipe.architectures.serializeToJsonString);
+    ps.setString (8, recipe.gitUrl);
+    ps.setString (9, recipe.resultMoveTo);
 
-    ps.setString (9, recipe.name);
-    ps.setString (10, recipe.distribution);
-    ps.setString (11, recipe.suite);
-    ps.setString (12, recipe.flavor);
-    ps.setString (13, recipe.architectures.serializeToJsonString);
-    ps.setString (14, recipe.liveBuildGit);
-    ps.setString (15, recipe.resultMoveTo);
+    ps.setString (10, recipe.name);
+    ps.setShort  (11, recipe.kind.to!short);
+    ps.setString (12, recipe.distribution);
+    ps.setString (13, recipe.suite);
+    ps.setString (14, recipe.flavor);
+    ps.setString (15, recipe.architectures.serializeToJsonString);
+    ps.setString (16, recipe.gitUrl);
+    ps.setString (17, recipe.resultMoveTo);
 
     ps.executeUpdate ();
 }

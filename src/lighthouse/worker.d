@@ -190,10 +190,11 @@ class LighthouseWorker {
                 return null.serializeToJsonString ();
             }
 
-            info.data["distribution"]  = Json (recipe.distribution);
-            info.data["suite"]         = Json (recipe.suite);
-            info.data["live_build_git"]  = Json (recipe.liveBuildGit);
-            info.data["flavor"]        = Json (recipe.flavor);
+            info.data["image_kind"]   = Json (recipe.kind.toString);
+            info.data["git_url"]      = Json (recipe.gitUrl);
+            info.data["distribution"] = Json (recipe.distribution);
+            info.data["suite"]        = Json (recipe.suite);
+            info.data["flavor"]       = Json (recipe.flavor);
         }
 
         return info.serializeToJsonString ();

@@ -33,7 +33,7 @@ block contents
                             |  #{image.recipe.architectures.join (" ")}
                             br
                             b Source:
-                            |  #{image.recipe.liveBuildGit}
+                            |  #{image.recipe.gitUrl}
                             br
                             b Jobs:
                             br
