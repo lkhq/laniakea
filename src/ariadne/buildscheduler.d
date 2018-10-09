@@ -132,6 +132,7 @@ bool scheduleBuildForArch (Connection conn, Session session, SourcePackage spkg,
         Job job;
         job.ver = spkg.ver;
         job.architecture = arch.name;
+        job.data = Json(["suite": Json(incomingSuite.name)]);
         conn.addJob (job,
                      LkModule.ARIADNE,
                      JobKind.PACKAGE_BUILD,

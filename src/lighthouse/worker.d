@@ -148,10 +148,14 @@ class LighthouseWorker {
                 return null.serializeToJsonString ();
             }
 
+            auto suiteTargetName = incomingSuiteName;
+            if ("suite" in job.data)
+                suiteTargetName = job.data["suite"].get!string;
+
             info.data["package_name"] = Json (spkg.name);
             info.data["package_version"] = Json (spkg.ver);
             info.data["maintainer"] = Json (spkg.maintainer);
-            info.data["suite"] = incomingSuiteName;
+            info.data["suite"] = suiteTargetName;
             info.data["dsc_url"] = Json ();
 
             // handle arch-indep builds
