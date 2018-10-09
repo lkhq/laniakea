@@ -25,7 +25,7 @@ import core.stdc.stdlib : exit;
 import laniakea.localconfig;
 import laniakea.logging;
 
-import ariadne.buildscheduler : scheduleBuilds;
+import ariadne.buildscheduler : scheduleBuilds, scheduleBuildsForSuite;
 
 
 private immutable helpText =
@@ -96,7 +96,12 @@ void main (string[] args)
 
     immutable command = args[1];
     if (command == "run") {
-        if (!scheduleBuilds (simulateAction, archLimit, limitCount))
+        bool ret;
+        if (args.length >= 3)
+            ret = scheduleBuildsForSuite (args[2], simulateAction, archLimit, limitCount);
+        else
+            ret = scheduleBuilds (simulateAction, archLimit, limitCount);
+        if (!ret)
             exit (1);
     } else {
         writeln ("Command ", command, " is unknown.");

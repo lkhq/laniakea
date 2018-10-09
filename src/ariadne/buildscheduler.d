@@ -163,9 +163,9 @@ void deleteOrphanedJobs (Connection conn, Session session, bool simulate)
 }
 
 /**
- * Schedule builds for packages in the incoming suite.
+ * Schedule builds for packages in a particular suite.
  */
-bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, long limitCount = 0)
+bool scheduleBuildsForSuite (const string incomingSuiteName, bool simulate = false, string limitArchitecture = null, long limitCount = 0)
 {
     auto db = Database.get;
     auto sFactory = db.newSessionFactory! (DebcheckIssue);
@@ -174,9 +174,6 @@ bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, lon
     scope (exit) session.close ();
     auto conn = db.getConnection ();
     scope (exit) db.dropConnection (conn);
-
-    const baseConfig = db.getBaseConfig ();
-    immutable incomingSuiteName = baseConfig.archive.incomingSuite;
 
     if (incomingSuiteName.empty)
         throw new Exception("No incoming suite is set in base config.");
@@ -249,4 +246,16 @@ bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, lon
     logDebug ("Scheduled %s build jobs.", scheduledCount);
 
     return true;
+}
+
+/**
+ * Schedule builds for packages in the incoming suite.
+ */
+bool scheduleBuilds (bool simulate = false, string limitArchitecture = null, long limitCount = 0)
+{
+    auto db = Database.get;
+    const baseConfig = db.getBaseConfig ();
+    immutable incomingSuiteName = baseConfig.archive.incomingSuite;
+
+    return scheduleBuildsForSuite (incomingSuiteName, simulate, limitArchitecture, limitCount);
 }
