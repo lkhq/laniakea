@@ -120,7 +120,7 @@ private extern(C) void *memrchr (const void *s, int c, size_t n) @system pure;
 /**
  * Compare two Debian-style version numbers.
  */
-int compareVersions (const string a, const string b) @trusted pure
+export int compareVersions (const string a, const string b) @trusted pure
 {
     import core.stdc.string;
 

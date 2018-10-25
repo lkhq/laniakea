@@ -77,7 +77,7 @@ if (isDigest!Hash)
  * Params:
  *     fullVersionForNative: Return the full version if we have a native package.
  */
-string getDebianRev (const string ver, bool fullVersionForNative = true)
+export string getDebianRev (const string ver, bool fullVersionForNative = true)
 {
     import std.string : lastIndexOf;
 
@@ -137,7 +137,7 @@ public auto randomString (uint len)
 /**
  * Read the current time and return it as DateTime
  */
-auto currentDateTime ()
+export auto currentDateTime ()
 {
     import std.conv : to;
     import std.datetime : Clock, DateTime;
@@ -168,7 +168,7 @@ auto getDirShorthandForUUID (const UUID uuid)
  * Check if given arch `arch` matches the other arch `archAlias`. This is most
  * useful for the complex any-* rules.
  */
-bool archMatches (string archAlias, string arch)
+export bool archMatches (string archAlias, string arch)
 {
     import std.array : array;
     import std.string : endsWith;
@@ -208,7 +208,7 @@ bool archMatches (string archAlias, string arch)
  * Check if any of the given architectures in `archAliases` matches
  * architecture `arch`.
  */
-bool archMatches (string[] archAliases, string arch)
+export bool archMatches (string[] archAliases, string arch)
 {
     foreach (ref aa; archAliases) {
         if (aa.archMatches (arch))

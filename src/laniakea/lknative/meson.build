@@ -1,7 +1,5 @@
 # Meson definition for Laniakea - Shared
 
-lklib_src_dir = include_directories('..')
-
 laniakea_lib_src = [
     'cmdargs.d',
     'compressed.d',
@@ -32,6 +30,10 @@ laniakea_lib_src = [
     'utils/versioncmp.d',
 ]
 
+lknative_py_src = [
+    'py/wrap_all.d'
+]
+
 lk_base_deps = [crypto_dep,
                 ssl_dep,
                 dcontainers_dep,
@@ -47,7 +49,7 @@ lk_base_deps = [crypto_dep,
 
 laniakea_lib = shared_library('laniakea',
     [laniakea_lib_src],
-    include_directories: [lklib_src_dir, src_dir],
+    include_directories: [lkshared_src_dir, src_dir],
     link_with: [lk_cbind_lib],
     dependencies: [lk_base_deps, girbinding_dep],
     d_args: ['-J' + source_root + '/data/']
@@ -56,13 +58,19 @@ laniakea_lib = shared_library('laniakea',
 laniakea_shared_dep = declare_dependency(
     dependencies: [lk_base_deps],
     link_with: [laniakea_lib],
-    include_directories: [lklib_src_dir, src_dir, gir_bind_dir],
+    include_directories: [lkshared_src_dir, gir_bind_dir],
+)
+
+lknative_pylib = shared_library('lknative',
+    [lknative_py_src],
+    name_prefix: '',
+    dependencies: [autowrap_py_dep, laniakea_shared_dep]
 )
 
 # Test
 lk_shared_test_exe = executable ('lk_test_self-core',
     [laniakea_lib_src],
-    include_directories: [lklib_src_dir, src_dir, gir_bind_dir],
+    include_directories: [lkshared_src_dir, src_dir, gir_bind_dir],
     link_with: [lk_cbind_lib],
     dependencies: [lk_base_deps, girbinding_dep],
     d_args: d_unittest_args + ['-J' + source_root + '/data/'],

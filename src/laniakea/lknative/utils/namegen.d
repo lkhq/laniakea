@@ -43,7 +43,7 @@ enum RandomNameStyle {
  * These names should be used for entities which are not transient
  * and which humans likely want to refer to often (such as e.g. worker machines)
  */
-public string generateName (RandomNameStyle style = RandomNameStyle.RANDOM)
+export string generateName (RandomNameStyle style = RandomNameStyle.RANDOM)
 {
     static immutable adjectives = import("words/adjectives.txt").splitLines();
     static immutable mixedNouns = import("words/nouns.txt").splitLines();
