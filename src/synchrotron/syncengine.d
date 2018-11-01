@@ -26,15 +26,12 @@ import std.array : appender;
 import std.parallelism : parallel;
 import std.typecons : Nullable;
 
-import laniakea.db;
-import laniakea.db.schema.core;
-import laniakea.db.schema.synchrotron;
-import laniakea.repository;
-import laniakea.repository.dak;
-import laniakea.db.schema.archive;
-import laniakea.utils : compareVersions, getDebianRev, currentDateTime;
-import laniakea.localconfig;
-import laniakea.logging;
+import lknative.config.synchrotron;
+import lknative.repository;
+import lknative.repository.dak;
+import lknative.utils : compareVersions, getDebianRev, currentDateTime;
+import lknative.localconfig;
+import lknative.logging;
 
 /**
  * Thrown on a package sync error.
@@ -55,9 +52,6 @@ final class SyncEngine
 {
 
 private:
-    Database db;
-    SessionFactory sFactory;
-
     Dak dak;
     bool m_importsTrusted;
 
@@ -74,27 +68,23 @@ private:
 
 public:
 
-    this ()
+    this (BaseConfig bConfig, SynchrotronConfig sConfig)
     {
         dak = new Dak;
 
         db = Database.get;
-        sFactory = db.newSessionFactory! (SyncBlacklistEntry,
-                                          SynchrotronIssue);
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
 
         auto conf = LocalConfig.get;
 
-        baseConfig = db.getBaseConfig;
-        syncConfig = db.getSynchrotronConfig;
+        baseConfig = bConfig;
+        syncConfig = sConfig;
 
         // the repository of the distribution we import stuff into
         targetRepo = new Repository (conf.archive.rootPath,
                                      baseConfig.projectName);
         targetRepo.setTrusted (true);
 
-        targetSuiteName = session.getSuite (baseConfig.archive.incomingSuite).name;
+        targetSuiteName = baseConfig.archive.incomingSuite;
         distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from

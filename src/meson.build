@@ -56,9 +56,9 @@ subdir('laniakea')
 #endif
 
 ## Synchrotron
-#if (get_option('synchrotron'))
-    #subdir('synchrotron')
-#endif
+if (get_option('synchrotron'))
+    subdir('synchrotron')
+endif
 
 ## Ariadne
 #if (get_option('ariadne'))

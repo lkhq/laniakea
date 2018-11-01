@@ -1,21 +1,21 @@
 # Meson definition for Laniakea - Synchrotron
 
 synchrotron_src = [
-    'syncengine.d'
+    'syncengine.d',
+    'pywrap.d'
 ]
 
-synchrotron_exe = executable ('synchrotron',
-    ['app.d',
-     synchrotron_src],
-    dependencies: [laniakea_shared_dep],
-    install: true
+synchrontron_pylib = shared_library('laniakea_synchrotron',
+    [synchrotron_src],
+    name_prefix: '',
+    dependencies: [autowrap_py_dep, laniakea_shared_dep]
 )
 
 # Test
-synchrotron_test_exe = executable ('lk_test_self-synchrotron',
-    [synchrotron_src],
-    dependencies: [laniakea_shared_dep],
-    d_args: d_unittest_args,
-    link_args: '-main'
-)
-test('lk_test_self-synchrotron', synchrotron_test_exe)
+#synchrotron_test_exe = executable ('lk_test_self-synchrotron',
+#    [synchrotron_src],
+#    dependencies: [laniakea_shared_dep],
+#    d_args: d_unittest_args,
+#    link_args: '-main'
+#)
+#test('lk_test_self-synchrotron', synchrotron_test_exe)

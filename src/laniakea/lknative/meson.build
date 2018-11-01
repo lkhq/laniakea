@@ -58,7 +58,7 @@ laniakea_lib = shared_library('laniakea',
 laniakea_shared_dep = declare_dependency(
     dependencies: [lk_base_deps],
     link_with: [laniakea_lib],
-    include_directories: [lkshared_src_dir, gir_bind_dir],
+    include_directories: [lkshared_src_dir, gir_bind_dir, src_dir],
 )
 
 lknative_pylib = shared_library('lknative',
