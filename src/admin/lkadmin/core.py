@@ -24,9 +24,11 @@ __mainfile = None
 
 
 def database_init(options):
-    from laniakea.db import Database, session_factory
+    from laniakea.db import Database, config_get_distro_tag, config_set_distro_tag
     db = Database()
     db.create_tables()
+
+    print('Database tables created.')
 
 
 def module_core_init(options):

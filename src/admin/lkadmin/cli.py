@@ -25,7 +25,7 @@ __mainfile = None
 
 def check_print_version(options):
     if options.show_version:
-        from . import __version__
+        from laniakea import __version__
         print(__version__)
         sys.exit(0)
 
