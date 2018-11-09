@@ -20,7 +20,7 @@ systemd_dep = dependency('systemd')
 dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dcontainers', 'dcontainers_dep'])
 dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_dep'])
 fluentasserts_dep = dependency('fluent-asserts', version: '>= 0.6', fallback: ['fluent-asserts', 'fluentasserts_dep'])
-autowrap_py_dep = dependency('autowrap-python')
+pyd_dep = dependency('pyd')
 
 glibd_dep = dependency('glibd-2.0', fallback: ['glibd', 'glibd_dep'])
 appstream_dep = dependency('appstream')

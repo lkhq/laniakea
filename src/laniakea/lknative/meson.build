@@ -1,4 +1,5 @@
 # Meson definition for Laniakea - Shared
+add_languages('c')
 
 laniakea_lib_src = [
     'cmdargs.d',
@@ -31,7 +32,9 @@ laniakea_lib_src = [
 ]
 
 lknative_py_src = [
-    'py/wrap_all.d'
+    'py/pyhelper.d',
+    'py/pywrap.d',
+    'py/druntime.c'
 ]
 
 lk_base_deps = [crypto_dep,
@@ -64,7 +67,7 @@ laniakea_shared_dep = declare_dependency(
 lknative_pylib = shared_library('lknative',
     [lknative_py_src],
     name_prefix: '',
-    dependencies: [autowrap_py_dep, laniakea_shared_dep]
+    dependencies: [pyd_dep, laniakea_shared_dep]
 )
 
 # Test

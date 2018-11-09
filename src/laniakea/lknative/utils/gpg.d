@@ -18,7 +18,6 @@
  */
 
 module lknative.utils.gpg;
-@safe:
 
 import std.string : format, splitLines;
 import std.array : empty, split;
@@ -31,7 +30,7 @@ import lknative.logging;
 /**
  * Thrown on an error with GnuPG.
  */
-class GPGError: Exception
+private class GPGError: Exception
 {
     @safe pure nothrow
     this (string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
@@ -43,7 +42,7 @@ class GPGError: Exception
 /**
  * Thrown on an error which sets errno.
  */
-class SysError: Exception
+private class SysError: Exception
 {
     this (string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) @trusted
     {
@@ -181,7 +180,7 @@ public:
         verify (data, requireSignature);
     }
 
-    void open (string fname, bool requireSignature = true) @trusted
+    void open (string fname, bool requireSignature = true)
     {
         import std.stdio;
         import std.array : appender;
