@@ -2,13 +2,15 @@
 
 synchrotron_src = [
     'syncengine.d',
-    'pywrap.d'
+    'pywrap.d',
+    'syncconfig.d',
+    '../laniakea/lknative/py/pyhelper.d'
 ]
 
-synchrontron_pylib = shared_library('laniakea_synchrotron',
+synchrontron_pylib = shared_library('lknative_synchrotron',
     [synchrotron_src],
     name_prefix: '',
-    dependencies: [autowrap_py_dep, laniakea_shared_dep]
+    dependencies: [pyd_dep, laniakea_shared_dep]
 )
 
 # Test

@@ -5,11 +5,7 @@ import lknative.py.pyhelper;
 
 import lknative.utils : SignedFile, compareVersions;
 import lknative.utils.namegen : generateName;
-
-struct Test {
-    string aaa;
-    int bbb;
-}
+import lknative.config;
 
 extern(C) void PydMain()
 {
@@ -24,7 +20,8 @@ extern(C) void PydMain()
             Def!(SignedFile.open),
     )();
 
-    wrapAggregate!(Test)();
+    wrapAggregate!(BaseConfig)();
+    wrapAggregate!(SuiteInfo)();
 }
 
 

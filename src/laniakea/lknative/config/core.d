@@ -47,12 +47,21 @@ enum LkModule
 }
 
 /**
+ * Suite information
+ */
+struct SuiteInfo {
+    string name;
+    string[] architectures;
+    string[] components;
+}
+
+/**
  * Basic archive configuration
  **/
 struct BaseArchiveConfig {
     string develSuite;     /// Development target suite ("testing", "green", ...)
-    string incomingSuite;  /// Suite where new packages typically arrive ("unstable", "staging", ...)
     string distroTag;      /// Version tag for this distribution ("pureos", "tanglu", ...) - will usually be part of a package version, e.g. "1.0-0tanglu1"
+    SuiteInfo incomingSuite;  /// Suite where new packages typically arrive ("unstable", "staging", ...)
 }
 
 /**

@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lknative.config.synchrotron;
+module synchrotron.syncconfig;
 @safe:
 
 import std.uuid : UUID;
@@ -56,16 +56,6 @@ struct SynchrotronConfig {
 }
 
 /**
- * Synchrotron blacklist
- **/
-class SyncBlacklistEntry {
-    string pkgname; /// Name of the blacklisted package
-    DateTime date;  /// Time when the package was blacklisted
-    string reason;  /// Reason why the package is blacklisted
-    string user;    /// Person who marked this to be ignored
-}
-
-/**
  * Kind of a Synchrotron issue.
  **/
 enum SynchrotronIssueKind {
@@ -80,9 +70,7 @@ enum SynchrotronIssueKind {
 /**
  * Hints about why packages are not synchronized.
  **/
-class SynchrotronIssue {
-    UUID uuid;
-
+struct SynchrotronIssue {
     DateTime date;              /// Time when this excuse was created
 
     SynchrotronIssueKind kind; /// Kind of this issue, and usually also the reason for it.

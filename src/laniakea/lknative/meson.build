@@ -9,7 +9,6 @@ laniakea_lib_src = [
     'config/jobs.d',
     'config/package.d',
     'config/spears.d',
-    'config/synchrotron.d',
     'config/workers.d',
     'debcheck.d',
     'downloadmanager.d',
@@ -29,12 +28,12 @@ laniakea_lib_src = [
     'utils/package.d',
     'utils/utils.d',
     'utils/versioncmp.d',
+    'py/druntime.c'
 ]
 
 lknative_py_src = [
     'py/pyhelper.d',
-    'py/pywrap.d',
-    'py/druntime.c'
+    'py/pywrap.d'
 ]
 
 lk_base_deps = [crypto_dep,

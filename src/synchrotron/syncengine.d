@@ -24,14 +24,15 @@ import std.string : endsWith, startsWith, format;
 import std.algorithm : canFind;
 import std.array : appender;
 import std.parallelism : parallel;
-import std.typecons : Nullable;
+import std.typecons : Nullable, Tuple;
 
-import lknative.config.synchrotron;
+import lknative.config : BaseConfig, SuiteInfo;
 import lknative.repository;
 import lknative.repository.dak;
 import lknative.utils : compareVersions, getDebianRev, currentDateTime;
 import lknative.localconfig;
 import lknative.logging;
+import synchrotron.syncconfig;
 
 /**
  * Thrown on a package sync error.
@@ -48,7 +49,7 @@ class PackageSyncError: Error
 /**
  * Execute package synchronization in Synchrotron
  */
-final class SyncEngine
+class SyncEngine
 {
 
 private:
@@ -59,10 +60,12 @@ private:
     Repository targetRepo;
 
     SyncSourceSuite sourceSuite;
-    string targetSuiteName;
+    SuiteInfo targetSuite;
 
     SynchrotronConfig syncConfig;
     BaseConfig baseConfig;
+
+    bool[string] syncBlacklist;
 
     immutable string distroTag;
 
@@ -71,8 +74,6 @@ public:
     this (BaseConfig bConfig, SynchrotronConfig sConfig)
     {
         dak = new Dak;
-
-        db = Database.get;
 
         auto conf = LocalConfig.get;
 
@@ -84,7 +85,7 @@ public:
                                      baseConfig.projectName);
         targetRepo.setTrusted (true);
 
-        targetSuiteName = baseConfig.archive.incomingSuite;
+        targetSuite = baseConfig.archive.incomingSuite;
         distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
@@ -96,19 +97,11 @@ public:
         setSourceSuite (syncConfig.source.defaultSuite);
     }
 
-    private auto getPackageBlacklistSet ()
+    void setBlacklist (string[] pkgnames)
     {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
-        auto q = session.createQuery ("FROM SyncBlacklistEntry");
-        SyncBlacklistEntry[] list = q.list!SyncBlacklistEntry;
-
-        bool[string] blacklistSet;
-        foreach (ref entry; list)
-            blacklistSet[entry.pkgname] = true;
-
-        return blacklistSet;
+        syncBlacklist.clear ();
+        foreach (ref entry; pkgnames)
+            syncBlacklist[entry] = true;
     }
 
     @property
@@ -199,7 +192,7 @@ public:
         if (is(T == SourcePackage) || is(T == BinaryPackage))
     {
         return getRepoPackageMap!T (targetRepo,
-                                    targetSuiteName,
+                                    targetSuite.name,
                                     component,
                                     arch,
                                     withInstaller);
@@ -234,7 +227,7 @@ public:
             return false;
         }
 
-        return importPackageFiles (targetSuiteName, component, [dscfile]);
+        return importPackageFiles (targetSuite.name, component, [dscfile]);
     }
 
     /**
@@ -250,12 +243,8 @@ public:
             return true;
         }
 
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
         // list of valid architectrures supported by the target
-        auto incomingSuite = session.getSuite (baseConfig.archive.incomingSuite);
-        immutable targetArchs = array (incomingSuite.architectures[].map!(a => a.name)).idup;
+        immutable targetArchs = targetSuite.architectures.idup;
 
         // cache of binary-package mappings for the source
         BinaryPackage[string][string] binPkgArchMap;
@@ -343,7 +332,7 @@ public:
                     if (!existingPackages)
                         logWarning ("No binary packages synced for source %s/%s", spkg.name, spkg.ver);
                 } else {
-                    auto ret = importPackageFiles (targetSuiteName, component, binFiles.data);
+                    auto ret = importPackageFiles (targetSuite.name, component, binFiles.data);
                     if (!ret)
                         return false;
                 }
@@ -361,8 +350,6 @@ public:
 
         auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
         auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
-
-        auto syncBlacklist = getPackageBlacklistSet ();
 
         auto syncedSrcPkgs = appender!(SourcePackage[]);
         foreach (ref pkgname; pkgnames) {
@@ -419,12 +406,12 @@ public:
         return ret;
     }
 
-    private auto newSyncIssue (SyncSourceSuite sourceSuite, ArchiveSuite targetSuite)
+    private auto newSyncIssue (SyncSourceSuite sourceSuite)
     {
-        import std.uuid : randomUUID;
-        auto issue = new SynchrotronIssue;
+        //import std.uuid : randomUUID;
+        SynchrotronIssue issue;
 
-        issue.uuid = randomUUID ();
+        //issue.uuid = randomUUID ();
         issue.date = currentDateTime ();
 
         issue.sourceSuite = sourceSuite.name;
@@ -436,27 +423,17 @@ public:
     /**
      * Synchronize all packages that are newer
      */
-    bool autosync ()
+    Tuple!(bool, SynchrotronIssue[]) autosync ()
     {
         checkSyncReady ();
 
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
+        Tuple!(bool, SynchrotronIssue[]) res;
+        res[0] = false;
 
-        auto incomingSuite = session.getSuite (baseConfig.archive.incomingSuite);
-        auto targetSuite   = session.getSuite (targetSuiteName);
         auto activeSrcPkgs = appender!(SourcePackage[]); // source packages which should have their binary packages updated
 
-        auto syncBlacklist = getPackageBlacklistSet ();
-
-        // FIXME: we do the quick and dirty update here, removing everything and adding it back.
-        // Maybe we need to be smarter about this in future.
-        conn.removeSynchrotronIssuesForSuites (sourceSuite.name, incomingSuite.name);
-
-        foreach (ref component; incomingSuite.components) {
-            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component.name);
+        foreach (ref component; targetSuite.components) {
+            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
 
             // The source package lists contains many different versions, some source package
             // versions are explicitly kept for GPL-compatibility.
@@ -469,9 +446,9 @@ public:
             // binary-sync-mode.
             SourcePackage[] srcPkgRange;
             if (syncConfig.syncBinaries) {
-                srcPkgRange = sourceRepo.getSourcePackages (sourceSuite.name, component.name);
+                srcPkgRange = sourceRepo.getSourcePackages (sourceSuite.name, component);
             } else {
-                auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component.name);
+                auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
                 srcPkgRange = srcPkgMap.values;
             }
 
@@ -496,22 +473,22 @@ public:
                         logInfo ("No syncing %s/%s: Destination has modifications (found %s).", spkg.name, spkg.ver, dpkg.ver);
 
                         // add information that this package needs to be merged to the issue list
-                        auto issue = newSyncIssue (sourceSuite, targetSuite);
+                        auto issue = newSyncIssue (sourceSuite);
                         issue.kind = SynchrotronIssueKind.MERGE_REQUIRED;
                         issue.packageName = spkg.name;
                         issue.targetVersion = dpkg.ver;
                         issue.sourceVersion = spkg.ver;
 
-                        session.save (issue);
+                        res[1] ~= issue;
                         continue;
                     }
                 }
 
                 // sync source package
                 // the source package must always be known to dak first
-                auto ret = importSourcePackage (spkg, component.name);
+                auto ret = importSourcePackage (spkg, component);
                 if (!ret)
-                    return false;
+                    return res;
 
                 // a new source package is always active and needs it's binary packages synced, in
                 // case we do binary syncs.
@@ -530,22 +507,22 @@ public:
             // import binaries as well. We test for binary updates for all available active source packages,
             // as binNMUs might have happened in the source distribution.
             // (an active package in this context is any source package which doesn't have modifications in the target distribution)
-            auto ret = importBinariesForSources (activeSrcPkgs.data, component.name);
+            auto ret = importBinariesForSources (activeSrcPkgs.data, component);
             if (!ret)
-                return false;
+                return res;
         }
 
         // test for cruft packages
         SourcePackage[string] targetPkgIndex;
-        foreach (ref component; incomingSuite.components) {
-            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component.name);
+        foreach (ref component; targetSuite.components) {
+            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
             foreach (ref pkgname, ref pkg; destPkgMap)
                 targetPkgIndex[pkgname] = pkg;
         }
 
         // check which packages are present in the target, but not in the source suite
-        foreach (ref component; incomingSuite.components) {
-            auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component.name);
+        foreach (ref component; targetSuite.components) {
+            auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
             foreach (ref pkgname; srcPkgMap.byKey)
                 targetPkgIndex.remove (pkgname);
         }
@@ -563,13 +540,13 @@ public:
             // if this package was modified in the target distro, we will also not remove it, but flag it as "potential cruft" for
             // someone to look at.
             if (dpkg.ver.getDebianRev.canFind (distroTag)) {
-                auto issue = newSyncIssue (sourceSuite, targetSuite);
+                auto issue = newSyncIssue (sourceSuite);
                 issue.kind = SynchrotronIssueKind.MAYBE_CRUFT;
                 issue.packageName = dpkg.name;
                 issue.targetVersion = dpkg.ver;
                 issue.sourceVersion = null;
 
-                session.save (issue);
+                res[1] ~= issue;
                 continue;
             }
 
@@ -579,29 +556,30 @@ public:
                 try {
                     dak.removePackage (dpkg.name, targetSuite.name);
                 } catch (Exception e) {
-                    auto issue = newSyncIssue (sourceSuite, targetSuite);
+                    auto issue = newSyncIssue (sourceSuite);
                     issue.kind = SynchrotronIssueKind.REMOVAL_FAILED;
                     issue.packageName = dpkg.name;
                     issue.targetVersion = dpkg.ver;
                     issue.sourceVersion = null;
                     issue.details = "%s".format (e);
 
-                    session.save (issue);
+                    res[1] ~= issue;
                 }
             } else {
                 // looks like we can not remove this
-                auto issue = newSyncIssue (sourceSuite, targetSuite);
+                auto issue = newSyncIssue (sourceSuite);
                 issue.kind = SynchrotronIssueKind.REMOVAL_FAILED;
                 issue.packageName = dpkg.name;
                 issue.targetVersion = dpkg.ver;
                 issue.sourceVersion = null;
                 issue.details = "This package can not be removed without breaking other packages. It needs manual removal.";
 
-                session.save (issue);
+                res[1] ~= issue;
             }
         }
 
-        return true;
+        res[0] = true;
+        return res;
     }
 
 }
