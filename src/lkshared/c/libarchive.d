@@ -17,7 +17,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module c.libarchive;
+module lkutils.c.libarchive;
 
 import core.stdc.stdio;
 import std.conv : octal;

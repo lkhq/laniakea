@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lknative.repository.types;
+module lkshared.repository.types;
 @safe:
 
 import std.array : empty;

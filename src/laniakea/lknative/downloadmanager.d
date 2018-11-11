@@ -25,8 +25,8 @@ import std.array : appender, empty;
 static import std.file;
 
 import lknative.localconfig : LocalConfig;
-import lknative.utils : GENERIC_BUFFER_SIZE;
-import lknative.net;
+import lkshared.utils : GENERIC_BUFFER_SIZE;
+import lkshared.net;
 
 
 /**

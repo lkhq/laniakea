@@ -32,8 +32,8 @@ static import std.file;
 
 public import lknative.config.core : LkModule;
 
-import lknative.logging;
-import lknative.utils : findFilesBySuffix;
+import lkshared.logging;
+import lkshared.utils : findFilesBySuffix;
 
 public immutable laniakeaVersion = "0.1";
 

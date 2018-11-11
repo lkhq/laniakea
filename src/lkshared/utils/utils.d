@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lknative.utils.utils;
+module lkshared.utils.utils;
 @safe:
 
 import std.stdio : File, writeln;

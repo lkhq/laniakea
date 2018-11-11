@@ -27,12 +27,12 @@ import std.parallelism : parallel;
 import std.typecons : Nullable, Tuple;
 
 import lknative.config : BaseConfig, SuiteInfo;
-import lknative.repository;
-import lknative.repository.dak;
-import lknative.utils : compareVersions, getDebianRev, currentDateTime;
+import lknative.config.synchrotron;
+import lkshared.repository;
+import lkshared.repository.dak;
+import lkshared.utils : compareVersions, getDebianRev, currentDateTime;
 import lknative.localconfig;
-import lknative.logging;
-import synchrotron.syncconfig;
+import lkshared.logging;
 
 /**
  * Thrown on a package sync error.
@@ -89,7 +89,8 @@ public:
         distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
-        sourceRepo = new Repository (syncConfig.source.repoUrl,
+        sourceRepo = new Repository (conf.cacheDir,
+                                     syncConfig.source.repoUrl,
                                      syncConfig.sourceName,
                                      conf.synchrotron.sourceKeyrings);
         m_importsTrusted = true; // we trust everything by default

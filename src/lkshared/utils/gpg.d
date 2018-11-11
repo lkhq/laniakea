@@ -17,14 +17,13 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lknative.utils.gpg;
+module lkshared.utils.gpg;
 
 import std.string : format, splitLines;
 import std.array : empty, split;
 import core.sys.posix.unistd : pid_t;
 
-import lknative.logging;
-
+import lkshared.logging;
 
 
 /**

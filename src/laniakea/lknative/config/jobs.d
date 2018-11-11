@@ -20,7 +20,7 @@
 module lknative.config.jobs;
 @safe:
 
-import lknative.logging;
+import lkshared.logging;
 import lknative.config.core;
 import std.uuid : randomUUID;
 import std.conv : to;

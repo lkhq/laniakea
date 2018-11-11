@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module synchrotron.syncconfig;
+module lknative.config.synchrotron;
 @safe:
 
 import std.uuid : UUID;

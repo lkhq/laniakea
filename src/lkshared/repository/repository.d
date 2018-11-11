@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lknative.repository.repository;
+module lkshared.repository.repository;
 @safe:
 
 import std.stdio;
@@ -31,12 +31,11 @@ import std.algorithm : canFind;
 static import std.file;
 import containers : DynamicArray, HashMap;
 
-import lknative.logging;
-import lknative.net : downloadFile;
-import lknative.localconfig : LocalConfig;
-import lknative.utils : isRemote, splitStrip, compareVersions, hashFile;
-import lknative.tagfile;
-import lknative.repository.types;
+import lkshared.logging;
+import lkshared.net : downloadFile;
+import lkshared.utils : isRemote, splitStrip, compareVersions, hashFile;
+import lkshared.tagfile;
+import lkshared.repository.types;
 
 
 /**
@@ -62,11 +61,10 @@ private:
 
 public:
 
-    this (string location, string repoName = null, string[] trustedKeyrings = []) @trusted
+    this (string cacheDir, string location, string repoName = null, string[] trustedKeyrings = []) @trusted
     {
         if (isRemote (location)) {
-            auto conf = LocalConfig.get;
-            rootDir = buildPath (conf.cacheDir, "repos_tmp", repoName);
+            rootDir = buildPath (cacheDir, "repos_tmp", repoName);
             std.file.mkdirRecurse (rootDir);
             repoUrl = location;
         } else {
@@ -125,7 +123,7 @@ public:
 
     private InReleaseData getRepoInformation (string suite) @trusted
     {
-        import lknative.utils.gpg : SignedFile;
+        import lkshared.utils.gpg : SignedFile;
 
         auto irP = suite in inRelease;
         if (irP !is null)

@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lknative.repository.dak;
+module lkshared.repository.dak;
 
 import std.stdio : File;
 import std.string : format;
@@ -27,7 +27,7 @@ import std.path : baseName;
 import std.algorithm : map;
 static import std.file;
 
-import lknative.logging;
+import lkshared.logging;
 
 /**
  * Interface to the Debian Archive Kit (DAK)

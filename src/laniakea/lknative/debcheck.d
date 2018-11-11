@@ -29,10 +29,10 @@ import std.datetime : DateTime;
 import std.uuid : UUID;
 static import dyaml;
 
-import lknative.utils : currentDateTime;
+import lkshared.utils : currentDateTime;
 import lknative.localconfig;
-import lknative.repository;
-import lknative.logging;
+import lkshared.repository;
+import lkshared.logging;
 
 
 /**

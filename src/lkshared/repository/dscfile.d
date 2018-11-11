@@ -17,13 +17,13 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lknative.repository.dscfile;
+module lkshared.repository.dscfile;
 
 import std.string : strip, split;
 
-import lknative.logging;
-import lknative.tagfile;
-import lknative.repository.types;
+import lkshared.logging;
+import lkshared.tagfile;
+import lkshared.repository.types;
 
 /**
  * Read information from a Debian source package (.dsc file)

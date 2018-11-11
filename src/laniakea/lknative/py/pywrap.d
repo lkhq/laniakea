@@ -1,19 +1,26 @@
 module pywrap;
 
-import pyd.pyd, pyd.embedded;
+// We only add the Python bindings if not in unittest mode
+version(unittest) {}
+else {
+
+import pyd.pyd;
+import pyd.embedded;
 import lknative.py.pyhelper;
 
-import lknative.utils : SignedFile, compareVersions;
-import lknative.utils.namegen : generateName;
+import lkshared.utils : SignedFile, compareVersions;
+import lkshared.utils.namegen : generateName;
 import lknative.config;
 
 extern(C) void PydMain()
 {
+    /* Common */
     def!(compareVersions, PyName!"compare_versions")();
     def!(generateName, PyName!"generate_name")();
 
     module_init();
 
+    /* Common */
     wrap_class!(SignedFile,
             Init!(string[]),
 
@@ -22,6 +29,20 @@ extern(C) void PydMain()
 
     wrapAggregate!(BaseConfig)();
     wrapAggregate!(SuiteInfo)();
+
+    /* Synchrotron */
+    import lknative.synchrotron;
+    wrap_class!(SyncEngine,
+            Init!(BaseConfig, SynchrotronConfig),
+
+            Def!(SyncEngine.setSourceSuite),
+            Def!(SyncEngine.setBlacklist),
+
+            Def!(SyncEngine.autosync),
+            Def!(SyncEngine.syncPackages),
+    )();
+
+    wrapAggregate!(SynchrotronConfig)();
 }
 
 
@@ -39,3 +60,5 @@ extern(C) export PyObject* PyInit_lknative() {
 extern(C) void _Dmain(){
     // make druntime happy
 }
+
+} // End of unittest conditional
