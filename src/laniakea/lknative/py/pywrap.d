@@ -10,6 +10,7 @@ import lknative.py.pyhelper;
 
 import lkshared.utils : SignedFile, compareVersions;
 import lkshared.utils.namegen : generateName;
+import lkshared.logging : setVerboseLog;
 import lknative.config;
 
 extern(C) void PydMain()
@@ -17,6 +18,7 @@ extern(C) void PydMain()
     /* Common */
     def!(compareVersions, PyName!"compare_versions")();
     def!(generateName, PyName!"generate_name")();
+    def!(setVerboseLog, PyName!"logging_set_verbose")();
 
     module_init();
 
@@ -28,6 +30,7 @@ extern(C) void PydMain()
     )();
 
     wrapAggregate!(BaseConfig)();
+    wrapAggregate!(BaseArchiveConfig)();
     wrapAggregate!(SuiteInfo)();
 
     /* Synchrotron */

@@ -15,18 +15,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
+from lknative import BaseConfig
+from laniakea.db import config_get_project_name, config_get_distro_tag
 
-__version__ = '0.1.0'
+def create_native_baseconfig():
+    bconf = BaseConfig()
 
-thisfile = __file__
-if not os.path.isabs(thisfile):
-    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
-
-# add lknative module path if we run from a development copy
-if not thisfile.startswith('/usr'):
-    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), \
-        '..', '..', 'build', 'src', 'laniakea', 'lknative')))
-
-from laniakea.localconfig import LocalConfig
+    bconf.projectName = config_get_project_name()
+    bconf.archive.distroTag = config_get_distro_tag()

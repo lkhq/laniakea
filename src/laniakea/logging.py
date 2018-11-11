@@ -15,18 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
 
-__version__ = '0.1.0'
+def set_verbose(enabled):
+    from lknative import logging_set_verbose
 
-thisfile = __file__
-if not os.path.isabs(thisfile):
-    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
-
-# add lknative module path if we run from a development copy
-if not thisfile.startswith('/usr'):
-    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), \
-        '..', '..', 'build', 'src', 'laniakea', 'lknative')))
-
-from laniakea.localconfig import LocalConfig
+    logging_set_verbose(enabled)

@@ -40,7 +40,7 @@ class CustomArgparseFormatter(HelpFormatter):
 
 
 def create_parser(formatter_class=None):
-    ''' Create debspawn CLI argument parser '''
+    ''' Create lkadmin CLI argument parser '''
 
     if not formatter_class:
         formatter_class = CustomArgparseFormatter
