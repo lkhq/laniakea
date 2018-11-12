@@ -16,14 +16,18 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
+import uuid
 from typing import List
-from sqlalchemy import Column, Table, Text, String, Integer, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, Table, Text, String, Integer, DateTime, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import JSON, ARRAY
+from sqlalchemy.dialects.postgresql import JSON, ARRAY, CHAR
 from sqlalchemy import text as sa_text
-from uuid import uuid4
 from .base import Base, UUID, DebVersion
 from .core import LkModule
+
+
+UUID_NS_SRCPACKAGE = uuid.UUID('bdc4cc28-43ed-58f7-8cf8-7bd1b4e80560')
+UUID_NS_BINPACKAGE = uuid.UUID('b897829c-2eb4-503c-afd1-0fd74da8cc2b')
 
 
 class ArchiveRepository(Base):
@@ -37,7 +41,7 @@ class ArchiveRepository(Base):
 
     name = Column(String(128), unique=True)  # Name of the repository
 
-    suites = relationship('ArchiveSuite', backref='repo')
+    #suites = relationship('ArchiveSuite', backref='repo')
 
 
 suite_component_assoc_table = Table('archive_suite_component_association', Base.metadata,
@@ -70,7 +74,8 @@ class ArchiveSuite(Base):
 
     name = Column(String(128))  # Name of the repository
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
+    accept_uploads = Column(Boolean())  # Whether new packages can arrive in this suite via regular uploads ("unstable", "staging", ...)
+    devel_target = Column(Boolean())  # Whether this is a development target suite ("testing", "green", ...)
 
     architectures = relationship('ArchiveArchitecture', secondary=suite_arch_assoc_table, back_populates='suites')
     components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
@@ -218,16 +223,6 @@ class VersionPriority(enum.Enum):
         return 'unknown'
 
 
-class ArchiveFile:
-    '''
-    A file in the archive.
-    '''
-
-    fname = None  # the filename of the file
-    size = 0  # the size of the file
-    sha256sum = None  # the files' checksum
-
-
 class PackageInfo:
     '''
     Basic package information, used by
@@ -242,18 +237,37 @@ class PackageInfo:
     architectures = []
 
 
+class ArchiveFile(Base):
+    '''
+    A file in the archive.
+    '''
+    __tablename__ = 'archive_files'
+
+    id = Column(Integer, primary_key=True)
+
+    fname = Column(Text())
+    size = Column(Integer())  # the size of the file
+    sha256sum = Column(CHAR(64))  # the files' checksum
+
+    srcpkg_id = Column(UUID, ForeignKey('archive_src_packages.uuid'))
+    binpkg_id = Column(UUID, ForeignKey('archive_bin_packages.uuid'))
+    binpkg = relationship('BinaryPackage', back_populates='pkg_file')
+
+
 class SourcePackage(Base):
     '''
     Data of a source package.
     '''
     __tablename__ = 'archive_src_packages'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    source_uuid = Column(UUID(as_uuid=True), default=uuid4)  # The unique identifier for the whole source packaging project (stays the same even if the package version changes)
+    uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
+    source_uuid = Column(UUID(as_uuid=True), default=None, nullable=False)  # The unique identifier for the whole source packaging project (stays the same even if the package version changes)
 
     name = Column(String(256))  # Source package name
     version = Column(DebVersion())  # Version of this package
 
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
+    repo = relationship('ArchiveRepository')
     suites = relationship('ArchiveSuite', secondary=srcpkg_suite_assoc_table, back_populates='src_packages')  # Suites this package is in
 
     component_id = Column(Integer, ForeignKey('archive_components.id'))  # Component this package is in
@@ -273,47 +287,32 @@ class SourcePackage(Base):
 
     build_depends = Column(ARRAY(Text()))
 
-    #ArchiveFile[] files;
+    files = relationship('ArchiveFile')
     directory = Column(Text())
 
+    def update_uuid(self):
+        if not self.repo:
+            raise Exception('Source package is not associated with a repository!')
 
-"""
-    static auto generateUUID (const string repoName, const string pkgname, const string ver)
-    {
-        import std.uuid : sha1UUID;
-        return sha1UUID (repoName ~ "::source/" ~ pkgname ~ "/" ~ ver);
-    }
+        self.update_source_uuid()
+        self.uuid = uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}/{}'.format(self.repo.name, self.name, self.version))
 
-    void ensureUUID (bool regenerate = false) @trusted
-    {
-        import std.uuid : sha1UUID;
-        import std.array : empty;
-        if (this.uuid.empty && this.sourceUUID.empty && !regenerate)
-            return;
+        return self.uuid
 
-        string repoName = "?";
-        if (this.repo !is null) {
-            repoName = this.repo.name;
-        }
 
-        this.uuid = SourcePackage.generateUUID (repoName, this.name, this.ver);
-        this.sourceUUID = sha1UUID (repoName ~ "::" ~ this.name);
-    }
+    def update_source_uuid(self):
+        if not self.repo:
+            raise Exception('Source package is not associated with a repository!')
 
-    string stringId () @trusted
-    {
-        string repoName = "";
-        if (this.suites.length != 0) {
-            repoName = this.suites[0].repo.name;
-            if (repoName.empty)
-                repoName = "?";
-        }
+        self.source_uuid = uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}'.format(self.repo.name, self.name))
+        return self.source_uuid
 
-        return repoName ~ "::source/" ~ this.name ~ "/" ~ this.ver;
-    }
-}
 
-"""
+    def __str__(self):
+        repo_name = '?'
+        if self.repo:
+            repo_name = self.repo.name
+        return '{}::source/{}/{}'.format(repo_name, self.name, self.version)
 
 
 class BinaryPackage(Base):
@@ -322,7 +321,7 @@ class BinaryPackage(Base):
     '''
     __tablename__ = 'archive_bin_packages'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
     deb_type = Column(Enum(DebType)) # Deb package type
 
     name = Column(String(256))  # Package name
@@ -331,91 +330,75 @@ class BinaryPackage(Base):
     suites = relationship('ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='bin_packages')  # Suites this package is in
     component_id = Column(Integer, ForeignKey('archive_components.id'))  # Component this package is in
 
-    architecture_id = Column(Integer, ForeignKey('archive_architectures.id'))  # Architecture this binary was built for
+    architecture_id = Column(Integer, ForeignKey('archive_architectures.id'))
+    architecture = relationship('ArchiveArchitecture')  # Architecture this binary was built for
 
+    size_installed = Column(Integer())  # Size of the installed package
+
+    description = Column(Text())
+    description_md5 = Column(CHAR(32))
+
+    source_name = Column(String(256))
+    source_version = Column(DebVersion())
+
+    priority = Column(Enum(PackagePriority))
+
+    section = Column(String(64))
+
+    depends = Column(ARRAY(Text()))
+    pre_depends = Column(ARRAY(Text()))
+
+    maintainer = Column(Text())
+    homepage = Column(Text())
+
+    pkg_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg')
+
+
+    def update_uuid(self):
+        if not self.repo:
+            raise Exception('Binary package is not associated with a repository!')
+
+        self.uuid = uuid.uuid5(UUID_NS_BINPACKAGE, '{}::{}/{}/{}'.format(self.repo.name, self.name, self.version, self.architecture.name))
+        return self.uuid
+
+
+    def __str__(self):
+        repo_name = '?'
+        if self.repo:
+            repo_name = self.repo.name
+        arch_name = 'unknown'
+        if self.architecture:
+            arch_name = self.architecture.name
+        return '{}::{}/{}/{}'.format(repo_name, self.name, self.version, arch_name)
+
+
+class SoftwareComponent(Base):
+    '''
+    Description of a software component as described by the AppStream
+    specification.
+    '''
+    __tablename__ = 'archive_sw_components'
+
+    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    kind = Column(Integer())  # The component type
+
+    cid = Column(Text())  # The component ID of this software
+    gcid = Column(Text())  # The global component ID as used by appstream-generator
+
+    name = Column(Text())  # Name of this component
+    summary = Column(Text())  # Short description of this component
+    description = Column(Text())  # Description of this component
+
+    icon_name = Column(String(256))  # Name of the primary cached icon of this component
+
+    project_license = Column(String(256))  # License of this software
+    developer_name = Column(Text())  # Name of the developer of this software
+
+    categories = Column(ARRAY(String(64)))  # Categories this component is in
+
+    # TODO
 """
-    int installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
-
-    string description;
-    string descriptionMd5;
-
-    string sourceName;
-    string sourceVersion;
-
-    PackagePriority priority;
-
-    string section;
-
-    string[] depends;
-    string[] preDepends;
-
-    string maintainer;
-
-    ArchiveFile file;
-
-    string homepage;
-
-    static auto generateUUID (const string repoName, const string pkgname, const string ver, const string arch)
-    {
-        import std.uuid : sha1UUID;
-        return sha1UUID (repoName ~ "::" ~ pkgname ~ "/" ~ ver ~ "/" ~ arch);
-    }
-
-    void ensureUUID (bool regenerate = false) @trusted
-    {
-        import std.array : empty;
-        if (this.uuid.empty && !regenerate)
-            return;
-        assert (this.architecture !is null);
-
-        string repoName = "?";
-        if (this.repo !is null) {
-            repoName = this.repo.name;
-        }
-
-        this.uuid = BinaryPackage.generateUUID (repoName, this.name, this.ver, this.architecture.name);
-    }
-
-    string stringId () @trusted
-    {
-        assert (this.architecture !is null);
-
-        string repoName = "";
-        if (this.suites.length != 0) {
-            repoName = this.suites[0].repo.name;
-            if (repoName.empty)
-                repoName = "?";
-        }
-
-        return repoName ~ "::" ~ this.name ~ "/" ~ this.ver ~ "/" ~ this.architecture.name;
-    }
-}
-
-/**
- * Description of a software component as described by the AppStream
- * specification.
- */
-class SoftwareComponent
-{
-    import appstream.Metadata : Metadata;
-    UUID uuid;
-
-    ASComponentKind kind; /// The component type
-
-    string cid;        /// The component ID of this software
-    string gcid; /// The global component ID as used by appstream-generator
-
-    string name;              /// Name of this component
-    string summary;           /// Short description of this component
-    string description; /// Description of this component
-
-    string iconName;       /// Name of the primary cached icon of this component
-
-    string projectLicense; /// License of this software
-    string developerName;  /// Name of the developer of this software
-
-    string[] categories;      /// Categories this component is in
-
     BinaryPackage[] binPackages;
 
     ASComponent _cpt; /// The AppStream component this database entity represents
@@ -469,6 +452,5 @@ class SoftwareComponent
         else if (!yaml.empty)
             this.uuid = sha1UUID (yaml);
     }
-}
 
 """

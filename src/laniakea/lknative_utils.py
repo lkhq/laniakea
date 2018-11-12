@@ -16,10 +16,18 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 from lknative import BaseConfig
-from laniakea.db import config_get_project_name, config_get_distro_tag
+from laniakea.db import config_get_project_name, config_get_distro_tag, session_factory, \
+    ArchiveSuite
+
 
 def create_native_baseconfig():
+    session = session_factory()
     bconf = BaseConfig()
 
     bconf.projectName = config_get_project_name()
     bconf.archive.distroTag = config_get_distro_tag()
+
+    dev_suite = session.query(ArchiveSuite) \
+        .filter(ArchiveSuite.devel_target==True).one()
+
+    bconf.develSuite = dev_suite.name
