@@ -30,6 +30,12 @@ UUID_NS_SRCPACKAGE = uuid.UUID('bdc4cc28-43ed-58f7-8cf8-7bd1b4e80560')
 UUID_NS_BINPACKAGE = uuid.UUID('b897829c-2eb4-503c-afd1-0fd74da8cc2b')
 
 
+repo_suite_assoc_table = Table('archive_repo_suite_association', Base.metadata,
+    Column('repo_id', Integer, ForeignKey('archive_repositories.id')),
+    Column('suite_id', Integer, ForeignKey('archive_suites.id'))
+)
+
+
 class ArchiveRepository(Base):
     '''
     A system architecture software can be compiled for.
@@ -40,8 +46,10 @@ class ArchiveRepository(Base):
     id = Column(Integer, primary_key=True)
 
     name = Column(String(128), unique=True)  # Name of the repository
+    suites = relationship('ArchiveSuite', secondary=repo_suite_assoc_table, back_populates='repos')
 
-    #suites = relationship('ArchiveSuite', backref='repo')
+    def __init__(self, name):
+        self.name = name
 
 
 suite_component_assoc_table = Table('archive_suite_component_association', Base.metadata,
@@ -72,11 +80,12 @@ class ArchiveSuite(Base):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String(128))  # Name of the repository
+    name = Column(String(128), unique=True)  # Name of the repository
 
     accept_uploads = Column(Boolean())  # Whether new packages can arrive in this suite via regular uploads ("unstable", "staging", ...)
     devel_target = Column(Boolean())  # Whether this is a development target suite ("testing", "green", ...)
 
+    repos = relationship('ArchiveRepository', secondary=repo_suite_assoc_table, back_populates='suites')
     architectures = relationship('ArchiveArchitecture', secondary=suite_arch_assoc_table, back_populates='suites')
     components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
 
@@ -117,6 +126,9 @@ class ArchiveComponent(Base):
     parent_component_id = Column(Integer, ForeignKey('archive_components.id'))
     parent_component = relationship('ArchiveComponent', remote_side=[id])  # Other components that need to be present to fulfill dependencies of packages in this component
 
+    def __init__(self, name):
+        self.name = name
+
 
 class ArchiveArchitecture(Base):
     '''
@@ -128,10 +140,14 @@ class ArchiveArchitecture(Base):
     id = Column(Integer, primary_key=True)
 
     name = Column(String(128), unique=True)  # Name of the repository
+    summary = Column(String(256))  # Short description of this architecture
 
     suites = relationship('ArchiveSuite', secondary=suite_arch_assoc_table, back_populates='architectures')  # Suites that contain this architecture
 
     bin_packages = relationship('BinaryPackage', backref=backref('ArchiveArchitecture', uselist=False))
+
+    def __init__(self, name):
+        self.name = name
 
 
 class PackageType(enum.Enum):
