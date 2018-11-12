@@ -19,10 +19,28 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.types import UserDefinedType
 from ..localconfig import LocalConfig
 
 
 Base = declarative_base()
+
+# Patch in support for the debversion field type so that it works during
+# reflection
+
+class DebVersion(UserDefinedType):
+    def get_col_spec(self):
+        return "DEBVERSION"
+
+    def bind_processor(self, dialect):
+        return None
+
+    def result_processor(self, dialect, coltype):
+        return None
+
+from sqlalchemy.databases import postgres
+postgres.ischema_names['debversion'] = DebVersion
+
 
 class Database:
     instance = None

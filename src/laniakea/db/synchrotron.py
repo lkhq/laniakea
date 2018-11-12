@@ -21,7 +21,7 @@ from sqlalchemy import Column, Text, String, Integer, DateTime, Enum
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy import text as sa_text
 from uuid import uuid4
-from .base import Base, UUID
+from .base import Base, UUID, DebVersion
 from .core import LkModule
 
 
@@ -54,8 +54,8 @@ class SynchrotronIssue(Base):
     source_suite  = Column(String(256))  # Source suite of this package, usually the one in Debian
     target_suite  = Column(String(256))  # Target suite of this package, from the target distribution
 
-    source_version = Column(String(256)) # package version to be synced
-    target_version = Column(String(256)) # version of the package in the target suite and repo, to be overriden
+    source_version = Column(DebVersion()) # package version to be synced
+    target_version = Column(DebVersion()) # version of the package in the target suite and repo, to be overriden
 
     details = Column(Text()) # additional information text about the issue (usually a log excerpt)
 
