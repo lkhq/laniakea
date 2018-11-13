@@ -30,3 +30,4 @@ if not thisfile.startswith('/usr'):
         '..', '..', 'build', 'src', 'laniakea', 'lknative')))
 
 from laniakea.localconfig import LocalConfig
+from laniakea.db import LkModule

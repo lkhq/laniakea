@@ -24,7 +24,6 @@ import std.path : buildPath, baseName;
 import std.array : appender, empty;
 static import std.file;
 
-import lknative.localconfig : LocalConfig;
 import lkshared.utils : GENERIC_BUFFER_SIZE;
 import lkshared.net;
 
@@ -44,10 +43,9 @@ private:
 
 public:
 
-    this (string prefix = "")
+    this (string cacheDir, string prefix = "")
     {
-        auto conf = LocalConfig.get;
-        rootDir = buildPath (conf.cacheDir, "dlcache", urlToName (prefix));
+        rootDir = buildPath (cacheDir, "dlcache", urlToName (prefix));
         std.file.mkdirRecurse (rootDir);
     }
 

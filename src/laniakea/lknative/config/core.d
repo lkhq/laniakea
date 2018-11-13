@@ -17,8 +17,10 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lknative.db.schema.core;
+module lknative.config.core;
 @safe:
+
+public immutable laniakeaVersion = "0.1";
 
 /**
  * A list of all modules integrated into the Laniakea suite,
@@ -61,6 +63,7 @@ struct SuiteInfo {
 struct BaseArchiveConfig {
     string develSuite;     /// Development target suite ("testing", "green", ...)
     string distroTag;      /// Version tag for this distribution ("pureos", "tanglu", ...) - will usually be part of a package version, e.g. "1.0-0tanglu1"
+    string rootPath;       /// Repository root directory
     SuiteInfo incomingSuite;  /// Suite where new packages typically arrive ("unstable", "staging", ...)
 }
 
@@ -69,5 +72,9 @@ struct BaseArchiveConfig {
  **/
 struct BaseConfig {
     string projectName;         /// Name of the distrobution or project ("Tanglu", "PureOS", ...)
+
+    string cacheDir;            /// Location of caches
+    string workspace;           /// Persistent workspace to store data
+
     BaseArchiveConfig archive;  /// archive specific settings
 }

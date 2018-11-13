@@ -31,7 +31,6 @@ import lknative.config.synchrotron;
 import lkshared.repository;
 import lkshared.repository.dak;
 import lkshared.utils : compareVersions, getDebianRev, currentDateTime;
-import lknative.localconfig;
 import lkshared.logging;
 
 /**
@@ -75,13 +74,11 @@ public:
     {
         dak = new Dak;
 
-        auto conf = LocalConfig.get;
-
         baseConfig = bConfig;
         syncConfig = sConfig;
 
         // the repository of the distribution we import stuff into
-        targetRepo = new Repository (conf.archive.rootPath,
+        targetRepo = new Repository (baseConfig.archive.rootPath,
                                      baseConfig.projectName);
         targetRepo.setTrusted (true);
 
@@ -89,10 +86,10 @@ public:
         distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
-        sourceRepo = new Repository (conf.cacheDir,
+        sourceRepo = new Repository (baseConfig.cacheDir,
                                      syncConfig.source.repoUrl,
                                      syncConfig.sourceName,
-                                     conf.synchrotron.sourceKeyrings);
+                                     syncConfig.sourceKeyrings);
         m_importsTrusted = true; // we trust everything by default
 
         setSourceSuite (syncConfig.source.defaultSuite);

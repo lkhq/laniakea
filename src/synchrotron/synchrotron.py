@@ -9,17 +9,38 @@ if not os.path.isabs(thisfile):
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
-from laniakea import LocalConfig
+from laniakea import LocalConfig, LkModule
+from laniakea.db import config_get_value
 from lknative import BaseConfig, SynchrotronConfig, SyncEngine
 
 
 def get_sync_config():
+    from lknative import SyncSourceSuite
     from laniakea.lknative_utils import create_native_baseconfig
 
+    lconf = LocalConfig()
     bconf = create_native_baseconfig()
-    sconf = SynchrotronConfig()
 
-    # TODO
+    sconf = SynchrotronConfig()
+    sconf.sourceName = config_get_value(LkModule.SYNCHROTRON, 'source_name')
+    sconf.syncEnabled = True if config_get_value(LkModule.SYNCHROTRON, 'sync_enabled') else False
+    sconf.syncBinaries = True if config_get_value(LkModule.SYNCHROTRON, 'sync_binaries') else False
+    sconf.sourceKeyrings = lconf.synchrotron_sourcekeyrings
+
+    sconf.source.defaultSuite = config_get_value(LkModule.SYNCHROTRON, 'source_default_suite')
+    sconf.source.repoUrl = config_get_value(LkModule.SYNCHROTRON, 'source_repo_url')
+    suites_list = config_get_value(LkModule.SYNCHROTRON, 'source_suites')
+    if not suites_list:
+        suites_list = []
+    source_suites = []
+    for sd in suites_list:
+        sssuite = SyncSourceSuite()
+        sssuite.name = sd['name']
+        sssuite.architectures = sd['architectures']
+        sssuite.components = sd['components']
+
+        source_suites.append(sssuite)
+    sconf.source.suites = source_suites
 
     return bconf, sconf
 
@@ -29,12 +50,19 @@ def command_sync(options):
 
 
     bconf, sconf = get_sync_config()
+    engine = SyncEngine(bconf, sconf)
 
 
 def command_autosync(options):
     ''' Automatically synchronize packages '''
 
-    pass
+    bconf, sconf = get_sync_config()
+    engine = SyncEngine(bconf, sconf)
+
+    engine.setBlacklist(['test'])
+    ret, issues = engine.autosync()
+
+    print(ret, issues)
 
 
 def create_parser(formatter_class=None):
@@ -53,7 +81,6 @@ def create_parser(formatter_class=None):
     sp.set_defaults(func=command_sync)
 
     sp = subparsers.add_parser('autosync', help='Synchronize a package or set of packages')
-
     sp.set_defaults(func=command_autosync)
 
     return parser
@@ -81,6 +108,7 @@ def run(args):
 
     args = parser.parse_args(args)
     check_print_version(args)
+    check_verbose(args)
     args.func(args)
 
 if __name__ == '__main__':

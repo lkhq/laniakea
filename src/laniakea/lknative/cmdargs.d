@@ -112,6 +112,6 @@ void printHelpText (string progname, string summary, string description,
 void printLaniakeaVersion ()
 {
     import std.stdio : writeln;
-    import lknative.localconfig : laniakeaVersion;
+    import lknative.config.core : laniakeaVersion;
     writeln ("Version: ", laniakeaVersion);
 }

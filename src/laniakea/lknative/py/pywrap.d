@@ -35,6 +35,9 @@ extern(C) void PydMain()
 
     /* Synchrotron */
     import lknative.synchrotron;
+    wrapAggregate!(SyncSourceSuite)();
+    wrapAggregate!(SyncSourceInfo)();
+    wrapAggregate!(SynchrotronConfig)();
     wrap_class!(SyncEngine,
             Init!(BaseConfig, SynchrotronConfig),
 
@@ -45,7 +48,7 @@ extern(C) void PydMain()
             Def!(SyncEngine.syncPackages),
     )();
 
-    wrapAggregate!(SynchrotronConfig)();
+
 }
 
 

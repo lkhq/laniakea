@@ -41,6 +41,15 @@ class LocalConfig:
 
             self._project_name = jdata.get('ProjectName', '')
 
+            jarchive = jdata.get('Archive')
+            if not jarchive:
+                raise Exception('No "Archive" configuration found in local config file. Please specify archive details!')
+
+            self._workspace = jdata.get('Workspace')
+            if not self._workspace:
+                raise Exception('No "Workspace" directory set in local config file. Please specify a persistent workspace location!')
+
+            self._cache_dir = jdata.get('CacheLocation', '/var/tmp/laniakea')
 
             jdb = jdata.get('Database', {})
             databaseHost = jdb.get('host', 'localhost')
@@ -55,14 +64,51 @@ class LocalConfig:
                                                                                                 port=databasePort,
                                                                                                 dbname=databaseName)
 
+            self._archive_root_dir = jarchive['path']
+            self._archive_url = jarchive.get('url', '#')
+
+            self._lighthouse_endpoint = jdata.get('LighthouseEndpoint')
+
+
+            # Synchrotron-specific configuration
+            self._synchrotron_sourcekeyrings = []
+            if 'Synchrotron' in jdata:
+                from glob import glob
+                syncconf = jdata.get('Synchrotron')
+                if 'SourceKeyringDir' in syncconf:
+                    self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
 
         @property
         def project_name(self) -> str:
             return self._project_name
 
         @property
+        def workspace(self) -> str:
+            return self._workspace
+
+        @property
+        def cache_dir(self) -> str:
+            return self._cache_dir
+
+        @property
         def database_url(self) -> str:
             return self._database_url
+
+        @property
+        def archive_root_dir(self) -> str:
+            return self._archive_root_dir
+
+        @property
+        def archive_url(self) -> str:
+            return self._archive_url
+
+        @property
+        def lighthouse_endpoint(self) -> str:
+            return self._lighthouse_endpoint
+
+        @property
+        def synchrotron_sourcekeyrings(self) -> str:
+            return self._synchrotron_sourcekeyrings
 
         @property
         def session_factory(self):

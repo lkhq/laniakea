@@ -11,7 +11,6 @@ lknative_src = [
     'config/workers.d',
     'debcheck.d',
     'downloadmanager.d',
-    'localconfig.d',
     'py/pyhelper.d',
     'py/pywrap.d',
     'synchrotron/package.d',

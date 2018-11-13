@@ -29,8 +29,8 @@ import std.datetime : DateTime;
 import std.uuid : UUID;
 static import dyaml;
 
+import lknative.config : BaseConfig;
 import lkshared.utils : currentDateTime;
-import lknative.localconfig;
 import lkshared.repository;
 import lkshared.logging;
 
@@ -92,11 +92,10 @@ class Debcheck
         Repository repo;
     }
 
-    this (string projectName)
+    this (BaseConfig conf)
     {
-        const conf = LocalConfig.get;
         repo = new Repository (conf.archive.rootPath,
-                               projectName);
+                               conf.projectName);
         repo.setTrusted (true);
     }
 

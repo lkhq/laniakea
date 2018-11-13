@@ -53,6 +53,8 @@ struct SynchrotronConfig {
 
     bool syncEnabled;      // true if syncs should happen
     bool syncBinaries;     // true if we should also sync binary packages
+
+    string[] sourceKeyrings; // Keyrings to verify the integrity of packages fetched from a source
 }
 
 /**

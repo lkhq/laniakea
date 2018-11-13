@@ -18,6 +18,7 @@
 from lknative import BaseConfig
 from laniakea.db import config_get_project_name, config_get_distro_tag, session_factory, \
     ArchiveSuite
+from laniakea import LocalConfig
 
 
 def create_native_baseconfig():
@@ -30,4 +31,10 @@ def create_native_baseconfig():
     dev_suite = session.query(ArchiveSuite) \
         .filter(ArchiveSuite.devel_target==True).one()
 
-    bconf.develSuite = dev_suite.name
+    bconf.archive.develSuite = dev_suite.name
+
+    lconf = LocalConfig()
+    bconf.cacheDir = lconf.cache_dir
+    bconf.workspace = lconf.workspace
+
+    return bconf

@@ -85,7 +85,7 @@ def config_set_value(mod, key, value):
     if entry:
         entry.value = value
     else:
-        entry = ConfigEntry(LkModule.BASE, key, value)
+        entry = ConfigEntry(mod, key, value)
         session.add(entry)
     session.commit()
 
