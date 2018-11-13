@@ -7,8 +7,8 @@ RUN apt-get update -qq
 
 # set up Postgres with debversion extension for use in Laniakea testssuite
 RUN apt-get install -yq \
-    postgresql-10 \
-    postgresql-10-debversion
+    postgresql-11 \
+    postgresql-11-debversion
 
 RUN echo "/etc/init.d/postgresql start && exit 0" > /etc/rc.local
 RUN /etc/init.d/postgresql start && \
@@ -18,9 +18,9 @@ RUN /etc/init.d/postgresql start && \
     su postgres -c "psql -c \"CREATE EXTENSION IF NOT EXISTS debversion;\" laniakea_test"
 
 USER postgres
-RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/10/main/pg_hba.conf
+RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/11/main/pg_hba.conf
 
-RUN echo "listen_addresses='*'" >> /etc/postgresql/10/main/postgresql.conf
+RUN echo "listen_addresses='*'" >> /etc/postgresql/11/main/postgresql.conf
 EXPOSE 5432
 
-CMD ["/usr/lib/postgresql/10/bin/postgres", "-D", "/var/lib/postgresql/10/main", "-c", "config_file=/etc/postgresql/10/main/postgresql.conf"]
+CMD ["/usr/lib/postgresql/11/bin/postgres", "-D", "/var/lib/postgresql/11/main", "-c", "config_file=/etc/postgresql/11/main/postgresql.conf"]
