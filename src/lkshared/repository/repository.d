@@ -61,7 +61,7 @@ private:
 
 public:
 
-    this (string cacheDir, string location, string repoName = null, string[] trustedKeyrings = []) @trusted
+    this (string location, string cacheDir, string repoName = null, string[] trustedKeyrings = []) @trusted
     {
         if (isRemote (location)) {
             rootDir = buildPath (cacheDir, "repos_tmp", repoName);

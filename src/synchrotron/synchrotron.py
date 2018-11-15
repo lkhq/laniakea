@@ -10,7 +10,7 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
 from laniakea import LocalConfig, LkModule
-from laniakea.db import config_get_value
+from laniakea.db import config_get_value, session_factory, ArchiveSuite
 from lknative import BaseConfig, SynchrotronConfig, SyncEngine
 
 
@@ -45,19 +45,46 @@ def get_sync_config():
     return bconf, sconf
 
 
+def get_incoming_suite_info():
+    from lknative import SuiteInfo
+
+    session = session_factory()
+    si = SuiteInfo()
+
+    # FIXME: We need much better ways to select the right suite to synchronize with
+    suite = session.query(ArchiveSuite) \
+        .filter(ArchiveSuite.accept_uploads==True).one()
+    si.name = suite.name
+    si.architectures = list(a.name for a in suite.architectures)
+    si.components = list(c.name for c in suite.components)
+
+    return si
+
+
 def command_sync(options):
     ''' Synchronize a dedicated set of packages '''
 
+    if not options.packages:
+        print('You need to define at least one package to synchronize!')
+        sys.exit(1)
 
     bconf, sconf = get_sync_config()
-    engine = SyncEngine(bconf, sconf)
+    incoming_suite = get_incoming_suite_info()
+    engine = SyncEngine(bconf, sconf, incoming_suite)
+
+    engine.setSourceSuite(options.source_suite)
+
+    ret = engine.syncPackages (options.component, options.packages, options.force)
+    if not ret:
+        sys.exit(2)
 
 
 def command_autosync(options):
     ''' Automatically synchronize packages '''
 
     bconf, sconf = get_sync_config()
-    engine = SyncEngine(bconf, sconf)
+    incoming_suite = get_incoming_suite_info()
+    engine = SyncEngine(bconf, sconf, incoming_suite)
 
     engine.setBlacklist(['test'])
     ret, issues = engine.autosync()
@@ -78,6 +105,10 @@ def create_parser(formatter_class=None):
                         help='Display the version of debspawn itself.')
 
     sp = subparsers.add_parser('sync', help='Synchronize a package or set of packages')
+    sp.add_argument('--force', action='store_true', dest='force', help='Force package import and ignore version conflicts.')
+    sp.add_argument('source_suite', type=str, help='The suite to synchronize from')
+    sp.add_argument('component', type=str, help='The archive component to import from')
+    sp.add_argument('packages', nargs='+', help='The (source) packages to import')
     sp.set_defaults(func=command_sync)
 
     sp = subparsers.add_parser('autosync', help='Synchronize a package or set of packages')

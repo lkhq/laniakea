@@ -39,7 +39,7 @@ extern(C) void PydMain()
     wrapAggregate!(SyncSourceInfo)();
     wrapAggregate!(SynchrotronConfig)();
     wrap_class!(SyncEngine,
-            Init!(BaseConfig, SynchrotronConfig),
+            Init!(BaseConfig, SynchrotronConfig, SuiteInfo),
 
             Def!(SyncEngine.setSourceSuite),
             Def!(SyncEngine.setBlacklist),

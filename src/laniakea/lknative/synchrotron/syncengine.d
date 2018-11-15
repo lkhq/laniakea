@@ -70,7 +70,7 @@ private:
 
 public:
 
-    this (BaseConfig bConfig, SynchrotronConfig sConfig)
+    this (BaseConfig bConfig, SynchrotronConfig sConfig, SuiteInfo incomingSuite)
     {
         dak = new Dak;
 
@@ -79,15 +79,16 @@ public:
 
         // the repository of the distribution we import stuff into
         targetRepo = new Repository (baseConfig.archive.rootPath,
+                                     baseConfig.cacheDir,
                                      baseConfig.projectName);
         targetRepo.setTrusted (true);
 
-        targetSuite = baseConfig.archive.incomingSuite;
+        targetSuite = incomingSuite;
         distroTag = baseConfig.archive.distroTag;
 
         // the repository of the distribution we use to sync stuff from
-        sourceRepo = new Repository (baseConfig.cacheDir,
-                                     syncConfig.source.repoUrl,
+        sourceRepo = new Repository (syncConfig.source.repoUrl,
+                                     baseConfig.cacheDir,
                                      syncConfig.sourceName,
                                      syncConfig.sourceKeyrings);
         m_importsTrusted = true; // we trust everything by default
@@ -406,10 +407,8 @@ public:
 
     private auto newSyncIssue (SyncSourceSuite sourceSuite)
     {
-        //import std.uuid : randomUUID;
         SynchrotronIssue issue;
 
-        //issue.uuid = randomUUID ();
         issue.date = currentDateTime ();
 
         issue.sourceSuite = sourceSuite.name;

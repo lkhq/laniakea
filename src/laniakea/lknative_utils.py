@@ -36,5 +36,6 @@ def create_native_baseconfig():
     lconf = LocalConfig()
     bconf.cacheDir = lconf.cache_dir
     bconf.workspace = lconf.workspace
+    bconf.archive.rootPath = lconf.archive_root_dir
 
     return bconf
