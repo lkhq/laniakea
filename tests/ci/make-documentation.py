@@ -91,7 +91,7 @@ def run(source_root, build_root):
     run_mkdocs(source_root, build_root)
 
     # build API documentation
-    run_ddox(source_root, build_root)
+    #run_ddox(source_root, build_root)
 
 
 if __name__ == "__main__":
