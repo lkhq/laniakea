@@ -21,6 +21,7 @@ from sqlalchemy import Column, Text, String, Integer, DateTime, Enum
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy import text as sa_text
 from uuid import uuid4
+from datetime import datetime
 from .base import Base, UUID, DebVersion
 from .core import LkModule
 
@@ -29,12 +30,12 @@ class SynchrotronIssueKind(enum.Enum):
     '''
     Kind of a Synchrotron issue.
     '''
-    UNKNOWN = enum.auto()
-    NONE = enum.auto()
-    MERGE_REQUIRED = enum.auto()
-    MAYBE_CRUFT = enum.auto()
-    SYNC_FAILED = enum.auto()
-    REMOVAL_FAILED = enum.auto()
+    UNKNOWN        = 0
+    NONE           = 1
+    MERGE_REQUIRED = 2
+    MAYBE_CRUFT    = 3
+    SYNC_FAILED    = 4
+    REMOVAL_FAILED = 5
 
 
 class SynchrotronIssue(Base):
@@ -45,7 +46,7 @@ class SynchrotronIssue(Base):
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    time_created = Column(DateTime()) # Time when this excuse was created
+    time_created = Column(DateTime(), default=datetime.utcnow) # Time when this excuse was created
 
     kind = Column(Enum(SynchrotronIssueKind)) # Kind of this issue, and usually also the reason for its existence.
 
@@ -69,7 +70,7 @@ class SyncBlacklistEntry(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     pkgname = Column(String(256))  # Name of the blacklisted package
-    time_created = Column(DateTime()) # Time when the package was blacklisted
+    time_created = Column(DateTime(), default=datetime.utcnow) # Time when the package was blacklisted
     reason = Column(Text())  # Reason why the package is blacklisted
 
     user = Column(String(256))  # Person who marked this to be ignored

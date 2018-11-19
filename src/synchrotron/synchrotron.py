@@ -10,7 +10,8 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
 from laniakea import LocalConfig, LkModule
-from laniakea.db import config_get_value, session_factory, ArchiveSuite
+from laniakea.db import config_get_value, session_factory, ArchiveSuite, \
+    SyncBlacklistEntry, SynchrotronIssue, SynchrotronIssueKind
 from lknative import BaseConfig, SynchrotronConfig, SyncEngine
 
 
@@ -61,6 +62,13 @@ def get_incoming_suite_info():
     return si
 
 
+def get_package_blacklist():
+    session = session_factory()
+
+    pkgnames = [value for value, in session.query(SyncBlacklistEntry.pkgname)]
+    return pkgnames
+
+
 def command_sync(options):
     ''' Synchronize a dedicated set of packages '''
 
@@ -72,7 +80,9 @@ def command_sync(options):
     incoming_suite = get_incoming_suite_info()
     engine = SyncEngine(bconf, sconf, incoming_suite)
 
+    blacklist_pkgnames = get_package_blacklist()
     engine.setSourceSuite(options.source_suite)
+    engine.setBlacklist(blacklist_pkgnames)
 
     ret = engine.syncPackages (options.component, options.packages, options.force)
     if not ret:
@@ -86,10 +96,30 @@ def command_autosync(options):
     incoming_suite = get_incoming_suite_info()
     engine = SyncEngine(bconf, sconf, incoming_suite)
 
-    engine.setBlacklist(['test'])
-    ret, issues = engine.autosync()
+    blacklist_pkgnames = get_package_blacklist()
+    engine.setBlacklist(blacklist_pkgnames)
 
-    print(ret, issues)
+    ret, issue_data = engine.autosync()
+    if not ret:
+        sys.exit(2)
+        return
+
+    session = session_factory()
+    for ssuite in sconf.source.suites:
+        session.query(SynchrotronIssue).filter(SynchrotronIssue.source_suite==ssuite.name, \
+            SynchrotronIssue.target_suite==incoming_suite.name).delete()
+
+    for info in issue_data:
+        issue = SynchrotronIssue()
+        issue.kind = SynchrotronIssueKind(info.kind)
+        issue.package_name = info.packageName
+        issue.source_suite = info.sourceSuite
+        issue.target_suite = info.targetSuite
+        issue.source_version = info.sourceVersion
+        issue.target_version = info.targetVersion
+        issue.details = info.details
+        session.add(issue)
+    session.commit()
 
 
 def create_parser(formatter_class=None):

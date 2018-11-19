@@ -38,6 +38,7 @@ extern(C) void PydMain()
     wrapAggregate!(SyncSourceSuite)();
     wrapAggregate!(SyncSourceInfo)();
     wrapAggregate!(SynchrotronConfig)();
+    wrapAggregate!(SynchrotronIssue)();
     wrap_class!(SyncEngine,
             Init!(BaseConfig, SynchrotronConfig, SuiteInfo),
 
