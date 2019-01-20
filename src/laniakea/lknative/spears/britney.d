@@ -26,9 +26,9 @@ import std.string : format;
 import std.path : baseName, buildPath, dirName;
 static import std.file;
 
-import laniakea.logging;
-import laniakea.localconfig;
-import laniakea.git;
+import lkshared.logging;
+import lkshared.git;
+import lknative.config : BaseConfig;
 
 /**
  * Interface to Debian's Archive Migrator (Britney2)
@@ -50,19 +50,15 @@ private:
 
 public:
 
-    this ()
+    this (BaseConfig bConf, string britneyGitOriginUrl)
     {
-        import laniakea.utils : readJsonFile;
+        import lkshared.utils : readJsonFile;
 
-        britneyDir = buildPath (LocalConfig.get.workspace, "dist", "britney2");
+        britneyDir = buildPath (bConf.workspace, "dist", "britney2");
         britneyExe = buildPath (britneyDir, "britney.py");
 
-        // fetch the location of the Brithey git repository from static data
-        auto jroot = readJsonFile (getDataFile ("3rd-party.json"));
-        if ("Spears" !in jroot)
-            throw new Exception ("Unable to find Git URL for britney in 3rd-party.json static data.");
-        const spearsJ = jroot["Spears"];
-        britneyGitRepository = spearsJ["britneyGitRepository"].to!string;
+        // location of the Brithey git repository
+        britneyGitRepository = britneyGitOriginUrl;
     }
 
     private BritneyResult runBritney (const string workDir, const string[] args)

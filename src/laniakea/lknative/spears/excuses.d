@@ -24,9 +24,9 @@ import std.array : appender;
 import std.algorithm : canFind;
 static import dyaml;
 
-import laniakea.utils : currentDateTime;
-import laniakea.logging;
-import laniakea.db.schema.spears;
+import lkshared.utils : currentDateTime;
+import lkshared.logging;
+import lknative.config.spears;
 
 /**
  * Read the excuses.yml Britney output file as well as the Britney logfile
@@ -124,7 +124,7 @@ public:
 
         auto ysrc = yroot["sources"];
         foreach(dyaml.Node yentry; ysrc) {
-            auto excuse = new SpearsExcuse;
+            SpearsExcuse excuse;
 
             excuse.date = currentDateTime ();
             excuse.sourceSuite = sourceSuite;

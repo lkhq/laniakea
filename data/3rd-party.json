@@ -1,5 +1,5 @@
 {
   "Spears": {
-    "britneyGitRepository": "https://github.com/Debian/britney2.git"
+    "britneyGitRepository": "https://salsa.debian.org/release-team/britney2.git"
   }
 }

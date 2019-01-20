@@ -27,9 +27,9 @@ import std.array : appender, Appender;
 import std.conv : to;
 static import std.file;
 
-import laniakea.db.schema;
-import laniakea.logging;
-import laniakea.db.schema.archive;
+import lknative.config.spears;
+import lkshared.logging;
+import lkshared.repository : VersionPriority;
 
 /**
  * A Britney2 configuration file.
@@ -162,7 +162,7 @@ public:
 
         // write delay config
         foreach (ref prio, ref days; delays) {
-            contents ~= "MINDAYS_%s = %s".format (prio.toString.toUpper, to!string (days));
+            contents ~= "MINDAYS_%s = %s".format (prio.to!string.toUpper, to!string (days));
         }
 
         contents ~= "DEFAULT_URGENCY   = medium";

@@ -15,10 +15,10 @@ lk_priv_bin_target = 'lib/laniakea/'
 subdir('lkshared')
 subdir('laniakea')
 
-## Admin cli tool
-#if (get_option('clitools'))
-    #subdir('admin')
-#endif
+# Admin cli tool
+if (get_option('clitools'))
+    subdir('admin')
+endif
 
 ## Key management cli tool
 #if (get_option('clitools'))
@@ -55,7 +55,7 @@ subdir('laniakea')
     #subdir('spears')
 #endif
 
-## Synchrotron
+# Synchrotron
 if (get_option('synchrotron'))
     subdir('synchrotron')
 endif

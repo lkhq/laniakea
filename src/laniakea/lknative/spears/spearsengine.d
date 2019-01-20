@@ -22,16 +22,16 @@ import std.string : format, startsWith, strip, split;
 import std.algorithm : canFind, map, filter, sort;
 import std.path : buildPath, baseName, dirName;
 import std.array : appender;
-import std.typecons : Tuple;
+import std.typecons : Tuple, Nullable;
 import std.parallelism : parallel;
 static import std.file;
 import containers : HashMap;
 
-import laniakea.repository.dak;
-import laniakea.db.schema.archive;
-import laniakea.localconfig;
-import laniakea.logging;
-import laniakea.db;
+import lkshared.repository.dak;
+import lkshared.repository.types;
+import lkshared.logging;
+import lknative.config : BaseConfig, SpearsConfig, SuiteInfo;
+import lknative.config.spears;
 
 import spears.britneyconfig;
 import spears.britney;
@@ -48,42 +48,50 @@ private:
     Britney britney;
     Dak dak;
 
-    Database db;
-    SessionFactory sFactory;
-
     BaseConfig baseConf;
     SpearsConfig spearsConf;
-    LocalConfig localConf;
+    SuiteInfo[] archiveSuites;
 
     immutable string workspace;
 
 public:
 
-    this ()
+    this (BaseConfig bConfig, SpearsConfig sConfig, SuiteInfo[] allSuites)
     {
-        britney = new Britney ();
+        britney = new Britney (bConfig, sConfig.britneyGitOriginUrl);
         dak = new Dak ();
 
-        db = Database.get;
-        sFactory = db.newSessionFactory! (SpearsExcuse);
+        baseConf = bConfig;
+        spearsConf = sConfig;
 
-        baseConf = db.getBaseConfig;
-        spearsConf = db.getSpearsConfig;
-
-        localConf = LocalConfig.get;
-        workspace = buildPath (localConf.workspace, "spears");
+        workspace = buildPath (baseConf.workspace, "spears");
         std.file.mkdirRecurse (workspace);
+
+        archiveSuites = allSuites;
     }
 
-    alias SuiteCheckResult = Tuple!(ArchiveSuite[], "from", ArchiveSuite, "to", bool, "error");
-    private SuiteCheckResult suitesFromConfigEntry (Session session, SpearsConfigEntry centry)
+    private auto findSuiteByName (string suiteName)
+    {
+        Nullable!SuiteInfo suite;
+        foreach (ref si; archiveSuites) {
+            if (si.name == suiteName) {
+                suite = si;
+                break;
+            }
+        }
+
+        return suite;
+    }
+
+    alias SuiteCheckResult = Tuple!(SuiteInfo[], "from", SuiteInfo, "to", bool, "error");
+    private SuiteCheckResult suitesFromConfigEntry (SpearsConfigEntry centry)
     {
         SuiteCheckResult res;
         res.error = false;
 
         foreach (suiteName; centry.sourceSuites) {
-            auto maybeSuite = session.getSuite (suiteName);
-            if (maybeSuite is null) {
+            auto maybeSuite = findSuiteByName (suiteName);
+            if (maybeSuite.isNull) {
                 logError ("Migration source suite '%s' does not exist. Can not create configuration.", suiteName);
                 res.error = true;
                 return res;
@@ -91,8 +99,8 @@ public:
             res.from ~= maybeSuite;
         }
 
-        auto maybeSuite = session.getSuite (centry.targetSuite);
-        if (maybeSuite is null) {
+        auto maybeSuite = findSuiteByName (centry.targetSuite);
+        if (maybeSuite.isNull) {
             logError ("Migration target suite '%s' does not exist. Can not create configuration.", centry.targetSuite);
             res.error = true;
             return res;
@@ -108,17 +116,17 @@ public:
         return res;
     }
 
-    private string getMigrationId (ArchiveSuite[] suitesFrom, string suiteTo)
+    private string getMigrationId (SuiteInfo[] suitesFrom, string suiteTo)
     {
         return "%s-to-%s".format (suitesFrom.map! (s => s.name).array.sort.join ("+"), suiteTo);
     }
 
-    private string getMigrationName (ArchiveSuite[] suitesFrom, ArchiveSuite suiteTo)
+    private string getMigrationName (SuiteInfo[] suitesFrom, SuiteInfo suiteTo)
     {
         return "%s -> %s".format (suitesFrom.map! (s => s.name).array.sort.join ("+"), suiteTo.name);
     }
 
-    private string getMigrateWorkspace (ArchiveSuite[] suitesFrom, string suiteTo)
+    private string getMigrateWorkspace (SuiteInfo[] suitesFrom, string suiteTo)
     {
         return buildPath (workspace, getMigrationId (suitesFrom, suiteTo));
     }
@@ -131,12 +139,12 @@ public:
      * workspace directory.
      * This function returns the correct dists/ path, depending on the case.
      */
-    private string getSourceSuiteDistsDir (string miWorkspace, ArchiveSuite[] sourceSuites)
+    private string getSourceSuiteDistsDir (string miWorkspace, SuiteInfo[] sourceSuites)
     {
         import std.file : mkdirRecurse;
 
         if (sourceSuites.length == 1) {
-            immutable archiveRootPath = localConf.archive.rootPath;
+            immutable archiveRootPath = baseConf.archive.rootPath;
             return buildPath (archiveRootPath, "dists", sourceSuites[0].name);
         }
 
@@ -149,12 +157,9 @@ public:
     {
         logInfo ("Updating configuration");
 
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
-        immutable archiveRootPath = localConf.archive.rootPath;
+        immutable archiveRootPath = baseConf.archive.rootPath;
         foreach (ref mentry; spearsConf.migrations.byValue) {
-            auto scRes = suitesFromConfigEntry (session, mentry);
+            auto scRes = suitesFromConfigEntry (mentry);
             if (scRes.error)
                 continue;
             auto fromSuites = scRes.from;
@@ -167,9 +172,8 @@ public:
 
             bc.setArchivePaths (getSourceSuiteDistsDir (miWorkspace, fromSuites),
                                 buildPath (archiveRootPath, "dists", toSuite.name));
-            bc.setComponents (map!(c => c.name)(toSuite.components[]).array);
+            bc.setComponents (toSuite.components);
             bc.setArchitectures (array (toSuite.architectures[]
-                                               .map! (a => a.name)
                                                .filter! (a => a != "all")));
             bc.setDelays (mentry.delays);
             bc.setHints (mentry.hints);
@@ -188,16 +192,16 @@ public:
      * of the data of the two source suites.
      * This function prepares this data.
      */
-    private void prepareSourceData (string miWorkspace, ArchiveSuite[] sourceSuites, ArchiveSuite targetSuite)
+    private void prepareSourceData (string miWorkspace, SuiteInfo[] sourceSuites, SuiteInfo targetSuite)
     {
         import std.file : exists;
-        import laniakea.compressed : decompressFile, compressAndSave, ArchiveType;
+        import lkshared.compressed : decompressFile, compressAndSave, ArchiveType;
 
         // only one suite means we can use the suite's data directky
         if (sourceSuites.length <= 1)
             return;
 
-        immutable archiveRootPath = localConf.archive.rootPath;
+        immutable archiveRootPath = baseConf.archive.rootPath;
         immutable fakeDistsDir = getSourceSuiteDistsDir (miWorkspace, sourceSuites);
 
         foreach (ref component; targetSuite.components) {
@@ -212,9 +216,9 @@ public:
                         immutable pfile = buildPath (archiveRootPath,
                                                     "dists",
                                                     sourceSuite.name,
-                                                    component.name,
+                                                    component,
                                                     installerDir,
-                                                    "binary-%s".format (arch.name),
+                                                    "binary-%s".format (arch),
                                                     "Packages.xz");
 
                         if (pfile.exists) {
@@ -225,15 +229,15 @@ public:
 
                     if (packagesFiles.empty && installerDir.empty)
                         throw new Exception ("No packages found on %s/%s in sources for migration '%s': Can not continue."
-                                                .format (component.name,
-                                                        arch.name,
+                                                .format (component,
+                                                        arch,
                                                         getMigrationId (sourceSuites, targetSuite.name)));
 
                     // create new merged Packages file
                     immutable targetPackagesFile = buildPath (fakeDistsDir,
-                                                            component.name,
+                                                            component,
                                                             installerDir,
-                                                            "binary-%s".format (arch.name),
+                                                            "binary-%s".format (arch),
                                                             "Packages.xz");
                     logDebug ("Generating combined new fake packages file: %s", targetPackagesFile);
                     mkdirRecurse (targetPackagesFile.dirName);
@@ -249,7 +253,7 @@ public:
                 immutable sfile = buildPath (archiveRootPath,
                                              "dists",
                                              sourceSuite.name,
-                                             component.name,
+                                             component,
                                              "source",
                                              "Sources.xz");
                 if (sfile.exists) {
@@ -260,11 +264,11 @@ public:
 
             if (sourcesFiles.empty)
                 throw new Exception ("No source packages found in '%s' sources for migration '%s': Can not continue."
-                                     .format (component.name, getMigrationId (sourceSuites, targetSuite.name)));
+                                     .format (component, getMigrationId (sourceSuites, targetSuite.name)));
 
             // Create new merged Sources file
             immutable targetSourcesFile = buildPath (fakeDistsDir,
-                                                     component.name,
+                                                     component,
                                                      "source",
                                                      "Sources.xz");
             logDebug ("Generating combined new fake sources file: %s", targetSourcesFile);
@@ -399,20 +403,18 @@ public:
         return processedResult;
     }
 
-    private bool updateDatabase (Session session, string miWorkspace, ArchiveSuite[] fromSuites, ArchiveSuite toSuite)
+    private auto retrieveExcuses (string miWorkspace, SuiteInfo[] fromSuites, SuiteInfo toSuite)
     {
         import std.file : exists;
         import std.typecons : tuple;
 
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
+        Nullable!(SpearsExcuse[]) res;
 
         immutable excusesYaml = buildPath (miWorkspace, "output", "target", "excuses.yaml");
         immutable logFile = buildPath (miWorkspace, "output", "target", "output.txt");
 
         if ((!excusesYaml.exists) || (!logFile.exists)) {
-            conn.addEvent (EventKind.ERROR, "no-excuses-data", "Unable to find and process the excuses information. Spears data will be outdated.");
-            return false;
+            throw new Exception ("Unable to find and process the excuses information. Spears data will be outdated.");
         }
 
         ExcusesFile efile;
@@ -424,56 +426,47 @@ public:
         // get a unique identifier for this migration task
         immutable migrationId = getMigrationId (fromSuites, toSuite.name);
 
-        // FIXME: we do the quick and dirty update here, if the performance of this is too bad one
-        // day, it needs to be optimized to just update stuff that is needed.
-        conn.removeSpearsExcusesForMigration (migrationId);
-
         // read repository information to match packages to their source suites before adding
         // their excuses to the database.
         // This is only needed for multi-source-suite combined migrations, otherwise there is only one
         // source suites packages can originate from.
         auto pkgSourceSuiteMap = HashMap!(string, string) (32);
         if (fromSuites.length > 1) {
-            import laniakea.repository : Repository;
+            import lkshared.repository : Repository;
 
             // we need repository information to attribute packages to their right suites
-            auto repo = new Repository (localConf.archive.rootPath,
+            auto repo = new Repository (baseConf.archive.rootPath,
                                         "master"); // FIXME: Use the correct repo vendor name here?
             repo.setTrusted (true);
 
             foreach (suite; fromSuites) {
                 foreach (component; suite.components) {
-                    foreach (spkg; repo.getSourcePackages (suite.name, component.name))
+                    foreach (spkg; repo.getSourcePackages (suite.name, component))
                         pkgSourceSuiteMap[spkg.name ~ "/" ~ spkg.ver] = suite.name;
                 }
             }
         }
 
-        // add excuses to database
+        auto excuses = appender!(SpearsExcuse[]);
         foreach (id, excuse; efile.getExcuses) {
-            import std.uuid : randomUUID;
-            excuse.uuid = randomUUID ();
             excuse.migrationId = migrationId;
-
-            if (!pkgSourceSuiteMap.empty) {
-                excuse.sourceSuite = pkgSourceSuiteMap.get (excuse.sourcePackage ~ "/" ~ excuse.newVersion, null);
-                if (excuse.sourceSuite is null)
-                    excuse.sourceSuite = pkgSourceSuiteMap.get (excuse.sourcePackage ~ "/" ~ excuse.oldVersion, fromSuites[0].name);
-            }
-
-            session.save (excuse);
+            excuses ~= excuse;
         }
 
-        return true;
+        res = excuses.data;
+
+        return res;
     }
 
-    private bool runMigrationInternal (Session session, ArchiveSuite[] fromSuites, ArchiveSuite toSuite)
+    private auto runMigrationInternal (SuiteInfo[] fromSuites, SuiteInfo toSuite)
     {
+        Nullable!(SpearsExcuse[]) res;
+
         immutable miWorkspace = getMigrateWorkspace (fromSuites, toSuite.name);
         immutable britneyConf = buildPath (miWorkspace, "britney.conf");
         if (!std.file.exists (britneyConf)) {
             logWarning ("No Britney config for migration run '%s' - maybe the configuration was not yet updated?", getMigrationName (fromSuites, toSuite));
-            return false;
+            return res;
         }
 
         logInfo ("Migration run for '%s'", getMigrationName (fromSuites, toSuite));
@@ -490,54 +483,41 @@ public:
         immutable heidiResult = postprocessHeidiFile (miWorkspace);
         auto ret = dak.setSuiteToBritneyResult (toSuite.name, heidiResult);
 
-        // add the results to our database
-        ret = updateDatabase (session, miWorkspace, fromSuites, toSuite) && ret;
-        return ret;
+        if (!ret)
+            return res;
+
+        res = retrieveExcuses (miWorkspace, fromSuites, toSuite);
+        return res;
     }
 
-    bool runMigration (string fromSuiteStr, string toSuite)
+    Tuple!(bool, SpearsExcuse[])
+    runMigration (string fromSuiteStr, string toSuite)
     {
         bool done = false;
-        bool ret = true;
 
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
+        Tuple!(bool, SpearsExcuse[]) res;
+        res[0] = true;
 
         foreach (ref mentry; spearsConf.migrations) {
             if ((mentry.sourceSuites.join ("+") == fromSuiteStr) && (mentry.targetSuite == toSuite)) {
-                auto scRes = suitesFromConfigEntry (session, mentry);
+                auto scRes = suitesFromConfigEntry (mentry);
                 if (scRes.error)
                     continue;
                 done = true;
-                if (!runMigrationInternal (session, scRes.from, scRes.to))
-                    ret = false;
+                auto excuses = runMigrationInternal (scRes.from, scRes.to);
+                if (excuses.isNull)
+                    res[0] = false;
+                else
+                    res[1] = excuses;
             }
         }
 
         if (!done) {
             logError ("Unable to find migration setup for '%s -> %s'", fromSuiteStr, toSuite);
-            return false;
+            res[0] = false;
         }
 
-        return ret;
-    }
-
-    bool runMigration ()
-    {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
-        bool ret = true;
-        foreach (ref mentry; spearsConf.migrations) {
-            auto scRes = suitesFromConfigEntry (session, mentry);
-            if (scRes.error)
-                continue;
-
-            if (!runMigrationInternal (session, scRes.from, scRes.to))
-                ret = false;
-        }
-
-        return ret;
+        return res;
     }
 
 }
