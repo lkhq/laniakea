@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-from lknative import BaseConfig
+from lknative import BaseConfig, SuiteInfo
 from laniakea.db import config_get_project_name, config_get_distro_tag, session_factory, \
     ArchiveSuite
 from laniakea import LocalConfig
@@ -39,3 +39,18 @@ def create_native_baseconfig():
     bconf.archive.rootPath = lconf.archive_root_dir
 
     return bconf
+
+
+def get_suiteinfo_all_suites():
+    session = session_factory()
+
+    suite_infos = []
+    suites = session.query(ArchiveSuite).all()
+    for suite in suites:
+        si = SuiteInfo()
+        si.name = suite.name
+        si.architectures = [a.name for a in suite.architectures]
+        si.components = [c.name for c in suite.components]
+        suite_infos.append(si)
+
+    return suite_infos

@@ -131,16 +131,20 @@ public:
             excuse.targetSuite = targetSuite;
 
             excuse.sourcePackage = yentry["source"].as!string;
-            excuse.maintainer = yentry["maintainer"].as!string;
             excuse.isCandidate = yentry["is-candidate"].as!bool;
+
+            if (yentry.containsKey ("maintainer"))
+                excuse.maintainer = yentry["maintainer"].as!string;
 
             excuse.newVersion = yentry["new-version"].as!string;
             excuse.oldVersion = yentry["old-version"].as!string;
 
             if (yentry.containsKey ("policy_info")) {
                 auto ypolicy = yentry["policy_info"];
-                excuse.age.currentAge = ypolicy["age"]["current-age"].as!uint;
-                excuse.age.requiredAge = ypolicy["age"]["age-requirement"].as!uint;
+                if (yentry.containsKey ("age")) {
+                    excuse.age.currentAge = ypolicy["age"]["current-age"].as!uint;
+                    excuse.age.requiredAge = ypolicy["age"]["age-requirement"].as!uint;
+                }
             }
 
             if (yentry.containsKey ("missing-builds")) {

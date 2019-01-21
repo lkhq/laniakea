@@ -106,7 +106,8 @@ public:
     void setComponents (string[] components)
     {
         assert(!componentsSet);
-        contents ~= "COMPONENTS = %s".format (components.join (", "));
+        // DISABLED: removed from Britney
+        //! contents ~= "COMPONENTS = %s".format (components.join (", "));
         componentsSet = true;
     }
 

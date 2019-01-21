@@ -19,6 +19,7 @@ extern(C) void PydMain()
     def!(compareVersions, PyName!"compare_versions")();
     def!(generateName, PyName!"generate_name")();
     def!(setVerboseLog, PyName!"logging_set_verbose")();
+    def!(intToVersionPriority, PyName!"int_to_versionpriority")();
 
     module_init();
 
@@ -49,7 +50,23 @@ extern(C) void PydMain()
             Def!(SyncEngine.syncPackages),
     )();
 
+    /* Spears */
+    import lknative.spears;
+    wrapAggregate!(SpearsHint)();
+    wrapAggregate!(SpearsConfigEntry)();
+    wrapAggregate!(SpearsConfig)();
+    wrapAggregate!(SpearsAgePolicy)();
+    wrapAggregate!(SpearsMissingBuilds)();
+    wrapAggregate!(SpearsOldBinaries)();
+    wrapAggregate!(SpearsReason)();
 
+    wrapAggregate!(SpearsExcuse)();
+    wrap_class!(SpearsEngine,
+            Init!(BaseConfig, SpearsConfig, SuiteInfo[]),
+
+            Def!(SpearsEngine.updateConfig),
+            Def!(SpearsEngine.runMigration),
+    )();
 }
 
 

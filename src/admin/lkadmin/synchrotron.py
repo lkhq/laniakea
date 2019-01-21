@@ -71,7 +71,7 @@ def module_synchrotron_init(options):
 
 
 def add_cli_parser(parser):
-    sp = parser.add_parser('synchrotron', help='Basic actions that affect all modules')
+    sp = parser.add_parser('synchrotron', help='Adjust package synchronization settings.')
 
     sp.add_argument('--config', action='store_true', dest='config',
                     help='Configure this module.')

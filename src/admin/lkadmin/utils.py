@@ -72,3 +72,8 @@ def print_done(msg):
 
 def print_note(msg):
     print('! {}'.format(msg))
+
+def print_error_exit(msg):
+    from sys import exit
+    print(msg)
+    exit(1)

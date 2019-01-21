@@ -150,7 +150,7 @@ class ArchiveArchitecture(Base):
         self.name = name
 
 
-class PackageType(enum.Enum):
+class PackageType(enum.IntEnum):
     '''
     Type of the package.
     '''
@@ -159,7 +159,7 @@ class PackageType(enum.Enum):
     BINARY = enum.auto()
 
 
-class DebType(enum.Enum):
+class DebType(enum.IntEnum):
     '''
     Type of the Debian package.
     '''
@@ -186,7 +186,7 @@ def debtype_from_string(s):
     return DebType.UNKNOWN
 
 
-class PackagePriority(enum.Enum):
+class PackagePriority(enum.IntEnum):
     '''
     Priority of a Debian package.
     '''
@@ -215,15 +215,15 @@ def packagepriority_from_string(s):
     return PackagePriority.UNKNOWN
 
 
-class VersionPriority(enum.Enum):
+class VersionPriority(enum.IntEnum):
     '''
     Priority of a package upload.
     '''
-    LOW = enum.auto()
-    MEDIUM = enum.auto()
-    HIGH = enum.auto()
-    CRITICAL = enum.auto()
-    EMERGENCY = enum.auto()
+    LOW = 0
+    MEDIUM = 1
+    HIGH = 2
+    CRITICAL = 3
+    EMERGENCY = 4
 
     def __str__(self):
         if self.value == VersionPriority.LOW:

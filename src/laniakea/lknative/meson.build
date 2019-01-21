@@ -14,7 +14,12 @@ lknative_src = [
     'py/pyhelper.d',
     'py/pywrap.d',
     'synchrotron/package.d',
-    'synchrotron/syncengine.d'
+    'synchrotron/syncengine.d',
+    'spears/package.d',
+    'spears/spearsengine.d',
+    'spears/britneyconfig.d',
+    'spears/britney.d',
+    'spears/excuses.d',
 ]
 
 lknative_pylib = shared_library('lknative',

@@ -508,7 +508,7 @@ public:
                 if (excuses.isNull)
                     res[0] = false;
                 else
-                    res[1] = excuses;
+                    res[1] = excuses.get;
             }
         }
 

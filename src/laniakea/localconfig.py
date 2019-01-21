@@ -121,3 +121,21 @@ class LocalConfig:
 
     def __getattr__(self, name):
         return getattr(self.instance, name)
+
+
+class ExternalToolsUrls:
+    '''
+    Fetch URLs for external tools.
+    '''
+
+    def __init__(self, fname=None):
+        if not fname:
+            fname = '/usr/share/laniakea/3rd-party.json'
+
+        jdata = {}
+        if os.path.isfile(fname):
+            with open(fname) as json_file:
+                jdata = json.load(json_file)
+
+        jspears = jdata.get('Spears', {})
+        self.britney_git_repository = jspears.get('britneyGitRepository', 'https://salsa.debian.org/release-team/britney2.git')

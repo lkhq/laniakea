@@ -72,11 +72,18 @@ struct SpearsConfigEntry
     }
 }
 
+VersionPriority intToVersionPriority (int i)
+{
+    import std.conv : to;
+    return i.to!VersionPriority;
+}
+
 /**
  * Basic project configuration
  **/
 struct SpearsConfig {
     SpearsConfigEntry[string] migrations;
+    string britneyGitOriginUrl;
 }
 
 /**
@@ -119,9 +126,7 @@ struct SpearsMissingBuilds {
 /**
  * Data for a package migration excuse, as emitted by Britney
  **/
-class SpearsExcuse {
-    UUID uuid;
-
+struct SpearsExcuse {
     DateTime date;        /// Time when this excuse was created
 
     string migrationId;   /// Identifier for the respective migration task, in the form of "source1+source2-to-target"

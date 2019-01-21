@@ -55,9 +55,13 @@ def create_parser(formatter_class=None):
                         help='Display the version of debspawn itself.')
 
     import lkadmin.core as core
-    import lkadmin.synchrotron as synchrotron
     core.add_cli_parser(subparsers)
+
+    import lkadmin.synchrotron as synchrotron
     synchrotron.add_cli_parser(subparsers)
+
+    import lkadmin.spears as spears
+    spears.add_cli_parser(subparsers)
 
     return parser
 
