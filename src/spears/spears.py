@@ -59,12 +59,14 @@ def get_spears_config():
         centry.delays = d
 
         hints = session.query(SpearsHint).filter(SpearsHint.migration_id==entry.migration_id()).all()
+        chints = []
         for hint in hints:
             chint = LknSpearsHint()
             chint.hint = hint.hint
             chint.reason = hint.reason
             chint.date = hint.time
-            centry.hints.append(chint)
+            chints.append(chint)
+        centry.hints = chints
 
         mdict[entry.migration_id()] = centry
     sconf.migrations = mdict
