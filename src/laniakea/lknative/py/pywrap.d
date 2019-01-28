@@ -34,6 +34,16 @@ extern(C) void PydMain()
     wrapAggregate!(BaseArchiveConfig)();
     wrapAggregate!(SuiteInfo)();
 
+    /* Repo infrastructure */
+    import lkshared.repository;
+    //wrap_class!(Repository,
+    //        Init!(string, string, string, string[]),
+
+    //        Def!(Repository.getSourcePackages),
+    //        Def!(Repository.getBinaryPackages),
+    //        Def!(Repository.getInstallerPackages),
+    //)();
+
     /* Synchrotron */
     import lknative.synchrotron;
     wrapAggregate!(SyncSourceSuite)();
