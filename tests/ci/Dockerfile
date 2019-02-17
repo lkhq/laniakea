@@ -40,6 +40,11 @@ RUN apt-get install -yq --no-install-recommends \
     mkdocs \
     curl
 
+# Meson master, to work around bugs in current version in Debian
+RUN git clone --depth 1 https://github.com/mesonbuild/meson.git /opt/meson/
+RUN rm /usr/bin/meson
+RUN ln -s /opt/meson/meson.py /usr/bin/meson
+
 # Install dscanner
 RUN mkdir -p /usr/local/bin/
 RUN curl -L https://github.com/dlang-community/D-Scanner/releases/download/v0.5.1/dscanner-v0.5.1-linux-x86_64.tar.gz -o /tmp/dscanner.tar.gz
