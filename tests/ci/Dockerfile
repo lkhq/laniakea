@@ -15,6 +15,7 @@ RUN apt-get install -yq git build-essential ldc
 RUN apt-get install -yq --no-install-recommends \
     pkg-config \
     meson \
+    systemd \
     libssl-dev \
     libcurl4-gnutls-dev \
     libczmq-dev \
@@ -26,15 +27,11 @@ RUN apt-get install -yq --no-install-recommends \
     libpq-dev \
     postgresql
 
-# install vibe.d dependencies
+# install PyD dependencies
 RUN apt-get install -yq --no-install-recommends \
     git \
-    systemd \
-    dlang-libevent \
-    dlang-openssl \
-    libevent-dev \
-    libssl-dev \
-    zlib1g-dev
+    zlib1g-dev \
+    python3-dev
 
 # misc packages
 RUN apt-get install -yq --no-install-recommends \
@@ -58,17 +55,23 @@ RUN dscanner --version
 RUN mkdir -p /build/extra
 WORKDIR /build/extra
 
-# GLibD
-RUN git clone --depth 1 https://github.com/ximion/GlibD.git glibd
-RUN mkdir glibd/b
-RUN cd glibd/b/ && meson --prefix=/usr ..
-RUN cd glibd/b/ && ninja && ninja install
+# PyD
+RUN git clone --depth 1 https://github.com/lkorigin/pyd.git pyd
+RUN mkdir pyd/b
+RUN cd pyd/b/ && meson --prefix=/usr ..
+RUN cd pyd/b/ && ninja && ninja install
 
 # FluentAsserts
 RUN git clone --depth 1 https://github.com/lkorigin/fluent-asserts.git fluent-asserts
 RUN mkdir fluent-asserts/b
 RUN cd fluent-asserts/b/ && meson --prefix=/usr ..
 RUN cd fluent-asserts/b/ && ninja && ninja install
+
+# GLibD
+RUN git clone --depth 1 https://github.com/ximion/GlibD.git glibd
+RUN mkdir glibd/b
+RUN cd glibd/b/ && meson --prefix=/usr ..
+RUN cd glibd/b/ && ninja && ninja install
 
 # finish
 WORKDIR /build
