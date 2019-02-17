@@ -23,6 +23,7 @@ RUN apt-get install -yq --no-install-recommends \
     libglib2.0-dev \
     libgirepository1.0-dev \
     libappstream-dev \
+    libglibd-2.0-dev \
     gir-to-d \
     libpq-dev \
     postgresql
@@ -38,11 +39,6 @@ RUN apt-get install -yq --no-install-recommends \
     dub \
     mkdocs \
     curl
-
-# Meson, to work around bugs in current version in Debian
-RUN git clone --depth 1 https://github.com/mesonbuild/meson.git /opt/meson/
-RUN rm /usr/bin/meson
-RUN ln -s /opt/meson/meson.py /usr/bin/meson
 
 # Install dscanner
 RUN mkdir -p /usr/local/bin/
@@ -66,12 +62,6 @@ RUN git clone --depth 1 https://github.com/lkorigin/fluent-asserts.git fluent-as
 RUN mkdir fluent-asserts/b
 RUN cd fluent-asserts/b/ && meson --prefix=/usr ..
 RUN cd fluent-asserts/b/ && ninja && ninja install
-
-# GLibD
-RUN git clone --depth 1 https://github.com/ximion/GlibD.git glibd
-RUN mkdir glibd/b
-RUN cd glibd/b/ && meson --prefix=/usr ..
-RUN cd glibd/b/ && ninja && ninja install
 
 # finish
 WORKDIR /build
