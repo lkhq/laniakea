@@ -64,8 +64,7 @@ lk_cbind_lib = static_library ('lkcbind',
     [lk_cbind_src],
     include_directories: [src_dir],
     dependencies: [archive_dep,
-                   czmq_dep],
-    pic: true
+                   czmq_dep]
 )
 
 lk_base_deps = [crypto_dep,
