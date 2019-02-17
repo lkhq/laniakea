@@ -63,12 +63,12 @@ suite_arch_assoc_table = Table('archive_suite_architecture_association', Base.me
 )
 
 srcpkg_suite_assoc_table = Table('archive_srcpkg_suite_association', Base.metadata,
-    Column('src_package_uuid', UUID, ForeignKey('archive_src_packages.uuid')),
+    Column('src_package_uuid', UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid')),
     Column('suite_id', Integer, ForeignKey('archive_suites.id'))
 )
 
 binpkg_suite_assoc_table = Table('archive_binpkg_suite_association', Base.metadata,
-    Column('bin_package_uuid', UUID, ForeignKey('archive_bin_packages.uuid')),
+    Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid')),
     Column('suite_id', Integer, ForeignKey('archive_suites.id'))
 )
 
@@ -265,8 +265,8 @@ class ArchiveFile(Base):
     size = Column(Integer())  # the size of the file
     sha256sum = Column(CHAR(64))  # the files' checksum
 
-    srcpkg_id = Column(UUID, ForeignKey('archive_src_packages.uuid'))
-    binpkg_id = Column(UUID, ForeignKey('archive_bin_packages.uuid'))
+    srcpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid'))
+    binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid'))
     binpkg = relationship('BinaryPackage', back_populates='pkg_file')
 
 

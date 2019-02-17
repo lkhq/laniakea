@@ -265,7 +265,7 @@ struct PackageInfo
 /**
  * Data of a source package.
  */
-class SourcePackage
+struct SourcePackage
 {
     UUID uuid;
     UUID sourceUUID;        /// The unique identifier for the whole source packaging project (stays the same even if the package version changes)
@@ -332,7 +332,7 @@ class SourcePackage
 /**
  * Data of a binary package.
  */
-class BinaryPackage
+struct BinaryPackage
 {
     UUID uuid;
     DebType debType;   /// Deb package type

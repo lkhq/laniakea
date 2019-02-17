@@ -18,7 +18,6 @@
  */
 
 module lkshared.repository.repository;
-@safe:
 
 import std.stdio;
 import std.path : buildPath, dirName;
@@ -240,7 +239,7 @@ public:
     /**
      * Return a list of all source packages in the given suite and component.
      */
-    SourcePackage[] getSourcePackages (const string suiteName, const string componentName) @trusted
+    SourcePackage[] getSourcePackages (const string suiteName, const string componentName)
     {
         import core.memory : GC;
 
@@ -290,11 +289,8 @@ public:
             // get the database package to update it, if available
             auto pkgP = SourcePackage.generateUUID (this.repoName, pkgname, pkgversion) in dbPackages;
             SourcePackage pkg;
-            if (pkgP is null) {
-                pkg = new SourcePackage;
-            } else {
+            if (pkgP !is null)
                 pkg = *pkgP;
-            }
 
             pkg.name = pkgname;
             pkg.component = component;
@@ -453,9 +449,7 @@ public:
             // get the database package to update it, if available
             auto pkgP = BinaryPackage.generateUUID (this.repoName, pkgname, pkgversion, architecture) in dbPackages;
             BinaryPackage pkg;
-            if (pkgP is null)
-                pkg = new BinaryPackage;
-            else
+            if (pkgP !is null)
                 pkg = *pkgP;
 
             pkg.name = pkgname;

@@ -36,13 +36,15 @@ extern(C) void PydMain()
 
     /* Repo infrastructure */
     import lkshared.repository;
-    //wrap_class!(Repository,
-    //        Init!(string, string, string, string[]),
+    wrapAggregate!(SourcePackage)();
+    wrapAggregate!(BinaryPackage)();
+    wrap_class!(Repository,
+            Init!(string, string, string, string[]),
 
-    //        Def!(Repository.getSourcePackages),
-    //        Def!(Repository.getBinaryPackages),
-    //        Def!(Repository.getInstallerPackages),
-    //)();
+            Def!(Repository.getSourcePackages),
+            Def!(Repository.getBinaryPackages),
+            Def!(Repository.getInstallerPackages),
+    )();
 
     /* Synchrotron */
     import lknative.synchrotron;
