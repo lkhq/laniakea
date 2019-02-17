@@ -52,8 +52,6 @@ public:
 
     this (BaseConfig bConf, string britneyGitOriginUrl)
     {
-        import lkshared.utils : readJsonFile;
-
         britneyDir = buildPath (bConf.workspace, "dist", "britney2");
         britneyExe = buildPath (britneyDir, "britney.py");
 

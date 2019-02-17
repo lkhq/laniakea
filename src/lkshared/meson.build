@@ -75,8 +75,6 @@ lk_base_deps = [crypto_dep,
                 curl_dep,
                 czmq_dep,
                 dyaml_dep,
-                vibe_core_dep,
-                vibe_data_dep,
                 glibd_dep,
                 appstream_dep
 ]

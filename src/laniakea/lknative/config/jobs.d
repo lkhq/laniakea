@@ -25,7 +25,6 @@ import lknative.config.core;
 import std.uuid : randomUUID;
 import std.conv : to;
 
-public import vibe.data.json : Json;
 public import std.datetime : DateTime;
 public import std.uuid : UUID;
 
@@ -72,13 +71,10 @@ enum JobKind
  **/
 struct Job
 {
-    import vibe.data.serialization : name;
-
     UUID uuid;
 
     JobStatus status; /// Status of this job
 
-    @name("module")
     string moduleName; /// the name of the module responsible for this job
     string kind;       /// kind of the job
 
@@ -97,7 +93,7 @@ struct Job
 
     JobResult result;
 
-    Json data;
+    string data; //! JSON
 }
 
 /**

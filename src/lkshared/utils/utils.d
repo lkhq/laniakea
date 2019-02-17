@@ -228,22 +228,6 @@ UUID safeParseUUID (string uuidStr)
     return UUID (uuidStr);
 }
 
-/**
- * Read a JSON file into a Vibe.d JSON data structure.
- */
-auto readJsonFile (string fname) @trusted
-{
-    import vibe.data.json : parseJsonString;
-
-    auto f = File (fname, "r");
-    auto jsonData = appender!string;
-    string line;
-    while ((line = f.readln ()) !is null)
-        jsonData ~= line;
-
-    return parseJsonString (jsonData.data, fname);
-}
-
 unittest
 {
     // remote checks

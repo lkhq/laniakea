@@ -25,10 +25,6 @@ pyd_dep = dependency('pyd')
 glibd_dep = dependency('glibd-2.0', fallback: ['glibd', 'glibd_dep'])
 appstream_dep = dependency('appstream')
 
-# Vibe
-vibe_core_dep = dependency('vibe-core')
-vibe_data_dep = dependency('vibe-data')
-
 #
 # Common D Features
 #

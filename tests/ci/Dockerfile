@@ -64,12 +64,6 @@ RUN mkdir glibd/b
 RUN cd glibd/b/ && meson --prefix=/usr ..
 RUN cd glibd/b/ && ninja && ninja install
 
-# Vibe.d
-RUN git clone --depth 1 https://github.com/ximion/vibe.d.git vibe.d
-RUN mkdir vibe.d/b
-RUN cd vibe.d/b/ && meson --prefix=/usr ..
-RUN cd vibe.d/b/ && ninja && ninja install
-
 # FluentAsserts
 RUN git clone --depth 1 https://github.com/lkorigin/fluent-asserts.git fluent-asserts
 RUN mkdir fluent-asserts/b
