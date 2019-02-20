@@ -318,7 +318,7 @@ class Debcheck
         immutable archAll = arch == "all";
 
         // if the report is empty, we have no issues to generate and can quit
-        if (!report.isSequence || report.isNull)
+        if (report.type != dyaml.NodeType.sequence || report.type == dyaml.NodeType.null_)
             return res.data;
 
         foreach (ref dyaml.Node entry; report) {
