@@ -343,6 +343,8 @@ class BinaryPackage(Base):
     name = Column(String(256))  # Package name
     version = Column(DebVersion())  # Version of this package
 
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
+    repo = relationship('ArchiveRepository')
     suites = relationship('ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='bin_packages')  # Suites this package is in
     component_id = Column(Integer, ForeignKey('archive_components.id'))  # Component this package is in
 

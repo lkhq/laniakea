@@ -29,9 +29,9 @@ Core facilities | Generic helper library and tools | - | :heavy_check_mark: Comp
 Spark | Generic task processing daemon | ZMQ communication protocol | :heavy_check_mark: Completed
 Synchrotron | Synchronize packages from different suites | Core | :heavy_check_mark: Completed
 Admin CLI | CLI tool for configuring modules | Core | :large_orange_diamond: In progress / Blocked
-Dataimport | Import archive (meta)data into the database | Core | :soon: In progress
+Dataimport | Import archive (meta)data into the database | Core | :heavy_check_mark: Completed
 Daktape | Glue code to communicate with dak | - | :large_orange_diamond: In progress
-Debcheck | Check package dependency graph for issues | Core, Dataimport | :red_circle: Not started
+Debcheck | Check package dependency graph for issues | Core, Dataimport | :soon: In progress
 ZMQ communication protocol | Protocol modules use to communicate, needs a few design changes (e.g. messages must be versioned now) | Core | :heavy_check_mark: Completed
 Lighthouse | ZeroMQ communication hub | Core, Dataimport, Debcheck, Communication Protocol | :red_circle: Not started
 Keytool | Manage cryptographic keys and signatures | Core, Lighthouse | :red_circle: Not started

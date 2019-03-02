@@ -31,6 +31,54 @@ from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, Source
 from lknative import Repository
 
 
+def _register_binary_packages(session, repo, suite, component, arch, existing_bpkgs, bpkgs):
+    import lknative
+
+    for bpi in bpkgs:
+        bpkg = BinaryPackage()
+        bpkg.name = bpi.name
+        bpkg.version = bpi.ver
+        bpkg.repo = repo
+        bpkg.architecture = arch
+        bpkg.update_uuid()  # we can generate the uuid from name/version/repo-name/arch now
+
+        db_bpkg = existing_bpkgs.pop(bpkg.uuid, None)
+        if db_bpkg:
+            if suite in db_bpkg.suites:
+                continue  # the binary package is already registered with this suite
+            db_bpkg.suites.append(suite)
+            session.update(db_bpkg)
+            continue
+
+        # if we are here, the package is completely new and is only in one suite
+        bpkg.suites = [suite]
+        bpkg.component = component
+
+        bpkg.deb_type = bpi.debType
+
+        bpkg.size_installed = bpi.installedSize
+        bpkg.description = bpi.description
+        bpkg.description_md5 = bpi.descriptionMd5
+
+        bpkg.source_name = bpi.sourceName
+        bpkg.source_version = bpi.sourceVersion
+
+        bpkg.priority = bpi.priority
+        bpkg.section = bpi.section
+
+        bpkg.depends = bpi.depends
+        bpkg.pre_depends = bpi.preDepends
+
+        bpkg.maintainer = bpi.maintainer
+        bpkg.homepage = bpi.homepage
+
+        # FIXME: Add the ArchiveFile relations as well
+
+        session.add(bpkg)
+
+    return existing_bpkgs
+
+
 def command_repo(options):
     ''' Import repository data '''
 
@@ -67,11 +115,8 @@ def command_repo(options):
             spkg.repo = repo
             spkg.update_uuid()  # we can generate the uuid from name/version/repo-name now
 
-            db_spkg = existing_spkgs.get(spkg.uuid, None)
+            db_spkg = existing_spkgs.pop(spkg.uuid, None)
             if db_spkg:
-                # we already know about this source package
-                del existing_spkgs[spkg.uuid]
-
                 if suite in db_spkg.suites:
                     continue  # the source package is already registered with this suite
                 db_spkg.suites.append(suite)
@@ -104,6 +149,48 @@ def command_repo(options):
 
         # commit the source package changes already
         session.commit()
+
+        for arch in suite.architectures:
+
+            existing_bpkgs = dict()
+            for e_bpkg in session.query(BinaryPackage).filter(BinaryPackage.suites.any(ArchiveSuite.id==suite.id)) \
+                    .filter(BinaryPackage.repo_id==repo.id) \
+                    .filter(BinaryPackage.architecture_id==arch.id).all():
+                existing_bpkgs[e_bpkg.uuid] = e_bpkg
+
+            # add information about regular binary packages
+            existing_bpkgs = _register_binary_packages(session,
+                                                       repo,
+                                                       suite,
+                                                       component,
+                                                       arch,
+                                                       existing_bpkgs,
+                                                       local_repo.getBinaryPackages (suite.name,
+                                                                                     component.name,
+                                                                                     arch.name))
+            session.commit()
+
+            # add information about debian-installer packages
+            existing_bpkgs = _register_binary_packages(session,
+                                                       repo,
+                                                       suite,
+                                                       component,
+                                                       arch,
+                                                       existing_bpkgs,
+                                                       local_repo.getInstallerPackages (suite.name,
+                                                                                     component.name,
+                                                                                     arch.name))
+            session.commit()
+
+            for old_bpkg in existing_bpkgs.keys():
+                old_bpkg.suites.remove(suite)
+                if len(old_bpkg.suites) > 0:
+                    session.update(old_bpkg)
+                else:
+                    session.delete(old_bpkg)
+            session.commit()
+
+            # TODO: Add AppStream information as well
 
 
 def create_parser(formatter_class=None):
