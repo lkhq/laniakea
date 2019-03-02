@@ -129,7 +129,7 @@ unittest
 {
     writeln ("TEST: ", "DownloadManager");
 
-    auto dlm = new DownloadManager ("https://ftp.example.org/debian");
+    auto dlm = new DownloadManager ("", "https://ftp.example.org/debian");
 
     // ensure we filenameify the prefix we just passed into the download-manager
     assert (dlm.rootDir == "dlcache/ftp.example.org_debian");

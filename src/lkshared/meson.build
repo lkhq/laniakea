@@ -73,31 +73,29 @@ lk_base_deps = [crypto_dep,
                 archive_dep,
                 curl_dep,
                 czmq_dep,
-                dyaml_dep,
-                glibd_dep,
-                appstream_dep
+                dyaml_dep
 ]
 
 laniakea_utils_lib = shared_library('laniakea-shared',
     [laniakea_ulib_src, 'druntime.c'],
     include_directories: [src_dir],
     link_with: [lk_cbind_lib],
-    dependencies: [lk_base_deps, girbinding_dep],
+    dependencies: [lk_base_deps],
     d_import_dirs: [source_root + '/data/']
 )
 
 laniakea_utils_dep = declare_dependency(
     dependencies: [lk_base_deps],
     link_with: [laniakea_utils_lib],
-    include_directories: [src_dir, gir_bind_dir],
+    include_directories: [src_dir],
 )
 
 # Test
 lk_shared_test_exe = executable ('lk_test_self-shared',
     [laniakea_ulib_src],
-    include_directories: [src_dir, gir_bind_dir],
+    include_directories: [src_dir],
     link_with: [lk_cbind_lib],
-    dependencies: [lk_base_deps, girbinding_dep],
+    dependencies: [lk_base_deps],
     d_args: d_unittest_args + ['-J' + source_root + '/data/'],
     link_args: '-main',
 )

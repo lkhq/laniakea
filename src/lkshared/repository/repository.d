@@ -27,6 +27,7 @@ import std.conv : to;
 import std.typecons : Tuple, Flag, Yes, No;
 import std.digest.sha;
 import std.algorithm : canFind;
+import std.uuid : UUID;
 static import std.file;
 import containers : DynamicArray, HashMap;
 

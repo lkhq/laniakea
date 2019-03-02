@@ -23,13 +23,6 @@ module lkshared.repository.types;
 import std.array : empty;
 import std.uuid : UUID;
 
-import appstream.c.types : ComponentKind;
-import appstream.Component : Component;
-
-public alias ASComponent = Component;
-public alias ASComponentKind = ComponentKind;
-
-
 /**
  * A system architecture software can be compiled for.
  * Usually associated with an @ArchiveSuite
@@ -344,8 +337,6 @@ struct BinaryPackage
     ArchiveComponent component;         /// Component this package is in
     ArchiveRepository repo;             /// Repository this package is part of
 
-    SoftwareComponent[] softwareComponents; /// The software components / AppStream components associated with this package
-
     ArchiveArchitecture architecture; /// Architecture this binary was built for
     int installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
 
@@ -403,6 +394,8 @@ struct BinaryPackage
         return repoName ~ "::" ~ this.name ~ "/" ~ this.ver ~ "/" ~ this.architecture.name;
     }
 }
+
+static if (0) {
 
 /**
  * Description of a software component as described by the AppStream
@@ -482,4 +475,6 @@ class SoftwareComponent
         else if (!yaml.empty)
             this.uuid = sha1UUID (yaml);
     }
+}
+
 }

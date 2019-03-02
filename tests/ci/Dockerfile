@@ -20,11 +20,6 @@ RUN apt-get install -yq --no-install-recommends \
     libcurl4-gnutls-dev \
     libczmq-dev \
     libarchive-dev \
-    libglib2.0-dev \
-    libgirepository1.0-dev \
-    libappstream-dev \
-    libglibd-2.0-dev \
-    gir-to-d \
     libpq-dev \
     postgresql
 
@@ -61,12 +56,6 @@ RUN git clone --depth 1 https://github.com/lkorigin/pyd.git pyd
 RUN mkdir pyd/b
 RUN cd pyd/b/ && meson --prefix=/usr ..
 RUN cd pyd/b/ && ninja && ninja install
-
-# FluentAsserts
-RUN git clone --depth 1 https://github.com/lkorigin/fluent-asserts.git fluent-asserts
-RUN mkdir fluent-asserts/b
-RUN cd fluent-asserts/b/ && meson --prefix=/usr ..
-RUN cd fluent-asserts/b/ && ninja && ninja install
 
 # finish
 WORKDIR /build
