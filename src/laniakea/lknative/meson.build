@@ -32,7 +32,6 @@ lknative_pylib = shared_library('lknative',
 # Test
 lk_pynative_test_exe = executable ('lk_test_self-lknative',
     [lknative_src],
-    link_with: [lk_cbind_lib],
     dependencies: [laniakea_utils_dep],
     include_directories: [lknative_src_dir],
     d_args: d_unittest_args + ['-J' + source_root + '/data/'],
