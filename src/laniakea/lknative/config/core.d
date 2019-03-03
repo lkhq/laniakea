@@ -49,12 +49,24 @@ enum LkModule
 }
 
 /**
+ * Parwnt suite information
+ */
+struct ParentSuiteInfo {
+    string name;
+    string[] architectures;
+    string[] components;
+}
+
+/**
  * Suite information
  */
 struct SuiteInfo {
     string name;
     string[] architectures;
     string[] components;
+    string primaryArchitecture;
+
+    ParentSuiteInfo parent;
 }
 
 /**

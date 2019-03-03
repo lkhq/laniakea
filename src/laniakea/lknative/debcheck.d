@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Matthias Klumpp <matthias@tenstral.net>
+ * Copyright (C) 2017-2019 Matthias Klumpp <matthias@tenstral.net>
  *
  * Licensed under the GNU Lesser General Public License Version 3
  *
@@ -26,10 +26,9 @@ import std.conv : to;
 import std.path : buildPath;
 import std.typecons : Tuple;
 import std.datetime : DateTime;
-import std.uuid : UUID;
 static import dyaml;
 
-import lknative.config : BaseConfig;
+import lknative.config : BaseConfig, SuiteInfo;
 import lkshared.utils : currentDateTime;
 import lkshared.repository;
 import lkshared.logging;
@@ -63,9 +62,7 @@ struct PackageConflict {
 /**
  * Dependency issue information
  **/
-class DebcheckIssue {
-    UUID uuid;
-
+struct DebcheckIssue {
     DateTime date;           /// Time when this excuse was created
 
     PackageType packageKind; /// Kind of the examined package
@@ -99,22 +96,22 @@ class Debcheck
         repo.setTrusted (true);
     }
 
-    private string getDefaultNativeArch (ArchiveSuite suite)
+    private string getDefaultNativeArch (SuiteInfo suite)
     {
         // determine a default native architecture in case
         // we are processing arch:all
         auto defaultNativeArch = "amd64";
         auto nativeArchFound = false;
-        foreach (ref a; suite.architectures) {
-            if (a.name == defaultNativeArch) {
+        foreach (ref aname; suite.architectures) {
+            if (aname == defaultNativeArch) {
                 nativeArchFound = true;
                 break;
             }
         }
 
         if (!nativeArchFound) {
-            if (suite.primaryArchitecture !is null)
-                defaultNativeArch = suite.primaryArchitecture.name;
+            if (!suite.primaryArchitecture.empty)
+                defaultNativeArch = suite.primaryArchitecture;
         }
 
         if (defaultNativeArch.empty)
@@ -170,44 +167,42 @@ class Debcheck
      * ones of the dependencies are added as "background" (bg).
      */
     private Tuple!(string[], "fg", string[], "bg")
-    getFullIndexFileList (ArchiveSuite suite, string arch, bool sourcePackages, string binArch)
+    getFullIndexFileList (SuiteInfo suite, string arch, bool sourcePackages, string binArch)
     {
         Tuple!(string[], "fg", string[], "bg") res;
 
         foreach (ref component; suite.components) {
             string fname;
             if (sourcePackages) {
-                fname = repo.getIndexFile (suite.name, buildPath (component.name, "source", "Sources.xz"));
+                fname = repo.getIndexFile (suite.name, buildPath (component, "source", "Sources.xz"));
                 if (!fname.empty)
                     res.fg ~= fname;
 
-                fname = repo.getIndexFile (suite.name, buildPath (component.name, "binary-%s".format (arch), "Packages.xz"));
+                fname = repo.getIndexFile (suite.name, buildPath (component, "binary-%s".format (arch), "Packages.xz"));
                 if (!fname.empty)
                     res.bg ~= fname;
             } else {
-                fname = repo.getIndexFile (suite.name, buildPath (component.name, "binary-%s".format (arch), "Packages.xz"));
+                fname = repo.getIndexFile (suite.name, buildPath (component, "binary-%s".format (arch), "Packages.xz"));
                 if (!fname.empty)
                     res.fg ~= fname;
             }
 
             if (arch == "all")
-                res.bg ~= repo.getIndexFile (suite.name, buildPath (component.name, "binary-%s".format (binArch), "Packages.xz"));
+                res.bg ~= repo.getIndexFile (suite.name, buildPath (component, "binary-%s".format (binArch), "Packages.xz"));
         }
 
         // add base suite packages
-        if (!suite.baseSuite.name.empty) {
-            auto baseSuite = suite.baseSuite;
-            if (baseSuite !is null) {
-                foreach (ref component; baseSuite.components) {
-                    string fname;
+        if (!suite.parent.name.empty) {
+            auto baseSuite = suite.parent;
+            foreach (ref component; baseSuite.components) {
+                string fname;
 
-                    fname = repo.getIndexFile (baseSuite.name, buildPath (component.name, "binary-%s".format (arch), "Packages.xz"));
-                    if (!fname.empty)
-                        res.bg ~= fname;
+                fname = repo.getIndexFile (baseSuite.name, buildPath (component, "binary-%s".format (arch), "Packages.xz"));
+                if (!fname.empty)
+                    res.bg ~= fname;
 
-                    if (arch == "all")
-                        res.bg ~= repo.getIndexFile (baseSuite.name, buildPath (component.name, "binary-%s".format (binArch), "Packages.xz"));
-                }
+                if (arch == "all")
+                    res.bg ~= repo.getIndexFile (baseSuite.name, buildPath (component, "binary-%s".format (binArch), "Packages.xz"));
             }
         }
 
@@ -217,12 +212,12 @@ class Debcheck
     /**
      * Get Dose YAML data for build dependency issues in the selected suite.
      */
-    private string[string] getBuildDepCheckYaml (ArchiveSuite suite)
+    private string[string] getBuildDepCheckYaml (SuiteInfo suite)
     {
         string[string] archIssueMap;
 
         immutable defaultNativeArch = getDefaultNativeArch (suite);
-        foreach (ref arch; map! (a => a.name) (suite.architectures[])) {
+        foreach (ref arch; suite.architectures) {
             // fetch source-package-centric index list
             auto indices = getFullIndexFileList (suite, arch, true, defaultNativeArch);
             if (indices.fg.empty) {
@@ -252,7 +247,7 @@ class Debcheck
     /**
      * Get Dose YAML data for build installability issues in the selected suite.
      */
-    private string[string] getDepCheckYaml (ArchiveSuite suite)
+    private string[string] getDepCheckYaml (SuiteInfo suite)
     {
         import std.algorithm : map;
         import std.array : array;
@@ -260,7 +255,7 @@ class Debcheck
 
         immutable defaultNativeArch = getDefaultNativeArch (suite);
 
-        auto allArchs = array ((suite.architectures[]).map!(a => a.name)) ~ ["all"];
+        auto allArchs = suite.architectures ~ ["all"];
         foreach (ref arch; allArchs) {
             // fetch binary-package index list
             auto indices = getFullIndexFileList (suite, arch, false, defaultNativeArch);
@@ -297,9 +292,8 @@ class Debcheck
         return archIssueMap;
     }
 
-    private DebcheckIssue[] doseYamlToDatabaseEntries (string yamlData, string suiteName, string arch) @trusted
+    private DebcheckIssue[] doseYamlToIssues (string yamlData, string suiteName, string arch) @trusted
     {
-        import std.uuid : randomUUID;
         auto res = appender!(DebcheckIssue[]);
 
         void setBasicPackageInfo (T) (ref T v, dyaml.Node entry) {
@@ -322,7 +316,7 @@ class Debcheck
             return res.data;
 
         foreach (ref dyaml.Node entry; report) {
-            auto issue = new DebcheckIssue;
+            DebcheckIssue issue;
 
             if (!archAll) {
                 // we ignore entries from "all" unless we are explicitly reading information
@@ -331,7 +325,6 @@ class Debcheck
                     continue;
             }
 
-            issue.uuid = randomUUID ();
             issue.date = currentDateTime ();
             issue.suiteName = suiteName;
 
@@ -392,113 +385,36 @@ class Debcheck
         return res.data;
     }
 
-    /+
-    public bool updateBuildDepCheckIssues (Session session, ArchiveSuite suite) @trusted
+    public Tuple!(bool, DebcheckIssue[])
+    getBuildDepCheckIssues (SuiteInfo suite)
     {
-        import std.typecons : tuple;
+        Tuple!(bool, DebcheckIssue[]) res;
+        auto issues = appender!(DebcheckIssue[]);
 
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
-
-        auto issuesYaml = getBuildDepCheckYaml (session, suite);
-        conn.removeDebcheckIssues (suite.name, PackageType.SOURCE);
+        auto issuesYaml = getBuildDepCheckYaml (suite);
         foreach (ref arch, ref yamlData; issuesYaml) {
-            auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
-
-            foreach (ref entry; entries)
-                session.save (entry);
+            issues ~= doseYamlToIssues (yamlData, suite.name, arch);
         }
 
-        return true;
+        res[0] = true;
+        res[1] = issues.data;
+        return res;
     }
 
-    public bool updateBuildDepCheckIssues (string suiteName)
+
+    public Tuple!(bool, DebcheckIssue[])
+    getDepCheckIssues (SuiteInfo suite)
     {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
+        Tuple!(bool, DebcheckIssue[]) res;
+        auto issues = appender!(DebcheckIssue[]);
 
-        return updateBuildDepCheckIssues (session, session.getSuite (suiteName));
-    }
-
-    public bool updateBuildDepCheckIssues ()
-    {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
-        foreach (ref suite; session.getSuites ()) {
-            immutable ret = updateBuildDepCheckIssues (session, suite);
-            if (!ret)
-                return false;
-        }
-        return true;
-    }
-
-    public bool updateDepCheckIssues (Session session, ArchiveSuite suite) @trusted
-    {
-        import std.typecons : tuple;
-
-        auto conn = db.getConnection ();
-        scope (exit) db.dropConnection (conn);
-
-        auto issuesYaml = getDepCheckYaml (session, suite);
+        auto issuesYaml = getDepCheckYaml (suite);
         foreach (ref arch, ref yamlData; issuesYaml) {
-            auto entries = doseYamlToDatabaseEntries (yamlData, suite.name, arch);
-
-            conn.removeDebcheckIssues (suite.name, PackageType.BINARY, arch);
-            foreach (ref entry; entries)
-                session.save (entry);
+            issues ~= doseYamlToIssues (yamlData, suite.name, arch);
         }
 
-        return true;
+        res[0] = true;
+        res[1] = issues.data;
+        return res;
     }
-
-    public bool updateDepCheckIssues (string suiteName)
-    {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
-        return updateDepCheckIssues (session, session.getSuite (suiteName));
-    }
-
-    public bool updateDepCheckIssues ()
-    {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
-        foreach (ref suite; session.getSuites ()) {
-            auto ret = updateDepCheckIssues (session, suite);
-            if (!ret)
-                return false;
-        }
-        return true;
-    }
-
-    public auto getBinaryIssuesList (ArchiveSuite suite, string arch) @trusted
-    {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
-        auto q = session.createQuery ("FROM DebcheckIssue issue WHERE issue.suiteName=:suite
-                                                                  AND issue.architecture=:arch
-                                                                  AND issue.packageKind=:kind")
-                                      .setParameter ("suite", suite.name)
-                                      .setParameter ("arch", arch)
-                                      .setParameter ("kind", PackageType.BINARY.to!short);
-        return q.list!DebcheckIssue();
-    }
-
-    public auto getSourceIssuesList (ArchiveSuite suite, string arch) @trusted
-    {
-        auto session = sFactory.openSession ();
-        scope (exit) session.close ();
-
-        auto q = session.createQuery ("FROM DebcheckIssue issue WHERE issue.suiteName=:suite
-                                                                  AND issue.architecture=:arch
-                                                                  AND issue.packageKind=:kind")
-                                      .setParameter ("suite", suite.name)
-                                      .setParameter ("arch", arch)
-                                      .setParameter ("kind", PackageType.SOURCE.to!short);
-        return q.list!DebcheckIssue();
-    }
-     +/
 }

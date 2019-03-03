@@ -71,13 +71,24 @@ extern(C) void PydMain()
     wrapAggregate!(SpearsMissingBuilds)();
     wrapAggregate!(SpearsOldBinaries)();
     wrapAggregate!(SpearsReason)();
-
     wrapAggregate!(SpearsExcuse)();
     wrap_class!(SpearsEngine,
             Init!(BaseConfig, SpearsConfig, SuiteInfo[]),
 
             Def!(SpearsEngine.updateConfig),
             Def!(SpearsEngine.runMigration),
+    )();
+
+    /* Debcheck */
+    import lknative.debcheck;
+    wrapAggregate!(PackageIssue)();
+    wrapAggregate!(PackageConflict)();
+    wrapAggregate!(DebcheckIssue)();
+    wrap_class!(Debcheck,
+            Init!(BaseConfig),
+
+            Def!(Debcheck.getBuildDepCheckIssues),
+            Def!(Debcheck.getDepCheckIssues),
     )();
 }
 

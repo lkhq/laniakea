@@ -154,7 +154,7 @@ class PackageType(enum.IntEnum):
     '''
     Type of the package.
     '''
-    UNKNOWN = enum.auto()
+    UNKNOWN = 0
     SOURCE = enum.auto()
     BINARY = enum.auto()
 
@@ -163,7 +163,7 @@ class DebType(enum.IntEnum):
     '''
     Type of the Debian package.
     '''
-    UNKNOWN = enum.auto()
+    UNKNOWN = 0
     DEB = enum.auto()
     UDEB = enum.auto()
 
@@ -190,7 +190,7 @@ class PackagePriority(enum.IntEnum):
     '''
     Priority of a Debian package.
     '''
-    UNKNOWN = enum.auto()
+    UNKNOWN = 0
     REQUIRED = enum.auto()
     IMPORTANT = enum.auto()
     STANDARD = enum.auto()

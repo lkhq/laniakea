@@ -41,16 +41,30 @@ def create_native_baseconfig():
     return bconf
 
 
+def get_suiteinfo_for_suite(suite):
+    '''
+    get native SuiteInfo() description for an ArchiveSuite from the database.
+    '''
+    si = SuiteInfo()
+    si.name = suite.name
+    si.architectures = [a.name for a in suite.architectures]
+    si.components = [c.name for c in suite.components]
+    si.primaryArchitecture = suite.primary_architecture
+
+    if suite.parent:
+        si.parent.name = suite.parent.name
+        si.parent.architectures = [a.name for a in suite.parent.architectures]
+        si.parent.components = [c.name for c in suite.parent.components]
+
+    return si
+
+
 def get_suiteinfo_all_suites():
     session = session_factory()
 
     suite_infos = []
     suites = session.query(ArchiveSuite).all()
     for suite in suites:
-        si = SuiteInfo()
-        si.name = suite.name
-        si.architectures = [a.name for a in suite.architectures]
-        si.components = [c.name for c in suite.components]
-        suite_infos.append(si)
+        suite_infos.append(get_suiteinfo_for_suite(suite))
 
     return suite_infos
