@@ -29,9 +29,9 @@ cd ..
 #
 # Style checks
 #
-./tests/ci/run-dscanner.py . tests/dscanner.ini
+#! ./tests/ci/run-dscanner.py . tests/dscanner.ini
 
 #
 # Make Documentation
 #
-./tests/ci/make-documentation.py . build
+#! ./tests/ci/make-documentation.py . build

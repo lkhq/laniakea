@@ -18,11 +18,8 @@ def find_include_dirs(source_root):
     incdirs = find_local_include_dirs(source_root)
     incdirs.append(os.path.join(source_root, 'src'))
 
-    extra_inc = ['vibe',
-                 'diet',
-                 'stdx-allocator',
-                 'fluentasserts',
-                 'glibd-2']
+    extra_inc = ['stdx-allocator',
+                 'containers']
 
     for d in extra_inc:
         for inc_root in ['/usr/include/d/', '/usr/local/include/d/']:
