@@ -1,4 +1,4 @@
-# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -23,6 +23,10 @@ from argparse import ArgumentParser, HelpFormatter
 __mainfile = None
 
 
+def run_server(options):
+    pass
+
+
 def check_print_version(options):
     if options.show_version:
         from laniakea import __version__
@@ -40,12 +44,12 @@ class CustomArgparseFormatter(HelpFormatter):
 
 
 def create_parser(formatter_class=None):
-    ''' Create lkadmin CLI argument parser '''
+    ''' Create Lighthouse CLI argument parser '''
 
     if not formatter_class:
         formatter_class = CustomArgparseFormatter
 
-    parser = ArgumentParser(description='Administer a Laniakea instance', formatter_class=formatter_class)
+    parser = ArgumentParser(description='Message and job relay station', formatter_class=formatter_class)
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
@@ -54,23 +58,12 @@ def create_parser(formatter_class=None):
     parser.add_argument('--version', action='store_true', dest='show_version',
                         help='Display the version of Laniakea itself.')
 
-    import lkadmin.core as core
-    core.add_cli_parser(subparsers)
-
-    import lkadmin.synchrotron as synchrotron
-    synchrotron.add_cli_parser(subparsers)
-
-    import lkadmin.spears as spears
-    spears.add_cli_parser(subparsers)
+    parser.set_defaults(func=run_server)
 
     return parser
 
 
 def run(mainfile, args):
-    if len(args) == 0:
-        print('Need a subcommand to proceed!')
-        sys.exit(1)
-
     global __mainfile
     __mainfile = mainfile
 

@@ -25,20 +25,20 @@ endif
     #subdir('keytool')
 #endif
 
-## Lighthouse relay
-#if (get_option('lighthouse'))
-    #subdir('lighthouse')
-#endif
+# Lighthouse relay
+if (get_option('lighthouse'))
+    subdir('lighthouse')
+endif
 
-## Dataimport
-#if (get_option('dataimport'))
-    #subdir('dataimport')
-#endif
+# Dataimport
+if (get_option('dataimport'))
+    subdir('dataimport')
+endif
 
-## Debcheck
-#if (get_option('debcheck'))
-    #subdir('debcheck')
-#endif
+# Debcheck
+if (get_option('debcheck'))
+    subdir('debcheck')
+endif
 
 ## Rubicon data importer
 #if (get_option('rubicon'))
