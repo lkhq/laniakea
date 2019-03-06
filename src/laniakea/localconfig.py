@@ -17,6 +17,7 @@
 
 import os
 import json
+import platform
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -78,6 +79,9 @@ class LocalConfig:
                 if 'SourceKeyringDir' in syncconf:
                     self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
 
+            # ZCurve
+            self._zcurve_keys_basedir = '/etc/laniakea/keys/curve/'
+
         @property
         def project_name(self) -> str:
             return self._project_name
@@ -110,9 +114,29 @@ class LocalConfig:
         def synchrotron_sourcekeyrings(self) -> str:
             return self._synchrotron_sourcekeyrings
 
+
+        def zcurve_secret_keyfile_for_module(self, module) -> str:
+            ''' Retrieve the secret ZCurve key filename for a given module name. '''
+
+            secrets_dir = os.path.join(self._zcurve_keys_basedir, 'secret')
+            try:
+                os.makedirs(secrets_dir, exist_ok=True)
+            except:
+                pass
+
+            return os.path.join(secrets_dir, '{}-{}_private.sec'.format(platform.node(), module))
+
         @property
-        def session_factory(self):
-            return self._session_factory
+        def zcurve_trusted_certs_dir(self) -> str:
+            ''' Retrieve the directory for trusted ZCurve public keys '''
+
+            trusted_dir = os.path.join(self._zcurve_keys_basedir, 'trusted')
+            try:
+                os.makedirs(trusted_dir, exist_ok=True)
+            except:
+                pass
+
+            return trusted_dir
 
 
     def __init__(self, fname=None):
