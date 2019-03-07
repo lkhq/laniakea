@@ -24,7 +24,10 @@ __mainfile = None
 
 
 def run_server(options):
-    pass
+    from lighthouse.server import LhServer
+
+    server = LhServer(options.verbose)
+    server.run()
 
 
 def check_print_version(options):

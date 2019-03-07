@@ -115,7 +115,7 @@ def install_trusted_cert(options):
         print('')
 
     lconf = LocalConfig()
-    target_keyfile = os.path.join(lconf.zcurve_trusted_certs_dir, '{}.pub'.format(options.name))
+    target_keyfile = os.path.join(lconf.zcurve_trusted_certs_dir, '{}.pub.key'.format(options.name))
     if os.path.isfile(target_keyfile) and not options.force:
         print('We already trust a key for "{}" on this machine. You can override the existing one by specifying "--force".'.format(options.name))
         sys.exit(2)
