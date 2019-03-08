@@ -7,3 +7,5 @@ from .archive import *
 from .synchrotron import *
 from .spears import *
 from .debcheck import *
+from .jobs import *
+from .workers import *

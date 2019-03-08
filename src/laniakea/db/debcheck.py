@@ -75,7 +75,7 @@ class DebcheckIssue(Base):
     suite_id = Column(Integer, ForeignKey('archive_suites.id'))
     suite = relationship('ArchiveSuite')
 
-    architecture = Column(Text())  # Architecture this issue affects, may be a wildcard like "any" or architecture expression
+    architecture = Column(Text(), default='any')  # Architecture this issue affects, may be a wildcard like "any" or architecture expression
 
     package_name = Column(String(256))  # Name of the package this issue affects
     package_version = Column(DebVersion())  # Version of the package this issue affects
