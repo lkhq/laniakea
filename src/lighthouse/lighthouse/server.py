@@ -20,7 +20,7 @@ import sys
 import json
 import logging as log
 from laniakea import LocalConfig, LkModule
-from lighthouse.tasks import process_client_message
+from lighthouse.worker import JobWorker
 
 import zmq
 import zmq.auth
@@ -45,6 +45,7 @@ class LhServer:
         self._server_private_key = lconf.zcurve_secret_keyfile_for_module(LkModule.LIGHTHOUSE)
 
         self._jobs_endpoint = lconf.lighthouse_endpoint
+        self._worker = JobWorker()
 
     def _client_request_received(self, server, msg):
         try:
@@ -55,7 +56,7 @@ class LhServer:
             return
 
         try:
-            reply = process_client_message(request)
+            reply = self._worker.process_client_message(request)
         except Exception as e:
             reply = json.dumps({'error': 'Internal Error: {}'.format(e)})
 

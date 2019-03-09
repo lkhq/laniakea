@@ -75,7 +75,7 @@ class Job(Base):
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    status = Column(Enum(JobStatus))  # Status of this job
+    status = Column(Enum(JobStatus), default=JobStatus.WAITING)  # Status of this job
 
     module = Column(String(256))  # the name of the module responsible for this job
     kind = Column(String(256))  # kind of the job
@@ -96,7 +96,7 @@ class Job(Base):
 
     architecture = Column(Text(), default='any')  # Architecture this job can run on, "any" in case the architecture does not matter
 
-    result = Column(Enum(JobResult))  # Result of this job
+    result = Column(Enum(JobResult), default=JobResult.UNKNOWN)  # Result of this job
 
     data = Column(JSON)  # Job description data
 
