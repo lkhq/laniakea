@@ -21,6 +21,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.types import UserDefinedType
+from contextlib import contextmanager
 from ..localconfig import LocalConfig
 
 
@@ -69,3 +70,19 @@ class Database:
 def session_factory():
     db = Database()
     return db._SessionFactory()
+
+
+@contextmanager
+def session_scope():
+    '''
+    Provide a transactional scope around a series of operations.
+    '''
+    session = session_factory()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()

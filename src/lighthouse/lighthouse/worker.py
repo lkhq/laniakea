@@ -21,8 +21,9 @@ import json
 import uuid
 import logging as log
 from datetime import datetime
-from laniakea.db import LkModule, session_factory, config_get_value, \
-    Job, JobStatus, JobKind, SparkWorker
+from laniakea import LocalConfig, LkModule
+from laniakea.db import session_scope, config_get_value, Job, JobStatus, JobKind, SparkWorker, \
+    SourcePackage, ArchiveSuite
 
 
 class JobWorker:
@@ -31,15 +32,21 @@ class JobWorker:
     '''
 
     def __init__(self):
-        self._session = session_factory()
+        self._lconf = LocalConfig()
         self._arch_indep_affinity = config_get_value(LkModule.ARIADNE, 'indep_arch_affinity')
+
+        with session_scope() as session:
+            # FIXME: We need much better ways to select the right suite to synchronize with
+            incoming_suite = session.query(ArchiveSuite) \
+                .filter(ArchiveSuite.accept_uploads==True).one()
+            self._incoming_suite_name = incoming_suite.name
 
 
     def _error_reply(self, message):
         return json.dumps({'error': message})
 
-    def _assign_suitable_job(self, job_kind, arch, client_id):
-        qres = self._session.execute('''WITH cte AS (
+    def _assign_suitable_job(self, session, job_kind, arch, client_id):
+        qres = session.execute('''WITH cte AS (
                                         SELECT uuid
                                         FROM   jobs
                                         WHERE  status=:jstatus_old
@@ -61,11 +68,108 @@ class JobWorker:
                                                    'jstatus_new': 'SCHEDULED',
                                                    'worker_id': client_id})
         res = qres.fetchone()
-        self._session.commit()
+        session.commit()
         return res
 
+    def _get_job_details(self, session, job_dict):
+        '''
+        Retrieve additional information about a given job.
+        '''
 
-    def _process_job_request(self, req_data):
+        job_kind = job_dict['kind']
+        job_uuid_str = str(job_dict['uuid'])
+
+        job = session.query(Job).filter(Job.uuid==job_uuid_str).one()
+
+        info = dict()
+        jdata = dict()
+        info['uuid'] = job_uuid_str
+        info['module'] = job_dict['module']
+        info['kind'] = job_kind
+        info['version'] = job_dict['version']
+        info['architecture'] = job_dict['architecture']
+        info['time_created'] = job_dict['time_created']
+
+        if job_kind == JobKind.PACKAGE_BUILD:
+            # Sanity check for broken configuration (archive URL is not mandatory (yet))
+            if not self._lconf.archive_url.url.empty:
+                log.error('Trying to schedule a package build job, but archive URL is not set in local config. Please fix your configuration!')
+                job.status = JobStatus.WAITING
+                session.commit()
+
+                # This is a server error, no need to inform the client about it as well
+                return None
+
+            trigger_uuid = job_dict['trigger']
+            spkg = session.query(SourcePackage).filter(SourcePackage.uuid==trigger_uuid).one_or_none()
+            if not spkg:
+                job.status = JobStatus.TERMINATED
+                job.latest_log_excerpt = 'We were unable to find a source package for this build job. The job has been terminated.'
+                session.commit()
+
+                # This not an error the client needs to know about
+                return None
+
+            suite_target_name = job.data.get('suite')
+            if not suite_target_name:
+                suite_target_name = self._incoming_suite_name
+
+            jdata['package_name'] = spkg.name
+            jdata['package_version'] = spkg.version
+            jdata['maintainer'] = spkg.maintainer
+            jdata['suite'] = suite_target_name;
+            jdata['dsc_url'] = None
+
+            # handle arch-indep builds
+            jdata['do_indep'] = False
+            if job.architecture == self._arch_indep_affinity or job.architecture == 'all':
+                jdata['do_indep'] = True
+
+            # for arch:all jobs, we cheat and set the arch affinity as the actual architecture this job will be running on,
+            # since nothing can be built on an arch:all chroot
+            if job.architecture == 'all':
+                info['architecture'] = self._arch_indep_affinity
+
+            # FIXME: Fetch the archive URL from the repository database entry
+            for f in spkg.files:
+                if not f.fname.endswith('.dsc'):
+                    continue
+                jdata['dsc_url'] = self._lconf.archive_url + '/' + f.fname
+                jdata['sha256sum'] = f.sha256sum
+                break
+
+            if not jdata['dsc_url']:
+                job.status = JobStatus.TERMINATED
+                job.latest_log_excerpt = 'We were unable to find a source package .dsc file for this build. The job has been terminated.'
+                session.commit()
+
+                # This not an error the client needs to know about
+                return None
+        elif job_kind == JobKind.OS_IMAGE_BUILD:
+            pass
+            """
+                const recipe = conn.getRecipeById (job.trigger);
+                if (recipe.isNull) {
+                    conn.setJobStatus (job.uuid, JobStatus.TERMINATED);
+                    conn.setJobLogExcerpt (job.uuid,
+                                        "No recipe found for this image build job. The job has been terminated.");
+                    return null.serializeToJsonString ();
+                }
+
+                info.data["image_kind"]   = Json (recipe.kind.toString);
+                info.data["git_url"]      = Json (recipe.gitUrl);
+                info.data["distribution"] = Json (recipe.distribution);
+                info.data["suite"]        = Json (recipe.suite);
+                info.data["flavor"]       = Json (recipe.flavor);
+            }
+
+            return info.serializeToJsonString ();
+            """
+
+        info['data'] = jdata
+        return info
+
+    def _process_job_request(self, session, req_data):
         '''
         Read job request and return a job matching the request or
         null in case we couldn't find any job.
@@ -76,7 +180,7 @@ class JobWorker:
         architectures = req_data.get('architectures', [])
 
         # update information about this client
-        worker = self._session.query(SparkWorker) \
+        worker = session.query(SparkWorker) \
             .filter(SparkWorker.uuid==client_id).one_or_none()
 
         # we might have a new machine, so set the ID again to create an empty new worker
@@ -93,7 +197,7 @@ class JobWorker:
             worker.name = client_name
             worker.enabled = True
 
-            self._session.add(worker)
+            session.add(worker)
 
         worker.last_ping = datetime.utcnow()
 
@@ -102,7 +206,7 @@ class JobWorker:
             worker.accepts = accepted_kinds
         else:
             worker.accepts = [str(accepted_kinds)]
-        self._session.commit()
+        session.commit()
 
         job_data = None
         for accepted_kind in worker.accepts:
@@ -111,14 +215,14 @@ class JobWorker:
                 job = None
                 if arch_name == self._arch_indep_affinity:
                     # we can  maybe assign an arch:all job to this machine
-                    job = self._assign_suitable_job (accepted_kind, 'all', worker.uuid)
+                    job = self._assign_suitable_job (session, accepted_kind, 'all', worker.uuid)
 
                 # use the first job with a matching architecture/kind if we didn't find an arch:all job previously
                 if not job:
-                    job = self._assign_suitable_job (accepted_kind, arch_name, worker.uuid)
+                    job = self._assign_suitable_job (session, accepted_kind, arch_name, worker.uuid)
 
                 if job:
-                    job_data = self._get_job_details(job)
+                    job_data = self._get_job_details(session, job)
                     job_assigned = True
                     break
             if job_assigned:
@@ -137,20 +241,21 @@ class JobWorker:
             return self._error_reply('Request was malformed.')
 
         try:
-            if req_kind == 'job':
-                return self._process_job_request(request)
-            if req_kind == 'job-accepted':
-                return self._process_job_accepted_request(request)
-            if req_kind == 'job-rejected':
-                return self._process_job_rejected_request(request)
-            if req_kind == 'job-status':
-                process_job_status_request(self, request)
-                return None
-            if req_kind == 'job-success':
-                return self._process_job_finished_request(request, True)
-            if req_kind == 'job-failed':
-                return self._process_job_finished_request(request, False)
-            return self._error_reply('Request type is unknown.')
+            with session_scope() as session:
+                if req_kind == 'job':
+                    return self._process_job_request(session, request)
+                if req_kind == 'job-accepted':
+                    return self._process_job_accepted_request(session, request)
+                if req_kind == 'job-rejected':
+                    return self._process_job_rejected_request(session, request)
+                if req_kind == 'job-status':
+                    self._process_job_status_request(session, request)
+                    return None
+                if req_kind == 'job-success':
+                    return self._process_job_finished_request(session, request, True)
+                if req_kind == 'job-failed':
+                    return self._process_job_finished_request(session, request, False)
+                return self._error_reply('Request type is unknown.')
         except Exception as e:
             import traceback
             log.error('Failed to handle request: {} => {}'.format(str(request), str(e)))
