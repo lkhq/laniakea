@@ -23,7 +23,7 @@ import logging as log
 from datetime import datetime
 from laniakea import LocalConfig, LkModule
 from laniakea.db import session_scope, config_get_value, Job, JobStatus, JobKind, SparkWorker, \
-    SourcePackage, ArchiveSuite
+    SourcePackage, ArchiveSuite, ImageBuildRecipe
 
 
 class JobWorker:
@@ -78,6 +78,7 @@ class JobWorker:
 
         job_kind = job_dict['kind']
         job_uuid_str = str(job_dict['uuid'])
+        trigger_uuid = job_dict['trigger']
 
         job = session.query(Job).filter(Job.uuid==job_uuid_str).one()
 
@@ -88,11 +89,11 @@ class JobWorker:
         info['kind'] = job_kind
         info['version'] = job_dict['version']
         info['architecture'] = job_dict['architecture']
-        info['time_created'] = job_dict['time_created']
+        info['time_created'] = job.time_created.isoformat()
 
         if job_kind == JobKind.PACKAGE_BUILD:
             # Sanity check for broken configuration (archive URL is not mandatory (yet))
-            if not self._lconf.archive_url.url.empty:
+            if not self._lconf.archive_url:
                 log.error('Trying to schedule a package build job, but archive URL is not set in local config. Please fix your configuration!')
                 job.status = JobStatus.WAITING
                 session.commit()
@@ -100,7 +101,6 @@ class JobWorker:
                 # This is a server error, no need to inform the client about it as well
                 return None
 
-            trigger_uuid = job_dict['trigger']
             spkg = session.query(SourcePackage).filter(SourcePackage.uuid==trigger_uuid).one_or_none()
             if not spkg:
                 job.status = JobStatus.TERMINATED
@@ -146,25 +146,20 @@ class JobWorker:
                 # This not an error the client needs to know about
                 return None
         elif job_kind == JobKind.OS_IMAGE_BUILD:
-            pass
-            """
-                const recipe = conn.getRecipeById (job.trigger);
-                if (recipe.isNull) {
-                    conn.setJobStatus (job.uuid, JobStatus.TERMINATED);
-                    conn.setJobLogExcerpt (job.uuid,
-                                        "No recipe found for this image build job. The job has been terminated.");
-                    return null.serializeToJsonString ();
-                }
+            recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid==trigger_uuid).one_or_none()
+            if not recipe:
+                job.status = JobStatus.TERMINATED
+                job.latest_log_excerpt = 'We were unable to find the image build recipe for this job. The job has been terminated.'
+                session.commit()
 
-                info.data["image_kind"]   = Json (recipe.kind.toString);
-                info.data["git_url"]      = Json (recipe.gitUrl);
-                info.data["distribution"] = Json (recipe.distribution);
-                info.data["suite"]        = Json (recipe.suite);
-                info.data["flavor"]       = Json (recipe.flavor);
-            }
+                # This not an error the client needs to know about
+                return None
 
-            return info.serializeToJsonString ();
-            """
+            jdata['image_kind'] = str(recipe.kind)
+            jdata['git_url'] = recipe.git_url
+            jdata['distribution'] = recipe.distribution
+            jdata['suite'] = recipe.suite
+            jdata['flavor'] = recipe.flavor
 
         info['data'] = jdata
         return info

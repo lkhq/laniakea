@@ -38,6 +38,15 @@ class ImageKind(enum.IntEnum):
     ISO = enum.auto()
     IMG = enum.auto()
 
+    def __str__(self):
+        v = self.value
+        if v == ImageKind.ISO:
+            return 'iso'
+        elif v == ImageKind.IMG:
+            return 'img'
+        else:
+            return 'unknown'
+
 
 class ImageBuildRecipe(Base):
     '''
@@ -60,15 +69,7 @@ class ImageBuildRecipe(Base):
     result_move_to = Column(Text())  # Local or remote URL to copy the resulting build artifacts to
 
     def regenerate_name(self):
-        kind_str = None
-        if self.kind == ImageKind.ISO:
-            kind_str = 'iso'
-        elif self.kind == ImageKind.IMG:
-            kind_str = 'img'
-        else:
-            raise Exception('String name for image kind is unknown.')
-
-        self.name = '{}:{}-{}-{}'.format(kind_str,
+        self.name = '{}:{}-{}-{}'.format(str(self.kind),
                                          self.distribution,
                                          self.suite,
                                          self.flavor).lower()
