@@ -3,7 +3,6 @@
 lknative_src = [
     'cmdargs.d',
     'config/core.d',
-    'config/isotope.d',
     'config/package.d',
     'config/spears.d',
     'config/synchrotron.d',

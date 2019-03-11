@@ -66,6 +66,9 @@ def create_parser(formatter_class=None):
     import lkadmin.ariadne as ariadne
     ariadne.add_cli_parser(subparsers)
 
+    import lkadmin.isotope as isotope
+    isotope.add_cli_parser(subparsers)
+
     return parser
 
 

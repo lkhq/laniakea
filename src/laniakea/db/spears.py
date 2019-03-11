@@ -91,7 +91,7 @@ class SpearsExcuse(Base):
 
     time = Column(DateTime(), default=datetime.utcnow) # Time when this excuse was created
 
-    migration_id = Column(Text())  # Identifier for the respective migration task, in the form of "source1+source2-to-target"
+    migration_id = Column(Text(), nullable=False)  # Identifier for the respective migration task, in the form of "source1+source2-to-target"
 
     suite_target = Column(String(128))  # Source suite of this package
     suite_source = Column(String(128))  # Target suite of this package

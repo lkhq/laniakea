@@ -30,6 +30,7 @@ Spark | Generic task processing daemon | ZMQ communication protocol | :heavy_che
 Synchrotron | Synchronize packages from different suites | Core | :heavy_check_mark: Completed
 Admin CLI | CLI tool for configuring modules | Core | :large_orange_diamond: In progress / Blocked
 Dataimport | Import archive (meta)data into the database | Core | :heavy_check_mark: Completed
+Isotope | Manage recipes for distribution disk image builds. | Core | :heavy_check_mark: Completed
 Daktape | Glue code to communicate with dak | - | :large_orange_diamond: In progress
 Debcheck | Check package dependency graph for issues | Core, Dataimport | :heavy_check_mark: Completed
 ZMQ communication protocol | Protocol modules use to communicate, needs a few design changes (e.g. messages must be versioned now) | Core | :heavy_check_mark: Completed

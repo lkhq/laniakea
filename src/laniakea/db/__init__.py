@@ -9,3 +9,4 @@ from .spears import *
 from .debcheck import *
 from .jobs import *
 from .workers import *
+from .isotope import *
