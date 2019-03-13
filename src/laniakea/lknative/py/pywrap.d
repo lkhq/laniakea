@@ -36,6 +36,7 @@ extern(C) void PydMain()
 
     /* Repo infrastructure */
     import lkshared.repository;
+    wrapAggregate!(ArchiveFile)();
     wrapAggregate!(SourcePackage)();
     wrapAggregate!(BinaryPackage)();
     wrap_class!(Repository,

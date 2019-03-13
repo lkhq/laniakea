@@ -268,6 +268,7 @@ class ArchiveFile(Base):
     srcpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid'))
     binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid'))
     binpkg = relationship('BinaryPackage', back_populates='pkg_file')
+    srcpkg = relationship('SourcePackage', back_populates='files')
 
 
 class SourcePackage(Base):
@@ -303,7 +304,7 @@ class SourcePackage(Base):
 
     build_depends = Column(ARRAY(Text()))
 
-    files = relationship('ArchiveFile')
+    files = relationship('ArchiveFile', back_populates='srcpkg')
     directory = Column(Text())
 
     def update_uuid(self):

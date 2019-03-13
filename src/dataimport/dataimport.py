@@ -27,7 +27,8 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
 from laniakea import LocalConfig, LkModule
-from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage
+from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
+    ArchiveFile
 from lknative import Repository
 
 
@@ -72,7 +73,11 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
         bpkg.maintainer = bpi.maintainer
         bpkg.homepage = bpi.homepage
 
-        # FIXME: Add the ArchiveFile relations as well
+        f = ArchiveFile()
+        f.fname = bpi.file.fname
+        f.size = bpi.file.size
+        f.sha256sum = bpi.file.sha256sum
+        bpkg.pkg_file = f
 
         session.add(bpkg)
 
@@ -136,7 +141,12 @@ def command_repo(options):
             spkg.build_depends = spi.buildDepends
             spkg.directory = spi.directory
 
-            # FIXME: Add the ArchiveFile relations as well
+            for fi in spi.files:
+                f = ArchiveFile()
+                f.fname = fi.fname
+                f.size = fi.size
+                f.sha256sum = fi.sha256sum
+                spkg.files.append(f)
 
             session.add(spkg)
 
@@ -145,6 +155,8 @@ def command_repo(options):
             if len(old_spkg.suites) > 0:
                 session.update(old_spkg)
             else:
+                for f in old_spkg.files:
+                    session.delete(f)
                 session.delete(old_spkg)
 
         # commit the source package changes already
@@ -187,6 +199,7 @@ def command_repo(options):
                 if len(old_bpkg.suites) > 0:
                     session.update(old_bpkg)
                 else:
+                    session.delete(old_bpkg.pkg_file)
                     session.delete(old_bpkg)
             session.commit()
 
