@@ -22,8 +22,8 @@ import uuid
 import logging as log
 from datetime import datetime
 from laniakea import LocalConfig, LkModule
-from laniakea.db import session_scope, config_get_value, Job, JobStatus, JobKind, SparkWorker, \
-    SourcePackage, ArchiveSuite, ImageBuildRecipe
+from laniakea.db import session_scope, config_get_value, Job, JobStatus, JobKind, JobResult, \
+    SparkWorker, SourcePackage, ArchiveSuite, ImageBuildRecipe
 
 
 class JobWorker:
@@ -105,6 +105,14 @@ class JobWorker:
             if not spkg:
                 job.status = JobStatus.TERMINATED
                 job.latest_log_excerpt = 'We were unable to find a source package for this build job. The job has been terminated.'
+                session.commit()
+
+                # This not an error the client needs to know about
+                return None
+
+            if not job.data:
+                job.status = JobStatus.TERMINATED
+                job.latest_log_excerpt = 'Required data was missing to perform this job. This is an internal server error.'
                 session.commit()
 
                 # This not an error the client needs to know about
@@ -204,8 +212,8 @@ class JobWorker:
         session.commit()
 
         job_data = None
+        job_assigned = False
         for accepted_kind in worker.accepts:
-            job_assigned = False
             for arch_name in architectures:
                 job = None
                 if arch_name == self._arch_indep_affinity:
@@ -225,6 +233,119 @@ class JobWorker:
 
         return json.dumps(job_data)
 
+    def _process_job_accepted_request(self, session, request):
+        '''
+        If the worker actually accepts a job we sent to it and starts
+        working on it, this method is triggered.
+        On success, we wend the job back again.
+        '''
+
+        job_id = request.get('uuid')
+        client_name = request.get('machine_name')
+        client_id = request.get('machine_id')
+
+        if not job_id:
+            return self._error_reply('Job ID was missing.')
+        if not client_name:
+            return self._error_reply('Name of the machine making this request was missing.')
+        if not client_id:
+            return self._error_reply('ID of the machine making this request was missing.')
+
+        job = session.query(Job).filter(Job.uuid==job_id).one_or_none()
+        if not job:
+            return self._error_reply('Unable to find job with the requested ID.')
+
+        job.status = JobStatus.RUNNING
+        session.commit()
+
+
+    def _process_job_rejected_request(self, session, request):
+        '''
+        If the worker rejects a job that we gave to it (for example because
+        it ran out of resources and can't process it), we reset the
+        status of the respective job in the database.
+        '''
+
+        job_id = request.get('uuid')
+        client_name = request.get('machine_name')
+        client_id = request.get('machine_id')
+
+        if not job_id:
+            return self._error_reply('Job ID was missing.')
+        if not client_name:
+            return self._error_reply('Name of the machine making this request was missing.')
+        if not client_id:
+            return self._error_reply('ID of the machine making this request was missing.')
+
+        job = session.query(Job).filter(Job.uuid==job_id).one_or_none()
+        if not job:
+            return self._error_reply('Unable to find job with the requested ID.')
+
+        if job.status == JobStatus.RUNNING:
+            # we also want to allow workers to reject a job that they have already accepted - if the workers
+            # change their mind that late, it's usually a sign that something broke. In this case, we don't want
+            # to block a possibly important job though, and rather have another worker take it instead.
+            # (we do log this behavior though, for now only to the system journal)
+            # TODO: Generate a Laniakea event for this behavior
+            log.info('Worker "{}" changed its mind on job "{}" and rejected it after it was already running.'.format(client_name, str(job_id)))
+        elif job.status != JobStatus.SCHEDULED:
+            log.warning('Worker "{}" rejected job "{}", but the job was not scheduled (state: {}).'.format(client_name, str(job_id), str(job.status)))
+
+        job.status = JobStatus.WAITING
+        session.commit()
+
+    def _process_job_status_request(self, session, request):
+        '''
+        When a job is running, the worker will periodically send
+        status information, which we collect here.
+        '''
+
+        job_id = request.get('uuid')
+        client_id = request.get('machine_id')
+        log_excerpt = request.get('log_excerpt')
+
+        if not job_id:
+            return self._error_reply('Job ID was missing.')
+        if not client_id:
+            return self._error_reply('ID of the machine making this request was missing.')
+
+        # update log & status data
+        if log_excerpt:
+            session.query(Job).filter(Job.uuid==job_id).update({'latest_log_excerpt': log_excerpt})
+
+        # update last seen information
+        session.query(SparkWorker).filter(SparkWorker.uuid==client_id).update({'last_ping': datetime.utcnow})
+        session.commit()
+
+    def _process_job_finished_request(self, session, request, success):
+        '''
+        request made when the job has finished and we are expecting results from the worker
+        to be uploaded.
+        '''
+
+        job_id = request.get('uuid')
+        client_name = request.get('machine_name')
+        client_id = request.get('machine_id')
+
+        if not job_id:
+            return self._error_reply('Job ID was missing.')
+        if not client_name:
+            return self._error_reply('Name of the machine making this request was missing.')
+        if not client_id:
+            return self._error_reply('ID of the machine making this request was missing.')
+
+        job = session.query(Job).filter(Job.uuid==job_id).one_or_none()
+        if not job:
+            return self._error_reply('Unable to find job with the requested ID.')
+
+        # we use the maybe values here, as we can only be really sure of success as soon as
+        # the worker has uploaded the job artifacts and the responsible Laniakea
+        # module has verified them.
+        # (if things get lost along the way or fail verification, we may need to restart this job)
+        job.result = JobResult.SUCCESS_PENDING if success else JobResult.FAILURE_PENDING
+        job.status = JobStatus.DONE
+
+        return None;
 
     def process_client_message(self, request):
         '''
