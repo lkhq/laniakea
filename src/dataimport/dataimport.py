@@ -216,7 +216,7 @@ def create_parser(formatter_class=None):
     parser.add_argument('--verbose', action='store_true', dest='verbose',
                         help='Enable debug messages.')
     parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of debspawn itself.')
+                        help='Display the version of Laniakea itself.')
 
     sp = subparsers.add_parser('repo', help='Import repository data for a specific suite.')
     sp.add_argument('suite', type=str, help='The suite to import data for.', nargs='?')
