@@ -1,4 +1,4 @@
-# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -15,17 +15,4 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-
-__verbose_logging = False
-
-def set_verbose(enabled):
-    from lknative import logging_set_verbose
-    global __verbose_logging
-
-    __verbose_logging = enabled
-    logging_set_verbose(enabled)
-
-
-def get_verbose():
-    global __verbose_logging
-    return __verbose_logging
+from laniakea.utils.command import *

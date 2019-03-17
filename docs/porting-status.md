@@ -36,8 +36,8 @@ Debcheck | Check package dependency graph for issues | Core, Dataimport | :heavy
 ZMQ communication protocol | Protocol modules use to communicate, needs a few design changes (e.g. messages must be versioned now) | Core | :heavy_check_mark: Completed
 Lighthouse | ZeroMQ communication hub | Core, Dataimport, Debcheck, Communication Protocol | :heavy_check_mark: Completed
 Keytool | Manage cryptographic keys and signatures | Core, Lighthouse | :heavy_check_mark: Completed
-Planter | Generate metapackage information from seeds | Core | :soon: In progress
-Rubicon | Accept build artifacts into a trusted area | Core, Lighthouse | :red_circle: Not started
+Planter | Generate metapackage information from seeds | Core | :heavy_check_mark: Completed
+Rubicon | Accept build artifacts into a trusted area | Core, Lighthouse | :soon: In progress
 Spears | Migrate packages between suites with Britney | Core | :heavy_check_mark: Completed
 Ariadne | Package build scheduler | Dataimport, Debcheck, Lighthouse | :soon: In progress
 Web | Web UI | All backend modules | :red_circle: Not started

@@ -69,6 +69,9 @@ def create_parser(formatter_class=None):
     import lkadmin.isotope as isotope
     isotope.add_cli_parser(subparsers)
 
+    import lkadmin.planter as planter
+    planter.add_cli_parser(subparsers)
+
     return parser
 
 
