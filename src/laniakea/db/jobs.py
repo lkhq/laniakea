@@ -94,8 +94,6 @@ class Job(Base):
 
     worker = Column(UUID(as_uuid=True))  # Unique ID of the entity the job is assigned to
 
-    architecture = Column(Text(), default='any')  # Architecture this job can run on, "any" in case the architecture does not matter
-
     result = Column(Enum(JobResult), default=JobResult.UNKNOWN)  # Result of this job
 
     data = Column(JSON)  # Job description data

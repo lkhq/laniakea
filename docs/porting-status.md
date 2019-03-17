@@ -39,8 +39,8 @@ Keytool | Manage cryptographic keys and signatures | Core, Lighthouse | :heavy_c
 Planter | Generate metapackage information from seeds | Core | :heavy_check_mark: Completed
 Rubicon | Accept build artifacts into a trusted area | Core, Lighthouse | :soon: In progress
 Spears | Migrate packages between suites with Britney | Core | :heavy_check_mark: Completed
-Ariadne | Package build scheduler | Dataimport, Debcheck, Lighthouse | :soon: In progress
-Web | Web UI | All backend modules | :red_circle: Not started
+Ariadne | Package build scheduler | Dataimport, Debcheck, Lighthouse | :heavy_check_mark: Completed
+Web | Web UI | All backend modules | :soon: In progress
 Web-SWView | Web package and application browser | Dataimport, AppStream | :red_circle: Not started
 Irk | IRC bot | Lighthouse | :broken_heart: Will not be ported and has been removed
 Mirk | Matrix bot | Lighthouse | :red_circle: Not started

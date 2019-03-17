@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging as log
 
 __verbose_logging = False
 
@@ -24,6 +25,10 @@ def set_verbose(enabled):
 
     __verbose_logging = enabled
     logging_set_verbose(enabled)
+
+    log.basicConfig(level=log.INFO, format="[%(levelname)s] %(message)s")
+    if enabled:
+        log.basicConfig(level=log.DEBUG, format="[%(levelname)s] %(message)s")
 
 
 def get_verbose():
