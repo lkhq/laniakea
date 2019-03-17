@@ -28,7 +28,7 @@ Module | Purpose | Depends on | Status
 Core facilities | Generic helper library and tools | - | :heavy_check_mark: Completed
 Spark | Generic task processing daemon | ZMQ communication protocol | :heavy_check_mark: Completed
 Synchrotron | Synchronize packages from different suites | Core | :heavy_check_mark: Completed
-Admin CLI | CLI tool for configuring modules | Core | :large_orange_diamond: In progress / Blocked
+Admin CLI | CLI tool for configuring modules | Core | :heavy_check_mark: Completed
 Dataimport | Import archive (meta)data into the database | Core | :heavy_check_mark: Completed
 Isotope | Manage recipes for distribution disk image builds. | Core | :heavy_check_mark: Completed
 Daktape | Glue code to communicate with dak | - | :large_orange_diamond: In progress
