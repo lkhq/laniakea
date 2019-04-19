@@ -58,7 +58,7 @@ def get_spears_config():
             d[int_to_versionpriority(int(k))] = int(v)
         centry.delays = d
 
-        hints = session.query(SpearsHint).filter(SpearsHint.migration_id==entry.migration_id()).all()
+        hints = session.query(SpearsHint).filter(SpearsHint.migration_id==entry.idname).all()
         chints = []
         for hint in hints:
             chint = LknSpearsHint()
@@ -68,7 +68,7 @@ def get_spears_config():
             chints.append(chint)
         centry.hints = chints
 
-        mdict[entry.migration_id()] = centry
+        mdict[entry.idname] = centry
     sconf.migrations = mdict
 
     suites = get_suiteinfo_all_suites()
@@ -119,7 +119,7 @@ def command_migrate(options):
 
         # remove old excuses
         for entry in migration_entries:
-            session.query(SpearsExcuse).filter(SpearsExcuse.migration_id==entry.migration_id()).delete()
+            session.query(SpearsExcuse).filter(SpearsExcuse.migration_id==entry.migration_id).delete()
 
     for ex in excuses:
         excuse = SpearsExcuse()

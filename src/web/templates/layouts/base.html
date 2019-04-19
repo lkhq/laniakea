@@ -108,7 +108,10 @@
     </nav>
 
     {% block container %}
+
     <main role="main" class="col-md-9 ml-sm-auto col-lg-11 px-4">
+
+      {% block breadcrumbs %}{% endblock %}
       <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 
            {% block flash_message %}
@@ -123,9 +126,10 @@
                 {% endwith %}
             {% endblock %}
 
-        {% block body_header %}{% endblock %}
-
+            {% block body_header %}{% endblock %}
       </div>
+
+
 
       {% block body %}{% endblock %}
     </main>
@@ -135,21 +139,21 @@
 </div>
 
 <footer class="text-muted">
-			<div class="container">
-				<br/>
-				<br/>
-				<p class="float-right">
-					<small>
-						<a href="#">Back to top</a>
-					</small>
-				</p>
-				<p>
-					<small>
-						Powered by
-						<a href="https://github.com/lkorigin/laniakea">laniakea-web</a>.
-					</small>
-				</p>
-			</div>
+            <div class="container">
+                <br/>
+                <br/>
+                <p class="float-right">
+                    <small>
+                        <a href="#">Back to top</a>
+                    </small>
+                </p>
+                <p>
+                    <small>
+                        Powered by
+                        <a href="https://github.com/lkorigin/laniakea">laniakea-web</a>.
+                    </small>
+                </p>
+            </div>
     </footer>
 
 {% block js %}{% endblock %}

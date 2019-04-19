@@ -1,0 +1,61 @@
+{% extends 'migrations/layout.html' %}
+
+{% set page_title = 'Migration excuses for {{migration.idname}}' %}
+
+{% block body_header %}
+<h1 class="h2">Excuses for {{migration.idname}}</h1>
+{% endblock %}
+
+{% block body %}
+
+{% if current_page == 1 %}
+<div class="row">
+    <div class="col-md-8">
+        <p>These packages fail to migrate from the <i>{{migration.source_suites|join(', ')}}</i> suite(s) to the <i>{{migration.target_suite}}</i> suite.</p>
+        <p>
+          Migration issues can happen for many reasons, most commonly a package failed to
+          build on an architecture, will break other packages in the target suite or depends on packages which need to migrate first.<br/>
+          The details page for each migration will give more information on why a package is not migrating.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="list-group">
+            {% for e in excuses %}
+            <a class="list-group-item {{'list-group-item-warning' if not e.is_candidate }}" href="{{ url_for('migrations.view_excuse', uuid=e.uuid) }}">
+                <h4 class="list-group-item-heading">{{e.source_package}}</h4>
+                <p class="mb-1">
+                    {{e.version_old}}<font class="fa fa-long-arrow-right"></font>{{e.version_new}}
+                </p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<br/>
+<nav aria-label="Page navigation">
+    <ul class="pagination pagination-sm flex-wrap">
+        <li class="page-item {{'disabled' if current_page <= 1 }}">
+            <a class="page-link" href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=current_page-1) if current_page > 1 else '#'}}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+        {% for i in range(1, page_count + 1) %}
+        <li class="page-item {{'active' if i == current_page }}">
+            <a class="page-link" href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=i) }}">{{i}}</a>
+       </li>
+        {% endfor %}
+
+        <li class="page-item {{'disabled' if current_page >= page_count }}">
+            <a class="page-link" href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=current_page+1) if current_page < page_count else '#'}}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+{% endblock %}

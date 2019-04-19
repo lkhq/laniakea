@@ -1,0 +1,23 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'migrations' %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('overview.index') }}">Home</a>
+        </li>
+        <li class="breadcrumb-item {{'active' if not migration }}" aria-current="page">
+            <a href="{{ url_for('migrations.index') }}">Migrations</a>
+        </li>
+        {% if migration %}
+        <li class="breadcrumb-item {{'active' if not excuse}}" aria-current="page">
+            <a href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=1) }}">{{migration.idname}}</a>
+        {% endif %}
+        {% if excuse %}
+        <li class="breadcrumb-item active" aria-current="page">{{excuse.source_package}} {{excuse.version_new}}</li>
+        {% endif %}
+    </ol>
+</nav>
+{% endblock %}

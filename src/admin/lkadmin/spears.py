@@ -42,6 +42,7 @@ def ask_settings(options):
             entry.delays[int(prio)] = input_int ('Delay for packages of priority "{}" in days'.format (repr(prio)))
 
         # FIXME: We need to check for uniqueness of the migration task!
+        entry.idname = entry.make_migration_id()
         session.add(entry)
         session.commit()
 

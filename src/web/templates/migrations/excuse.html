@@ -1,0 +1,107 @@
+{% extends 'migrations/layout.html' %}
+
+{% set page_title = 'Migration excuses for {{migration_id}}' %}
+
+{% block body_header %}
+<h1 class="h2">Migration excuse for: {{excuse.source_package}} {{excuse.version_new}}</h1>
+{% endblock %}
+
+{% block body %}
+
+
+<p>
+    <b>Is candidate:
+    {% if excuse.is_candidate %}
+        <font class="fa fa-check-circle" color="green"></font>
+    {% else %}
+        <font class="fa fa-times-circle" color="red"></font>
+    {% endif %}
+    </b>
+</p>
+
+<p>
+<b>Maintainer</b>: {{excuse.maintainer}}<br/>
+<b>Source:</b> {{excuse.suite_source}} <i>(version: {{excuse.version_new}})</i><br/>
+<b>Destination:</b> {{excuse.suite_target}} <i>(old version: {{excuse.version_old}})</i><br/>
+</p>
+
+<h3>Age</h3>
+<p>Package is {{excuse.age_current}} days old (needed {{excuse.age_required}})</p>
+
+{% if excuse.missing_archs_primary or excuse.missing_archs_secondary %}
+<h3>Architectures</h3>
+
+{% if excuse.missing_archs_primary %}
+<h4>Primary</h4>
+<ul>
+    {% for arch in excuse.missing_archs_primary %}
+    <li>{{arch}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.missing_archs_secondary %}
+<h4>Secondary</h4>
+<ul>
+    {% for arch in excuse.missing_archs_secondary %}
+    <li>{{arch}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% endif %}
+
+
+{% if excuse.old_binaries %}
+<h3>Old Binaries</h3>
+<ul>
+    {% for obin in excuse.old_binaries %}
+    <li><b>{{obin.pkg_version}}</b>: {{obin.binaries|join(', ')}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.blocked_by %}
+<h3>Blocked By</h3>
+<ul>
+    {% for block in excuse.blocked_by %}
+    <li>{{block}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.migrate_after %}
+<h3>Migrates After</h3>
+<ul>
+    {% for wait_entry in excuse.migrate_after %}
+    <li>{{wait_entry}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.manual_block %}
+<h3>Manually Blocked</h3>
+<ul>
+    {% for block in excuse.manual_block %}
+    <li>{{block}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.other %}
+<h3>Other Reasons</h3>
+<ul>
+    {% for reason in excuse.other %}
+    <li>{{reason}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.log_excerpt %}
+<h3>Log Excerpt</h3>
+<pre><code>
+{{excuse.log_excerpt}}
+</code></pre>
+{% endif %}
+
+{% endblock %}

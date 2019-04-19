@@ -49,7 +49,7 @@ class SpearsMigrationEntry(Base):
     '''
     __tablename__ = 'spears_migrations'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    idname = Column(Text(), primary_key=True, nullable=False)
 
     source_suites = Column(ARRAY(String(128)))  # Names of the suites packages migrate from
     target_suite = Column(String(128))  # Name of the suite packages migrate to
@@ -62,7 +62,7 @@ class SpearsMigrationEntry(Base):
         '''
         return '+'.join(sorted(self.source_suites))
 
-    def migration_id(self):
+    def make_migration_id(self):
         '''
         Get a unique identifier for this migration task
         '''
