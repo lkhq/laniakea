@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}{{ page_title }}{% endblock %} - {{ config.PROJECT }}</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous"/>
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='css/laniakea.css') }}" rel="stylesheet">
+    {% block css %}{% endblock %}
+
+  </head>
+  <body>
+    <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
+  <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="{{ url_for('overview.index') }}">{{ config.PROJECT }}</a>
+  <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
+  <ul class="navbar-nav px-3">
+    <li class="nav-item text-nowrap">
+      <a class="nav-link" href="#">Sign out</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+    <nav class="col-md-1 d-none d-md-block bg-light sidebar">
+    {% set active_menu = active_menu|default('overview') -%}
+
+      <div class="sidebar-sticky">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link {{'active' if active_menu == "overview" }}" href="{{ url_for('overview.index') }}">
+              <i class="fas fa-solar-panel"></i>
+              Overview
+            </a>
+          </li>
+        </ul>
+
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-muted">
+          <span>Package Archive</span>
+          <a class="d-flex align-items-center text-muted" href="#">
+            <i class="fas fa-pallet"></i>
+          </a>
+        </h6>
+        <ul class="nav flex-column mb-2">
+          <li class="nav-item">
+            <a class="nav-link" href="#">
+              <i class="fas fa-snowplow"></i>
+              Transitions
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{'active' if active_menu == "migrations" }}" href="{{ url_for('migrations.index') }}">
+              <i class="fas fa-route"></i>
+              Migrations
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{'active' if active_menu == "synchronization" }}" href="#">
+              <i class="fas fa-exchange-alt"></i>
+              Synchronization
+            </a>
+          </li>
+          <li class="nav-item {{'active' if active_menu == "depcheck" }}">
+            <a class="nav-link" href="#">
+              <i class="fas fa-puzzle-piece"></i>
+              Dependency Check
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">
+              <i class="fas fa-seedling"></i>
+              Package Seeds
+            </a>
+          </li>
+        </ul>
+
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-muted">
+          <span>Building &amp; Deployment</span>
+          <a class="d-flex align-items-center text-muted" href="#">
+            <i class="fas fa-hard-hat"></i>
+          </a>
+        </h6>
+        <ul class="nav flex-column mb-2">
+          <li class="nav-item">
+            <a class="nav-link {{'active' if active_menu == "diskimages" }}" href="#">
+              <i class="fas fa-sd-card"></i>
+              Image Build
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{'active' if active_menu == "jobqueue" }}" href="#">
+              <i class="fas fa-tasks"></i>
+              Job Queue
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{'active' if active_menu == "workers" }}" href="#">
+              <i class="fas fa-server"></i>
+              Workers
+            </a>
+          </li>
+        </ul>
+
+      </div>
+    </nav>
+
+    {% block container %}
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-11 px-4">
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+
+           {% block flash_message %}
+               {% with messages = get_flashed_messages(with_categories=True) %}
+                   {% if messages %}
+                       {% for category, msg in messages %}
+                           <div class="alert alert-{{ category }}">
+                               {{ msg|safe }}
+                           </div>
+                       {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            {% endblock %}
+
+        {% block body_header %}{% endblock %}
+
+      </div>
+
+      {% block body %}{% endblock %}
+    </main>
+    {% endblock %}
+
+  </div>
+</div>
+
+<footer class="text-muted">
+			<div class="container">
+				<br/>
+				<br/>
+				<p class="float-right">
+					<small>
+						<a href="#">Back to top</a>
+					</small>
+				</p>
+				<p>
+					<small>
+						Powered by
+						<a href="https://github.com/lkorigin/laniakea">laniakea-web</a>.
+					</small>
+				</p>
+			</div>
+    </footer>
+
+{% block js %}{% endblock %}
+
+</html>
