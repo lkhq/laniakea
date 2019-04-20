@@ -35,3 +35,8 @@ cd ..
 # Make Documentation
 #
 #! ./tests/ci/make-documentation.py . build
+
+#
+# Python Tests
+#
+flake8 --ignore E501,E402 ./

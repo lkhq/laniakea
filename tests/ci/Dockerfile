@@ -21,7 +21,8 @@ RUN apt-get install -yq --no-install-recommends \
     libczmq-dev \
     libarchive-dev \
     libpq-dev \
-    postgresql
+    postgresql \
+    python3-pip
 
 # install PyD dependencies
 RUN apt-get install -yq --no-install-recommends \
@@ -56,6 +57,9 @@ RUN git clone --depth 1 https://github.com/lkorigin/pyd.git pyd
 RUN mkdir pyd/b
 RUN cd pyd/b/ && meson --prefix=/usr ..
 RUN cd pyd/b/ && ninja && ninja install
+
+# Flake8
+RUN pip3 install flake8
 
 # finish
 WORKDIR /build
