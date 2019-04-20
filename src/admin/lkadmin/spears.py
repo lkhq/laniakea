@@ -15,12 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import sys
-import logging as log
 from laniakea.db import session_factory
-from argparse import ArgumentParser, HelpFormatter
-from .utils import print_header, print_done, print_note, input_str, input_bool, input_list, input_int, print_error_exit
+from .utils import print_header, input_str, input_bool, input_list, \
+    input_int, print_error_exit
 
 
 def ask_settings(options):
@@ -39,14 +37,14 @@ def ask_settings(options):
 
         entry.delays = {}
         for prio in VersionPriority:
-            entry.delays[int(prio)] = input_int ('Delay for packages of priority "{}" in days'.format (repr(prio)))
+            entry.delays[int(prio)] = input_int('Delay for packages of priority "{}" in days'.format(repr(prio)))
 
         # FIXME: We need to check for uniqueness of the migration task!
         entry.idname = entry.make_migration_id()
         session.add(entry)
         session.commit()
 
-        add_migration = input_bool ('Add another migration task?')
+        add_migration = input_bool('Add another migration task?')
 
 
 def add_hint(options):
@@ -63,11 +61,12 @@ def add_hint(options):
 
     session = session_factory()
 
-    migration_id = '{}-to-{}'.format (options.source_suite, options.target_suite)
+    migration_id = '{}-to-{}'.format(options.source_suite, options.target_suite)
 
     # remove a preexisting hint
-    session.query(SpearsHint).filter(SpearsHint.migration_id==migration_id, \
-            SpearsHint.hint==options.hint).delete()
+    session.query(SpearsHint) \
+        .filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == options.hint) \
+        .delete()
 
     hint = SpearsHint()
     hint.migration_id = migration_id
@@ -90,9 +89,10 @@ def remove_hint(options):
 
     session = session_factory()
 
-    migration_id = '{}-to-{}'.format (options.source_suite, options.target_suite)
-    session.query(SpearsHint).filter(SpearsHint.migration_id==migration_id, \
-            SpearsHint.hint==options.hint).delete()
+    migration_id = '{}-to-{}'.format(options.source_suite, options.target_suite)
+    session.query(SpearsHint) \
+        .filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == options.hint) \
+        .delete()
 
 
 def module_spears_init(options):
@@ -120,12 +120,12 @@ def add_cli_parser(parser):
     sp.add_argument('--remove-hint', action='store_true', dest='add_hint',
                     help='Remove a migration hint.')
     sp.add_argument('source_suite', action='store', nargs='?', default=None,
-                        help='The source suite(s) for the hint.')
+                    help='The source suite(s) for the hint.')
     sp.add_argument('target_suite', action='store', nargs='?', default=None,
-                        help='The target suite for the hint.')
+                    help='The target suite for the hint.')
     sp.add_argument('hint', action='store', nargs='?', default=None,
-                        help='A britney hint.')
+                    help='A britney hint.')
     sp.add_argument('reason', action='store', nargs='?', default=None,
-                        help='The reason for adding the printey hint.')
+                    help='The reason for adding the printey hint.')
 
     sp.set_defaults(func=module_spears_init)

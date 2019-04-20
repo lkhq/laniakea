@@ -15,12 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import sys
-import logging as log
-from laniakea.db import session_factory
-from argparse import ArgumentParser, HelpFormatter
-from .utils import print_header, print_done, print_note, input_str, input_bool, input_list
+from .utils import print_header, print_note, input_str, input_bool, input_list
 
 
 def ask_settings(options):
@@ -31,7 +27,6 @@ def ask_settings(options):
 
     print_header('Configuring base settings for Synchrotron')
 
-
     syncconf_set_value('source_name', input_str('Name of the source distribution'))
     syncconf_set_value('source_repo_url', input_str('Source repository URL'))
 
@@ -41,8 +36,8 @@ def ask_settings(options):
         suite = {}
 
         suite['name'] = input_str('Adding a new source suite. Please set a name')
-        suite['components'] = input_list('List of components for suite \'{}\''.format (suite['name']))
-        suite['architectures'] = input_list('List of architectures for suite \'{}\''.format (suite['name']))
+        suite['components'] = input_list('List of components for suite \'{}\''.format(suite['name']))
+        suite['architectures'] = input_list('List of architectures for suite \'{}\''.format(suite['name']))
 
         suites[suite['name']] = suite
         add_suite = input_bool('Add another suite?')
@@ -54,7 +49,6 @@ def ask_settings(options):
             syncconf_set_value('source_default_suite', default_suite_name)
             break
         print_note('Selected default suite not found in previously defined suites list.')
-
 
     syncconf_set_value('sync_enabled', input_bool('Enable synchronization?'))
     syncconf_set_value('sync_binaries', input_bool('Synchronize binary packages?'))

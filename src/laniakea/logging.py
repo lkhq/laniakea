@@ -17,7 +17,9 @@
 
 import logging as log
 
+
 __verbose_logging = False
+
 
 def set_verbose(enabled):
     from lknative import logging_set_verbose

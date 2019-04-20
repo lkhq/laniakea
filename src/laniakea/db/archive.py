@@ -17,13 +17,10 @@
 
 import enum
 import uuid
-from typing import List
-from sqlalchemy import Column, Table, Text, String, Integer, DateTime, Enum, ForeignKey, Boolean
+from sqlalchemy import Column, Table, Text, String, Integer, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import JSON, ARRAY, CHAR
-from sqlalchemy import text as sa_text
+from sqlalchemy.dialects.postgresql import ARRAY, CHAR
 from .base import Base, UUID, DebVersion
-from .core import LkModule
 
 
 UUID_NS_SRCPACKAGE = uuid.UUID('bdc4cc28-43ed-58f7-8cf8-7bd1b4e80560')
@@ -31,9 +28,9 @@ UUID_NS_BINPACKAGE = uuid.UUID('b897829c-2eb4-503c-afd1-0fd74da8cc2b')
 
 
 repo_suite_assoc_table = Table('archive_repo_suite_association', Base.metadata,
-    Column('repo_id', Integer, ForeignKey('archive_repositories.id')),
-    Column('suite_id', Integer, ForeignKey('archive_suites.id'))
-)
+                               Column('repo_id', Integer, ForeignKey('archive_repositories.id')),
+                               Column('suite_id', Integer, ForeignKey('archive_suites.id'))
+                               )
 
 
 class ArchiveRepository(Base):
@@ -53,24 +50,25 @@ class ArchiveRepository(Base):
 
 
 suite_component_assoc_table = Table('archive_suite_component_association', Base.metadata,
-    Column('suite_id', Integer, ForeignKey('archive_suites.id')),
-    Column('component_id', Integer, ForeignKey('archive_components.id'))
-)
+                                    Column('suite_id', Integer, ForeignKey('archive_suites.id')),
+                                    Column('component_id', Integer, ForeignKey('archive_components.id'))
+                                    )
 
 suite_arch_assoc_table = Table('archive_suite_architecture_association', Base.metadata,
-    Column('suite_id', Integer, ForeignKey('archive_suites.id')),
-    Column('arch_id', Integer, ForeignKey('archive_architectures.id'))
-)
+                               Column('suite_id', Integer, ForeignKey('archive_suites.id')),
+                               Column('arch_id', Integer, ForeignKey('archive_architectures.id'))
+                               )
 
 srcpkg_suite_assoc_table = Table('archive_srcpkg_suite_association', Base.metadata,
-    Column('src_package_uuid', UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid')),
-    Column('suite_id', Integer, ForeignKey('archive_suites.id'))
-)
+                                 Column('src_package_uuid', UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid')),
+                                 Column('suite_id', Integer, ForeignKey('archive_suites.id'))
+                                 )
 
 binpkg_suite_assoc_table = Table('archive_binpkg_suite_association', Base.metadata,
-    Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid')),
-    Column('suite_id', Integer, ForeignKey('archive_suites.id'))
-)
+                                 Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid')),
+                                 Column('suite_id', Integer, ForeignKey('archive_suites.id'))
+                                 )
+
 
 class ArchiveSuite(Base):
     '''
@@ -291,7 +289,8 @@ class SourcePackage(Base):
 
     architectures = Column(ARRAY(String(64)))  # List of architectures this source package can be built for
 
-    #PackageInfo[] binaries;
+    # TODO
+    #PackageInfo[] binaries; # noqa
 
     standards_version = Column(String(256))
     pkgformat = Column(String(64))
@@ -316,14 +315,12 @@ class SourcePackage(Base):
 
         return self.uuid
 
-
     def update_source_uuid(self):
         if not self.repo:
             raise Exception('Source package is not associated with a repository!')
 
         self.source_uuid = uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}'.format(self.repo.name, self.name))
         return self.source_uuid
-
 
     def __str__(self):
         repo_name = '?'
@@ -339,7 +336,7 @@ class BinaryPackage(Base):
     __tablename__ = 'archive_bin_packages'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
-    deb_type = Column(Enum(DebType)) # Deb package type
+    deb_type = Column(Enum(DebType))  # Deb package type
 
     name = Column(String(256))  # Package name
     version = Column(DebVersion())  # Version of this package
@@ -372,14 +369,12 @@ class BinaryPackage(Base):
 
     pkg_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg')
 
-
     def update_uuid(self):
         if not self.repo:
             raise Exception('Binary package is not associated with a repository!')
 
         self.uuid = uuid.uuid5(UUID_NS_BINPACKAGE, '{}::{}/{}/{}'.format(self.repo.name, self.name, self.version, self.architecture.name))
         return self.uuid
-
 
     def __str__(self):
         repo_name = '?'
@@ -416,7 +411,8 @@ class SoftwareComponent(Base):
 
     categories = Column(ARRAY(String(64)))  # Categories this component is in
 
-    # TODO
+
+    # TODO # noqa
 """
     BinaryPackage[] binPackages;
 

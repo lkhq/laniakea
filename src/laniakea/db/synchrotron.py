@@ -17,9 +17,7 @@
 
 import enum
 from typing import List
-from sqlalchemy import Column, Text, String, Integer, DateTime, Enum
-from sqlalchemy.dialects.postgresql import JSON
-from sqlalchemy import text as sa_text
+from sqlalchemy import Column, Text, String, DateTime, Enum
 from uuid import uuid4
 from datetime import datetime
 from .base import Base, UUID, DebVersion
@@ -30,11 +28,11 @@ class SynchrotronIssueKind(enum.Enum):
     '''
     Kind of a Synchrotron issue.
     '''
-    UNKNOWN        = 0
-    NONE           = 1
+    UNKNOWN = 0
+    NONE = 1
     MERGE_REQUIRED = 2
-    MAYBE_CRUFT    = 3
-    SYNC_FAILED    = 4
+    MAYBE_CRUFT = 3
+    SYNC_FAILED = 4
     REMOVAL_FAILED = 5
 
 
@@ -46,19 +44,19 @@ class SynchrotronIssue(Base):
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    time_created = Column(DateTime(), default=datetime.utcnow) # Time when this excuse was created
+    time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 
-    kind = Column(Enum(SynchrotronIssueKind)) # Kind of this issue, and usually also the reason for its existence.
+    kind = Column(Enum(SynchrotronIssueKind))  # Kind of this issue, and usually also the reason for its existence.
 
     package_name = Column(String(256))  # Name of the source package that is to be synchronized
 
-    source_suite  = Column(String(256))  # Source suite of this package, usually the one in Debian
-    target_suite  = Column(String(256))  # Target suite of this package, from the target distribution
+    source_suite = Column(String(256))  # Source suite of this package, usually the one in Debian
+    target_suite = Column(String(256))  # Target suite of this package, from the target distribution
 
-    source_version = Column(DebVersion()) # package version to be synced
-    target_version = Column(DebVersion()) # version of the package in the target suite and repo, to be overriden
+    source_version = Column(DebVersion())  # package version to be synced
+    target_version = Column(DebVersion())  # version of the package in the target suite and repo, to be overriden
 
-    details = Column(Text()) # additional information text about the issue (usually a log excerpt)
+    details = Column(Text())  # additional information text about the issue (usually a log excerpt)
 
 
 class SyncBlacklistEntry(Base):
@@ -70,7 +68,7 @@ class SyncBlacklistEntry(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     pkgname = Column(String(256))  # Name of the blacklisted package
-    time_created = Column(DateTime(), default=datetime.utcnow) # Time when the package was blacklisted
+    time_created = Column(DateTime(), default=datetime.utcnow)  # Time when the package was blacklisted
     reason = Column(Text())  # Reason why the package is blacklisted
 
     user = Column(String(256))  # Person who marked this to be ignored
@@ -105,8 +103,8 @@ class SynchrotronConfig:
     source_name: str    # Name of the source OS (usually "Debian")
     source: SyncSourceInfo
 
-    sync_enabled: bool  # true if syncs should happen
-    sync_binaries: bool # true if we should also sync binary packages
+    sync_enabled: bool   # true if syncs should happen
+    sync_binaries: bool  # true if we should also sync binary packages
 
     def __init__(self):
         self.source = SyncSourceInfo()

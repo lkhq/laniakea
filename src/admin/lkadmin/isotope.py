@@ -15,12 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import sys
-import logging as log
 from laniakea.db import session_scope, ImageBuildRecipe, ImageKind, LkModule, Job, JobKind
-from argparse import ArgumentParser, HelpFormatter
-from .utils import print_header, print_done, print_note, input_str, input_bool, input_list
+from .utils import print_header, print_done, print_note, input_str, input_list
 
 
 def add_image_recipe(options):
@@ -56,14 +53,14 @@ def add_image_recipe(options):
         session.add(recipe)
         session.commit()
 
-        print_done('Created recipe with name: {}'.format (recipe.name))
+        print_done('Created recipe with name: {}'.format(recipe.name))
 
 
 def trigger_image_build(options):
     recipe_name = options.trigger_build
 
     with session_scope() as session:
-        recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.name==recipe_name).one_or_none()
+        recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.name == recipe_name).one_or_none()
 
         if not recipe:
             print_note('Recipe with name "{}" was not found!'.format(recipe_name))

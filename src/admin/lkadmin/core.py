@@ -15,16 +15,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import sys
-import logging as log
 from laniakea.db import session_factory
-from argparse import ArgumentParser, HelpFormatter
-from .utils import print_header, print_done, print_note, input_str, input_bool, input_list
+from .utils import print_header, print_note, input_str, input_bool, input_list
 
 
 def database_init(options):
-    from laniakea.db import Database, SourcePackage, ArchiveRepository, session_factory
+    from laniakea.db import Database
     db = Database()
     db.create_tables()
 
@@ -38,12 +35,12 @@ def _add_new_suite(session):
     from laniakea.db import ArchiveRepository, ArchiveSuite, ArchiveComponent, ArchiveArchitecture
 
     repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name=='master').one()
+        .filter(ArchiveRepository.name == 'master').one()
 
     suite_name = input_str('Adding a new suite. Please set a name')
 
     suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.name==suite_name).one_or_none()
+        .filter(ArchiveSuite.name == suite_name).one_or_none()
     if suite:
         print_note('Removing existing suite with the same name ("{}")'.format(suite_name))
         session.delete(suite)
@@ -53,7 +50,7 @@ def _add_new_suite(session):
     suite.name = suite_name
     suite.repos = [repo]
 
-    component_names = input_list('List of components for suite "{}"'.format (suite.name))
+    component_names = input_list('List of components for suite "{}"'.format(suite.name))
     add_main_dep = 'main' in component_names
     if add_main_dep:
         component_names.remove('main')
@@ -63,7 +60,7 @@ def _add_new_suite(session):
     main_component = None
     for cname in component_names:
         component = session.query(ArchiveComponent) \
-            .filter(ArchiveComponent.name==cname).one_or_none()
+            .filter(ArchiveComponent.name == cname).one_or_none()
         if not component:
             component = ArchiveComponent(cname)
             if add_main_dep and main_component and cname != 'main':
@@ -73,7 +70,7 @@ def _add_new_suite(session):
             main_component = component
         suite.components.append(component)
 
-    arch_names = input_list('List of architectures for suite "{}"'.format (suite.name))
+    arch_names = input_list('List of architectures for suite "{}"'.format(suite.name))
     # every suite has the "all" architecture, so add it straight away
     if 'all' not in arch_names:
         arch_names.insert(0, 'all')
@@ -81,7 +78,7 @@ def _add_new_suite(session):
     suite.architectures = []
     for aname in arch_names:
         arch = session.query(ArchiveArchitecture) \
-            .filter(ArchiveArchitecture.name==aname).one_or_none()
+            .filter(ArchiveArchitecture.name == aname).one_or_none()
         if not arch:
             arch = ArchiveArchitecture(aname)
             session.add(arch)
@@ -89,20 +86,19 @@ def _add_new_suite(session):
 
     parent_suite = None
     while not parent_suite:
-        parent_suite_name = input_str('Set a name of the suite this suite is an overlay to. Leave empty for primary suite. (The overlay suite must have been added first!)', \
+        parent_suite_name = input_str('Set a name of the suite this suite is an overlay to. Leave empty for primary suite. (The overlay suite must have been added first!)',
                                       allow_empty=True)
         if not parent_suite_name:
             break
 
         parent_suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.name==parent_suite_name).one_or_none()
+            .filter(ArchiveSuite.name == parent_suite_name).one_or_none()
         if not parent_suite:
             print_note('Parent suite "{}" was not found.'.format(parent_suite_name))
         suite.parent_suite = parent_suite
 
     session.add(suite)
     session.commit()
-
 
 
 def ask_settings(options):
@@ -117,7 +113,7 @@ def ask_settings(options):
 
     # we only support one repository at time, so add the default
     repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name=='master').one_or_none()
+        .filter(ArchiveRepository.name == 'master').one_or_none()
     if not repo:
         repo = ArchiveRepository('master')
         session.add(repo)
@@ -132,7 +128,7 @@ def ask_settings(options):
     while not incoming_suite:
         incoming_suite_name = input_str('Name of the \'incoming\' suite which new packages are usually uploaded to')
         incoming_suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.name==incoming_suite_name).one_or_none()
+            .filter(ArchiveSuite.name == incoming_suite_name).one_or_none()
         if not incoming_suite:
             print_note('Suite with the name "{}" was not found.'.format(incoming_suite_name))
         incoming_suite.accept_uploads = True
@@ -141,12 +137,12 @@ def ask_settings(options):
     while not devel_suite:
         devel_suite_name = input_str('Name of the "development" suite which is rolling or will become a final release')
         devel_suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.name==devel_suite_name).one_or_none()
+            .filter(ArchiveSuite.name == devel_suite_name).one_or_none()
         if not devel_suite:
             print_note('Suite with the name "{}" was not found.'.format(devel_suite_name))
         devel_suite.devel_target = True
 
-    config_set_distro_tag(input_str('Distribution version tag (commonly found in package versions, e.g. \'tanglu\' for OS \'Tanglu\' with versions like \'1.0-0tanglu1\''));
+    config_set_distro_tag(input_str('Distribution version tag (commonly found in package versions, e.g. \'tanglu\' for OS \'Tanglu\' with versions like \'1.0-0tanglu1\''))
     session.commit()
 
 

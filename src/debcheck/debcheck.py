@@ -26,9 +26,8 @@ if not os.path.isabs(thisfile):
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
-from laniakea import LocalConfig, LkModule
-from laniakea.db import session_factory, ArchiveSuite, ArchiveArchitecture, ArchiveRepository, \
-    PackageType, DebcheckIssue, PackageIssue, PackageConflict
+from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, PackageType, \
+    DebcheckIssue, PackageIssue, PackageConflict
 
 
 def _create_debcheck(session, suite_name):
@@ -42,7 +41,7 @@ def _create_debcheck(session, suite_name):
     if suite_name:
         # we only scan a specific suite
         suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.name==suite_name).one()
+            .filter(ArchiveSuite.name == suite_name).one()
         scan_suites = [get_suiteinfo_for_suite(suite)]
     else:
         scan_suites = get_suiteinfo_all_suites()
@@ -68,18 +67,18 @@ def _native_issue_to_package_issue(m):
 def _update_debcheck_issues(session, repo, si, new_issues, package_type):
 
     suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.name==si.name).one()
+        .filter(ArchiveSuite.name == si.name).one()
 
     # remove old entries
-    x = session.query(DebcheckIssue) \
-        .filter(DebcheckIssue.package_type==package_type) \
-        .filter(DebcheckIssue.repo_id==repo.id) \
-        .filter(DebcheckIssue.suite_id==suite.id).delete()
+    session.query(DebcheckIssue) \
+        .filter(DebcheckIssue.package_type == package_type) \
+        .filter(DebcheckIssue.repo_id == repo.id) \
+        .filter(DebcheckIssue.suite_id == suite.id).delete()
 
     # add new entries
     for ni in new_issues:
         issue = DebcheckIssue()
-        #issue.time = ni.date # FIXME: crashes in PyD at the moment
+        #issue.time = ni.date # FIXME: crashes in PyD at the moment # noqa
 
         issue.package_type = ni.packageKind
         issue.repo = repo
@@ -121,7 +120,7 @@ def command_sources(options):
     # the "multiple repositories" feature
     repo_name = 'master'
     repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name==repo_name).one()
+        .filter(ArchiveRepository.name == repo_name).one()
 
     for si in scan_suites:
         ret, issues = debcheck.getBuildDepCheckIssues(si)
@@ -138,7 +137,7 @@ def command_binaries(options):
     # the "multiple repositories" feature
     repo_name = 'master'
     repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name==repo_name).one()
+        .filter(ArchiveRepository.name == repo_name).one()
 
     for si in scan_suites:
         ret, issues = debcheck.getDepCheckIssues(si)
@@ -192,6 +191,7 @@ def run(args):
     check_print_version(args)
     check_verbose(args)
     args.func(args)
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

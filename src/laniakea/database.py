@@ -19,13 +19,15 @@ from .localconfig import LocalConfig
 
 from sqlalchemy.ext.declarative import declarative_base
 
+
 Base = declarative_base()
+
 
 def create_database_tables():
     conf = LocalConfig()
     Base.metadata.create_all(conf.db_engine)
 
+
 def session_factory():
     conf = LocalConfig()
     return conf.session_factory
-

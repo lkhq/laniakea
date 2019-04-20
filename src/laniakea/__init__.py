@@ -26,8 +26,12 @@ if not os.path.isabs(thisfile):
 
 # add lknative module path if we run from a development copy
 if not thisfile.startswith('/usr'):
-    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), \
-        '..', '..', 'build', 'src', 'laniakea', 'lknative')))
+    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile),
+                                                  '..', '..', 'build', 'src', 'laniakea', 'lknative')))
 
 from laniakea.localconfig import LocalConfig, get_config_file
 from laniakea.db import LkModule
+
+__all__ = ['LocalConfig',
+           'get_config_file',
+           'LkModule']

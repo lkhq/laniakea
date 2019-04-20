@@ -19,7 +19,6 @@
 
 import os
 import sys
-
 thisfile = __file__
 if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
@@ -27,10 +26,11 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 import logging as log
 from argparse import ArgumentParser
-from laniakea import LocalConfig, LkModule
+from laniakea import LkModule
 from laniakea.utils import any_arch_matches
 from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
-    ArchiveFile, DebcheckIssue, PackageType, Job, JobStatus
+    DebcheckIssue, PackageType, Job, JobStatus
+
 
 def get_newest_sources_index(session, repo, suite):
     '''
@@ -41,9 +41,10 @@ def get_newest_sources_index(session, repo, suite):
 
     res_spkgs = {}
     spkgs = session.query(SourcePackage) \
-            .filter(SourcePackage.suites.any(ArchiveSuite.id==suite.id)) \
-            .filter(SourcePackage.repo_id==repo.id) \
-            .order_by(SourcePackage.version).all()
+        .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id)) \
+        .filter(SourcePackage.repo_id == repo.id) \
+        .order_by(SourcePackage.version) \
+        .all()
 
     for pkg in spkgs:
         epkg = res_spkgs.get(pkg.uuid)
@@ -61,10 +62,10 @@ def binaries_for_package(session, repo, spkg, arch):
     '''
 
     return session.query(BinaryPackage) \
-                .filter(BinaryPackage.repo_id==repo.id) \
-                .filter(BinaryPackage.source_name==spkg.name) \
-                .filter(BinaryPackage.source_version==spkg.version) \
-                .filter(BinaryPackage.architecture==arch).all()
+        .filter(BinaryPackage.repo_id == repo.id) \
+        .filter(BinaryPackage.source_name == spkg.name) \
+        .filter(BinaryPackage.source_version == spkg.version) \
+        .filter(BinaryPackage.architecture == arch).all()
 
 
 def debcheck_issues_for_package(session, suite, spkg, arch):
@@ -73,11 +74,11 @@ def debcheck_issues_for_package(session, suite, spkg, arch):
     '''
 
     return session.query(DebcheckIssue) \
-                .filter(DebcheckIssue.package_type==PackageType.SOURCE) \
-                .filter(DebcheckIssue.suite==suite) \
-                .filter(DebcheckIssue.package_name==spkg.name) \
-                .filter(DebcheckIssue.package_version==spkg.version) \
-                .filter(DebcheckIssue.architecture==arch.name).all()
+        .filter(DebcheckIssue.package_type == PackageType.SOURCE) \
+        .filter(DebcheckIssue.suite == suite) \
+        .filter(DebcheckIssue.package_name == spkg.name) \
+        .filter(DebcheckIssue.package_version == spkg.version) \
+        .filter(DebcheckIssue.architecture == arch.name).all()
 
 
 def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=False):
@@ -93,9 +94,9 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
     # check if we have already scheduled a job for this in the past and don't create
     # another one in that case
     q = session.query(Job) \
-        .filter(Job.trigger==spkg.uuid) \
-        .filter(Job.version==spkg.version) \
-        .filter(Job.architecture==arch.name)
+        .filter(Job.trigger == spkg.uuid) \
+        .filter(Job.version == spkg.version) \
+        .filter(Job.architecture == arch.name)
     ret = session.query(Job.uuid).filter(q.exists()).scalar()
 
     if ret:
@@ -111,7 +112,7 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
     # check if all dependencies are there
     issues = debcheck_issues_for_package(session, incoming_suite, spkg, arch)
     if len(issues) > 0:
-        return False;
+        return False
 
     # no issues found and a build seems required.
     # let's go!
@@ -137,11 +138,11 @@ def delete_orphaned_jobs(session, simulate=False):
     '''
 
     pending_jobs = session.query(Job) \
-        .filter(Job.module==LkModule.ARIADNE) \
+        .filter(Job.module == LkModule.ARIADNE) \
         .filter(Job.status.in_((JobStatus.UNKNOWN, JobStatus.WAITING, JobStatus.DEPWAIT))).all()
     for job in pending_jobs:
         spkg = session.query(SourcePackage) \
-            .filter(SourcePackage.uuid==job.trigger).one_or_none()
+            .filter(SourcePackage.uuid == job.trigger).one_or_none()
         if spkg:
             continue
 
@@ -163,9 +164,9 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
     session = session_factory()
 
     repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name==repo_name).one()
+        .filter(ArchiveRepository.name == repo_name).one()
     incoming_suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.name==incoming_suite_name).one_or_none()
+        .filter(ArchiveSuite.name == incoming_suite_name).one_or_none()
     if not incoming_suite:
         log.error('Incoming suite "{}" was not found in the database.'.format(incoming_suite_name))
         return False
@@ -242,7 +243,7 @@ def schedule_builds(repo_name, simulate=False, limit_architecture=None, limit_co
 
     # FIXME: We need much better ways to select the right suite to synchronize with
     incoming_suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.accept_uploads==True).one()
+        .filter(ArchiveSuite.accept_uploads == True).one()  # noqa: E712
 
     return schedule_builds_for_suite(repo_name, incoming_suite.name, simulate, limit_architecture, limit_count)
 
@@ -283,11 +284,11 @@ def create_parser(formatter_class=None):
     sp = subparsers.add_parser('run', help='Trigger package build jobs for the incoming suite or a specific suite.')
     sp.add_argument('suite', type=str, help='The suite to schedule builds for.', nargs='?')
     sp.add_argument('--simulate', action='store_true', dest='simulate',
-                        help='Run simulation, don\'t schedule any jobs and instead just display what would be done.')
+                    help='Run simulation, don\'t schedule any jobs and instead just display what would be done.')
     sp.add_argument('--limit-count', type=int, dest='limit_count',
-                        help='Limit the amount of builds scheduled at a time to a certain number.')
+                    help='Limit the amount of builds scheduled at a time to a certain number.')
     sp.add_argument('--limit-architecture', type=str, dest='limit_arch',
-                        help='Only schedule builds for the selected architecture.')
+                    help='Only schedule builds for the selected architecture.')
     sp.set_defaults(func=command_run)
 
     return parser
@@ -320,6 +321,7 @@ def run(args):
     check_print_version(args)
     check_verbose(args)
     args.func(args)
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

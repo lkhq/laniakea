@@ -16,18 +16,10 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
-import jsonpickle
-from typing import List
-from sqlalchemy import Column, Text, String, Integer, DateTime, Enum, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSON, ARRAY
-from sqlalchemy import text as sa_text
+from sqlalchemy import Column, Text, String, Enum
+from sqlalchemy.dialects.postgresql import ARRAY
 from uuid import uuid4
-from datetime import datetime
-from typing import List
-from .base import Base, UUID, DebVersion
-from .core import LkModule
-from .archive import PackageType
+from .base import Base, UUID
 
 
 class ImageKind(enum.IntEnum):

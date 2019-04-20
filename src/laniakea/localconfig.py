@@ -19,8 +19,6 @@ import os
 import json
 import platform
 from glob import glob
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 
 def get_config_file(fname):
@@ -85,14 +83,12 @@ class LocalConfig:
 
             self._lighthouse_endpoint = jdata.get('LighthouseEndpoint')
 
-
             # Synchrotron-specific configuration
             self._synchrotron_sourcekeyrings = []
             if 'Synchrotron' in jdata:
-                from glob import glob
                 syncconf = jdata.get('Synchrotron')
                 if 'SourceKeyringDir' in syncconf:
-                    self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
+                    self._synchrotron_sourcekeyrings = [glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))]
 
             # ZCurve
             self._zcurve_keys_basedir = '/etc/laniakea/keys/curve/'
@@ -135,14 +131,13 @@ class LocalConfig:
         def synchrotron_sourcekeyrings(self) -> str:
             return self._synchrotron_sourcekeyrings
 
-
         def zcurve_secret_keyfile_for_module(self, module) -> str:
             ''' Retrieve the secret ZCurve key filename for a given module name. '''
 
             secrets_dir = os.path.join(self._zcurve_keys_basedir, 'secret')
             try:
                 os.makedirs(secrets_dir, exist_ok=True)
-            except:
+            except:  # noqa: E722
                 pass
 
             return os.path.join(secrets_dir, '{}-{}_private.sec'.format(platform.node(), module))
@@ -154,7 +149,7 @@ class LocalConfig:
             trusted_dir = os.path.join(self._zcurve_keys_basedir, 'trusted')
             try:
                 os.makedirs(trusted_dir, exist_ok=True)
-            except:
+            except:  # noqa: E722
                 pass
 
             return trusted_dir
@@ -166,7 +161,6 @@ class LocalConfig:
         @property
         def trusted_gpg_keyrings(self) -> list:
             return self._trusted_gpg_keyrings
-
 
     def __init__(self, fname=None):
         if not LocalConfig.instance:

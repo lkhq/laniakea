@@ -29,7 +29,7 @@ def create_native_baseconfig():
     bconf.archive.distroTag = config_get_distro_tag()
 
     dev_suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.devel_target==True).one()
+        .filter(ArchiveSuite.devel_target == True).one()  # noqa: E712
 
     bconf.archive.develSuite = dev_suite.name
 

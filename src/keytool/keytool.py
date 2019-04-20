@@ -19,7 +19,6 @@
 
 import os
 import sys
-
 thisfile = __file__
 if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
@@ -28,7 +27,7 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 import datetime
 import zmq.auth
 from argparse import ArgumentParser
-from laniakea import LocalConfig, LkModule
+from laniakea import LocalConfig
 
 
 def command_cert_new(options):
@@ -45,7 +44,7 @@ def command_cert_new(options):
     if options.organization:
         metadata['organization'] = options.organization
     metadata['created-by'] = 'Laniakea Keytool'
-    metadata['date-created'] =  str(datetime.datetime.now())
+    metadata['date-created'] = str(datetime.datetime.now())
 
     zmq.auth.create_certificates(os.path.dirname(base_path),
                                  os.path.basename(base_path),
@@ -111,7 +110,7 @@ def install_trusted_cert(options):
         sys.exit(1)
     if sec_key:
         print('')
-        print('/!\ The current file contains a secret key. This file should never leave the client machine it is installed on.')
+        print('/!\\ The current file contains a secret key. This file should never leave the client machine it is installed on.')
         print('')
 
     lconf = LocalConfig()
@@ -141,7 +140,7 @@ def create_parser(formatter_class=None):
                         help='Display the version of Laniakea itself.')
 
     sp = subparsers.add_parser('cert-new', help='Create new ZCurve certificate.')
-    sp.add_argument('--name',  help='Name of the certificate issuer.', required=True)
+    sp.add_argument('--name', help='Name of the certificate issuer.', required=True)
     sp.add_argument('--email', help='E-Mail address of the certificate issuer.', required=True)
     sp.add_argument('--organization', help='Organization of the certificate issuer.')
     sp.add_argument('basepath', type=str, help='The base filename of the new certificate.', nargs='?')
@@ -186,6 +185,7 @@ def run(args):
     check_print_version(args)
     check_verbose(args)
     args.func(args)
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

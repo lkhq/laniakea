@@ -15,11 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import enum
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.types import UserDefinedType
 from contextlib import contextmanager
 from ..localconfig import LocalConfig
@@ -27,18 +25,19 @@ from ..localconfig import LocalConfig
 
 Base = declarative_base()
 
+
 # Patch in support for the debversion field type so that it works during
 # reflection
-
 class DebVersion(UserDefinedType):
     def get_col_spec(self):
-        return "DEBVERSION"
+        return 'DEBVERSION'
 
     def bind_processor(self, dialect):
         return None
 
     def result_processor(self, dialect, coltype):
         return None
+
 
 from sqlalchemy.databases import postgres
 postgres.ischema_names['debversion'] = DebVersion
@@ -81,7 +80,7 @@ def session_scope():
     try:
         yield session
         session.commit()
-    except:
+    except:  # noqa: E722
         session.rollback()
         raise
     finally:

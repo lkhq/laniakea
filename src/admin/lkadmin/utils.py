@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import readline
+import readline  # noqa: F401
 
 
 def input_str(prompt, allow_empty=False):
@@ -72,6 +72,7 @@ def print_done(msg):
 
 def print_note(msg):
     print('! {}'.format(msg))
+
 
 def print_error_exit(msg):
     from sys import exit

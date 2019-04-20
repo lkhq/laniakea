@@ -19,21 +19,19 @@
 
 import os
 import sys
-
 thisfile = __file__
 if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
-from laniakea import LocalConfig, LkModule
+from laniakea import LocalConfig
 from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
     ArchiveFile
 from lknative import Repository
 
 
 def _register_binary_packages(session, repo, suite, component, arch, existing_bpkgs, bpkgs):
-    import lknative
 
     for bpi in bpkgs:
         bpkg = BinaryPackage()
@@ -98,9 +96,9 @@ def command_repo(options):
 
     session = session_factory()
     suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.name==suite_name).one()
+        .filter(ArchiveSuite.name == suite_name).one()
     repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name==repo_name).one()
+        .filter(ArchiveRepository.name == repo_name).one()
 
     lconf = LocalConfig()
     local_repo = Repository(lconf.archive_root_dir, lconf.cache_dir, repo_name, [])
@@ -109,11 +107,13 @@ def command_repo(options):
 
         # fetch all source packages for the given suite
         existing_spkgs = dict()
-        for e_spkg in session.query(SourcePackage).filter(SourcePackage.suites.any(ArchiveSuite.id==suite.id)) \
-            .filter(SourcePackage.repo_id==repo.id).all():
+        all_existing_src_packages = session.query(SourcePackage) \
+            .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id)) \
+            .filter(SourcePackage.repo_id == repo.id).all()
+        for e_spkg in all_existing_src_packages:
                 existing_spkgs[e_spkg.uuid] = e_spkg
 
-        for spi in local_repo.getSourcePackages (suite.name, component.name):
+        for spi in local_repo.getSourcePackages(suite.name, component.name):
             spkg = SourcePackage()
             spkg.name = spi.name
             spkg.version = spi.ver
@@ -133,7 +133,7 @@ def command_repo(options):
             spkg.component = component
             spkg.architectures = spi.architectures
             spkg.standards_version = spi.standardsVersion
-            #spkg.pkgformat = spi.pkgformat
+            #spkg.pkgformat = spi.pkgformat # noqa
             spkg.homepage = spi.homepage
             spkg.vcs_browser = spi.vcsBrowser
             spkg.maintainer = spi.maintainer
@@ -165,9 +165,10 @@ def command_repo(options):
         for arch in suite.architectures:
 
             existing_bpkgs = dict()
-            for e_bpkg in session.query(BinaryPackage).filter(BinaryPackage.suites.any(ArchiveSuite.id==suite.id)) \
-                    .filter(BinaryPackage.repo_id==repo.id) \
-                    .filter(BinaryPackage.architecture_id==arch.id).all():
+            for e_bpkg in session.query(BinaryPackage) \
+                    .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \
+                    .filter(BinaryPackage.repo_id == repo.id) \
+                    .filter(BinaryPackage.architecture_id == arch.id).all():
                 existing_bpkgs[e_bpkg.uuid] = e_bpkg
 
             # add information about regular binary packages
@@ -177,9 +178,9 @@ def command_repo(options):
                                                        component,
                                                        arch,
                                                        existing_bpkgs,
-                                                       local_repo.getBinaryPackages (suite.name,
-                                                                                     component.name,
-                                                                                     arch.name))
+                                                       local_repo.getBinaryPackages(suite.name,
+                                                                                    component.name,
+                                                                                    arch.name))
             session.commit()
 
             # add information about debian-installer packages
@@ -189,9 +190,9 @@ def command_repo(options):
                                                        component,
                                                        arch,
                                                        existing_bpkgs,
-                                                       local_repo.getInstallerPackages (suite.name,
-                                                                                     component.name,
-                                                                                     arch.name))
+                                                       local_repo.getInstallerPackages(suite.name,
+                                                                                       component.name,
+                                                                                       arch.name))
             session.commit()
 
             for old_bpkg in existing_bpkgs.keys():
@@ -249,6 +250,7 @@ def run(args):
     check_print_version(args)
     check_verbose(args)
     args.func(args)
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

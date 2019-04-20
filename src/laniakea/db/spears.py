@@ -15,15 +15,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import enum
-from typing import List
-from sqlalchemy import Column, Text, String, Integer, DateTime, Enum, Boolean
+from sqlalchemy import Column, Text, String, Integer, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
-from sqlalchemy import text as sa_text
 from uuid import uuid4
 from datetime import datetime
 from .base import Base, UUID, DebVersion
-from .core import LkModule
 
 
 class SpearsHint(Base):
@@ -36,7 +32,7 @@ class SpearsHint(Base):
 
     migration_id = Column(String(256))  # Identifier for the respective migration task, in the form of "source1+source2-to-target"
 
-    time = Column(DateTime(), default=datetime.utcnow) # Time when this hint was created
+    time = Column(DateTime(), default=datetime.utcnow)  # Time when this hint was created
     hint = Column(Text())  # A Britney hint
     reason = Column(Text())  # Reason why the package is blacklisted
 
@@ -89,7 +85,7 @@ class SpearsExcuse(Base):
 
     source_suites = Column(ARRAY(String(128)))
 
-    time = Column(DateTime(), default=datetime.utcnow) # Time when this excuse was created
+    time = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 
     migration_id = Column(Text(), nullable=False)  # Identifier for the respective migration task, in the form of "source1+source2-to-target"
 

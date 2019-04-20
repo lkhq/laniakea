@@ -15,12 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import sys
-import logging as log
-from laniakea.db import config_get_value
-from argparse import ArgumentParser, HelpFormatter
-from .utils import print_header, print_done, print_note, input_str, input_bool, input_list
+from .utils import print_header, print_note, input_str
 
 
 def ask_settings(options):

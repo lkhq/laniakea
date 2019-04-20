@@ -25,9 +25,7 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
-from laniakea.utils import run_command
-from laniakea.utils import deb822
+from laniakea.utils import run_command, deb822
 import firehose.model
 import hashlib
 
@@ -124,7 +122,7 @@ class Dud(object):
 
     def validate(self, check_hash='sha256', keyrings=None):
         self.validate_checksums(check_hash)
-        if keyring:
+        if keyrings:
             self.validate_signature(keyrings)
 
     def validate_signature(self, keyrings):
