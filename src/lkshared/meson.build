@@ -22,9 +22,7 @@ laniakea_ulib_src = [
     'utils/versioncmp.d',
 ]
 
-lk_base_deps = [crypto_dep,
-                ssl_dep,
-                dcontainers_dep,
+lk_base_deps = [dcontainers_dep,
                 archive_dep,
                 curl_dep,
                 dyaml_dep
@@ -48,7 +46,8 @@ lk_shared_test_exe = executable ('lk_test_self-shared',
     [laniakea_ulib_src],
     include_directories: [src_dir],
     dependencies: [lk_base_deps],
-    d_args: d_unittest_args + ['-J' + source_root + '/data/'],
+    d_import_dirs: [source_root + '/data/'],
+    d_unittest: true,
     link_args: '-main',
 )
 test('lk_test_self-shared', lk_shared_test_exe)

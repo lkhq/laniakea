@@ -212,7 +212,7 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
                 continue
 
             if limit_architecture and limit_architecture != arch.name:
-                    continue  # Skip, we are not scheduling builds for this architecture
+                continue  # Skip, we are not scheduling builds for this architecture
 
             if schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate):
                 scheduled_count += 1
@@ -221,7 +221,7 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
                 break
 
         if limit_count > 0 and scheduled_count >= limit_count:
-                break
+            break
 
     # cleanup
     delete_orphaned_jobs(session, simulate)

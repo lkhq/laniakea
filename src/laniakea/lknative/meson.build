@@ -31,7 +31,8 @@ lk_pynative_test_exe = executable ('lk_test_self-lknative',
     [lknative_src],
     dependencies: [laniakea_utils_dep],
     include_directories: [lknative_src_dir],
-    d_args: d_unittest_args + ['-J' + source_root + '/data/'],
+    d_import_dirs: [source_root + '/data/'],
+    d_unittest: true,
     link_args: '-main',
 )
 test('lk_test_self-lknative', lk_pynative_test_exe)

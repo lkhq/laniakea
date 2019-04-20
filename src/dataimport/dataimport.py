@@ -111,7 +111,7 @@ def command_repo(options):
             .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id)) \
             .filter(SourcePackage.repo_id == repo.id).all()
         for e_spkg in all_existing_src_packages:
-                existing_spkgs[e_spkg.uuid] = e_spkg
+            existing_spkgs[e_spkg.uuid] = e_spkg
 
         for spi in local_repo.getSourcePackages(suite.name, component.name):
             spkg = SourcePackage()

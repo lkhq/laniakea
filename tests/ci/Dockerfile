@@ -16,13 +16,20 @@ RUN apt-get install -yq --no-install-recommends \
     pkg-config \
     meson \
     systemd \
-    libssl-dev \
     libcurl4-gnutls-dev \
     libczmq-dev \
     libarchive-dev \
     libpq-dev \
     postgresql \
-    python3-pip
+
+RUN apt-get install -yq --no-install-recommends \
+    python3-pip \
+    python3-sqlalchemy \
+    python3-psycopg2 \
+    python3-debian \
+    python3-zmq \
+    python3-flask \
+    python3-flask-script
 
 # install PyD dependencies
 RUN apt-get install -yq --no-install-recommends \

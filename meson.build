@@ -8,11 +8,12 @@ project('Laniakea', 'd',
 source_root = meson.source_root()
 build_root  = meson.build_root()
 
+pymod = import('python')
+py = pymod.find_installation('python3')
+
 #
 # Dependencies
 #
-crypto_dep = dependency('libcrypto')
-ssl_dep = dependency('libssl')
 archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
 systemd_dep = dependency('systemd')
@@ -20,11 +21,17 @@ dcontainers_dep = dependency('dcontainers', version: '>= 0.8.0', fallback: ['dco
 dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_dep'])
 pyd_dep = dependency('pyd')
 
+# Python deps
+r = run_command('./check_modules.py')
+if r.returncode() != 0
+    message(r.stdout().strip())
+    error('Unable to find required Python modules.')
+endif
+
 #
 # Common D Features
 #
 dc = meson.get_compiler('d')
-d_unittest_args = dc.unittest_args() # dc.feature_args(unittest: true)
 
 #
 # Lanikaea Modules

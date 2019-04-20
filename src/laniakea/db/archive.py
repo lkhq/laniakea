@@ -103,7 +103,7 @@ class ArchiveSuite(Base):
             return None
         self._primary_arch = self.architectures[0]
         for arch in self.architectures:
-            if arch.name is not 'all':
+            if arch.name != 'all':
                 self._primary_arch = arch
                 break
         return self._primary_arch
