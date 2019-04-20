@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -15,8 +15,4 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-from lknative import compare_versions
-from laniakea.utils.command import *
-from laniakea.utils.arches import arch_matches, any_arch_matches
-from laniakea.utils.deb822 import Changes
-from laniakea.utils.misc import get_dir_shorthand_for_uuid, random_string
+__appname__ = 'laniakea-rubicon'

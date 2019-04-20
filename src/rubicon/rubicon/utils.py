@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -15,8 +15,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-from lknative import compare_versions
-from laniakea.utils.command import *
-from laniakea.utils.arches import arch_matches, any_arch_matches
-from laniakea.utils.deb822 import Changes
-from laniakea.utils.misc import get_dir_shorthand_for_uuid, random_string
+import os
+
+def safe_rename(src, dst):
+    '''
+    Instead of directly moving a file with rename(), copy the file
+    and then delete the original.
+    Also reset the permissions on the resulting copy.
+    '''
+
+    from shutil import copy2
+    new_fname = copy2(src, dst)
+    os.chmod(new_fname, 0o755)
+    os.remove(src)

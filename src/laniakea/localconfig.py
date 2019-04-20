@@ -18,8 +18,23 @@
 import os
 import json
 import platform
+from glob import glob
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+
+def get_config_file(fname):
+    '''
+    Determine the path of a local Laniakea configuration file.
+    '''
+
+    path = os.path.join('/etc/laniakea/', fname)
+    if os.path.isfile(path):
+        return path
+    path = os.path.join('config', fname)
+    if os.path.isfile(path):
+        return path
+    return None
 
 
 class LocalConfig:
@@ -33,7 +48,7 @@ class LocalConfig:
 
         def __init__(self, fname=None):
             if not fname:
-                fname = '/etc/laniakea/base-config.json'
+                fname = get_config_file('base-config.json')
 
             jdata = {}
             if os.path.isfile(fname):
@@ -81,6 +96,12 @@ class LocalConfig:
 
             # ZCurve
             self._zcurve_keys_basedir = '/etc/laniakea/keys/curve/'
+
+            # Trusted GPG keyrings
+            self._trusted_gpg_keyrings = []
+            self._trusted_gpg_keyring_dir = jdata.get('TrustedGpgKeyringDir')
+            if self._trusted_gpg_keyring_dir:
+                self._trusted_gpg_keyrings = [glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))]
 
         @property
         def project_name(self) -> str:
@@ -137,6 +158,14 @@ class LocalConfig:
                 pass
 
             return trusted_dir
+
+        @property
+        def trusted_gpg_keyring_dir(self) -> str:
+            return self._trusted_gpg_keyring_dir
+
+        @property
+        def trusted_gpg_keyrings(self) -> list:
+            return self._trusted_gpg_keyrings
 
 
     def __init__(self, fname=None):

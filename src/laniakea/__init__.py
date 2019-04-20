@@ -1,4 +1,4 @@
-# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -29,5 +29,5 @@ if not thisfile.startswith('/usr'):
     sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), \
         '..', '..', 'build', 'src', 'laniakea', 'lknative')))
 
-from laniakea.localconfig import LocalConfig
+from laniakea.localconfig import LocalConfig, get_config_file
 from laniakea.db import LkModule

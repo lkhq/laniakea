@@ -37,7 +37,7 @@ ZMQ communication protocol | Protocol modules use to communicate, needs a few de
 Lighthouse | ZeroMQ communication hub | Core, Dataimport, Debcheck, Communication Protocol | :heavy_check_mark: Completed
 Keytool | Manage cryptographic keys and signatures | Core, Lighthouse | :heavy_check_mark: Completed
 Planter | Generate metapackage information from seeds | Core | :heavy_check_mark: Completed
-Rubicon | Accept build artifacts into a trusted area | Core, Lighthouse | :soon: In progress
+Rubicon | Accept build artifacts into a trusted area | Core, Lighthouse | :heavy_check_mark: Completed
 Spears | Migrate packages between suites with Britney | Core | :heavy_check_mark: Completed
 Ariadne | Package build scheduler | Dataimport, Debcheck, Lighthouse | :heavy_check_mark: Completed
 Web | Web UI | All backend modules | :soon: In progress
