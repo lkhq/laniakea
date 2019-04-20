@@ -26,10 +26,9 @@ if not os.path.isabs(thisfile):
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
-from laniakea import LocalConfig, LkModule
-from laniakea.db import session_factory, ArchiveSuite, SpearsMigrationEntry, SpearsHint, \
+from laniakea.db import session_factory, SpearsMigrationEntry, SpearsHint, \
     SpearsExcuse, SpearsOldBinaries
-from lknative import SpearsConfig, SpearsEngine
+from lknative import SpearsEngine
 
 
 def get_spears_config():
@@ -38,7 +37,6 @@ def get_spears_config():
     from laniakea.lknative_utils import create_native_baseconfig, get_suiteinfo_all_suites
     from laniakea.localconfig import ExternalToolsUrls
 
-    lconf = LocalConfig()
     bconf = create_native_baseconfig()
 
     ext_urls = ExternalToolsUrls()
@@ -58,7 +56,7 @@ def get_spears_config():
             d[int_to_versionpriority(int(k))] = int(v)
         centry.delays = d
 
-        hints = session.query(SpearsHint).filter(SpearsHint.migration_id==entry.idname).all()
+        hints = session.query(SpearsHint).filter(SpearsHint.migration_id == entry.idname).all()
         chints = []
         for hint in hints:
             chint = LknSpearsHint()
@@ -82,7 +80,7 @@ def command_update(options):
     bconf, sconf, suites = get_spears_config()
     engine = SpearsEngine(bconf, sconf, suites)
 
-    ret = engine.updateConfig ()
+    ret = engine.updateConfig()
     if not ret:
         sys.exit(2)
 
@@ -101,30 +99,30 @@ def command_migrate(options):
             print('Target suite parameter is missing!')
             sys.exit(1)
 
-        ret, excuses = engine.runMigration (options.suite1, options.suite2)
+        ret, excuses = engine.runMigration(options.suite1, options.suite2)
         if not ret:
             sys.exit(2)
 
         # remove old excuses
         migration_id = '{}-to-{}'.format(options.suite1, options.suite2)
-        session.query(SpearsExcuse).filter(SpearsExcuse.migration_id==migration_id).delete()
+        session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == migration_id).delete()
     else:
         migration_entries = session.query(SpearsMigrationEntry).all()
         for entry in migration_entries:
             print('\nRunning migration: {} to {}\n'.format('+'.join(entry.source_suites), entry.target_suite))
-            ret, tmp_excuses = engine.runMigration ('+'.join(entry.source_suites), entry.target_suite)
+            ret, tmp_excuses = engine.runMigration('+'.join(entry.source_suites), entry.target_suite)
             if not ret:
                 sys.exit(2)
             excuses.extend(tmp_excuses)
 
         # remove old excuses
         for entry in migration_entries:
-            session.query(SpearsExcuse).filter(SpearsExcuse.migration_id==entry.migration_id).delete()
+            session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == entry.migration_id).delete()
 
     for ex in excuses:
         excuse = SpearsExcuse()
 
-        #excuse.time = ex.date
+        #excuse.time = ex.date # noqa
         excuse.migration_id = ex.migrationId
         excuse.suite_source = ex.sourceSuite
         excuse.suite_target = ex.targetSuite
@@ -158,7 +156,6 @@ def command_migrate(options):
         excuse.log_excerpt = ex.reason.logExcerpt
 
         session.add(excuse)
-
 
     session.commit()
 
@@ -210,6 +207,7 @@ def run(args):
     check_print_version(args)
     check_verbose(args)
     args.func(args)
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

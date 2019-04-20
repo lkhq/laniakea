@@ -19,8 +19,7 @@
 
 from flask import Blueprint, render_template, abort
 from ..utils import is_uuid
-from laniakea.db import session_scope, ArchiveSuite, SpearsMigrationEntry, SpearsHint, \
-    SpearsExcuse, SpearsOldBinaries
+from laniakea.db import session_scope, SpearsMigrationEntry, SpearsExcuse
 
 migrations = Blueprint('migrations',
                        __name__,
@@ -44,15 +43,16 @@ def index():
 def excuses_list(migration_id, page):
     with session_scope() as session:
 
-        migration = session.query(SpearsMigrationEntry).filter(SpearsMigrationEntry.idname==migration_id).one()
+        migration = session.query(SpearsMigrationEntry) \
+            .filter(SpearsMigrationEntry.idname == migration_id).one()
 
         excuses_per_page = 50
-        excuses_total = session.query(SpearsExcuse).filter(SpearsExcuse.migration_id==migration_id).count()
+        excuses_total = session.query(SpearsExcuse) \
+            .filter(SpearsExcuse.migration_id == migration_id).count()
         page_count = excuses_total // excuses_per_page
 
-
         excuses = session.query(SpearsExcuse) \
-            .filter(SpearsExcuse.migration_id==migration_id) \
+            .filter(SpearsExcuse.migration_id == migration_id) \
             .order_by(SpearsExcuse.source_package) \
             .slice((page - 1) * excuses_per_page, page * excuses_per_page) \
             .all()
@@ -72,7 +72,7 @@ def view_excuse(uuid):
         abort(404)
 
     with session_scope() as session:
-        excuse = session.query(SpearsExcuse).filter(SpearsExcuse.uuid==uuid).one_or_none()
+        excuse = session.query(SpearsExcuse).filter(SpearsExcuse.uuid == uuid).one_or_none()
         if not excuse:
             abort(404)
 

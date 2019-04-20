@@ -18,10 +18,8 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 from flask import Flask, render_template
-
 from .config import DefaultConfig, INSTANCE_FOLDER_PATH
 
-from .extensions import login_manager
 
 # For import *
 __all__ = ['create_app']
@@ -98,9 +96,9 @@ def configure_logging(app):
     app.logger.addHandler(info_file_handler)
 
     # Testing
-    #app.logger.info("testing info.")
-    #app.logger.warn("testing warn.")
-    #app.logger.error("testing error.")
+    # app.logger.info("testing info.")
+    # app.logger.warn("testing warn.")
+    # app.logger.error("testing error.")
 
     mail_handler = SMTPHandler(app.config['MAIL_SERVER'],
                                app.config['MAIL_USERNAME'],

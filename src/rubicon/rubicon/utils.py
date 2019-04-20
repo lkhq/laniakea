@@ -17,6 +17,7 @@
 
 import os
 
+
 def safe_rename(src, dst):
     '''
     Instead of directly moving a file with rename(), copy the file

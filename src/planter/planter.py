@@ -78,14 +78,14 @@ class Germinate:
     def run(self):
         session = session_factory()
         dev_suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.accept_uploads==True).one()
+            .filter(ArchiveSuite.accept_uploads == True).one()  # noqa: E712
 
         # update the seed (contained in the metapackage repository)
         self._update_seed_data()
 
-         # NOTE: We make a hardcoded assumption on where the seed is located.
-         # Since germinate expects it there currently, this isn't an issue today,
-         # but could become one in future.
+        # NOTE: We make a hardcoded assumption on where the seed is located.
+        # Since germinate expects it there currently, this isn't an issue today,
+        # but could become one in future.
         seed_src_dir = os.path.join(self._meta_src_dir, 'seed')
 
         # create target directory
@@ -93,11 +93,11 @@ class Germinate:
         os.makedirs(results_dir, exist_ok=True)
 
         # prepare parameters
-        ge_args = ['-S', 'file://' + seed_src_dir, # seed source
-                   '-s', dev_suite.name, # suite name
-                   '-d', dev_suite.name, # suite / dist name
-                   '-m', 'file://' + self._lconf.archive_root_dir, # mirror
-                   '-c', ' '.join([c.name for c in dev_suite.components]), # components to check
+        ge_args = ['-S', 'file://' + seed_src_dir,  # seed source
+                   '-s', dev_suite.name,  # suite name
+                   '-d', dev_suite.name,  # suite / dist name
+                   '-m', 'file://' + self._lconf.archive_root_dir,  # mirror
+                   '-c', ' '.join([c.name for c in dev_suite.components]),  # components to check
                    '-a', dev_suite.primary_architecture.name]
         # NOTE: Maybe we want to limit the seed to only stuff in the primary (main) component?
 
@@ -108,7 +108,7 @@ class Germinate:
             log.error('Germinate run has failed: {}'.format(out))
             return False
 
-        return True;
+        return True
 
 
 def command_run(options):
@@ -133,7 +133,6 @@ def create_parser(formatter_class=None):
 
     sp = subparsers.add_parser('run', help='Run Germinator and update data.')
     sp.set_defaults(func=command_run)
-
 
     return parser
 
@@ -162,6 +161,7 @@ def run(args):
     check_print_version(args)
     check_verbose(args)
     args.func(args)
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

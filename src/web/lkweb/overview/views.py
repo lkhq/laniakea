@@ -17,12 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-from uuid import uuid4
-
-from flask import Blueprint, render_template, current_app, request, flash, \
-    url_for, redirect, session, abort
-from flask_login import login_required, login_user, current_user, logout_user, \
-    confirm_login, login_fresh
+from flask import Blueprint, render_template
 
 
 overview = Blueprint('overview', __name__)

@@ -16,14 +16,9 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import time
 import logging as log
-from glob import glob
-from laniakea.dud import Dud
-from laniakea.utils import get_dir_shorthand_for_uuid, random_string
-from laniakea.db import session_scope, Job, JobStatus, JobKind, JobResult, ImageBuildRecipe
-from .rubiconfig import RubiConfig
+from laniakea.db import ImageBuildRecipe
 from email.utils import parsedate
 from .utils import safe_rename
 
@@ -34,7 +29,8 @@ def handle_isotope_upload(session, conf, dud, job):
     '''
 
     result_move_to = ''
-    recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid==job.trigger).one_or_none()
+    recipe = session.query(ImageBuildRecipe) \
+        .filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
     if recipe:
         result_move_to = recipe.result_move_to
 
@@ -51,8 +47,8 @@ def handle_isotope_upload(session, conf, dud, job):
         date = time.gmtime(time.time())
 
     image_dir = image_dir_tmpl.replace("%{DATETIME}", time.strftime('%Y-%m-%d_%H.%M', date)) \
-        .replace ("%{DATE}", time.strftime('%Y-%m-%d', date)) \
-        .replace ("%{TIME}", time.strftime('%H.%M', date))
+        .replace("%{DATE}", time.strftime('%Y-%m-%d', date)) \
+        .replace("%{TIME}", time.strftime('%H.%M', date))
 
     os.makedirs(image_dir, exist_ok=True)
 

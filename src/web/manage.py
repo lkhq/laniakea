@@ -15,14 +15,9 @@
 # You should have received a copy of the GNU General Public
 # License along with this program.
 
-import os
 from flask_script import Manager
 from lkweb import create_app
 
-try:
-    from lkweb.local_config import DefaultConfig
-except:
-    from lkweb.config import DefaultConfig
 
 app = create_app()
 manager = Manager(app)
@@ -34,10 +29,12 @@ def run():
 
     app.run()
 
+
 manager.add_option('-c', '--config',
                    dest="config",
                    required=False,
                    help="config file")
+
 
 if __name__ == '__main__':
     manager.run()

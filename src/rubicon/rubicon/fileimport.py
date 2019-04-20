@@ -19,9 +19,10 @@ import os
 import sys
 import logging as log
 from glob import glob
+from laniakea import LkModule
 from laniakea.dud import Dud
 from laniakea.utils import get_dir_shorthand_for_uuid, random_string
-from laniakea.db import session_scope, Job, JobStatus, JobKind, JobResult
+from laniakea.db import session_scope, Job, JobResult
 from .rubiconfig import RubiConfig
 from .utils import safe_rename
 
@@ -36,7 +37,7 @@ def accept_upload(conf, dud):
 
     # mark job as accepted and done
     with session_scope() as session:
-        job = session.query(Job).filter(Job.uuid==job_id).one_or_none()
+        job = session.query(Job).filter(Job.uuid == job_id).one_or_none()
         if not job:
             log.error('Unable to mark job \'{}\' as done: The Job was not found.'.format(job_id))
 
@@ -73,7 +74,7 @@ def accept_upload(conf, dud):
 
     # remove the upload description file from incoming
     os.remove(dud.get_dud_file())
-    log.info("Upload {} accepted.",  dud.get_filename());
+    log.info("Upload {} accepted.", dud.get_filename())
 
 
 def reject_upload(conf, dud, reason='Unknown'):

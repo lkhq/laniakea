@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
 import json
 import uuid
 import logging as log
@@ -38,9 +36,8 @@ class JobWorker:
         with session_scope() as session:
             # FIXME: We need much better ways to select the right suite to synchronize with
             incoming_suite = session.query(ArchiveSuite) \
-                .filter(ArchiveSuite.accept_uploads==True).one()
+                .filter(ArchiveSuite.accept_uploads == True).one()  # noqa: E712
             self._incoming_suite_name = incoming_suite.name
-
 
     def _error_reply(self, message):
         return json.dumps({'error': message})
@@ -63,10 +60,10 @@ class JobWorker:
                                     FROM cte
                                         WHERE  j.uuid = cte.uuid
                                     RETURNING j.*''', {'jstatus_old': 'WAITING',
-                                                   'arch': arch,
-                                                   'jkind': job_kind,
-                                                   'jstatus_new': 'SCHEDULED',
-                                                   'worker_id': client_id})
+                                                       'arch': arch,
+                                                       'jkind': job_kind,
+                                                       'jstatus_new': 'SCHEDULED',
+                                                       'worker_id': client_id})
         res = qres.fetchone()
         session.commit()
         return res
@@ -80,7 +77,7 @@ class JobWorker:
         job_uuid_str = str(job_dict['uuid'])
         trigger_uuid = job_dict['trigger']
 
-        job = session.query(Job).filter(Job.uuid==job_uuid_str).one()
+        job = session.query(Job).filter(Job.uuid == job_uuid_str).one()
 
         info = dict()
         jdata = dict()
@@ -101,7 +98,7 @@ class JobWorker:
                 # This is a server error, no need to inform the client about it as well
                 return None
 
-            spkg = session.query(SourcePackage).filter(SourcePackage.uuid==trigger_uuid).one_or_none()
+            spkg = session.query(SourcePackage).filter(SourcePackage.uuid == trigger_uuid).one_or_none()
             if not spkg:
                 job.status = JobStatus.TERMINATED
                 job.latest_log_excerpt = 'We were unable to find a source package for this build job. The job has been terminated.'
@@ -125,7 +122,7 @@ class JobWorker:
             jdata['package_name'] = spkg.name
             jdata['package_version'] = spkg.version
             jdata['maintainer'] = spkg.maintainer
-            jdata['suite'] = suite_target_name;
+            jdata['suite'] = suite_target_name
             jdata['dsc_url'] = None
 
             # handle arch-indep builds
@@ -154,7 +151,7 @@ class JobWorker:
                 # This not an error the client needs to know about
                 return None
         elif job_kind == JobKind.OS_IMAGE_BUILD:
-            recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid==trigger_uuid).one_or_none()
+            recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid == trigger_uuid).one_or_none()
             if not recipe:
                 job.status = JobStatus.TERMINATED
                 job.latest_log_excerpt = 'We were unable to find the image build recipe for this job. The job has been terminated.'
@@ -184,7 +181,7 @@ class JobWorker:
 
         # update information about this client
         worker = session.query(SparkWorker) \
-            .filter(SparkWorker.uuid==client_id).one_or_none()
+            .filter(SparkWorker.uuid == client_id).one_or_none()
 
         # we might have a new machine, so set the ID again to create an empty new worker
         if not worker:
@@ -218,11 +215,11 @@ class JobWorker:
                 job = None
                 if arch_name == self._arch_indep_affinity:
                     # we can  maybe assign an arch:all job to this machine
-                    job = self._assign_suitable_job (session, accepted_kind, 'all', worker.uuid)
+                    job = self._assign_suitable_job(session, accepted_kind, 'all', worker.uuid)
 
                 # use the first job with a matching architecture/kind if we didn't find an arch:all job previously
                 if not job:
-                    job = self._assign_suitable_job (session, accepted_kind, arch_name, worker.uuid)
+                    job = self._assign_suitable_job(session, accepted_kind, arch_name, worker.uuid)
 
                 if job:
                     job_data = self._get_job_details(session, job)
@@ -251,13 +248,12 @@ class JobWorker:
         if not client_id:
             return self._error_reply('ID of the machine making this request was missing.')
 
-        job = session.query(Job).filter(Job.uuid==job_id).one_or_none()
+        job = session.query(Job).filter(Job.uuid == job_id).one_or_none()
         if not job:
             return self._error_reply('Unable to find job with the requested ID.')
 
         job.status = JobStatus.RUNNING
         session.commit()
-
 
     def _process_job_rejected_request(self, session, request):
         '''
@@ -277,7 +273,7 @@ class JobWorker:
         if not client_id:
             return self._error_reply('ID of the machine making this request was missing.')
 
-        job = session.query(Job).filter(Job.uuid==job_id).one_or_none()
+        job = session.query(Job).filter(Job.uuid == job_id).one_or_none()
         if not job:
             return self._error_reply('Unable to find job with the requested ID.')
 
@@ -311,10 +307,10 @@ class JobWorker:
 
         # update log & status data
         if log_excerpt:
-            session.query(Job).filter(Job.uuid==job_id).update({'latest_log_excerpt': log_excerpt})
+            session.query(Job).filter(Job.uuid == job_id).update({'latest_log_excerpt': log_excerpt})
 
         # update last seen information
-        session.query(SparkWorker).filter(SparkWorker.uuid==client_id).update({'last_ping': datetime.utcnow})
+        session.query(SparkWorker).filter(SparkWorker.uuid == client_id).update({'last_ping': datetime.utcnow})
         session.commit()
 
     def _process_job_finished_request(self, session, request, success):
@@ -334,7 +330,7 @@ class JobWorker:
         if not client_id:
             return self._error_reply('ID of the machine making this request was missing.')
 
-        job = session.query(Job).filter(Job.uuid==job_id).one_or_none()
+        job = session.query(Job).filter(Job.uuid == job_id).one_or_none()
         if not job:
             return self._error_reply('Unable to find job with the requested ID.')
 
@@ -345,7 +341,7 @@ class JobWorker:
         job.result = JobResult.SUCCESS_PENDING if success else JobResult.FAILURE_PENDING
         job.status = JobStatus.DONE
 
-        return None;
+        return None
 
     def process_client_message(self, request):
         '''

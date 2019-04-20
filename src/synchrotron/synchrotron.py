@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from laniakea import LocalConfig, LkModule
 from laniakea.db import config_get_value, session_factory, ArchiveSuite, \
     SyncBlacklistEntry, SynchrotronIssue, SynchrotronIssueKind
-from lknative import BaseConfig, SynchrotronConfig, SyncEngine
+from lknative import SynchrotronConfig, SyncEngine
 
 
 def get_sync_config():
@@ -71,7 +71,7 @@ def get_incoming_suite_info():
 
     # FIXME: We need much better ways to select the right suite to synchronize with
     suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.accept_uploads==True).one()
+        .filter(ArchiveSuite.accept_uploads == True).one()  # noqa: E712
     si.name = suite.name
     si.architectures = list(a.name for a in suite.architectures)
     si.components = list(c.name for c in suite.components)
@@ -101,7 +101,7 @@ def command_sync(options):
     engine.setSourceSuite(options.source_suite)
     engine.setBlacklist(blacklist_pkgnames)
 
-    ret = engine.syncPackages (options.component, options.packages, options.force)
+    ret = engine.syncPackages(options.component, options.packages, options.force)
     if not ret:
         sys.exit(2)
 
@@ -123,8 +123,10 @@ def command_autosync(options):
 
     session = session_factory()
     for ssuite in sconf.source.suites:
-        session.query(SynchrotronIssue).filter(SynchrotronIssue.source_suite==ssuite.name, \
-            SynchrotronIssue.target_suite==incoming_suite.name).delete()
+        session.query(SynchrotronIssue) \
+            .filter(SynchrotronIssue.source_suite == ssuite.name,
+                    SynchrotronIssue.target_suite == incoming_suite.name) \
+            .delete()
 
     for info in issue_data:
         issue = SynchrotronIssue()
@@ -188,6 +190,7 @@ def run(args):
     check_print_version(args)
     check_verbose(args)
     args.func(args)
+
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

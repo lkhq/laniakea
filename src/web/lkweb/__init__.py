@@ -28,3 +28,5 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', '
 
 
 from .app import create_app
+
+__all__ = ['create_app']
