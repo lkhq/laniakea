@@ -50,7 +50,7 @@ class JobResult(IntEnum):
     FAILURE = enum.auto()             # job failed
 
 
-class JobKind(enum.Enum):
+class JobKind:
     '''
     The different job kind identifier strings used by
     the different Laniakea modules which can enqueue jobs.
@@ -70,8 +70,8 @@ class Job(Base):
 
     status = Column(Enum(JobStatus), default=JobStatus.WAITING)  # Status of this job
 
-    module = Column(String(256))  # the name of the module responsible for this job
-    kind = Column(String(256))  # kind of the job
+    module = Column(String(256), nullable=False)  # the name of the module responsible for this job
+    kind = Column(String(256), nullable=False)  # kind of the job
 
     trigger = Column(UUID(as_uuid=True))  # ID of the entity responsible for triggering this job's creation
 

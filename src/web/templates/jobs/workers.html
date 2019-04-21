@@ -1,0 +1,31 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'workers' %}
+{% set page_title = 'Workers' %}
+
+{% block body_header %}
+<h1 class="h2">Spark Workers</h1>
+{% endblock %}
+
+{% block body %}
+
+<div class="row">
+    <div class="col-md-8">
+    {% for worker in workers %}
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title"><i class="fa fa-server" aria-hidden="true"></i> {{worker.name}}</h3>
+                <p class="card-text">
+                    <b>ID:</b> {{worker.uuid}}<br/>
+                    <b>Owner:</b> {{worker.owner}}<br/>
+                    <b>Last Ping:</b> {{humanized_timediff(worker.last_ping)}}<br/>
+                    <b>First Seen:</b> {{humanized_timediff(worker.time_created)}}<br/>
+                    <b>Accepted Tasks:</b> {{', '.join(worker.accepts)}}<br/>
+                </p>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

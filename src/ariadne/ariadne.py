@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from laniakea import LkModule
 from laniakea.utils import any_arch_matches
 from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
-    DebcheckIssue, PackageType, Job, JobStatus
+    DebcheckIssue, PackageType, Job, JobStatus, JobKind
 
 
 def get_newest_sources_index(session, repo, suite):
@@ -94,7 +94,7 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
     # check if we have already scheduled a job for this in the past and don't create
     # another one in that case
     q = session.query(Job) \
-        .filter(Job.trigger == spkg.uuid) \
+        .filter(Job.trigger == spkg.source_uuid) \
         .filter(Job.version == spkg.version) \
         .filter(Job.architecture == arch.name)
     ret = session.query(Job.uuid).filter(q.exists()).scalar()
@@ -122,9 +122,10 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
         log.debug('Creating new job for {} on {}'.format(str(spkg), arch.name))
         job = Job()
         job.module = LkModule.ARIADNE
+        job.kind = JobKind.PACKAGE_BUILD
         job.version = spkg.version
         job.architecture = arch.name
-        job.trigger = spkg.uuid
+        job.trigger = spkg.source_uuid
         job.data = {'suite': incoming_suite.name}
         session.add(job)
 
@@ -142,7 +143,7 @@ def delete_orphaned_jobs(session, simulate=False):
         .filter(Job.status.in_((JobStatus.UNKNOWN, JobStatus.WAITING, JobStatus.DEPWAIT))).all()
     for job in pending_jobs:
         spkg = session.query(SourcePackage) \
-            .filter(SourcePackage.uuid == job.trigger).one_or_none()
+            .filter(SourcePackage.source_uuid == job.trigger).one_or_none()
         if spkg:
             continue
 

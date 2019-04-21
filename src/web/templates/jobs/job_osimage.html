@@ -1,0 +1,20 @@
+{% extends 'jobs/job_generic.html' %}
+
+{% block job_details %}
+{% if not recipe %}
+<div class="alert alert-danger" role="alert">
+  Unable to find an image recipe for this job!
+  The recipe might have been removed and is no longer available.
+</div>
+{% else %}
+
+<h3>Details</h3>
+<p>
+<b>Distribution:</b> {{recipe.distribution}}<br/>
+<b>Suite:</b> {{recipe.suite}}<br/>
+<b>Flavor:</b> {{recipe.flavor}}<br/>
+<b>Architecture:</b> {{job.architecture}}<br/>
+</p>
+
+{% endif %}
+{% endblock %}

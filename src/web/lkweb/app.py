@@ -61,11 +61,15 @@ def configure_blueprints(app):
     from .overview import overview
     from .migrations import migrations
     from .synchronization import synchronization
+    from .jobs import jobs
+    from .osimages import osimages
 
     blueprints = [api,
                   migrations,
                   overview,
-                  synchronization]
+                  synchronization,
+                  jobs,
+                  osimages]
 
     for bp in blueprints:
         app.register_blueprint(bp)

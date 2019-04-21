@@ -1,0 +1,144 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
+#
+# Licensed under the GNU Lesser General Public License Version 3
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the license, or
+# (at your option) any later version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this software.  If not, see <http://www.gnu.org/licenses/>.
+
+from flask import Blueprint, render_template, abort
+from laniakea.db import session_scope, SparkWorker, Job, JobStatus, JobKind, JobResult, \
+    SourcePackage, ImageBuildRecipe
+from ..utils import humanized_timediff, is_uuid
+
+jobs = Blueprint('jobs',
+                 __name__,
+                 url_prefix='/jobs')
+
+
+def title_for_job(session, job):
+    '''
+    Get a human readble title for the given job.
+    '''
+
+    title = 'Job for {}'.format(job.module)
+    if job.kind == JobKind.PACKAGE_BUILD:
+        spkg = session.query(SourcePackage) \
+            .filter(SourcePackage.source_uuid == job.trigger).one_or_none()
+        if not spkg:
+            return title
+        return 'Build {} {} on {}'.format(spkg.name, job.version, job.architecture)
+    elif job.kind == JobKind.OS_IMAGE_BUILD:
+        recipe = session.query(ImageBuildRecipe) \
+            .filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
+        if not recipe:
+            return title
+        return 'OS Image {}'.format(recipe.name)
+
+    return title
+
+
+@jobs.route('/queue/<int:page>')
+def queue(page):
+    with session_scope() as session:
+
+        jobs_per_page = 50
+        jobs_total = session.query(Job) \
+            .filter(Job.status != JobStatus.DONE) \
+            .filter(Job.status != JobStatus.TERMINATED) \
+            .count()
+        page_count = jobs_total // jobs_per_page
+
+        jobs = session.query(Job) \
+            .filter(Job.status != JobStatus.DONE) \
+            .filter(Job.status != JobStatus.TERMINATED) \
+            .order_by(Job.time_created) \
+            .slice((page - 1) * jobs_per_page, page * jobs_per_page) \
+            .all()
+
+        return render_template('jobs/queue.html',
+                               JobStatus=JobStatus,
+                               humanized_timediff=humanized_timediff,
+                               session=session,
+                               title_for_job=title_for_job,
+                               jobs=jobs,
+                               jobs_per_page=jobs_per_page,
+                               jobs_total=jobs_total,
+                               current_page=page,
+                               page_count=page_count)
+
+
+@jobs.route('/workers')
+def workers():
+    with session_scope() as session:
+        workers = session.query(SparkWorker).all()
+
+        return render_template('jobs/workers.html', workers=workers, humanized_timediff=humanized_timediff)
+
+
+@jobs.route('/job/<uuid>')
+def job(uuid):
+    if not is_uuid(uuid):
+        abort(404)
+
+    with session_scope() as session:
+        job = session.query(Job).filter(Job.uuid == uuid).one_or_none()
+        if not job:
+            abort(404)
+
+        job.result = JobResult.SUCCESS
+        worker = session.query(SparkWorker).filter(SparkWorker.uuid == job.worker).one_or_none()
+
+        job_title = 'Job for {}'.format(job.module)
+        if job.kind == JobKind.PACKAGE_BUILD:
+            spkg = session.query(SourcePackage) \
+                .filter(SourcePackage.source_uuid == job.trigger).one_or_none()
+            if spkg:
+                job_title = 'Build {} {} on {}'.format(spkg.name, job.version, job.architecture)
+
+            suite_name = 'unknown'
+            if job.data:
+                suite_name = job.data.get('suite')
+
+            return render_template('jobs/job_pkgbuild.html',
+                                   humanized_timediff=humanized_timediff,
+                                   JobStatus=JobStatus,
+                                   JobResult=JobResult,
+                                   job=job,
+                                   job_title=job_title,
+                                   worker=worker,
+                                   spkg=spkg,
+                                   suite_name=suite_name)
+        elif job.kind == JobKind.OS_IMAGE_BUILD:
+            recipe = session.query(ImageBuildRecipe) \
+                .filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
+            if recipe:
+                job_title = 'OS Image {}'.format(recipe.name)
+
+            return render_template('jobs/job_osimage.html',
+                                   humanized_timediff=humanized_timediff,
+                                   JobStatus=JobStatus,
+                                   JobResult=JobResult,
+                                   job=job,
+                                   job_title=job_title,
+                                   worker=worker,
+                                   recipe=recipe)
+        else:
+            return render_template('jobs/job_generic.html',
+                                   humanized_timediff=humanized_timediff,
+                                   JobStatus=JobStatus,
+                                   JobResult=JobResult,
+                                   job=job,
+                                   job_title=job_title,
+                                   worker=worker)

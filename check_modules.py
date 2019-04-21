@@ -9,7 +9,8 @@ import sys
 modules_base = ['sqlalchemy',
                 'psycopg2',
                 'debian',
-                'zmq']
+                'zmq',
+                'humanize']
 
 
 modules_web = ['flask',

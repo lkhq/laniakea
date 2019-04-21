@@ -1,0 +1,88 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'jobqueue' %}
+{% set page_title = 'Job: ' + job_title %}
+
+{% block body_header %}
+<h1 class="h2">{{job_title}}</h1>
+{% endblock %}
+
+{% block body %}
+
+<b>ID:</b> {{job.uuid}}<br/>
+<br/>
+<b>Created:</b> {{humanized_timediff(job.time_created)}}<br/>
+<b>Assigned:</b> {{humanized_timediff(job.time_assigned)}}<br/>
+<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>
+<br/>
+{% if worker %}
+<b>Worker:</b> <a href="{{ url_for('jobs.workers') }}">{{worker.name}}</a><br/>
+{% endif %}
+
+<b>Status:</b>
+{% if job.status == JobStatus.WAITING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-hourglass-start" aria-hidden="true"></i>
+  </span> Waiting
+{% elif job.status == JobStatus.SCHEDULED %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-circle-o-notch fa-spin" aria-hidden="true"></i>
+  </span> Scheduled
+{% elif job.status == JobStatus.RUNNING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
+  </span> Running
+{% elif job.status == JobStatus.DONE %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-check" aria-hidden="true"></i>
+  </span> Done
+{% elif job.status == JobStatus.STARVING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-clock-o" aria-hidden="true"></i>
+  </span> Starving
+{% elif job.status == JobStatus.TERMINATED %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-skull" aria-hidden="true"></i>
+  </span> Terminated
+{% endif %}
+<br/>
+
+
+<br/>
+{% if job.result != UNKNOWN %}
+<h3>Result</h3>
+<p>
+{% if job.result == JobResult.SUCCESS_PENDING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <font class="fa fa-check-circle" aria-hidden="true" color="green"></font>
+    <i class="fa fa-clock" aria-hidden="true"></i>
+  </span> Successful (pending)
+{% elif job.result == JobResult.FAILURE_PENDING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
+    <i class="fa fa-clock" aria-hidden="true"></i>
+  </span> Failed (pending)
+{% elif job.result == JobResult.SUCCESS %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <font class="fa fa-check-circle" aria-hidden="true" color="green"></font>
+  </span> Success
+{% elif job.result == JobResult.FAILURE %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
+  </span> Failed
+{% endif %}
+</p>
+{% endif %}
+
+
+{% block job_details %}{% endblock %}
+
+
+<h3>Log Excerpt</h3>
+<div class="card">
+    <div class="card-body">
+        <pre><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
+    </div>
+</div>
+
+{% endblock %}

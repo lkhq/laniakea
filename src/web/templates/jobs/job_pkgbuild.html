@@ -1,0 +1,22 @@
+{% extends 'jobs/job_generic.html' %}
+
+{% block job_details %}
+{% if not spkg %}
+<div class="alert alert-danger" role="alert">
+  Unable to find a source package for this build job!
+  It might have been removed entirely from the archive.
+</div>
+{% else %}
+
+<h3>Details</h3>
+<p>
+<b>Repository:</b> {{spkg.repo.name}}<br/>
+<b>Suite:</b> {{suite_name}}<br/>
+<b>Maintainer:</b> {{spkg.maintainer.replace('@', '[at]')}}<br/>
+{% if spkg.uploaders %}<b>Uploaders:</b> {{'; '.join(spkg.uploaders).replace('@', '[at]')}}<br/>{% endif %}
+<b>Version:</b> {{job.version}}<br/>
+<b>Architecture:</b> {{job.architecture}}<br/>
+</p>
+
+{% endif %}
+{% endblock %}
