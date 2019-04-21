@@ -16,7 +16,6 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker

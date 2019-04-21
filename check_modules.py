@@ -4,7 +4,6 @@
 #
 
 import sys
-import importlib
 
 
 modules_base = ['sqlalchemy',
@@ -18,8 +17,10 @@ modules_web = ['flask',
 
 
 def ensure_modules(modules):
+    from importlib import util
+
     for mod_name in modules:
-        spec = importlib.util.find_spec(mod_name)
+        spec = util.find_spec(mod_name)
         if not spec:
             print('Unable to find Python module: {}'.format(mod_name))
             sys.exit(2)
