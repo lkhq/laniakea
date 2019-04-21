@@ -14,8 +14,8 @@ install_data(current_build_dir + '/laniakea-lighthouse.service',
 
 if (get_option('webgui'))
     sd_data = configuration_data()
-    sd_data.set('LKWEB_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/web/laniakea-web')
-    sd_data.set('LKSWWEB_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/web/laniakea-web-swview')
+    sd_data.set('LKWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/web/')
+    sd_data.set('LKSWWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/webswview/')
 
     configure_file(input: 'laniakea-web.service.in',
                    output: 'laniakea-web.service',
