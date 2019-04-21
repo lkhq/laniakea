@@ -10,7 +10,8 @@ modules_base = ['sqlalchemy',
                 'psycopg2',
                 'debian',
                 'zmq',
-                'humanize']
+                'humanize',
+                'jsonpickle']
 
 
 modules_web = ['flask',

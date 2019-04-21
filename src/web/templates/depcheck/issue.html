@@ -1,0 +1,73 @@
+{% extends 'depcheck/layout.html' %}
+
+{% set page_title = 'Dependency issues for ' + issue.package_name + ' ' + issue.package_version %}
+
+{% block body_header %}
+<h1 class="h2">Issue details for {{'binary' if issue.package_type == PackageType.BINARY else 'source'}} {{issue.package_name}}/{{issue.package_version}} in {{suite.name}}
+  <small><span class="text-secondary"><i class="fas fa-microchip"></i> {{issue.architecture}}</span></small>
+</h1>
+{% endblock %}
+
+{% block body %}
+
+<div class="row">
+    <div class="col-md-8">
+        {% if missing %}
+        <h3>Missing dependencies</h3>
+        <ul class="list-group"></ul>
+            {% for m in missing %}
+              <li class="list-group-item">
+              <h4 class="list-group-item-heading">{{m.unsat_dependency}}</h4>
+              <p class="mb-1"><b>Required by:</b> {{m.package_name}}<br/>
+              {% if m.package_version %}<b>Version:</b> {{m.package_version}}<br/>{% endif %}
+              <i class="fas fa-microchip"></i> {{m.architecture}}
+            </li>
+            {% endfor %}
+        </ul>
+        <br/>
+        {% endif %}
+
+        {% if conflicts %}
+        <h3>Conflicts in the dependency chain</h3>
+        {% for c in conflicts %}
+        <ul class="list-group"></ul>
+            <h4>{{c.pkg1.package_name}} vs. {{c.pkg2.package_name}}</h4>
+            <div class="card">
+                <div class="card-body">
+
+                <!-- Package 1-->
+                <h5>Package 1: {{c.pkg1.package_name}} {{c.pkg1.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg1.architecture}}</h5>
+                {% if c.pkg1.unsat_conflict %}
+                <p><b>Conflict:</b> {{c.pkg1.unsat_conflict}}</p>
+                {% endif %}
+
+                <ul class="list-group">
+                {% for d in c.depchain1 %}
+                    <li class="list-group-item">
+                      <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
+                      <p class="mb-1 text-secondary"><b>Depends:</b> {{d.depends}}</p>
+                   </li>
+                {% endfor %}
+                </ul>
+
+                <br/>
+                <!-- Package 2-->
+                <h5>Package 2: {{c.pkg2.package_name}} {{c.pkg2.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg2.architecture}}</h5>
+                {% if c.pkg2.unsat_conflict %}
+                <p><b>Conflict:</b> {{c.pkg2.unsat_conflict}}</p>
+                {% endif %}
+
+                <ul class="list-group">
+                {% for d in c.depchain2 %}
+                    <li class="list-group-item">
+                      <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
+                      <p class="mb-1 text-secondary"><b>Depends:</b> {{d.depends}}</p>
+                   </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </ul>
+        {% endfor %}
+        {% endif %}
+
+{% endblock %}

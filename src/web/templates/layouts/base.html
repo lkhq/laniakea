@@ -52,19 +52,19 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == "migrations" }}" href="{{ url_for('migrations.index') }}">
+            <a class="nav-link {{'active' if active_menu == 'migrations' }}" href="{{ url_for('migrations.index') }}">
               <i class="fas fa-route"></i>
               Migrations
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == "synchronization" }}" href="{{ url_for('synchronization.index') }}">
+            <a class="nav-link {{'active' if active_menu == 'synchronization' }}" href="{{ url_for('synchronization.index') }}">
               <i class="fas fa-exchange-alt"></i>
               Synchronization
             </a>
           </li>
-          <li class="nav-item {{'active' if active_menu == "depcheck" }}">
-            <a class="nav-link" href="#">
+          <li class="nav-item">
+            <a class="nav-link {{'active' if active_menu == 'depcheck' }}" href="{{ url_for('depcheck.index') }}">
               <i class="fas fa-puzzle-piece"></i>
               Dependency Check
             </a>
@@ -85,19 +85,19 @@
         </h6>
         <ul class="nav flex-column mb-2">
           <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == "osimages" }}" href="{{ url_for('osimages.index') }}">
+            <a class="nav-link {{'active' if active_menu == 'osimages' }}" href="{{ url_for('osimages.index') }}">
               <i class="fas fa-sd-card"></i>
               Image Build
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == "jobqueue" }}" href="{{ url_for('jobs.queue', page=1) }}">
+            <a class="nav-link {{'active' if active_menu == 'jobqueue' }}" href="{{ url_for('jobs.queue', page=1) }}">
               <i class="fas fa-tasks"></i>
               Job Queue
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == "workers" }}" href="{{ url_for('jobs.workers') }}">
+            <a class="nav-link {{'active' if active_menu == 'workers' }}" href="{{ url_for('jobs.workers') }}">
               <i class="fas fa-server"></i>
               Workers
             </a>

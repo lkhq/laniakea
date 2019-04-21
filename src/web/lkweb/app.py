@@ -63,13 +63,15 @@ def configure_blueprints(app):
     from .synchronization import synchronization
     from .jobs import jobs
     from .osimages import osimages
+    from .depcheck import depcheck
 
     blueprints = [api,
                   migrations,
                   overview,
                   synchronization,
                   jobs,
-                  osimages]
+                  osimages,
+                  depcheck]
 
     for bp in blueprints:
         app.register_blueprint(bp)

@@ -1,0 +1,42 @@
+{% extends 'depcheck/layout.html' %}
+
+{% set page_title = 'Dependency Check' %}
+
+{% block body_header %}
+<h1 class="h2">Dependency Check</h1>
+{% endblock %}
+
+{% block body %}
+
+<div class="col-md-8">
+    <div class="btn-group-vertical">
+    {% for suite in suites %}
+        {% set btn_style = 'btn-secondary' %}
+        {% if suite.parent %}
+          {% set btn_style = 'btn-light' %}
+        {% endif %}
+        {% if suite.accept_uploads %}
+          {% set btn_style = 'btn-info' %}
+        {% endif %}
+        {% if suite.devel_target %}
+          {% set btn_style = 'btn-primary' %}
+        {% endif %}
+
+        <a class="btn btn-lg btn-block {{btn_style}}" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='binary', arch_name=suite.primary_architecture.name, page=1) }}"
+           role="button" style="margin-bottom:10px; border-radius:10px !important;">
+        {{suite.name}}<br>
+        {% if suite.parent %}
+            <small>Overlay for {{suite.parent.name}}</small><br/>
+        {% endif %}
+        {% if suite.accept_uploads %}
+            <small>Accepts uploads</small><br/>
+        {% endif %}
+        {% if suite.devel_target %}
+            <small>Development target</small><br/>
+        {% endif %}
+        </a>
+    {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

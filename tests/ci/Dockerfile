@@ -29,7 +29,9 @@ RUN apt-get install -yq --no-install-recommends \
     python3-debian \
     python3-zmq \
     python3-flask \
-    python3-flask-script
+    python3-flask-script \
+    python3-humanize \
+    python3-jsonpickle
 
 # install PyD dependencies
 RUN apt-get install -yq --no-install-recommends \

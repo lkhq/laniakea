@@ -81,7 +81,7 @@ class DebcheckIssue(Base):
 
     def get_issues_missing(self):
         if not self.missing:
-            return None
+            return []
         return jsonpickle.decode(self.missing)
 
     def set_issues_missing(self, v):
@@ -89,7 +89,7 @@ class DebcheckIssue(Base):
 
     def get_issues_conflicts(self):
         if not self.conflicts:
-            return None
+            return []
         return jsonpickle.decode(self.conflicts)
 
     def set_issues_conflicts(self, v):
