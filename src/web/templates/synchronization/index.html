@@ -1,0 +1,76 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'synchronization' %}
+{% set page_title = 'Synchronization Issue Overview' %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('overview.index') }}">Home</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            Sync
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block body_header %}
+<h1 class="h2">Package Synchronization Issue Overview</h1>
+
+<div class="btn-group dropleft" style="float: right;">
+    <button class="btn btn-light dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <i class="fa fa-cogs" aria-hidden="true"></i><span class="caret"></span>
+    </button>
+    <div class="dropdown-menu">
+        <a class="dropdown-item" href="{{ url_for('synchronization.blacklist') }}">Ignored packages</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block body %}
+
+<div class="input-group mb-3">
+    <div class="input-group-prepend">
+        <span id="filter-desc" class="input-group-text">Filter</span>
+    </div>
+    <input id="filter" class="form-control" type="text" placeholder="Type here..." aria-label="Filter" aria-describedby="filter-desc"/>
+</div>
+<br/>
+<table class="table">
+    <thead>
+      <tr>
+        <th>Affected Package</th>
+        <th>Direction</th>
+        <th>Version in Target</th>
+        <th>Version in Source</th>
+        <th>Issue</th>
+      </tr>
+    </thead>
+    <tbody class="searchable">
+    {% for issue in issues %}
+    <tr>
+      <td>{{issue.package_name}}</td>
+      <td>{{issue.source_suite}} <i class="fas fa-arrow-right"></i> {{issue.target_suite}}</td>
+      <td>{{issue.source_version}}</td>
+      <td>{{issue.target_version}}</td>
+      <td>
+        {%if issue.kind == SyncIssueKind.MERGE_REQUIRED %}
+          <i class="fas fa-code-branch"></i> Requires manual merge of downstream changes with source.
+        {% elif issue.kind == SyncIssueKind.MAYBE_CRUFT  %}
+          <i class="fas fa-trash-alt"></i> This package is likely cruft and could be removed after manual review. {{issue.details}}
+        {% elif issue.kind == SyncIssueKind.SYNC_FAILED  %}
+          <i class="fas fa-exclamation-triangle"></i> This package failed to synchronize. {{issue.details}}
+        {% elif issue.kind == SyncIssueKind.REMOVAL_FAILED  %}
+          <i class="fas fa-bomb"></i> Unable to remove this package. {{issue.details}}
+        {% else %}
+          Error: {{issue.details}}
+        {% endif %}
+     </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

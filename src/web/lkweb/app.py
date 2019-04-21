@@ -60,10 +60,12 @@ def configure_blueprints(app):
     from .api import api
     from .overview import overview
     from .migrations import migrations
+    from .synchronization import synchronization
 
     blueprints = [api,
                   migrations,
-                  overview]
+                  overview,
+                  synchronization]
 
     for bp in blueprints:
         app.register_blueprint(bp)

@@ -1,0 +1,47 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'synchronization' %}
+{% set page_title = 'Synchronization Blacklist' %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('overview.index') }}">Home</a>
+        </li>
+        <li class="breadcrumb-item" aria-current="page">
+            <a href="{{ url_for('synchronization.index') }}">Sync</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            Blacklist
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block body_header %}
+<h1 class="h2">Packages Blacklisted From Synchronization</h1>
+{% endblock %}
+
+{% block body %}
+
+<table class="table">
+    <thead>
+      <tr>
+        <th>Package</th>
+        <th>Reason</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for entry in entries %}
+        <tr>
+          <th scope="row">{{entry.pkgname}}</th>
+          <td>{{entry.reason}}</td>
+          <td>{{ entry.time_created.strftime('%Y-%m-%d %H:%M %z') if entry.time_created else 'Unknown' }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
