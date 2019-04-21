@@ -23,7 +23,9 @@ lknative_pylib = shared_library('lknative',
     [lknative_src],
     name_prefix: '',
     include_directories: [lknative_src_dir],
-    dependencies: [laniakea_utils_dep, pyd_dep]
+    dependencies: [laniakea_utils_dep, pyd_dep],
+    install: true,
+    install_dir : 'lib/laniakea/laniakea/'
 )
 
 # Test

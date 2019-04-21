@@ -15,12 +15,22 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+
+from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import UserDefinedType
+from sqlalchemy.dialects.postgresql import UUID
 from contextlib import contextmanager
 from ..localconfig import LocalConfig
+
+
+__all__ = ['Base',
+           'DebVersion',
+           'Database',
+           'UUID',
+           'session_scope']
 
 
 Base = declarative_base()

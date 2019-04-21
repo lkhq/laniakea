@@ -32,7 +32,8 @@ laniakea_utils_lib = shared_library('laniakea-shared',
     [laniakea_ulib_src, 'druntime.c'],
     include_directories: [src_dir],
     dependencies: [lk_base_deps],
-    d_import_dirs: [source_root + '/data/']
+    d_import_dirs: [source_root + '/data/'],
+    install: true
 )
 
 laniakea_utils_dep = declare_dependency(

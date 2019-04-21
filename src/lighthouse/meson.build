@@ -1,3 +1,6 @@
 # Meson definition for Laniakea - Lighthouse
 
-# TODO
+install_subdir('.', install_dir: 'lib/laniakea/lighthouse/',
+    exclude_directories: ['__pycache__', 'lighthouse/__pycache__'],
+    exclude_files: ['meson.build'],
+)

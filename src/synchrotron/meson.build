@@ -1,3 +1,3 @@
 # Meson definition for Laniakea - Synchrotron
 
-# TODO
+install_data('synchrotron.py', install_dir: 'bin', rename: 'synchrotron')

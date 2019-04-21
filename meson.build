@@ -24,7 +24,7 @@ pyd_dep = dependency('pyd')
 # Python deps
 r = run_command('./check_modules.py')
 if r.returncode() != 0
-    message(r.stdout().strip())
+    message(r.stdout().strip()+'\n'+r.stderr().strip())
     error('Unable to find required Python modules.')
 endif
 

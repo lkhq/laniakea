@@ -3,7 +3,7 @@ current_build_dir = meson.current_build_dir()
 lk_data_dir = join_paths(get_option('datadir'), 'laniakea')
 
 lhsd_data = configuration_data()
-lhsd_data.set('LIGHTHOUSE_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/lighthouse')
+lhsd_data.set('LIGHTHOUSE_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/lighthouse/lighthouse.py')
 
 configure_file(input: 'laniakea-lighthouse.service.in',
                output: 'laniakea-lighthouse.service',
