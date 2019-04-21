@@ -10,6 +10,7 @@ modules_base = ['sqlalchemy',
                 'psycopg2',
                 'debian',
                 'zmq',
+                'yaml',
                 'humanize',
                 'jsonpickle']
 
@@ -28,10 +29,17 @@ def ensure_modules(modules):
             sys.exit(2)
 
 
+def ensure_python():
+    if sys.version_info[0] < 3 or sys.version_info[1] < 6:
+        print('Laniakea requires at least Python 3.6 to run!')
+        sys.exit(2)
+
+
 def run(args):
     set_name = None
     if len(args) > 0:
         set_name = args[0]
+    ensure_python()
 
     if set_name == 'web':
         ensure_modules(modules_web)

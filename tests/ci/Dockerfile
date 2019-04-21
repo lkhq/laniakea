@@ -28,6 +28,7 @@ RUN apt-get install -yq --no-install-recommends \
     python3-psycopg2 \
     python3-debian \
     python3-zmq \
+    python3-yaml \
     python3-flask \
     python3-flask-script \
     python3-humanize \
