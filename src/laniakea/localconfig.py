@@ -88,7 +88,7 @@ class LocalConfig:
             if 'Synchrotron' in jdata:
                 syncconf = jdata.get('Synchrotron')
                 if 'SourceKeyringDir' in syncconf:
-                    self._synchrotron_sourcekeyrings = [glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))]
+                    self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
 
             # ZCurve
             self._zcurve_keys_basedir = '/etc/laniakea/keys/curve/'
@@ -97,7 +97,7 @@ class LocalConfig:
             self._trusted_gpg_keyrings = []
             self._trusted_gpg_keyring_dir = jdata.get('TrustedGpgKeyringDir')
             if self._trusted_gpg_keyring_dir:
-                self._trusted_gpg_keyrings = [glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))]
+                self._trusted_gpg_keyrings = glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))
 
         @property
         def project_name(self) -> str:
