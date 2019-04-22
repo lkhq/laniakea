@@ -5,10 +5,15 @@ ConditionPathExists=/etc/laniakea/web-config.json
 
 [Service]
 Restart=on-failure
-ProtectSystem=full
+
+#ProtectSystem=full
+#ProtectHome=true
+
 User=lkweb
 Group=www-data
 WorkingDirectory=@LKWEB_INSTALL_DIR@
+
+RuntimeDirectory=lkweb
 ExecStart=/usr/bin/uwsgi --ini lkweb.ini
 
 [Install]
