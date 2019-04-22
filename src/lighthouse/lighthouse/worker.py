@@ -310,7 +310,7 @@ class JobWorker:
             session.query(Job).filter(Job.uuid == job_id).update({'latest_log_excerpt': log_excerpt})
 
         # update last seen information
-        session.query(SparkWorker).filter(SparkWorker.uuid == client_id).update({'last_ping': datetime.utcnow})
+        session.query(SparkWorker).filter(SparkWorker.uuid == client_id).update({'last_ping': datetime.utcnow()})
         session.commit()
 
     def _process_job_finished_request(self, session, request, success):
