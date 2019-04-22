@@ -76,6 +76,7 @@ class JobWorker:
         job_kind = job_dict['kind']
         job_uuid_str = str(job_dict['uuid'])
         trigger_uuid = job_dict['trigger']
+        job_version = job_dict['version']
 
         job = session.query(Job).filter(Job.uuid == job_uuid_str).one()
 
@@ -84,7 +85,7 @@ class JobWorker:
         info['uuid'] = job_uuid_str
         info['module'] = job_dict['module']
         info['kind'] = job_kind
-        info['version'] = job_dict['version']
+        info['version'] = job_version
         info['architecture'] = job_dict['architecture']
         info['time_created'] = job.time_created.isoformat()
 
@@ -98,7 +99,10 @@ class JobWorker:
                 # This is a server error, no need to inform the client about it as well
                 return None
 
-            spkg = session.query(SourcePackage).filter(SourcePackage.uuid == trigger_uuid).one_or_none()
+            spkg = session.query(SourcePackage) \
+                .filter(SourcePackage.source_uuid == trigger_uuid) \
+                .filter(SourcePackage.version == job_version) \
+                .one_or_none()
             if not spkg:
                 job.status = JobStatus.TERMINATED
                 job.latest_log_excerpt = 'We were unable to find a source package for this build job. The job has been terminated.'
