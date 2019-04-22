@@ -49,7 +49,7 @@
 
 
 <br/>
-{% if job.result != UNKNOWN %}
+{% if job.result != JobResult.UNKNOWN %}
 <h3>Result</h3>
 <p>
 {% if job.result == JobResult.SUCCESS_PENDING %}
