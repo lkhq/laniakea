@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import math
 from flask import Blueprint, render_template, abort
 from ..utils import is_uuid
 from laniakea.db import session_scope, ArchiveSuite, DebcheckIssue, PackageType
@@ -55,7 +56,7 @@ def issue_list(suite_name, ptype, arch_name, page):
             .filter(DebcheckIssue.suite_id == suite.id) \
             .filter(DebcheckIssue.architecture == arch_name) \
             .count()
-        page_count = issues_total // issues_per_page
+        page_count = math.ceil(issues_total / issues_per_page)
 
         issues = session.query(DebcheckIssue) \
             .filter(DebcheckIssue.package_type == package_type) \

@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import math
 from flask import Blueprint, render_template, abort
 from ..utils import is_uuid
 from laniakea.db import session_scope, SpearsMigrationEntry, SpearsExcuse
@@ -49,7 +50,7 @@ def excuses_list(migration_id, page):
         excuses_per_page = 50
         excuses_total = session.query(SpearsExcuse) \
             .filter(SpearsExcuse.migration_id == migration_id).count()
-        page_count = excuses_total // excuses_per_page
+        page_count = math.ceil(excuses_total / excuses_per_page)
 
         excuses = session.query(SpearsExcuse) \
             .filter(SpearsExcuse.migration_id == migration_id) \

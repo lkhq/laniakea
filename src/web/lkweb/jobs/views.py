@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import math
 from flask import current_app, Blueprint, render_template, abort
 from laniakea.db import session_scope, SparkWorker, Job, JobStatus, JobKind, JobResult, \
     SourcePackage, ImageBuildRecipe
@@ -61,7 +62,7 @@ def queue(page):
             .filter(Job.status != JobStatus.DONE) \
             .filter(Job.status != JobStatus.TERMINATED) \
             .count()
-        page_count = jobs_total // jobs_per_page
+        page_count = math.ceil(jobs_total / jobs_per_page)
 
         jobs = session.query(Job) \
             .filter(Job.status != JobStatus.DONE) \
