@@ -41,14 +41,14 @@ def handle_isotope_upload(session, conf, dud, job):
 
     try:
         time_tuple = parsedate(dud.get('Date'))
-        date = time.mktime(time_tuple)
+        date = time.gmtime(time.mktime(time_tuple))
     except Exception as e:
         log.error('Unable to get time from Dud: {}'.format(str(e)))
         date = time.gmtime(time.time())
 
-    image_dir = image_dir_tmpl.replace("%{DATETIME}", time.strftime('%Y-%m-%d_%H.%M', date)) \
-        .replace("%{DATE}", time.strftime('%Y-%m-%d', date)) \
-        .replace("%{TIME}", time.strftime('%H.%M', date))
+    image_dir = image_dir_tmpl.replace('%{DATETIME}', time.strftime('%Y-%m-%d_%H.%M', date)) \
+        .replace('%{DATE}', time.strftime('%Y-%m-%d', date)) \
+        .replace('%{TIME}', time.strftime('%H.%M', date))
 
     os.makedirs(image_dir, exist_ok=True)
 

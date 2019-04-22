@@ -144,10 +144,6 @@ class Dud(object):
             raise DudFileException(
                 'Unknown problem while verifying signature')
 
-        # contains verbose human readable GPG information
-        gpg_output_stderr = str(gpg_output_stderr, encoding='utf8')
-        gpg_output = gpg_output.decode(encoding='utf-8')
-
         if gpg_output.count('[GNUPG:] GOODSIG'):
             pass
         elif gpg_output.count('[GNUPG:] BADSIG'):
@@ -155,7 +151,7 @@ class Dud(object):
         elif gpg_output.count('[GNUPG:] ERRSIG'):
             raise DudFileException('Error verifying signature')
         elif gpg_output.count('[GNUPG:] NODATA'):
-            raise DudFileException('No signature on')
+            raise DudFileException('No signature')
         else:
             raise DudFileException(
                 'Unknown problem while verifying signature'
