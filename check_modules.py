@@ -13,7 +13,8 @@ modules_base = ['sqlalchemy',
                 'yaml',
                 'firehose',
                 'humanize',
-                'jsonpickle']
+                'jsonpickle',
+                'tornado']
 
 
 modules_web = ['flask',

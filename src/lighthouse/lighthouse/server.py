@@ -98,7 +98,7 @@ class LhServer:
 
         # Start an authenticator for this context.
         auth = IOLoopAuthenticator(self._ctx)
-        auth.allow('127.0.0.1')
+        # NOTE: auth.allow('127.0.0.1') can be used to allow access only from specific IPs (whitelisting)
 
         # Tell authenticator to use the certificate in a directory
         auth.configure_curve(domain='*', location=self._trusted_keys_dir)
