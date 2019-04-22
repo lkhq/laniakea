@@ -78,7 +78,7 @@ class Germinate:
     def run(self):
         session = session_factory()
         dev_suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.accept_uploads == True).one()  # noqa: E712
+            .filter(ArchiveSuite.devel_target == True).one()  # noqa: E712
 
         # update the seed (contained in the metapackage repository)
         self._update_seed_data()
