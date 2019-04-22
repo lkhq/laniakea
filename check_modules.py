@@ -11,12 +11,14 @@ modules_base = ['sqlalchemy',
                 'debian',
                 'zmq',
                 'yaml',
+                'firehose',
                 'humanize',
                 'jsonpickle']
 
 
 modules_web = ['flask',
-               'flask_script']
+               'flask_script',
+               'flask_restful']
 
 
 def ensure_modules(modules):
