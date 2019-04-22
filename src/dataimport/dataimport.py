@@ -105,10 +105,10 @@ def command_repo(options):
 
     for component in suite.components:
 
-        # fetch all source packages for the given suite
+        # fetch all source packages for the given repository
+        # FIXME: Urgh... We need to do this better, this is not efficient.
         existing_spkgs = dict()
         all_existing_src_packages = session.query(SourcePackage) \
-            .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id)) \
             .filter(SourcePackage.repo_id == repo.id).all()
         for e_spkg in all_existing_src_packages:
             existing_spkgs[e_spkg.uuid] = e_spkg
@@ -125,7 +125,6 @@ def command_repo(options):
                 if suite in db_spkg.suites:
                     continue  # the source package is already registered with this suite
                 db_spkg.suites.append(suite)
-                session.update(db_spkg)
                 continue
 
             # if we are here, the source package is completely new and is only in one suite
@@ -152,9 +151,7 @@ def command_repo(options):
 
         for old_spkg in existing_spkgs.keys():
             old_spkg.suites.remove(suite)
-            if len(old_spkg.suites) > 0:
-                session.update(old_spkg)
-            else:
+            if len(old_spkg.suites) <= 0:
                 for f in old_spkg.files:
                     session.delete(f)
                 session.delete(old_spkg)
@@ -164,9 +161,10 @@ def command_repo(options):
 
         for arch in suite.architectures:
 
+            # Get all binary packages for the given architecture
+            # FIXME: Urgh... We need to do this better, this is not efficient.
             existing_bpkgs = dict()
             for e_bpkg in session.query(BinaryPackage) \
-                    .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \
                     .filter(BinaryPackage.repo_id == repo.id) \
                     .filter(BinaryPackage.architecture_id == arch.id).all():
                 existing_bpkgs[e_bpkg.uuid] = e_bpkg
@@ -197,9 +195,7 @@ def command_repo(options):
 
             for old_bpkg in existing_bpkgs.keys():
                 old_bpkg.suites.remove(suite)
-                if len(old_bpkg.suites) > 0:
-                    session.update(old_bpkg)
-                else:
+                if len(old_bpkg.suites) <= 0:
                     session.delete(old_bpkg.pkg_file)
                     session.delete(old_bpkg)
             session.commit()
