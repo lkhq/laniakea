@@ -17,9 +17,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-from flask import Blueprint, render_template, abort
+from flask import current_app, Blueprint, render_template, abort
 from laniakea.db import session_scope, SparkWorker, Job, JobStatus, JobKind, JobResult, \
     SourcePackage, ImageBuildRecipe
+from laniakea.utils import get_dir_shorthand_for_uuid
 from ..utils import humanized_timediff, is_uuid
 
 jobs = Blueprint('jobs',
@@ -99,6 +100,10 @@ def job(uuid):
 
         worker = session.query(SparkWorker).filter(SparkWorker.uuid == job.worker).one_or_none()
 
+        log_url = None
+        if job.result == JobResult.SUCCESS or job.result == JobResult.FAILURE:
+            log_url = current_app.config['LOG_STORAGE_URL'] + '/' + get_dir_shorthand_for_uuid(job.uuid) + '/' + str(job.uuid) + '.log'
+
         job_title = 'Job for {}'.format(job.module)
         if job.kind == JobKind.PACKAGE_BUILD:
             spkg = session.query(SourcePackage) \
@@ -118,7 +123,8 @@ def job(uuid):
                                    job_title=job_title,
                                    worker=worker,
                                    spkg=spkg,
-                                   suite_name=suite_name)
+                                   suite_name=suite_name,
+                                   log_url=log_url)
         elif job.kind == JobKind.OS_IMAGE_BUILD:
             recipe = session.query(ImageBuildRecipe) \
                 .filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
@@ -132,7 +138,8 @@ def job(uuid):
                                    job=job,
                                    job_title=job_title,
                                    worker=worker,
-                                   recipe=recipe)
+                                   recipe=recipe,
+                                   log_url=log_url)
         else:
             return render_template('jobs/job_generic.html',
                                    humanized_timediff=humanized_timediff,
@@ -140,4 +147,5 @@ def job(uuid):
                                    JobResult=JobResult,
                                    job=job,
                                    job_title=job_title,
-                                   worker=worker)
+                                   worker=worker,
+                                   log_url=log_url)

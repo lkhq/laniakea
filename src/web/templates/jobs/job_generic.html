@@ -77,6 +77,9 @@
 
 {% block job_details %}{% endblock %}
 
+{% if log_url %}
+<p><a class="btn btn-info" href="{{log_url}}" role="button">View Full Log</a></p>
+{% endif %}
 
 <h3>Log Excerpt</h3>
 <div class="card">

@@ -28,6 +28,8 @@ class BaseConfig(object):
     PROJECT = 'Laniakea Web'
     BUG_REPORT_URL = 'https://github.com/lkorigin/laniakea/issues'
 
+    LOG_STORAGE_URL = '/raw/logs'  # web URL where raw logs are stored by Rubicon
+
     # Get app root path, also can use flask.root_path.
     # ../../config.py
     PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
