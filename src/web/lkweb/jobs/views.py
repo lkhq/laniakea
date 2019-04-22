@@ -97,7 +97,6 @@ def job(uuid):
         if not job:
             abort(404)
 
-        job.result = JobResult.SUCCESS
         worker = session.query(SparkWorker).filter(SparkWorker.uuid == job.worker).one_or_none()
 
         job_title = 'Job for {}'.format(job.module)
