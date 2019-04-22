@@ -24,6 +24,7 @@ RUN apt-get install -yq --no-install-recommends \
 
 RUN apt-get install -yq --no-install-recommends \
     python3-pip \
+    python3-setuptools \
     python3-sqlalchemy \
     python3-psycopg2 \
     python3-debian \
@@ -31,8 +32,10 @@ RUN apt-get install -yq --no-install-recommends \
     python3-yaml \
     python3-flask \
     python3-flask-script \
+    python3-flask-restful \
     python3-humanize \
     python3-jsonpickle
+RUN pip3 install firehose
 
 # install PyD dependencies
 RUN apt-get install -yq --no-install-recommends \
