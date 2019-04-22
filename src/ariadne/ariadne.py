@@ -142,8 +142,12 @@ def delete_orphaned_jobs(session, simulate=False):
         .filter(Job.module == LkModule.ARIADNE) \
         .filter(Job.status.in_((JobStatus.UNKNOWN, JobStatus.WAITING, JobStatus.DEPWAIT))).all()
     for job in pending_jobs:
+        # The job only is an orphan if the source package triggering it
+        # does no longer exist with the given version number.
         spkg = session.query(SourcePackage) \
-            .filter(SourcePackage.source_uuid == job.trigger).one_or_none()
+            .filter(SourcePackage.source_uuid == job.trigger) \
+            .filter(SourcePackage.version == job.version) \
+            .one_or_none()
         if spkg:
             continue
 

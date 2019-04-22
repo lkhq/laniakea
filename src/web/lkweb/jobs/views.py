@@ -36,7 +36,9 @@ def title_for_job(session, job):
     title = 'Job for {}'.format(job.module)
     if job.kind == JobKind.PACKAGE_BUILD:
         spkg = session.query(SourcePackage) \
-            .filter(SourcePackage.source_uuid == job.trigger).one_or_none()
+            .filter(SourcePackage.source_uuid == job.trigger) \
+            .filter(SourcePackage.version == job.version) \
+            .one_or_none()
         if not spkg:
             return title
         return 'Build {} {} on {}'.format(spkg.name, job.version, job.architecture)
@@ -107,7 +109,9 @@ def job(uuid):
         job_title = 'Job for {}'.format(job.module)
         if job.kind == JobKind.PACKAGE_BUILD:
             spkg = session.query(SourcePackage) \
-                .filter(SourcePackage.source_uuid == job.trigger).one_or_none()
+                .filter(SourcePackage.source_uuid == job.trigger) \
+                .filter(SourcePackage.version == job.version) \
+                .one_or_none()
             if spkg:
                 job_title = 'Build {} {} on {}'.format(spkg.name, job.version, job.architecture)
 
