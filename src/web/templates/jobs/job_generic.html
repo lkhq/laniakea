@@ -13,7 +13,7 @@
 <br/>
 <b>Created:</b> {{humanized_timediff(job.time_created)}}<br/>
 <b>Assigned:</b> {{humanized_timediff(job.time_assigned)}}<br/>
-<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>
+{% if job.time_finished %}<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>{% endif %}
 <br/>
 {% if worker %}
 <b>Worker:</b> <a href="{{ url_for('jobs.workers') }}">{{worker.name}}</a><br/>
