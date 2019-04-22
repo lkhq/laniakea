@@ -82,10 +82,12 @@
 {% endif %}
 
 <h3>Log Excerpt</h3>
-<div class="card">
-    <div class="card-body">
-        <pre><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
+<div class="row">
+  <div class="col-md-8">
+    <div class="card card-body bg-light">
+      <pre><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
     </div>
+  </div>
 </div>
 
 {% endblock %}

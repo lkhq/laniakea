@@ -99,9 +99,13 @@
 
 {% if excuse.log_excerpt %}
 <h3>Log Excerpt</h3>
-<pre><code>
-{{excuse.log_excerpt}}
-</code></pre>
+<div class="row">
+    <div class="col-md-4">
+        <div class="card card-body bg-light">
+            <pre><code>{{excuse.log_excerpt}}</code></pre>
+        </div>
+    </div>
+</div>
 {% endif %}
 
 {% endblock %}
