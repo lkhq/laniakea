@@ -17,6 +17,7 @@
 
 import sys
 from .utils import print_header, print_note, input_str, input_bool, input_list
+from laniakea.db import session_scope, SyncBlacklistEntry
 
 
 def ask_settings(options):
@@ -54,11 +55,41 @@ def ask_settings(options):
     syncconf_set_value('sync_binaries', input_bool('Synchronize binary packages?'))
 
 
+def add_blacklist_entry(pkgname, reason):
+    with session_scope() as session:
+        # delete existing entry in case it exists
+        entry = session.query(SyncBlacklistEntry).filter(SyncBlacklistEntry.pkgname == pkgname).one_or_none()
+        if entry:
+            print_note('Updating existing entry for this package.')
+        else:
+            entry = SyncBlacklistEntry()
+            session.add(entry)
+        entry.pkgname = pkgname
+        entry.reason = reason
+
+
+def remove_blacklist_entry(pkgname):
+    with session_scope() as session:
+        # delete existing entry in case it exists
+        entry = session.query(SyncBlacklistEntry).filter(SyncBlacklistEntry.pkgname == pkgname).one_or_none()
+        if entry:
+            session.delete(entry)
+        else:
+            print_note('The selected package was not in blacklist. Nothing was removed.')
+
+
 def module_synchrotron_init(options):
     ''' Change the Laniakea Synchrotron module '''
 
     if options.config:
         ask_settings(options)
+    elif options.blacklist_add:
+        info = options.blacklist_add
+        if len(info) != 2:
+            print('Needs a package name and a reason string as paremeters.')
+        add_blacklist_entry(info[0], info[1])
+    elif options.blacklist_remove:
+        remove_blacklist_entry(options.blacklist_remove)
     else:
         print('No action selected.')
         sys.exit(1)
@@ -69,5 +100,9 @@ def add_cli_parser(parser):
 
     sp.add_argument('--config', action='store_true', dest='config',
                     help='Configure this module.')
+    sp.add_argument('--blacklist-add', nargs='+', dest='blacklist_add',
+                    help='Blacklist a package from automatic sync. Takes package name as first, and reason as second parameter.')
+    sp.add_argument('--blacklist-remove', dest='blacklist_remove',
+                    help='Remove a package from the sync blacklist.')
 
     sp.set_defaults(func=module_synchrotron_init)
