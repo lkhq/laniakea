@@ -18,6 +18,8 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import logging as log
+from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template
 from .config import DefaultConfig, INSTANCE_FOLDER_PATH
 
@@ -87,19 +89,15 @@ def configure_logging(app):
         # Skip debug and test mode. Just check standard output.
         return
 
-    import logging
-    import os
-    from logging.handlers import SMTPHandler
-
     # Set info level on logger, which might be overwritten by handers.
     # Suppress DEBUG messages.
-    app.logger.setLevel(logging.INFO)
+    app.logger.setLevel(log.INFO)
 
     os.makedirs(app.config['LOG_FOLDER'], exist_ok=True)
     info_log = os.path.join(app.config['LOG_FOLDER'], 'info.log')
-    info_file_handler = logging.handlers.RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
-    info_file_handler.setLevel(logging.INFO)
-    info_file_handler.setFormatter(logging.Formatter(
+    info_file_handler = RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
+    info_file_handler.setLevel(log.INFO)
+    info_file_handler.setFormatter(log.Formatter(
         '%(asctime)s %(levelname)s: %(message)s '
         '[in %(pathname)s:%(lineno)d]')
     )
