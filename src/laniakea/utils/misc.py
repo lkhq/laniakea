@@ -17,6 +17,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+from contextlib import contextmanager
+
 
 def get_dir_shorthand_for_uuid(uuid):
     '''
@@ -37,3 +40,12 @@ def random_string(length=8):
     import string
 
     return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+
+
+@contextmanager
+def cd(where):
+    ncwd = os.getcwd()
+    try:
+        yield os.chdir(where)
+    finally:
+        os.chdir(ncwd)

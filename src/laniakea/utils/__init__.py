@@ -19,7 +19,7 @@ from lknative import compare_versions
 from laniakea.utils.command import run_command, safe_run
 from laniakea.utils.arches import arch_matches, any_arch_matches
 from laniakea.utils.deb822 import Changes
-from laniakea.utils.misc import get_dir_shorthand_for_uuid, random_string
+from laniakea.utils.misc import get_dir_shorthand_for_uuid, random_string, cd
 
 __all__ = ['compare_versions',
            'arch_matches',
@@ -28,4 +28,5 @@ __all__ = ['compare_versions',
            'get_dir_shorthand_for_uuid',
            'random_string',
            'run_command',
-           'safe_run']
+           'safe_run',
+           'cd']

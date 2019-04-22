@@ -56,15 +56,16 @@ class Germinate:
         self._results_base_dir = os.path.join(workspace, 'results')
 
     def _run_germinate(self, wdir, args):
-        from laniakea.utils import run_command
+        from laniakea.utils import run_command, cd
 
         ge_args = [self._germinate_exe]
         ge_args.extend(args)
 
-        out, err, ret = run_command(ge_args, capture_output=not get_verbose())
-        if ret != 0:
-            return False, '{}\n{}'.format(out, err)
-        return True, out
+        with cd(wdir):
+            out, err, ret = run_command(ge_args, capture_output=not get_verbose())
+            if ret != 0:
+                return False, '{}\n{}'.format(out, err)
+            return True, out
 
     def _update_seed_data(self):
         git = Git()
