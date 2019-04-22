@@ -46,7 +46,6 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
             if suite in db_bpkg.suites:
                 continue  # the binary package is already registered with this suite
             db_bpkg.suites.append(suite)
-            session.update(db_bpkg)
             continue
 
         # if we are here, the package is completely new and is only in one suite
@@ -149,8 +148,9 @@ def command_repo(options):
 
             session.add(spkg)
 
-        for old_spkg in existing_spkgs.keys():
-            old_spkg.suites.remove(suite)
+        for old_spkg in existing_spkgs.values():
+            if suite in old_spkg.suites:
+                old_spkg.suites.remove(suite)
             if len(old_spkg.suites) <= 0:
                 for f in old_spkg.files:
                     session.delete(f)
@@ -193,8 +193,9 @@ def command_repo(options):
                                                                                        arch.name))
             session.commit()
 
-            for old_bpkg in existing_bpkgs.keys():
-                old_bpkg.suites.remove(suite)
+            for old_bpkg in existing_bpkgs.values():
+                if suite in old_bpkg.suites:
+                    old_bpkg.suites.remove(suite)
                 if len(old_bpkg.suites) <= 0:
                     session.delete(old_bpkg.pkg_file)
                     session.delete(old_bpkg)
