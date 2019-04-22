@@ -1,7 +1,7 @@
 [Unit]
 Description=Laniakea Web GUI
 After=syslog.target network.target
-ConditionPathExists=/etc/laniakea/web-config.json
+ConditionPathExists=/var/lib/laniakea-web/config.cfg
 
 [Service]
 Restart=on-failure

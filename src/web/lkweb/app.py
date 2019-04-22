@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 from flask import Flask, render_template
 from .config import DefaultConfig, INSTANCE_FOLDER_PATH
 
@@ -46,7 +47,7 @@ def configure_app(app, config=None):
     '''
 
     app.config.from_object(DefaultConfig)
-    app.config.from_pyfile('lkweb.cfg', silent=True)
+    app.config.from_pyfile('config.cfg', silent=True)
 
     if config:
         app.config.from_object(config)
@@ -94,6 +95,7 @@ def configure_logging(app):
     # Suppress DEBUG messages.
     app.logger.setLevel(logging.INFO)
 
+    os.makedirs(app.config['LOG_FOLDER'], exist_ok=True)
     info_log = os.path.join(app.config['LOG_FOLDER'], 'info.log')
     info_file_handler = logging.handlers.RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
     info_file_handler.setLevel(logging.INFO)
@@ -107,19 +109,6 @@ def configure_logging(app):
     # app.logger.info("testing info.")
     # app.logger.warn("testing warn.")
     # app.logger.error("testing error.")
-
-    mail_handler = SMTPHandler(app.config['MAIL_SERVER'],
-                               app.config['MAIL_USERNAME'],
-                               app.config['ADMINS'],
-                               'Error in Laniakea Web',
-                               (app.config['MAIL_USERNAME'],
-                                app.config['MAIL_PASSWORD']))
-    mail_handler.setLevel(logging.ERROR)
-    mail_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s '
-        '[in %(pathname)s:%(lineno)d]')
-    )
-    app.logger.addHandler(mail_handler)
 
 
 def configure_error_handlers(app):
