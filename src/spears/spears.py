@@ -117,7 +117,7 @@ def command_migrate(options):
 
         # remove old excuses
         for entry in migration_entries:
-            session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == entry.migration_id).delete()
+            session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == entry.make_migration_id()).delete()
 
     for ex in excuses:
         excuse = SpearsExcuse()
