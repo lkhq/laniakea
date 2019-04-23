@@ -99,7 +99,7 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
                              .where(Job.version == spkg.version)
                              .where(Job.architecture == arch.name))
     if ret:
-        return True
+        return False
 
     # check if this package has binaries on already, in that case we don't
     # need a rebuild.
