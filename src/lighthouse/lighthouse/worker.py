@@ -49,7 +49,7 @@ class JobWorker:
                                         WHERE  status=:jstatus_old
                                         AND (architecture=:arch OR architecture='any')
                                         AND kind=:jkind
-                                        ORDER BY priority, time_created DESC
+                                        ORDER BY priority, time_created
                                         LIMIT 1
                                         FOR UPDATE
                                         )

@@ -67,7 +67,7 @@ def queue(page):
         jobs = session.query(Job) \
             .filter(Job.status != JobStatus.DONE) \
             .filter(Job.status != JobStatus.TERMINATED) \
-            .order_by(Job.time_created.desc()) \
+            .order_by(Job.time_created) \
             .slice((page - 1) * jobs_per_page, page * jobs_per_page) \
             .all()
 
