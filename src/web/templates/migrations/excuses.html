@@ -27,9 +27,7 @@
             {% for e in excuses %}
             <a class="list-group-item {{'list-group-item-warning' if not e.is_candidate }}" href="{{ url_for('migrations.view_excuse', uuid=e.uuid) }}">
                 <h4 class="list-group-item-heading">{{e.source_package}}</h4>
-                <p class="mb-1">
-                    {{e.version_old}}<font class="fa fa-long-arrow-right"></font>{{e.version_new}}
-                </p>
+                <p class="mb-1">{{e.version_old}} <i class="fas fa-long-arrow-alt-right"></i> {{e.version_new}}</p>
             </a>
             {% endfor %}
         </div>
