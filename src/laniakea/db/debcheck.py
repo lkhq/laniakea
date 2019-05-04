@@ -76,21 +76,25 @@ class DebcheckIssue(Base):
     package_name = Column(String(256))  # Name of the package this issue affects
     package_version = Column(DebVersion())  # Version of the package this issue affects
 
-    missing = Column(JSON)  # information about missing packages
-    conflicts = Column(JSON)  # information about conflicts
+    _missing_json = Column('missing', JSON)  # information about missing packages
+    _conflicts_json = Column('conflicts', JSON)  # information about conflicts
 
-    def get_issues_missing(self):
-        if not self.missing:
+    @property
+    def missing(self):
+        if not self._missing_json:
             return []
-        return jsonpickle.decode(self.missing)
+        return jsonpickle.decode(self._missing_json)
 
-    def set_issues_missing(self, v):
-        self.missing = jsonpickle.encode(v)
+    @missing.setter
+    def missing(self, v):
+        self._missing_json = jsonpickle.encode(v)
 
-    def get_issues_conflicts(self):
-        if not self.conflicts:
+    @property
+    def conflicts(self):
+        if not self._conflicts_json:
             return []
-        return jsonpickle.decode(self.conflicts)
+        return jsonpickle.decode(self._conflicts_json)
 
-    def set_issues_conflicts(self, v):
-        self.conflicts = jsonpickle.encode(v)
+    @conflicts.setter
+    def conflicts(self, v):
+        self._conflicts_json = jsonpickle.encode(v)

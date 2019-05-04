@@ -96,8 +96,9 @@ def issue_details(suite_name, uuid):
         if not issue:
             abort(404)
 
-        missing = issue.get_issues_missing()
-        conflicts = issue.get_issues_conflicts()
+        # cache information (as it has to be decoded from json)
+        missing = issue.missing
+        conflicts = issue.conflicts
         ptype = 'source' if issue.package_type == PackageType.SOURCE else 'binary'
 
         return render_template('depcheck/issue.html',
