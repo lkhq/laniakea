@@ -39,6 +39,7 @@ extern(C) void PydMain()
     wrapAggregate!(ArchiveFile)();
     wrapAggregate!(SourcePackage)();
     wrapAggregate!(BinaryPackage)();
+    wrapAggregate!(PackageInfo)();
     wrap_class!(Repository,
             Init!(string, string, string, string[]),
 

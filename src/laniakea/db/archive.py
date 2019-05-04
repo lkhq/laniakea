@@ -15,11 +15,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import enum
 import uuid
 from sqlalchemy import Column, Table, Text, String, Integer, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import ARRAY, CHAR
+from sqlalchemy.dialects.postgresql import ARRAY, CHAR, JSON
 from .base import Base, UUID, DebVersion
 
 
@@ -246,10 +247,6 @@ class PackageInfo:
     name = None
     version = None
 
-    section = None
-    priority = PackagePriority.OPTIONAL
-    architectures = []
-
 
 class ArchiveFile(Base):
     '''
@@ -289,11 +286,10 @@ class SourcePackage(Base):
 
     architectures = Column(ARRAY(String(64)))  # List of architectures this source package can be built for
 
-    # TODO
-    #PackageInfo[] binaries; # noqa
+    _binaries_json = Column('binaries', JSON)
 
     standards_version = Column(String(256))
-    pkgformat = Column(String(64))
+    format_version = Column(String(64))
 
     homepage = Column(Text())
     vcs_browser = Column(Text())
@@ -305,6 +301,31 @@ class SourcePackage(Base):
 
     files = relationship('ArchiveFile', back_populates='srcpkg')
     directory = Column(Text())
+
+    @property
+    def binaries(self):
+        data = json.loads(self._binaries_json)
+        res = []
+        for e in data:
+            info = PackageInfo()
+            info.deb_type = e.get('deb_type', DebType.DEB)
+            info.name = e.get('name')
+            info.version = e.get('version')
+            res.append(info)
+        return info
+
+    @binaries.setter
+    def binaries(self, value):
+        if not type(value) is list:
+            value = [value]
+
+        data = []
+        for v in value:
+            d = {'deb_type': v.deb_type,
+                 'name': v.name,
+                 'version': v.version}
+            data.append(d)
+        self._binaries_json = json.dumps(data)
 
     def update_uuid(self):
         if not self.repo:

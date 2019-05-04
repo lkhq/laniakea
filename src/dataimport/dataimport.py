@@ -27,7 +27,7 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 from argparse import ArgumentParser
 from laniakea import LocalConfig
 from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
-    ArchiveFile
+    ArchiveFile, PackageInfo
 from lknative import Repository
 
 
@@ -131,13 +131,22 @@ def command_repo(options):
             spkg.component = component
             spkg.architectures = spi.architectures
             spkg.standards_version = spi.standardsVersion
-            #spkg.pkgformat = spi.pkgformat # noqa
+            spkg.format_version = spi.format
             spkg.homepage = spi.homepage
             spkg.vcs_browser = spi.vcsBrowser
             spkg.maintainer = spi.maintainer
             spkg.uploaders = spi.uploaders
             spkg.build_depends = spi.buildDepends
             spkg.directory = spi.directory
+
+            binaries = []
+            for b in spi.binaries:
+                binfo = PackageInfo()
+                binfo.deb_type = b.debType
+                binfo.name = b.name
+                binfo.version = b.ver
+                binaries.append(binfo)
+            spkg.binaries = binfo
 
             for fi in spi.files:
                 f = ArchiveFile()
