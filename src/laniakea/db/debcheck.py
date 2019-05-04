@@ -15,41 +15,47 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import jsonpickle
-from typing import List
+import json
 from sqlalchemy import Column, Text, String, Integer, DateTime, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSON
+from marshmallow import Schema, fields, EXCLUDE
 from uuid import uuid4
 from datetime import datetime
 from .base import Base, UUID, DebVersion
 from .archive import PackageType
 
 
-class PackageIssue:
+class PackageIssue(Schema):
     '''
     Information about the package issue reason.
     '''
-    package_type: PackageType
-    package_name: str
-    package_version: str
-    architecture: str
+    package_type = fields.Int()  # PackageType enum
+    package_name = fields.Str()
+    package_version = fields.Str()
+    architecture = fields.Str()
 
-    depends: str
-    unsat_dependency: str
-    unsat_conflict: str
+    depends = fields.Str()
+    unsat_dependency = fields.Str()
+    unsat_conflict = fields.Str()
+
+    class Meta:
+        unknown = EXCLUDE
 
 
-class PackageConflict:
+class PackageConflict(Schema):
     '''
     Information about a conflict between packages.
     '''
 
-    pkg1: PackageIssue
-    pkg2: PackageIssue
+    pkg1 = fields.Nested(PackageIssue())
+    pkg2 = fields.Nested(PackageIssue())
 
-    depchain1: List[PackageIssue]
-    depchain2: List[PackageIssue]
+    depchain1 = fields.List(fields.Nested(PackageIssue()))
+    depchain2 = fields.List(fields.Nested(PackageIssue()))
+
+    class Meta:
+        unknown = EXCLUDE
 
 
 class DebcheckIssue(Base):
@@ -83,18 +89,20 @@ class DebcheckIssue(Base):
     def missing(self):
         if not self._missing_json:
             return []
-        return jsonpickle.decode(self._missing_json)
+        jlist = json.loads(self._missing_json)
+        return [PackageIssue().load(d) for d in jlist]
 
     @missing.setter
     def missing(self, v):
-        self._missing_json = jsonpickle.encode(v)
+        self._missing_json = json.dumps([PackageIssue().dump(e) for e in v])
 
     @property
     def conflicts(self):
         if not self._conflicts_json:
             return []
-        return jsonpickle.decode(self._conflicts_json)
+        jlist = json.loads(self._conflicts_json)
+        return [PackageConflict().load(d) for d in jlist]
 
     @conflicts.setter
     def conflicts(self, v):
-        self._conflicts_json = jsonpickle.encode(v)
+        self._conflicts_json = json.dumps([PackageConflict().dump(e) for e in v])
