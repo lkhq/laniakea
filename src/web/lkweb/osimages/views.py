@@ -29,7 +29,7 @@ osimages = Blueprint('osimages',
 def last_jobs_for_recipe(session, recipe):
     return session.query(Job) \
         .filter(Job.trigger == recipe.uuid) \
-        .order_by(Job.time_created).desc() \
+        .order_by(Job.time_created.desc()) \
         .slice(0, 4) \
         .all()
 
