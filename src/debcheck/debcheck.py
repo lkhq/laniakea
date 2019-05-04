@@ -91,7 +91,7 @@ def _update_debcheck_issues(session, repo, si, new_issues, package_type):
         missing = list()
         for m in ni.missing:
             missing.append(_native_issue_to_package_issue(m))
-        issue.set_issues_missing(missing)
+        issue.missing = missing
 
         conflicts = list()
         for c in ni.conflicts:
@@ -102,7 +102,7 @@ def _update_debcheck_issues(session, repo, si, new_issues, package_type):
             pc.depchain1 = [_native_issue_to_package_issue(npi) for npi in c.depchain1]
             pc.depchain2 = [_native_issue_to_package_issue(npi) for npi in c.depchain2]
             conflicts.append(pc)
-        issue.set_issues_conflicts(conflicts)
+        issue.conflicts = conflicts
 
         session.add(issue)
 
