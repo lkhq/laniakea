@@ -18,7 +18,16 @@
 import logging as log
 
 
+__all__ = ['log',
+           'set_verbose',
+           'get_verbose']
+
+
 __verbose_logging = False
+
+
+if not __verbose_logging:
+    log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y-%d-%m %H:%M:%S')
 
 
 def set_verbose(enabled):
@@ -28,9 +37,10 @@ def set_verbose(enabled):
     __verbose_logging = enabled
     logging_set_verbose(enabled)
 
-    log.basicConfig(level=log.INFO, format="[%(levelname)s] %(message)s")
+    log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y-%d-%m %H:%M:%S')
     if enabled:
-        log.basicConfig(level=log.DEBUG, format="[%(levelname)s] %(message)s")
+        log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y-%d-%m %H:%M:%S')
+        log.getLogger().setLevel(log.DEBUG)
 
 
 def get_verbose():
