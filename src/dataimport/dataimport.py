@@ -326,7 +326,7 @@ def command_repo(options):
             import_appstream_data(session, local_repo, repo, suite, component, arch)
 
     # delete orphaned AppStream metadata
-    for cpt in session.query(SoftwareComponent).filter(SoftwareComponent.bin_packages == None).all():
+    for cpt in session.query(SoftwareComponent).filter(not SoftwareComponent.bin_packages).all():
         session.delete(cpt)
     session.commit()
 
