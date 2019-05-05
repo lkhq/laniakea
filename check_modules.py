@@ -14,7 +14,8 @@ modules_base = ['sqlalchemy',
                 'firehose',
                 'humanize',
                 'marshmallow',
-                'tornado']
+                'tornado',
+                'gi']
 
 
 modules_web = ['flask',
@@ -30,6 +31,17 @@ def ensure_modules(modules):
         if not spec:
             print('Unable to find Python module: {}'.format(mod_name))
             sys.exit(2)
+
+
+def ensure_gir():
+    import gi
+
+    try:
+        gi.require_version('AppStream', '1.0')
+        from gi.repository import AppStream  # noqa
+    except ValueError:
+        print('Laniakea requires AppStream GObject introspection data. Please install it to continue.')
+        sys.exit(2)
 
 
 def ensure_python():
@@ -48,6 +60,7 @@ def run(args):
         ensure_modules(modules_web)
     else:
         ensure_modules(modules_base)
+        ensure_gir()
 
     return 0
 
