@@ -90,19 +90,23 @@ class DebcheckIssue(Base):
         if not self._missing_json:
             return []
         jlist = json.loads(self._missing_json)
-        return [PackageIssue().load(d) for d in jlist]
+        schema = PackageIssue()
+        return [schema.load(d) for d in jlist]
 
     @missing.setter
     def missing(self, v):
-        self._missing_json = json.dumps([PackageIssue().dump(e) for e in v])
+        schema = PackageIssue()
+        self._missing_json = json.dumps([schema.dump(e) for e in v])
 
     @property
     def conflicts(self):
         if not self._conflicts_json:
             return []
         jlist = json.loads(self._conflicts_json)
-        return [PackageConflict().load(d) for d in jlist]
+        schema = PackageConflict()
+        return [schema.load(d) for d in jlist]
 
     @conflicts.setter
     def conflicts(self, v):
-        self._conflicts_json = json.dumps([PackageConflict().dump(e) for e in v])
+        schema = PackageConflict()
+        self._conflicts_json = json.dumps([schema.dump(e) for e in v])
