@@ -43,7 +43,7 @@ def get_newest_sources_index(session, repo, suite):
     spkgs = session.query(SourcePackage) \
         .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id)) \
         .filter(SourcePackage.repo_id == repo.id) \
-        .order_by(SourcePackage.version) \
+        .order_by(SourcePackage.version.desc()) \
         .all()
 
     for pkg in spkgs:

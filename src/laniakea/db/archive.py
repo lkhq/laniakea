@@ -26,6 +26,7 @@ from .base import Base, UUID, DebVersion
 
 UUID_NS_SRCPACKAGE = uuid.UUID('bdc4cc28-43ed-58f7-8cf8-7bd1b4e80560')
 UUID_NS_BINPACKAGE = uuid.UUID('b897829c-2eb4-503c-afd1-0fd74da8cc2b')
+UUID_NS_SWCOMPONENT = uuid.UUID('94c8e196-e236-48fe-81c8-38dd47de4650')
 
 
 repo_suite_assoc_table = Table('archive_repo_suite_association', Base.metadata,
@@ -68,6 +69,11 @@ srcpkg_suite_assoc_table = Table('archive_srcpkg_suite_association', Base.metada
 binpkg_suite_assoc_table = Table('archive_binpkg_suite_association', Base.metadata,
                                  Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid')),
                                  Column('suite_id', Integer, ForeignKey('archive_suites.id'))
+                                 )
+
+swcpt_binpkg_assoc_table = Table('archive_swcpt_binpkg_association', Base.metadata,
+                                 Column('sw_cpt_uuid', UUID(as_uuid=True), ForeignKey('archive_sw_components.uuid')),
+                                 Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid'))
                                  )
 
 
@@ -280,9 +286,11 @@ class SourcePackage(Base):
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     repo = relationship('ArchiveRepository')
+
     suites = relationship('ArchiveSuite', secondary=srcpkg_suite_assoc_table, back_populates='src_packages')  # Suites this package is in
 
-    component_id = Column(Integer, ForeignKey('archive_components.id'))  # Component this package is in
+    component_id = Column(Integer, ForeignKey('archive_components.id'))
+    component = relationship('ArchiveComponent')  # Component this package is in
 
     architectures = Column(ARRAY(String(64)))  # List of architectures this source package can be built for
 
@@ -350,6 +358,10 @@ class SourcePackage(Base):
         return '{}::source/{}/{}'.format(repo_name, self.name, self.version)
 
 
+def auto_binpkg_uuid(context):
+    return context.get_current_parameters()['counter'] + 12
+
+
 class BinaryPackage(Base):
     '''
     Data of a binary package.
@@ -364,8 +376,11 @@ class BinaryPackage(Base):
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     repo = relationship('ArchiveRepository')
+
     suites = relationship('ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='bin_packages')  # Suites this package is in
-    component_id = Column(Integer, ForeignKey('archive_components.id'))  # Component this package is in
+
+    component_id = Column(Integer, ForeignKey('archive_components.id'))
+    component = relationship('ArchiveComponent')  # Component this package is in
 
     architecture_id = Column(Integer, ForeignKey('archive_architectures.id'))
     architecture = relationship('ArchiveArchitecture')  # Architecture this binary was built for
@@ -389,6 +404,7 @@ class BinaryPackage(Base):
     homepage = Column(Text())
 
     pkg_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg')
+    sw_cpts = relationship('SoftwareComponent', secondary=swcpt_binpkg_assoc_table, back_populates='bin_packages')
 
     def update_uuid(self):
         if not self.repo:
@@ -427,66 +443,46 @@ class SoftwareComponent(Base):
 
     icon_name = Column(String(256))  # Name of the primary cached icon of this component
 
-    project_license = Column(String(256))  # License of this software
+    project_license = Column(Text())  # License of this software
     developer_name = Column(Text())  # Name of the developer of this software
 
-    categories = Column(ARRAY(String(64)))  # Categories this component is in
+    categories = Column(ARRAY(String(128)))  # Categories this component is in
 
+    bin_packages = relationship('BinaryPackage', secondary=swcpt_binpkg_assoc_table, back_populates='sw_cpts')  # Packages this software component is contained in
 
-    # TODO # noqa
-"""
-    BinaryPackage[] binPackages;
+    xml = Column(Text())  # XML representation in AppStream collection XML for this component
 
-    ASComponent _cpt; /// The AppStream component this database entity represents
+    cpt = None
 
-    string xml;  /// XML representation in AppStream collection XML for this component
-    string yaml; /// YAML representation of the AppStream component data
+    def update_uuid(self):
+        '''
+        Update the unique identifier for this component.
+        '''
+        if not self.gcid and not self.xml:
+            raise Exception('Global component ID is not set for this component, and no XML data was found for it. Can not create UUID.')
 
-    alias _cpt this;
+        self.uuid = uuid.uuid5(UUID_NS_SWCOMPONENT, self.gcid if self.gcid else self.xml)
+        return self.uuid
 
-    /**
-     * Load the actual AppStream component from stored XML or YAML data,
-     * using an existing AppStream metadata parser instance.
-     */
-    public void load (Metadata mdata) @trusted
-    {
-        import appstream.c.types : FormatStyle, FormatKind;
+    def load(self, mdata=None):
+        '''
+        Load the actual AppStream component from stored XML data.
+        An existing Metadata instance can be reused.
+        '''
+        if not mdata:
+            import gi
+            gi.require_version('AppStream', '1.0')
+            from gi.repository import AppStream
+            mdata = AppStream.Metadata()
 
-        mdata.clearComponents ();
-        mdata.setFormatStyle (FormatStyle.COLLECTION);
+        mdata.clear_components()
+        mdata.set_format_style(AppStream.FormatStyle.COLLECTION)
 
-        if (!xml.empty)
-            mdata.parse (xml, FormatKind.XML);
-        else if (!yaml.empty)
-            mdata.parse (yaml, FormatKind.YAML);
-        else
-            throw new Exception("Can not load AppStream component from empty data.");
+        if not self.xml:
+            raise Exception('Can not load AppStream component from empty data.')
 
-        _cpt = mdata.getComponent ();
-        _cpt.setActiveLocale ("C");
-    }
+        mdata.parse(self.xml)
+        self.cpt = mdata.get_component()
+        self.cpt.set_active_locale('C')
 
-    /**
-     * Load the actual AppStream component from stored XML or YAML data.
-     */
-    public void load () @trusted
-    {
-        auto mdata = new Metadata;
-        load (mdata);
-    }
-
-    /**
-     * Update the unique identifier for this component.
-     */
-    public void updateUUID ()
-    {
-        import std.uuid : sha1UUID;
-        if (!gcid.empty)
-            this.uuid = sha1UUID (gcid);
-        else if (!xml.empty)
-            this.uuid = sha1UUID (xml);
-        else if (!yaml.empty)
-            this.uuid = sha1UUID (yaml);
-    }
-
-"""
+        return self.cpt

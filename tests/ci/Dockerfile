@@ -20,7 +20,9 @@ RUN apt-get install -yq --no-install-recommends \
     libczmq-dev \
     libarchive-dev \
     libpq-dev \
-    postgresql
+    postgresql \
+    libappstream-dev \
+    gir1.2-appstream-1.0
 
 RUN apt-get install -yq --no-install-recommends \
     python3-pip \

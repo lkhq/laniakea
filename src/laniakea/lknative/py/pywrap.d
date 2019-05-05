@@ -46,6 +46,7 @@ extern(C) void PydMain()
             Def!(Repository.getSourcePackages),
             Def!(Repository.getBinaryPackages),
             Def!(Repository.getInstallerPackages),
+            Def!(Repository.getIndexFile),
     )();
 
     /* Synchrotron */

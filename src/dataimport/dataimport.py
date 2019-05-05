@@ -24,11 +24,18 @@ if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
+import json
+import gzip
+import lzma
 from argparse import ArgumentParser
 from laniakea import LocalConfig
+from laniakea.logging import log
 from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
-    ArchiveFile, PackageInfo
+    ArchiveFile, PackageInfo, SoftwareComponent
 from lknative import Repository
+import gi
+gi.require_version('AppStream', '1.0')
+from gi.repository import AppStream
 
 
 def _register_binary_packages(session, repo, suite, component, arch, existing_bpkgs, bpkgs):
@@ -79,6 +86,111 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
         session.add(bpkg)
 
     return existing_bpkgs
+
+
+def import_appstream_data(session, local_repo, repo, suite, component, arch):
+    '''
+    Import AppStream metadata about software components and associate it with the
+    binary packages the data belongs to.
+    '''
+
+    yaml_fname = local_repo.getIndexFile(suite.name, os.path.join(component.name, 'dep11', 'Components-{}.yml.xz'.format(arch.name)))
+    if not yaml_fname:
+        return
+
+    cidmap_fname = local_repo.getIndexFile(suite.name, os.path.join(component.name, 'dep11', 'CID-Index-{}.json.gz'.format(arch.name)))
+    if not cidmap_fname:
+        return
+
+    with gzip.open(cidmap_fname, 'rb') as f:
+        cid_map = json.loads(f.read())
+    with lzma.open(yaml_fname, 'r') as f:
+        yaml_data = str(f.read(), 'utf-8')
+
+    mdata = AppStream.Metadata()
+    mdata.set_locale('ALL')
+    mdata.set_format_style(AppStream.FormatStyle.COLLECTION)
+    mdata.set_parse_flags(AppStream.ParseFlags.IGNORE_MEDIABASEURL)
+
+    mdata.parse(yaml_data, AppStream.FormatKind.YAML)
+    cpts = mdata.get_components()
+    if len(cpts) == 0:
+        return
+
+    log.debug('Found {} software components in {}/{}'.format(len(cpts), suite.name, component.name))
+
+    tmp_mdata = AppStream.Metadata()
+    tmp_mdata.set_locale('ALL')
+    tmp_mdata.set_format_style(AppStream.FormatStyle.COLLECTION)
+
+    for cpt in cpts:
+        cpt.set_active_locale('C')
+
+        pkgname = cpt.get_pkgname()
+        if not pkgname:
+            # we skip these for now, web-apps have no package assigned - we might need a better way to map
+            # those to their packages, likely with an improved appstream-generator integration
+            log.debug('Found DEP-11 component without package name in {}/{}: {}'.format(suite.name, component.name, cpt.get_id()))
+            continue
+
+        # fetch package this component belongs to
+        bin_pkg = session.query(BinaryPackage) \
+            .filter(BinaryPackage.name == pkgname) \
+            .filter(BinaryPackage.repo_id == repo.id) \
+            .filter(BinaryPackage.architecture_id == arch.id) \
+            .filter(BinaryPackage.component_id == component.id) \
+            .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \
+            .order_by(BinaryPackage.version.desc()).first()
+
+        if not bin_pkg:
+            log.info('Found orphaned DEP-11 component in {}/{}: {}'.format(suite.name, component.name, cpt.get_id()))
+            continue
+
+        dcpt = SoftwareComponent()
+        dcpt.kind = int(cpt.get_kind())
+        dcpt.cid = cpt.get_id()
+
+        tmp_mdata.clear_components()
+        tmp_mdata.add_component(cpt)
+        dcpt.xml = tmp_mdata.components_to_collection(AppStream.FormatKind.XML)
+
+        dcpt.gcid = cid_map.get(dcpt.cid)
+        if not dcpt.gcid:
+            log.info('Found DEP-11 component without GCID in {}/{}: {}'.format(suite.name, component.name, cpt.get_id()))
+
+        # create UUID for this component (based on GCID or XML data)
+        dcpt.update_uuid()
+
+        existing_dcpt = session.query(SoftwareComponent) \
+            .filter(SoftwareComponent.uuid == dcpt.uuid).one_or_none()
+        if existing_dcpt:
+            if bin_pkg in existing_dcpt.bin_packages:
+                continue  # the binary package is already registered with this component
+            existing_dcpt.bin_packages.append(bin_pkg)
+            continue  # we already have this component, no need to add it again
+
+        # add new software component to database
+        dcpt.name = cpt.get_name()
+        dcpt.summary = cpt.get_summary()
+        dcpt.description = cpt.get_description()
+
+        for icon in cpt.get_icons():
+            if icon.get_kind() == AppStream.IconKind.CACHED:
+                dcpt.icon_name = icon.get_name()
+                break
+
+        dcpt.project_license = cpt.get_project_license()
+        dcpt.developer_name = cpt.get_developer_name()
+
+        dcpt.categories = []
+        for cat in cpt.get_categories():
+            dcpt.categories.append(cat)
+
+        dcpt.bin_packages = [bin_pkg]
+
+        session.add(dcpt)
+        log.debug('Added new software component \'{}\' to database'.format(dcpt.cid))
+    session.commit()
 
 
 def command_repo(options):
@@ -210,7 +322,13 @@ def command_repo(options):
                     session.delete(old_bpkg)
             session.commit()
 
-            # TODO: Add AppStream information as well
+            # import new AppStream component metadata
+            import_appstream_data(session, local_repo, repo, suite, component, arch)
+
+    # delete orphaned AppStream metadata
+    for cpt in session.query(SoftwareComponent).filter(SoftwareComponent.bin_packages == None).all():
+        session.delete(cpt)
+    session.commit()
 
 
 def create_parser(formatter_class=None):
