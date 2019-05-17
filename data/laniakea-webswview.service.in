@@ -1,15 +1,20 @@
 [Unit]
 Description=Laniakea Web Software View GUI
 After=syslog.target network.target
-ConditionPathExists=/etc/laniakea/swview-web-config.json
+ConditionPathExists=/var/lib/laniakea-webswview/config.cfg
 
 [Service]
-Type=simple
 Restart=on-failure
-ProtectSystem=full
+
+#ProtectSystem=full
+#ProtectHome=true
+
 User=lkweb
 Group=www-data
-ExecStart=@LKSWWEB_INSTALL_BIN@
+WorkingDirectory=@LKSWWEB_INSTALL_DIR@
+
+RuntimeDirectory=lkweb
+ExecStart=/usr/bin/uwsgi --ini lkwebswview.ini
 
 [Install]
 WantedBy=multi-user.target

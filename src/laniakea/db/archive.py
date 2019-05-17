@@ -18,10 +18,11 @@
 import json
 import enum
 import uuid
-from sqlalchemy import Column, Table, Text, String, Integer, Enum, ForeignKey, Boolean
+from sqlalchemy import Column, Table, Index, Text, String, Integer, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import ARRAY, CHAR, JSON
-from .base import Base, UUID, DebVersion
+from sqlalchemy.dialects.postgresql import ARRAY, CHAR, JSON, TEXT
+from sqlalchemy.sql import func, cast
+from .base import Base, UUID, DebVersion, create_tsvector
 
 
 UUID_NS_SRCPACKAGE = uuid.UUID('bdc4cc28-43ed-58f7-8cf8-7bd1b4e80560')
@@ -405,6 +406,20 @@ class BinaryPackage(Base):
 
     pkg_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg')
     sw_cpts = relationship('SoftwareComponent', secondary=swcpt_binpkg_assoc_table, back_populates='bin_packages')
+
+    __ts_vector__ = create_tsvector(
+        cast(func.coalesce(name, ''), TEXT),
+        cast(func.coalesce(description, ''), TEXT),
+        cast(func.coalesce(source_name, ''), TEXT)
+    )
+
+    __table_args__ = (
+        Index(
+            'idx_bin_package_fts',
+            __ts_vector__,
+            postgresql_using='gin'
+        ),
+    )
 
     def update_uuid(self):
         if not self.repo:

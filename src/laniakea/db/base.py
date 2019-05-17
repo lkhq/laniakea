@@ -21,6 +21,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import UserDefinedType
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
 from contextlib import contextmanager
 from ..localconfig import LocalConfig
 
@@ -29,7 +30,8 @@ __all__ = ['Base',
            'DebVersion',
            'Database',
            'UUID',
-           'session_scope']
+           'session_scope',
+           'create_tsvector']
 
 
 Base = declarative_base()
@@ -94,3 +96,10 @@ def session_scope():
         raise
     finally:
         session.close()
+
+
+def create_tsvector(*args):
+    exp = args[0]
+    for e in args[1:]:
+        exp += ' ' + e
+    return func.to_tsvector('english', exp)

@@ -1,0 +1,28 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Package search results for {{term}}' %}
+
+{% block body_header %}
+<h1 class="h2">Package search results for {{term}}</h1>
+{% endblock %}
+
+{% block body %}
+<p>{{ results_count }} results found.</p>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="list-group">
+            {% for p in packages %}
+            <a class="list-group-item" href="{{ url_for('packages.bin_package_details', name=p.name, version=p.version) }}">
+                <h4 class="list-group-item-heading">{{p.name}}</h4>
+                <b>Found in:</b> {{ p.suites|join(', ', attribute='name') }} - {{p.component.name}}<br/>
+                <b>Version:</b> {{ p.version }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<br/>
+
+{% endblock %}

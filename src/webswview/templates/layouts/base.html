@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ page_title }}{% endblock %} - {{ config.PROJECT }}</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous"/>
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='css/laniakea-swview.css') }}" rel="stylesheet">
+    {% block css %}{% endblock %}
+
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark navbar-static-top navbar-expand-md" role="navigation">
+        <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display-->
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>☰
+        </button>
+        <a class="navbar-brand" href="{{ url_for('portal.index') }}">{{ config.PROJECT }}</a>
+        <div id="bs-example-navbar-collapse-1" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="#">Packages</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">Suites</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">Search</a>
+            </li>
+            </ul>
+        </div>
+        </div>
+    </nav>
+
+    {% block container %}
+
+    <div class="container">
+
+      {% block breadcrumbs %}{% endblock %}
+
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            {% block body_header %}{% endblock %}
+      </div>
+      {% block flash_message %}
+        {% with messages = get_flashed_messages(with_categories=True) %}
+            {% if messages %}
+            {% for category, msg in messages %}
+                <div class="alert alert-{{ category }}">
+                {{ msg|safe }}
+                </div>
+            {% endfor %}
+            {% endif %}
+      {% endwith %}
+      {% endblock %}
+
+      {% block body %}{% endblock %}
+    </div>
+    {% endblock %}
+
+    <footer class="text-muted">
+        <div class="container">
+        <br/>
+        <br/>
+        <p class="float-right">
+            <small>
+            <a href="#">Back to top</a>
+            </small>
+        </p>
+        <p>
+            <small>
+            Powered by
+            <a href="https://github.com/lkorigin/laniakea">laniakea-swview</a>.
+            </small>
+        </p>
+        </div>
+    </footer>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+{% block js %}{% endblock %}
+
+</body>
+</html>

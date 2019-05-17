@@ -1,0 +1,47 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Overview' %}
+
+{% block body_header %}
+<section class="jumbotron text-center">
+    <div class="container">
+        <h1 class="jumbotron-heading">{{ config.PROJECT }}</h1>
+        <p class="lead text-muted">
+        Want to find out which software is available in {{ config.OS_NAME }}? Use the search function to find particular software, or
+        browser the software catalog to find out which applications, software components and packages are available!
+        </p>
+        <p>
+        <a class="btn btn-primary my-2" href="#">Browse Software</a>
+        <a class="btn btn-secondary my-2" href="#">Browse Packages</a>
+        </p>
+    </div>
+</section>
+{% endblock %}
+
+{% block body %}
+
+<!-- Page Content-->
+<h2 class="lead">Software Search</h2>
+<form class="form-inline" action="/search_sw" method="GET">
+<div class="form-group w-75">
+    <input class="form-control w-75" id="term" type="text" autofocus="" name="term" placeholder="Search software components...">
+    <div class="input-group-append">
+    <button class="btn btn-outline-secondary" type="submit">
+        <span class="fa fa-search fa-lg" aria-hidden="true"></span>
+    </button>
+    </div>
+</div>
+</form>
+<h2 class="lead mt-md-5">Package Search</h2>
+<form class="form-inline" action="/search_pkg" method="GET">
+<div class="form-group w-75">
+    <input class="form-control w-75" id="term" type="text" name="term" placeholder="Search packages...">
+    <div class="input-group-append">
+    <button class="btn btn-outline-secondary" type="submit">
+        <span class="fa fa-search fa-lg" aria-hidden="true"></span>
+    </button>
+    </div>
+</div>
+</form>
+
+{% endblock %}
