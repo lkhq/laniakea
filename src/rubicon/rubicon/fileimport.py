@@ -47,6 +47,7 @@ def accept_upload(conf, dud):
             return
 
         job.result = JobResult.SUCCESS if job_success else JobResult.FAILURE
+        job.latest_log_excerpt = None
 
         # move the log file and Firehose reports to the log storage
         log_target_dir = os.path.join(conf.log_storage_dir, get_dir_shorthand_for_uuid(job_id))
