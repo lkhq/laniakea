@@ -67,7 +67,7 @@
         <b>Developer:</b> {{sw.developer_name}}
         <br/>
         {% endif %}
-        <b>License:</b> {{sw.project_license}}
+        <b>License:</b> {{sw.project_license if sw.project_license else 'Unknown'}}
         <br/>
         <br/>
 
@@ -78,7 +78,7 @@
 
         <h4>Packages</h4>
         <div class="list-group">
-        {% for pkg in bin_packages %}
+        {% for pkg in sw.bin_packages %}
             <a class="list-group-item" href="{{ url_for('packages.bin_package_details', name=pkg.name, version=pkg.version) }}">{{pkg.name}} - {{pkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{pkg.architecture.name}}</span></a>
         {% endfor %}
         </div>
