@@ -53,8 +53,6 @@ class LocalConfig:
                 with open(fname) as json_file:
                     jdata = json.load(json_file)
 
-            self._project_name = jdata.get('ProjectName', '')
-
             jarchive = jdata.get('Archive')
             if not jarchive:
                 raise Exception('No "Archive" configuration found in local config file. Please specify archive details!')
@@ -99,10 +97,6 @@ class LocalConfig:
             self._trusted_gpg_keyring_dir = jdata.get('TrustedGpgKeyringDir')
             if self._trusted_gpg_keyring_dir:
                 self._trusted_gpg_keyrings = glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))
-
-        @property
-        def project_name(self) -> str:
-            return self._project_name
 
         @property
         def workspace(self) -> str:

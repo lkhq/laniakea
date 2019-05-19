@@ -19,6 +19,7 @@
 
 import os
 from laniakea import LocalConfig
+from laniakea.db import config_get_project_name
 
 # Instance folder path
 INSTANCE_FOLDER_PATH = '/var/lib/laniakea-webswview/'
@@ -29,7 +30,7 @@ class BaseConfig(object):
     PROJECT = 'Laniakea Software View'
     BUG_REPORT_URL = 'https://github.com/lkorigin/laniakea/issues'
 
-    OS_NAME = LocalConfig().project_name
+    OS_NAME = config_get_project_name()
 
     LOG_STORAGE_URL = '/raw/logs'  # web URL where raw logs are stored by Rubicon
     APPSTREAM_MEDIA_URL = LocalConfig().archive_appstream_media_url
