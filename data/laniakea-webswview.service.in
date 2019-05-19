@@ -13,7 +13,7 @@ User=lkweb
 Group=www-data
 WorkingDirectory=@LKSWWEB_INSTALL_DIR@
 
-RuntimeDirectory=lkweb
+RuntimeDirectory=lkswweb
 ExecStart=/usr/bin/uwsgi --ini lkwebswview.ini
 
 [Install]
