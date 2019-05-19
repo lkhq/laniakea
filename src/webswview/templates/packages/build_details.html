@@ -1,10 +1,9 @@
 {% extends 'layouts/base.html' %}
 
-{% set active_menu = 'jobqueue' %}
-{% set page_title = 'Job: ' + job_title %}
+{% set page_title = 'Build ' + spkg.name + ' ' + job.version + ' on ' + job.architecture %}
 
 {% block body_header %}
-<h1 class="h2">{{job_title}}</h1>
+<h2>Build {{spkg.name}} {{job.version}} on {{job.architecture}}</h2>
 {% endblock %}
 
 {% block body %}
@@ -16,7 +15,7 @@
 {% if job.time_finished %}<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>{% endif %}
 <br/>
 {% if worker %}
-<b>Worker:</b> <a href="{{ url_for('jobs.workers') }}">{{worker.name}}</a><br/>
+<b>Worker:</b> {{worker.name}}<br/>
 {% endif %}
 
 <b>Status:</b>
@@ -75,11 +74,18 @@
 {% endif %}
 
 
-{% block job_details %}{% endblock %}
+<h3>Details</h3>
+<p>
+<b>Repository:</b> {{spkg.repo.name}}<br/>
+<b>Suite:</b> {{suite_name}}<br/>
+<b>Maintainer:</b> {{spkg.maintainer.replace('@', '[at]')}}<br/>
+{% if spkg.uploaders %}<b>Uploaders:</b> {{'; '.join(spkg.uploaders).replace('@', '[at]')}}<br/>{% endif %}
+<b>Version:</b> {{job.version}}<br/>
+<b>Architecture:</b> <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{job.architecture}}</span><br/>
+</p>
 
 {% if log_url %}
 <p><a class="btn btn-info" href="{{log_url}}" role="button">View Full Log</a></p>
-
 {% else %}
 
 <h3>Log Excerpt</h3>
@@ -90,6 +96,6 @@
     </div>
   </div>
 </div>
-{% endif %}
+{%endif %}
 
 {% endblock %}

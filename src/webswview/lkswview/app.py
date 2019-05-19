@@ -63,10 +63,12 @@ def configure_blueprints(app):
     from .api import api
     from .portal import portal
     from .packages import packages
+    from .software import software
 
     blueprints = [api,
                   portal,
-                  packages]
+                  packages,
+                  software]
 
     for bp in blueprints:
         app.register_blueprint(bp)

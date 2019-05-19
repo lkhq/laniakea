@@ -1,0 +1,75 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Source package ' + pkg.name + '/' + pkg.version %}
+
+{% block body_header %}
+{% endblock %}
+
+{% block body %}
+
+<div class="row">
+    <div class="col-md-3">
+        <p class="lead">Versions</p>
+        <div class="list-group">
+        {% for ver in versions %}
+            <a class="list-group-item {{ 'active' if ver == pkg.version }}" href="{{ url_for('packages.src_package_details', name=pkg.name, version=ver) }}">{{ver}}</a>
+        {% endfor %}
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="thumbnail">
+            <div class="caption-full">
+                <h3>
+                    {{pkg.name}} - {{pkg.version}}
+                    <small>
+                        <span class="badge {{'badge-primary' if pkg.component.name == 'main' else 'badge-secondary'}}">{{pkg.component.name}}</span>
+                    </small>
+                </h3>
+
+                <b>Suites:</b> {% for s in suites %}<span class="badge badge-pill badge-info">{{s.name}}</span>&nbsp;{% endfor %}
+                <br/><br/>
+                <b>Maintainer:</b> {{pkg.maintainer}}
+                <br/>
+                {% if pkg.uploaders %}
+                <b>Uploaders:</b>
+                  <ul>
+                  {% for id in pkg.uploaders %}
+                    <li>{{id}}</li>
+                  {% endfor %}
+                </ul>
+                {% else %}
+                <br>
+                {% endif %}
+                <b>Format:</b> {{pkg.format_version}}
+                <br/>
+                <b>Standards Version:</b> {{pkg.standards_version}}
+                <br/>
+                <b>Architectures</b>: {% for src_arch in pkg.architectures %}<span class="badge badge-pill badge-secondary"><i class="far fa-dot-circle"></i> {{src_arch}}</span>&nbsp;{% endfor %}
+                <br/><br/>
+
+                {% if pkg.homepage %}
+                <a class="btn btn-outline-success" href="{{pkg.homepage}}" role="button">Homepage</a>
+                {% endif %}
+
+                <a class="btn btn-outline-info" href="{{ url_for('packages.builds_list', name=pkg.name, page=1) }}" role="button">Build Jobs</a>
+
+                {% if pkg.vcs_browser %}
+                <a class="btn btn-outline-secondary" href="{{pkg.vcs_browser}}" role="button">VCS Browser</a>
+                {% endif %}
+
+                <br/><br/>
+
+                {% if pkg.build_depends %}
+                <h4>Build Dependencies</h4>
+                <ul>
+                {% for dep in pkg.build_depends %}
+                    <li>{{dep}}</li>
+		{% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

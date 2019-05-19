@@ -1,11 +1,69 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Binary package {{pkg.name}}/{{pkg.version}}' %}
+{% set page_title = 'Binary package ' + pkg.name + '/' + pkg.version %}
 
 {% block body_header %}
-<h1 class="h2">{{pkg.name}} - {{pkg.version}}</h1>
 {% endblock %}
 
 {% block body %}
+
+<div class="row">
+    <div class="col-md-3">
+        <p class="lead">Versions</p>
+        <div class="list-group">
+        {% for ver in versions %}
+            <a class="list-group-item {{ 'active' if ver == pkg.version }}" href="{{ url_for('packages.bin_package_details', name=pkg.name, version=ver) }}">{{ver}}</a>
+        {% endfor %}
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('packages.src_package_details', name=pkg.source_name, version=pkg.source_version) }}" role="button" style="margin-top: 100%;">Source Package</a>
+    </div>
+    <div class="col-md-9">
+        <div class="thumbnail">
+            <div class="caption-full">
+                <h3>
+                    {{pkg.name}} - {{pkg.version}}
+                    <small>
+                        <span class="badge {{'badge-primary' if pkg.component.name == 'main' else 'badge-secondary'}}">{{pkg.component.name}}</span>
+                    </small>
+                </h3>
+                <p>{{pkg.description}}</p>
+                <b>Section:</b> {{pkg.section}}
+                <br/>
+                <b>Suites:</b> {% for s in suites %}<span class="badge badge-pill badge-info">{{s.name}}</span>&nbsp;{% endfor %}
+                <br/>
+                <b>Maintainer:</b> {{pkg.maintainer}}
+                <br/><br/>
+                {% if pkg.homepage %}
+                <a class="btn btn-outline-success" href="{{pkg.homepage}}" role="button">Homepage</a>
+                <br/><br/>
+                {% endif %}
+
+                {% if pkg.pre_depends %}
+                <h4>Pre-Dependencies</h4>
+                <ul>
+                {% for dep in pkg.pre_depends %}
+                    <li>{{dep}}</li>
+		{% endfor %}
+                </ul>
+                {% endif %}
+
+                {% if pkg.depends %}
+                <h4>Dependencies</h4>
+                <ul>
+                {% for dep in pkg.depends %}
+                    <li>{{dep}}</li>
+		{% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+
+        <p>
+        <b>Installed Size</b>: {{naturalsize(pkg.size_installed * 1024)}}
+        <br/>
+        <b>Architectures</b>: {% for a in architectures %}<span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{a.name}}</span>&nbsp;{% endfor %}
+        </p>
+    </div>
+</div>
 
 {% endblock %}

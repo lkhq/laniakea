@@ -21,7 +21,7 @@ import os
 from laniakea import LocalConfig
 
 # Instance folder path
-INSTANCE_FOLDER_PATH = '/var/lib/laniakea-swweb/'
+INSTANCE_FOLDER_PATH = '/var/lib/laniakea-webswview/'
 
 
 class BaseConfig(object):
@@ -30,6 +30,9 @@ class BaseConfig(object):
     BUG_REPORT_URL = 'https://github.com/lkorigin/laniakea/issues'
 
     OS_NAME = LocalConfig().project_name
+
+    LOG_STORAGE_URL = '/raw/logs'  # web URL where raw logs are stored by Rubicon
+    APPSTREAM_MEDIA_URL = LocalConfig().archive_appstream_media_url
 
     # Get app root path, also can use flask.root_path.
     # ../../config.py

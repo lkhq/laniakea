@@ -1,0 +1,33 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Software search results for "' + term + '"' %}
+
+{% block body_header %}
+<h2>Software search results for {{term}}</h2>
+{% endblock %}
+
+{% block body %}
+<p>{{ results_count }} results found.</p>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="list-group">
+            {% for sw in software %}
+            <a class="list-group-item" href="{{ url_for('software.details', cid=sw.cid) }}">
+              {% if sw.icon_name %}
+              <img class="rounded float-left mx-auto d-block pr-1" src="{{ config.APPSTREAM_MEDIA_URL + '/' + sw.gcid + '/icons/64x64/' + sw.icon_name }}" alt="Icon">
+              {% else %}
+              <img class="rounded float-left mx-auto d-block pr-1" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PGRlZnMvPjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjEzLjQ2MDkzNzUiIHk9IjMyIiBzdHlsZT0iZmlsbDojQUFBQUFBO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1mYW1pbHk6QXJpYWwsIEhlbHZldGljYSwgT3BlbiBTYW5zLCBzYW5zLXNlcmlmLCBtb25vc3BhY2U7Zm9udC1zaXplOjEwcHQ7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+NjR4NjQ8L3RleHQ+PC9nPjwvc3ZnPg==" alt="Icon">
+              {% endif %}
+
+              <h4 class="list-group-item-heading">{{sw.name}}</h4>
+              {{sw.summary}}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<br/>
+
+{% endblock %}

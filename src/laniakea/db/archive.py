@@ -467,6 +467,20 @@ class SoftwareComponent(Base):
 
     xml = Column(Text())  # XML representation in AppStream collection XML for this component
 
+    __ts_vector__ = create_tsvector(
+        cast(func.coalesce(name, ''), TEXT),
+        cast(func.coalesce(summary, ''), TEXT),
+        cast(func.coalesce(description, ''), TEXT)
+    )
+
+    __table_args__ = (
+        Index(
+            'idx_sw_components_fts',
+            __ts_vector__,
+            postgresql_using='gin'
+        ),
+    )
+
     cpt = None
 
     def update_uuid(self):
@@ -496,7 +510,7 @@ class SoftwareComponent(Base):
         if not self.xml:
             raise Exception('Can not load AppStream component from empty data.')
 
-        mdata.parse(self.xml)
+        mdata.parse(self.xml, AppStream.FormatKind.XML)
         self.cpt = mdata.get_component()
         self.cpt.set_active_locale('C')
 

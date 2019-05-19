@@ -80,6 +80,7 @@ class LocalConfig:
 
             self._archive_root_dir = jarchive['path']
             self._archive_url = jarchive.get('url', '#')
+            self._archive_appstream_media_url = jarchive.get('appstream_media_url', 'https://appstream.debian.org/media/pool')
 
             self._lighthouse_endpoint = jdata.get('LighthouseEndpoint')
 
@@ -122,6 +123,10 @@ class LocalConfig:
         @property
         def archive_url(self) -> str:
             return self._archive_url
+
+        @property
+        def archive_appstream_media_url(self) -> str:
+            return self._archive_appstream_media_url
 
         @property
         def lighthouse_endpoint(self) -> str:

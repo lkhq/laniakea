@@ -1,0 +1,88 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = sw.name %}
+
+{% block body_header %}
+{% endblock %}
+
+{% block body %}
+
+<div class="row">
+    <div class="col-md-3">
+        <p class="lead">Placeholder</p>
+        <div class="list-group">
+            <a class="list-group-item active" href="#">Placeholder</a>
+        </div>
+    </div>
+    <div class="col-md-9">
+        {% if sw.icon_name %}
+        <img class="pr-2 rounded float-left" src="{{ config.APPSTREAM_MEDIA_URL + '/' + sw.gcid + '/icons/64x64/' + sw.icon_name }}" alt="Icon">
+        {% else %}
+        <img class="pr-2 rounded float-left" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PGRlZnMvPjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjEzLjQ2MDkzNzUiIHk9IjMyIiBzdHlsZT0iZmlsbDojQUFBQUFBO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1mYW1pbHk6QXJpYWwsIEhlbHZldGljYSwgT3BlbiBTYW5zLCBzYW5zLXNlcmlmLCBtb25vc3BhY2U7Zm9udC1zaXplOjEwcHQ7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+NjR4NjQ8L3RleHQ+PC9nPjwvc3ZnPg==" alt="Icon">
+        {% endif %}
+
+        <h3>{{sw.name}}</h3>
+        <p class="lead text-muted">
+            {{sw.summary}}
+        </p>
+
+        {% if screenshots %}
+        <div id="carouselScreenshots" class="carousel slide border" data-ride="carousel">
+            <ol class="carousel-indicators">
+              <li data-target="#carouselScreenshots" data-slide-to="0" class="active"></li>
+              <li data-target="#carouselScreenshots" data-slide-to="1"></li>
+              <li data-target="#carouselScreenshots" data-slide-to="2"></li>
+            </ol>
+            <div class="carousel-inner">
+
+            {% for scr in screenshots %}
+                <div class="carousel-item {{ 'active' if loop.index == 1 }}">
+                    <img class="d-block w-100" src="{{ screenshot_get_orig_image_url(scr) }}" alt="...">
+                </div>
+               {% if scr.get_caption() %}
+                <div class="carousel-caption d-none d-md-block">
+                    <p>{{scr.get_caption() }}</p>
+                </div>
+                {% endif %}
+            {% endfor %}
+            </div>
+
+        <a class="carousel-control-prev" href="#carouselScreenshots" role="button" data-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="sr-only">Previous</span>
+        </a>
+        <a class="carousel-control-next" href="#carouselScreenshots" role="button" data-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="sr-only">Next</span>
+        </a>
+        </div>
+        {% endif %}
+
+        <br/>
+        <div>
+        {{sw.description|safe}}
+        </div>
+
+        {% if sw.developer_name %}
+        <b>Developer:</b> {{sw.developer_name}}
+        <br/>
+        {% endif %}
+        <b>License:</b> {{sw.project_license}}
+        <br/>
+        <br/>
+
+        {% if cpt.get_url(AppStream.UrlKind.HOMEPAGE) %}
+	<a class="btn btn-outline-success" href="{{cpt.get_url(AppStream.UrlKind.HOMEPAGE)}}" role="button">Homepage</a>
+        <br/><br/>
+        {% endif %}
+
+        <h4>Packages</h4>
+        <div class="list-group">
+        {% for pkg in bin_packages %}
+            <a class="list-group-item" href="{{ url_for('packages.bin_package_details', name=pkg.name, version=pkg.version) }}">{{pkg.name}} - {{pkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{pkg.architecture.name}}</span></a>
+        {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

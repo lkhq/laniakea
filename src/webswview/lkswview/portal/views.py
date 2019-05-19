@@ -19,7 +19,7 @@
 
 import math
 from flask import Blueprint, render_template, request, flash, redirect, url_for
-from laniakea.db import session_scope, BinaryPackage
+from laniakea.db import session_scope, BinaryPackage, SoftwareComponent
 from sqlalchemy.sql import func
 
 portal = Blueprint('portal', __name__)
@@ -54,3 +54,29 @@ def search_pkg():
                                results_per_page=results_per_page,
                                page_count=page_count,
                                packages=packages)
+
+
+@portal.route('/search_sw', methods=['GET', 'POST'])
+def search_software():
+    term = request.args.get('term')
+    if not term:
+        flash('The search term was invalid.')
+        return redirect(url_for('portal.index'))
+
+    with session_scope() as session:
+        q = session.query(SoftwareComponent) \
+            .filter(SoftwareComponent.__ts_vector__.op('@@')(func.plainto_tsquery(term))) \
+            .distinct(SoftwareComponent.cid)
+
+        results_count = q.count()
+        software = q.all()
+
+        results_per_page = results_count
+        page_count = math.ceil(results_count / results_per_page) if results_per_page > 0 else 1
+
+        return render_template('software_search_results.html',
+                               term=term,
+                               results_count=results_count,
+                               results_per_page=results_per_page,
+                               page_count=page_count,
+                               software=software)
