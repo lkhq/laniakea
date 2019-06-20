@@ -438,6 +438,11 @@ class BinaryPackage(Base):
         return '{}::{}/{}/{}'.format(repo_name, self.name, self.version, arch_name)
 
 
+# index to speed up data imports, where packages belonging to a certain repository/arch combination
+# are requested frequently
+bin_package_repo_arch_index = Index('idx_bin_package_repo_arch', BinaryPackage.repo_id, BinaryPackage.architecture_id)
+
+
 class SoftwareComponent(Base):
     '''
     Description of a software component as described by the AppStream
