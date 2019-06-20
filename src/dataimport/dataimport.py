@@ -32,6 +32,7 @@ from laniakea import LocalConfig
 from laniakea.logging import log
 from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
     ArchiveFile, PackageInfo, SoftwareComponent
+from sqlalchemy.orm import joinedload
 from lknative import Repository
 import gi
 gi.require_version('AppStream', '1.0')
@@ -220,7 +221,9 @@ def command_repo(options):
         # FIXME: Urgh... We need to do this better, this is not efficient.
         existing_spkgs = dict()
         all_existing_src_packages = session.query(SourcePackage) \
-            .filter(SourcePackage.repo_id == repo.id).all()
+            .options(joinedload(SourcePackage.suites)) \
+            .filter(SourcePackage.repo_id == repo.id) \
+            .filter(SourcePackage.component_id == component.id).all()
         for e_spkg in all_existing_src_packages:
             existing_spkgs[e_spkg.uuid] = e_spkg
 
@@ -286,7 +289,9 @@ def command_repo(options):
             # FIXME: Urgh... We need to do this better, this is not efficient.
             existing_bpkgs = dict()
             for e_bpkg in session.query(BinaryPackage) \
+                    .options(joinedload(BinaryPackage.suites)) \
                     .filter(BinaryPackage.repo_id == repo.id) \
+                    .filter(BinaryPackage.component_id == component.id) \
                     .filter(BinaryPackage.architecture_id == arch.id).all():
                 existing_bpkgs[e_bpkg.uuid] = e_bpkg
 

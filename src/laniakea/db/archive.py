@@ -440,7 +440,9 @@ class BinaryPackage(Base):
 
 # index to speed up data imports, where packages belonging to a certain repository/arch combination
 # are requested frequently
-bin_package_repo_arch_index = Index('idx_bin_package_repo_arch', BinaryPackage.repo_id, BinaryPackage.architecture_id)
+bin_package_repo_arch_index = Index('idx_bin_package_repo_arch',
+                                    BinaryPackage.repo_id,
+                                    BinaryPackage.architecture_id)
 
 
 class SoftwareComponent(Base):
