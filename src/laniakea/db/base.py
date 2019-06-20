@@ -63,7 +63,7 @@ class Database:
                 lconf = LocalConfig()
             self._lconf = lconf
 
-            self._engine = create_engine(self._lconf.database_url)
+            self._engine = create_engine(self._lconf.database_url, client_encoding='utf8')
             self._SessionFactory = sessionmaker(bind=self._engine)
 
         def create_tables(self):
