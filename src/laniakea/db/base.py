@@ -31,7 +31,8 @@ __all__ = ['Base',
            'Database',
            'UUID',
            'session_scope',
-           'create_tsvector']
+           'create_tsvector',
+           'print_query']
 
 
 Base = declarative_base()
@@ -103,3 +104,15 @@ def create_tsvector(*args):
     for e in args[1:]:
         exp += ' ' + e
     return func.to_tsvector('english', exp)
+
+
+def print_query(query):
+    '''
+    Print a SQLAlchemy query with literals inserted and
+    adjusted for the PostgreSQL dialect.
+    '''
+    from sqlalchemy.dialects import postgresql
+
+    sql = query.statement.compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True})
+    print('---- SQL (with literals) ----')
+    print(str(sql))

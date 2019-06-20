@@ -30,8 +30,8 @@ import lzma
 from argparse import ArgumentParser
 from laniakea import LocalConfig
 from laniakea.logging import log
-from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
-    ArchiveFile, PackageInfo, SoftwareComponent
+from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, ArchiveArchitecture, \
+    SourcePackage, BinaryPackage, ArchiveFile, PackageInfo, SoftwareComponent
 from sqlalchemy.orm import joinedload
 from lknative import Repository
 import gi
@@ -95,6 +95,14 @@ def import_appstream_data(session, local_repo, repo, suite, component, arch):
     binary packages the data belongs to.
     '''
 
+    if arch.name == 'all':
+        # arch:all has no AppStream components, those are always associated with an architecture
+        # and are included in arch-specific files (even if the package they belong to is arch:all)
+        return
+
+    arch_all = session.query(ArchiveArchitecture) \
+                      .filter(ArchiveArchitecture.name == 'all').one()
+
     yaml_fname = local_repo.getIndexFile(suite.name, os.path.join(component.name, 'dep11', 'Components-{}.yml.xz'.format(arch.name)))
     if not yaml_fname:
         return
@@ -138,7 +146,7 @@ def import_appstream_data(session, local_repo, repo, suite, component, arch):
         bin_pkg = session.query(BinaryPackage) \
             .filter(BinaryPackage.name == pkgname) \
             .filter(BinaryPackage.repo_id == repo.id) \
-            .filter(BinaryPackage.architecture_id == arch.id) \
+            .filter(BinaryPackage.architecture_id.in_((arch.id, arch_all.id))) \
             .filter(BinaryPackage.component_id == component.id) \
             .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \
             .order_by(BinaryPackage.version.desc()).first()
