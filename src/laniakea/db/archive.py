@@ -18,7 +18,6 @@
 import json
 import enum
 import uuid
-from urllib.parse import urljoin
 from sqlalchemy import Column, Table, Index, Text, String, Integer, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql import ARRAY, CHAR, JSON, TEXT
@@ -274,7 +273,10 @@ class ArchiveFile(Base):
     srcpkg = relationship('SourcePackage', back_populates='files')
 
     def make_url(self, urlbase):
-        return urljoin(urlbase, self.fname)
+        if urlbase[-1] == '/':
+            return urlbase + str(self.fname)
+        else:
+            return urlbase + '/' + str(self.fname)
 
 
 class SourcePackage(Base):
