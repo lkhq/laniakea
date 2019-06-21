@@ -76,7 +76,7 @@ class LocalConfig:
                                                                                                 port=databasePort,
                                                                                                 dbname=databaseName)
 
-            self._archive_root_dir = jarchive['path']
+            self._archive_root_dir = jarchive.get('path', '/nonexistent')
             self._archive_url = jarchive.get('url', '#')
             self._archive_appstream_media_url = jarchive.get('appstream_media_url', 'https://appstream.debian.org/media/pool')
 
