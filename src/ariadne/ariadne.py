@@ -30,6 +30,7 @@ from laniakea import LkModule
 from laniakea.utils import any_arch_matches
 from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
     DebcheckIssue, PackageType, Job, JobStatus, JobKind
+from sqlalchemy.orm import undefer
 
 
 def get_newest_sources_index(session, repo, suite):
@@ -41,6 +42,8 @@ def get_newest_sources_index(session, repo, suite):
 
     res_spkgs = {}
     spkgs = session.query(SourcePackage) \
+        .options(undefer(SourcePackage.version)) \
+        .options(undefer(SourcePackage.architectures)) \
         .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id)) \
         .filter(SourcePackage.repo_id == repo.id) \
         .order_by(SourcePackage.version.desc()) \
