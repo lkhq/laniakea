@@ -106,13 +106,13 @@ def create_tsvector(*args):
     return func.to_tsvector('english', exp)
 
 
-def print_query(query):
+def print_query(query, literals=True):
     '''
     Print a SQLAlchemy query with literals inserted and
     adjusted for the PostgreSQL dialect.
     '''
     from sqlalchemy.dialects import postgresql
 
-    sql = query.statement.compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True})
+    sql = query.statement.compile(dialect=postgresql.dialect(), compile_kwargs={'literal_binds': literals})
     print('---- SQL (with literals) ----')
     print(str(sql))

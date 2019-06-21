@@ -59,29 +59,31 @@ def get_newest_sources_index(session, repo, suite):
     return res_spkgs
 
 
-def binaries_for_package(session, repo, spkg, arch):
+def binaries_exist_for_package(session, repo, spkg, arch):
     '''
     Get list of binary packages built for the given source package.
     '''
 
-    return session.query(BinaryPackage) \
+    eq = session.query(BinaryPackage) \
         .filter(BinaryPackage.repo_id == repo.id) \
         .filter(BinaryPackage.source_name == spkg.name) \
         .filter(BinaryPackage.source_version == spkg.version) \
-        .filter(BinaryPackage.architecture == arch).all()
+        .filter(BinaryPackage.architecture == arch).exists()
+    return session.query(eq).scalar()
 
 
-def debcheck_issues_for_package(session, suite, spkg, arch):
+def debcheck_has_issues_for_package(session, suite, spkg, arch):
     '''
     Get Debcheck issues related to the given source package.
     '''
 
-    return session.query(DebcheckIssue) \
+    eq = session.query(DebcheckIssue) \
         .filter(DebcheckIssue.package_type == PackageType.SOURCE) \
         .filter(DebcheckIssue.suite == suite) \
         .filter(DebcheckIssue.package_name == spkg.name) \
         .filter(DebcheckIssue.package_version == spkg.version) \
-        .filter(DebcheckIssue.architecture == arch.name).all()
+        .filter(DebcheckIssue.architecture == arch.name).exists()
+    return session.query(eq).scalar()
 
 
 def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=False):
@@ -106,14 +108,12 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
 
     # check if this package has binaries on already, in that case we don't
     # need a rebuild.
-    bins = binaries_for_package(session, repo, spkg, arch)
-    if len(bins) > 0:
+    if binaries_exist_for_package(session, repo, spkg, arch):
         return False
 
     # we have no binaries, looks like we might need to schedule a build job
     # check if all dependencies are there
-    issues = debcheck_issues_for_package(session, incoming_suite, spkg, arch)
-    if len(issues) > 0:
+    if debcheck_has_issues_for_package(session, incoming_suite, spkg, arch):
         return False
 
     # no issues found and a build seems required.
