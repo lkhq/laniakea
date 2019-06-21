@@ -11,15 +11,22 @@
 
 <div class="row">
     <div class="col-md-8">
-        <div class="list-group">
+        <ul class="list-group">
             {% for p in packages %}
-            <a class="list-group-item" href="{{ url_for('packages.bin_package_details', name=p.name, version=p.version) }}">
+            <li class="list-group-item" style="padding-left: 0.75rem">
                 <h4 class="list-group-item-heading">{{p.name}}</h4>
-                <b>Found in:</b> {{ p.suites|join(', ', attribute='name') }} - {{p.component.name}}<br/>
-                <b>Version:</b> {{ p.version }}
-            </a>
+                <b>Version:</b> {{ p.version }}<br/>
+                <div class="list-group list-group-flush">
+                    {% for ps in p.suites %}
+                    <a class="list-group-item d-flex justify-content-between align-items-center" href="{{ url_for('packages.bin_package_details', suite_name=ps.name, name=p.name) }}">
+                      {{ ps.name }}
+                      <span class="badge badge-secondary badge-pill">{{p.component.name}}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </li>
             {% endfor %}
-        </div>
+        </ul>
     </div>
 </div>
 

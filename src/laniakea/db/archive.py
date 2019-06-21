@@ -18,6 +18,7 @@
 import json
 import enum
 import uuid
+from urllib.parse import urljoin
 from sqlalchemy import Column, Table, Index, Text, String, Integer, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql import ARRAY, CHAR, JSON, TEXT
@@ -268,9 +269,12 @@ class ArchiveFile(Base):
     sha256sum = Column(CHAR(64))  # the files' checksum
 
     srcpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid'))
-    binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid'))
+    binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid'), unique=True, nullable=True)
     binpkg = relationship('BinaryPackage', back_populates='pkg_file')
     srcpkg = relationship('SourcePackage', back_populates='files')
+
+    def make_url(self, urlbase):
+        return urljoin(urlbase, self.fname)
 
 
 class SourcePackage(Base):

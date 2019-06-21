@@ -76,12 +76,20 @@
         <br/><br/>
         {% endif %}
 
+
         <h4>Packages</h4>
-        <div class="list-group">
-        {% for pkg in sw.bin_packages %}
-            <a class="list-group-item" href="{{ url_for('packages.bin_package_details', name=pkg.name, version=pkg.version) }}">{{pkg.name}} - {{pkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{pkg.architecture.name}}</span></a>
-        {% endfor %}
+        {% for suite_name, pkgs in packages_map.items() %}
+        <div class="card">
+            <h6 class="card-header">Suite: {{suite_name}}</h6>
+            <div class="card-body" style="padding: 0">
+                <div class="list-group">
+                    {% for pkg in pkgs %}
+                        <a class="list-group-item" href="{{ url_for('packages.bin_package_details', suite_name=suite_name, name=pkg.name) }}">{{pkg.name}} - {{pkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{pkg.architecture.name}}</span></a>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
+        {% endfor %}
     </div>
 </div>
 

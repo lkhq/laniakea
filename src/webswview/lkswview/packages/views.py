@@ -20,8 +20,9 @@
 import math
 import humanize
 from flask import current_app, Blueprint, render_template, abort
-from laniakea.db import session_scope, BinaryPackage, SourcePackage, \
+from laniakea.db import session_scope, BinaryPackage, SourcePackage, ArchiveSuite, \
     Job, JobStatus, JobResult, SparkWorker
+from sqlalchemy.orm import undefer, joinedload
 from laniakea.utils import get_dir_shorthand_for_uuid
 from ..utils import humanized_timediff, is_uuid
 
@@ -30,34 +31,34 @@ packages = Blueprint('packages',
                      url_prefix='/package')
 
 
-@packages.route('/bin/<name>/<version>')
-def bin_package_details(name, version):
+@packages.route('/bin/<suite_name>/<name>')
+def bin_package_details(suite_name, name):
     with session_scope() as session:
         bpkgs = session.query(BinaryPackage) \
+            .options(joinedload(BinaryPackage.architecture)) \
+            .options(joinedload(BinaryPackage.pkg_file)) \
+            .options(undefer(BinaryPackage.version)) \
             .filter(BinaryPackage.name == name) \
-            .order_by(BinaryPackage.version.desc()) \
-            .all()
+            .filter(BinaryPackage.suites.any(ArchiveSuite.name == suite_name)) \
+            .order_by(BinaryPackage.version.desc()).all()
         if not bpkgs:
             abort(404)
 
-        # TODO: Doing this in Python is probably inefficient, we could also
-        # directly fetch the informatuion with some SQL to improve performance
-        suites = set()
+        suites = [s[0] for s in session.query(ArchiveSuite.name.distinct()) \
+                                       .filter(ArchiveSuite.bin_packages.any(BinaryPackage.name == name)) \
+                                       .all()]
+
         architectures = set()
-        versions = set()
-        bpkg_rep = None
+        bpkg_rep = bpkgs[0]
         for bpkg in bpkgs:
-            suites.update(bpkg.suites)
             architectures.add(bpkg.architecture)
-            versions.add(bpkg.version)
-            if bpkg.version == version:
-                bpkg_rep = bpkg
         if not bpkg_rep:
             abort(404)
 
         return render_template('packages/bin_details.html',
                                pkg=bpkg_rep,
-                               versions=versions,
+                               pkgs_all=bpkgs,
+                               pkg_suite_name=suite_name,
                                suites=suites,
                                architectures=architectures,
                                naturalsize=humanize.naturalsize)

@@ -18,7 +18,8 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 from flask import current_app, Blueprint, render_template, abort
-from laniakea.db import session_scope, SoftwareComponent
+from laniakea.db import session_scope, BinaryPackage, SoftwareComponent
+from sqlalchemy.orm import joinedload
 import gi
 gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
@@ -40,10 +41,20 @@ def details(cid):
     with session_scope() as session:
         # FIXME: Fetch all components with the ID and display them by version
         sw = session.query(SoftwareComponent) \
+            .options(joinedload(SoftwareComponent.bin_packages) \
+                     .joinedload(BinaryPackage.suites)) \
             .filter(SoftwareComponent.cid == cid) \
             .first()
         if not sw:
             abort(404)
+
+        # FIXME: This loop is probably inefficient too...
+        packages_map = dict()
+        for bpkg in sw.bin_packages:
+            for suite in bpkg.suites:
+                if not suite.name in packages_map:
+                    packages_map[suite.name] = list()
+                packages_map[suite.name].append(bpkg)
 
         # parse AppStream metadata
         # FIXME: Inefficient!!!
@@ -56,4 +67,5 @@ def details(cid):
                                screenshot_get_orig_image_url=screenshot_get_orig_image_url,
                                sw=sw,
                                cpt=cpt,
+                               packages_map=packages_map,
                                screenshots=screenshots)

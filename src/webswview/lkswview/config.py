@@ -34,6 +34,7 @@ class BaseConfig(object):
 
     LOG_STORAGE_URL = '/raw/logs'  # web URL where raw logs are stored by Rubicon
     APPSTREAM_MEDIA_URL = LocalConfig().archive_appstream_media_url
+    ARCHIVE_URL = LocalConfig().archive_url
 
     # Get app root path, also can use flask.root_path.
     # ../../config.py

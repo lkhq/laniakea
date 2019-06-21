@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Binary package ' + pkg.name + '/' + pkg.version %}
+{% set page_title = 'Binary package ' + pkg.name + '/' + pkg.version + ' in ' + pkg_suite_name %}
 
 {% block body_header %}
 {% endblock %}
@@ -9,10 +9,10 @@
 
 <div class="row">
     <div class="col-md-3">
-        <p class="lead">Versions</p>
+        <p class="lead">Suites</p>
         <div class="list-group">
-        {% for ver in versions %}
-            <a class="list-group-item {{ 'active' if ver == pkg.version }}" href="{{ url_for('packages.bin_package_details', name=pkg.name, version=ver) }}">{{ver}}</a>
+        {% for suite_name in suites %}
+            <a class="list-group-item {{ 'active' if suite_name == pkg_suite_name }}" href="{{ url_for('packages.bin_package_details', suite_name=suite_name, name=pkg.name) }}">{{suite_name}}</a>
         {% endfor %}
         </div>
         <a class="btn btn-outline-secondary" href="{{ url_for('packages.src_package_details', name=pkg.source_name, version=pkg.source_version) }}" role="button" style="margin-top: 100%;">Source Package</a>
@@ -29,7 +29,7 @@
                 <p>{{pkg.description}}</p>
                 <b>Section:</b> {{pkg.section}}
                 <br/>
-                <b>Suites:</b> {% for s in suites %}<span class="badge badge-pill badge-info">{{s.name}}</span>&nbsp;{% endfor %}
+                <b>Suites:</b> {% for s in suites %}<span class="badge badge-pill badge-info">{{s}}</span>&nbsp;{% endfor %}
                 <br/>
                 <b>Maintainer:</b> {{pkg.maintainer}}
                 <br/><br/>
@@ -63,6 +63,13 @@
         <br/>
         <b>Architectures</b>: {% for a in architectures %}<span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{a.name}}</span>&nbsp;{% endfor %}
         </p>
+
+        <h4>Versions</h4>
+        <div class="list-group">
+        {% for vpkg in pkgs_all %}
+          <a class="list-group-item" href="{{ vpkg.pkg_file.make_url(config.ARCHIVE_URL) }}">{{vpkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{vpkg.architecture.name}}</span></a>
+        {% endfor %}
+        </div>
     </div>
 </div>
 
