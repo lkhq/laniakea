@@ -44,8 +44,8 @@ def bin_package_details(suite_name, name):
         if not bpkgs:
             abort(404)
 
-        suites = [s[0] for s in session.query(ArchiveSuite.name.distinct()) \
-                                       .filter(ArchiveSuite.bin_packages.any(BinaryPackage.name == name)) \
+        suites = [s[0] for s in session.query(ArchiveSuite.name.distinct())
+                                       .filter(ArchiveSuite.bin_packages.any(BinaryPackage.name == name))
                                        .all()]
 
         architectures = set()

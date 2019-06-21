@@ -41,7 +41,7 @@ def details(cid):
     with session_scope() as session:
         # FIXME: Fetch all components with the ID and display them by version
         sw = session.query(SoftwareComponent) \
-            .options(joinedload(SoftwareComponent.bin_packages) \
+            .options(joinedload(SoftwareComponent.bin_packages)
                      .joinedload(BinaryPackage.suites)) \
             .filter(SoftwareComponent.cid == cid) \
             .first()
@@ -52,7 +52,7 @@ def details(cid):
         packages_map = dict()
         for bpkg in sw.bin_packages:
             for suite in bpkg.suites:
-                if not suite.name in packages_map:
+                if suite.name not in packages_map:
                     packages_map[suite.name] = list()
                 packages_map[suite.name].append(bpkg)
 
