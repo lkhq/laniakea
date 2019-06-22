@@ -11,6 +11,11 @@ $DC --version
 #
 
 #
+# Dependencies
+#
+pip3 install -r requirements.txt
+
+#
 # Build & Test
 #
 

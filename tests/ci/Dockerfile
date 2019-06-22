@@ -29,6 +29,7 @@ RUN apt-get install -yq --no-install-recommends \
     python3-setuptools \
     python3-pytest \
     python3-gi \
+    python3-cairo-dev \
     python3-sqlalchemy \
     python3-psycopg2 \
     python3-debian \
@@ -40,8 +41,6 @@ RUN apt-get install -yq --no-install-recommends \
     python3-pytest-flask \
     python3-humanize \
     python3-marshmallow
-RUN pip3 install firehose
-RUN pip3 install flask-caching
 
 # install PyD dependencies
 RUN apt-get install -yq --no-install-recommends \
