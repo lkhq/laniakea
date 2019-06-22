@@ -47,6 +47,7 @@ def run(source_root, dscanner_config):
     print('===========================')
 
     subprocess.run(['dscanner', '--version'])
+    print()
 
     cmd = ['dscanner',
            '--styleCheck', os.path.join(source_root, 'src'),
