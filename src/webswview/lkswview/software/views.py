@@ -59,7 +59,7 @@ def details(cid):
                 packages_map[suite.name].append(bpkg)
 
         # parse AppStream metadata
-        # FIXME: Inefficient!!!
+        # FIXME: Parsing XML is expensive, we can cache this aggressively
         cpt = sw.load()
 
         screenshots = cpt.get_screenshots()

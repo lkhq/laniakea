@@ -56,12 +56,11 @@ class BaseConfig(object):
 
 class DefaultConfig(BaseConfig):
 
+    DEBUG = False
+    CACHE_TYPE = 'simple'
+
+
+class DebugConfig(BaseConfig):
+
     DEBUG = True
-
-    SENTRY_DSN = ""
-
-    MAIL_HOST = ""
-    FROM_ADDR = ""
-    TO_ADDRS = [""]
-    MAIL_USERNAME = ""
-    MAIL_PASSWORD = ""
+    CACHE_TYPE = 'null'

@@ -21,7 +21,7 @@ import math
 import humanize
 from flask import current_app, Blueprint, render_template, abort, url_for
 from laniakea.db import session_scope, BinaryPackage, SourcePackage, ArchiveSuite, \
-    Job, JobStatus, JobResult, SparkWorker, ArchiveArchitecture, DebcheckIssue
+    Job, JobStatus, JobResult, SparkWorker, ArchiveArchitecture
 from sqlalchemy.orm import undefer, joinedload
 from laniakea.utils import get_dir_shorthand_for_uuid
 from ..extensions import cache
@@ -50,6 +50,11 @@ def make_linked_dependency(suite_name, depstr):
         dep_urls.append(url)
 
     return ' | '.join(dep_urls)
+
+
+@cache.memoize(3600)
+def all_architectures(session):
+    return session.query(ArchiveArchitecture).all()
 
 
 @packages.route('/bin/<suite_name>/<name>')
@@ -132,13 +137,16 @@ def builds_list(name, page):
         page_count = math.ceil(jobs_total / jobs_per_page)
 
         jobs_list = session.query(Job) \
-                          .filter(Job.trigger == spkg.source_uuid) \
-                          .order_by(Job.time_created.desc()) \
-                          .slice((page - 1) * jobs_per_page, page * jobs_per_page) \
-                          .all()
+                           .filter(Job.trigger == spkg.source_uuid) \
+                           .order_by(Job.time_created.desc()) \
+                           .slice((page - 1) * jobs_per_page, page * jobs_per_page) \
+                           .all()
 
+        # create by-architecture view on jobs
         jobs_arch = {}
-        for j in jobs:
+        for arch in all_architectures(session):
+            jobs_arch[arch.name] = []
+        for j in jobs_list:
             if j.architecture not in jobs_arch:
                 jobs_arch[j.architecture] = []
             jobs_arch[j.architecture].append(j)
@@ -147,7 +155,7 @@ def builds_list(name, page):
                                JobStatus=JobStatus,
                                humanized_timediff=humanized_timediff,
                                pkg=spkg,
-                               jobs=jobs,
+                               jobs_arch=jobs_arch,
                                jobs_per_page=jobs_per_page,
                                jobs_total=jobs_total,
                                current_page=page,

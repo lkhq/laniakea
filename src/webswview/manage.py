@@ -17,9 +17,10 @@
 
 from flask_script import Manager
 from lkswview import create_app
+from lkswview.config import DebugConfig
 
 
-app = create_app()
+app = create_app(config=DebugConfig)
 manager = Manager(app)
 
 
