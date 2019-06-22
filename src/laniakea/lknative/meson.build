@@ -47,6 +47,7 @@ lknative_deps = [pyd_dep,
 ]
 
 lkdrcompat_lib = static_library('lkdrcompat', 'druntime.c')
+data_import_dir = include_directories('../../../data/')
 
 lknative_pylib = shared_library('lknative',
     [lknative_src],
@@ -54,7 +55,7 @@ lknative_pylib = shared_library('lknative',
     include_directories: [lknative_src_dir],
     dependencies: lknative_deps,
     objects: lkdrcompat_lib.extract_objects('druntime.c'),
-    d_import_dirs: [source_root + '/data/'],
+    d_import_dirs: [data_import_dir],
     install: true,
     install_dir : 'lib/laniakea/laniakea/'
 )
@@ -64,7 +65,7 @@ lk_pynative_test_exe = executable ('lk_test_lknative',
     [lknative_src],
     dependencies: lknative_deps,
     include_directories: [lknative_src_dir],
-    d_import_dirs: [source_root + '/data/'],
+    d_import_dirs: [data_import_dir],
     d_unittest: true,
     link_args: '-main',
 )
