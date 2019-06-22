@@ -67,5 +67,6 @@ def details(cid):
                                screenshot_get_orig_image_url=screenshot_get_orig_image_url,
                                sw=sw,
                                cpt=cpt,
+                               component_id=cid,
                                packages_map=packages_map,
                                screenshots=screenshots)
