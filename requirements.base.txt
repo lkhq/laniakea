@@ -1,0 +1,11 @@
+pytest
+SQLAlchemy
+psycopg2
+python-debian
+pyzmq
+PyYAML
+firehose
+humanize
+marshmallow
+tornado
+PyGObject

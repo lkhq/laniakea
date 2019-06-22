@@ -22,7 +22,7 @@ dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_de
 pyd_dep = dependency('pyd')
 
 # Python deps
-r = run_command('./check_modules.py')
+r = run_command('./check_modules.py', 'base')
 if r.returncode() != 0
     message(r.stdout().strip()+'\n'+r.stderr().strip())
     error('Unable to find required Python modules.')

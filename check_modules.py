@@ -3,33 +3,27 @@
 # Check whether all required Python modules are found on the system.
 #
 
+import os
 import sys
+import subprocess
+
+thisfile = __file__
+if not os.path.isabs(thisfile):
+    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+os.chdir(os.path.normpath(os.path.join(os.path.dirname(thisfile))))
 
 
-modules_base = ['pytest',
-                'sqlalchemy',
-                'psycopg2',
-                'debian',
-                'zmq',
-                'yaml',
-                'firehose',
-                'humanize',
-                'marshmallow',
-                'tornado',
-                'gi']
-
-
-modules_web = ['flask',
-               'flask_script',
-               'flask_restful']
+def get_installed_modules():
+    pip_freeze = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
+    installed_modules = [e.decode().split('==')[0] for e in pip_freeze.split()]
+    return set(installed_modules)
 
 
 def ensure_modules(modules):
-    from importlib import util
+    all_modules = get_installed_modules()
 
     for mod_name in modules:
-        spec = util.find_spec(mod_name)
-        if not spec:
+        if mod_name not in all_modules:
             print('Unable to find Python module: {}'.format(mod_name))
             sys.exit(2)
 
@@ -45,6 +39,15 @@ def ensure_gir():
         sys.exit(2)
 
 
+def ensure_modules_by_group(group_name):
+    with open('requirements.{}.txt'.format(group_name), 'r') as f:
+        modules = [e.strip().split('==')[0] for e in f.readlines()]
+
+        ensure_modules(modules)
+        if group_name == 'base':
+            ensure_gir()
+
+
 def ensure_python():
     if sys.version_info[0] < 3 or sys.version_info[1] < 6:
         print('Laniakea requires at least Python 3.6 to run!')
@@ -52,17 +55,15 @@ def ensure_python():
 
 
 def run(args):
-    set_name = None
+    group_name = None
     if len(args) > 0:
-        set_name = args[0]
+        group_name = args[0]
+    if not group_name:
+        print('No group name set to check modules for!')
+        sys.exit(1)
     ensure_python()
 
-    if set_name == 'web':
-        ensure_modules(modules_web)
-    else:
-        ensure_modules(modules_base)
-        ensure_gir()
-
+    ensure_modules_by_group(group_name)
     return 0
 
 
