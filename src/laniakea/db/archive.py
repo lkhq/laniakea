@@ -135,6 +135,12 @@ class ArchiveComponent(Base):
     def __init__(self, name):
         self.name = name
 
+    def is_primary(self):
+        return self.name == 'main'
+
+    def is_nonfree(self):
+        return self.name == 'non-free'
+
 
 class ArchiveArchitecture(Base):
     '''
