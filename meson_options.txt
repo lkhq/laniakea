@@ -1,5 +1,22 @@
 # Build options for Laniakea
 
+#
+# Test flags
+#
+option('test-flake8',
+    type: 'boolean',
+    value: true,
+    description: 'Test Python code style with Flake8'
+)
+option('test-dscanner',
+    type: 'boolean',
+    value: false,
+    description: 'Test D coding style with DScanner'
+)
+
+#
+# Feature flags
+#
 option('clitools',
     type: 'boolean',
     value: true,
@@ -49,10 +66,4 @@ option('ariadne',
     type: 'boolean',
     value: true,
     description: 'Build the "Ariadne" package build planner'
-)
-
-option('experimental-appstream',
-    type: 'boolean',
-    value: false,
-    description: 'Build with some experimental AppStream support'
 )

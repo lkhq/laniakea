@@ -15,28 +15,20 @@ $DC --version
 #
 
 mkdir build && cd build
-meson ..
+meson -Dtest-flake8=true \
+      -Dtest-dscanner=true \
+      ..
 ninja
 
-# Test
+# Test all the things!
 meson test -v
 
-# Test Install
+# Test Installation
 DESTDIR=/tmp/lk-install-root ninja install
 
 cd ..
 
 #
-# Style checks
-#
-#! ./tests/ci/run-dscanner.py . tests/dscanner.ini
-
-#
 # Make Documentation
 #
 #! ./tests/ci/make-documentation.py . build
-
-#
-# Python Tests
-#
-flake8 --ignore E501,E402 ./

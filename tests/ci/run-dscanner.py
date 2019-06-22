@@ -17,9 +17,13 @@ def find_local_include_dirs(source_root):
 
 def find_include_dirs(source_root):
     incdirs = find_local_include_dirs(source_root)
-    incdirs.append(os.path.join(source_root, 'src'))
+    incdirs.append(os.path.join(source_root, 'src', 'laniakea'))
+    incdirs.append(os.path.join(source_root, 'src', 'laniakea', 'lknative'))
 
-    extra_inc = ['stdx-allocator',
+    extra_inc = ['pyd',
+                 'glibd-2',
+                 'stdx-allocator',
+                 'mir-core',
                  'containers']
 
     for d in extra_inc:
