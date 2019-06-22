@@ -19,7 +19,7 @@
 
 import math
 import humanize
-from flask import current_app, Blueprint, render_template, abort
+from flask import current_app, Blueprint, render_template, abort, url_for
 from laniakea.db import session_scope, BinaryPackage, SourcePackage, ArchiveSuite, \
     Job, JobStatus, JobResult, SparkWorker
 from sqlalchemy.orm import undefer, joinedload
@@ -29,6 +29,25 @@ from ..utils import humanized_timediff, is_uuid
 packages = Blueprint('packages',
                      __name__,
                      url_prefix='/package')
+
+
+def make_linked_dependency(suite_name, depstr):
+    if not depstr:
+        return depstr
+    deps = [d.strip() for d in depstr.split('|')]
+
+    dep_urls = []
+    for dep in deps:
+        parts = dep.split(' ', 1)
+        pkgname = parts[0]
+        versioning = parts[1].strip() if len(parts) > 1 else ''
+
+        url = '<a href="{url}">{pkgname}</a> {versioning}'.format(url=url_for('packages.bin_package_details', suite_name=suite_name, name=pkgname),
+                                                                  pkgname=pkgname,
+                                                                  versioning=versioning)
+        dep_urls.append(url)
+
+    return ' | '.join(dep_urls)
 
 
 @packages.route('/bin/<suite_name>/<name>')
@@ -61,7 +80,8 @@ def bin_package_details(suite_name, name):
                                pkg_suite_name=suite_name,
                                suites=suites,
                                architectures=architectures,
-                               naturalsize=humanize.naturalsize)
+                               naturalsize=humanize.naturalsize,
+                               make_linked_dependency=make_linked_dependency)
 
 
 @packages.route('/src/<name>/<version>')
@@ -90,7 +110,8 @@ def src_package_details(name, version):
         return render_template('packages/src_details.html',
                                pkg=spkg_rep,
                                versions=versions,
-                               suites=suites)
+                               suites=suites,
+                               make_linked_dependency=make_linked_dependency)
 
 
 @packages.route('/builds/<name>/<int:page>')

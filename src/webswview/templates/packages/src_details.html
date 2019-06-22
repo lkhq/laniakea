@@ -63,7 +63,7 @@
                 <h4>Build Dependencies</h4>
                 <ul>
                 {% for dep in pkg.build_depends %}
-                    <li>{{dep}}</li>
+                    <li>{{ make_linked_dependency(suite_name, dep)|safe }}</li>
 		{% endfor %}
                 </ul>
                 {% endif %}

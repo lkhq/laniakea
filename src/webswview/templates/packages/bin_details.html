@@ -42,7 +42,7 @@
                 <h4>Pre-Dependencies</h4>
                 <ul>
                 {% for dep in pkg.pre_depends %}
-                    <li>{{dep}}</li>
+                    <li>{{ make_linked_dependency(pkg_suite_name, dep)|safe }}</li>
 		{% endfor %}
                 </ul>
                 {% endif %}
@@ -51,7 +51,7 @@
                 <h4>Dependencies</h4>
                 <ul>
                 {% for dep in pkg.depends %}
-                    <li>{{dep}}</li>
+                    <li>{{ make_linked_dependency(pkg_suite_name, dep)|safe }}</li>
 		{% endfor %}
                 </ul>
                 {% endif %}
