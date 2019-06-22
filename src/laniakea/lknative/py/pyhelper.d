@@ -5,7 +5,9 @@
  */
 
 // if a type is a struct or a class
-package template isUserAggregate(A...) if(A.length == 1) {
+package template isUserAggregate(A...)
+if(A.length == 1)
+{
     import std.datetime;
     import std.traits: Unqual, isInstanceOf;
     import std.typecons: Tuple;
@@ -18,7 +20,9 @@ package template isUserAggregate(A...) if(A.length == 1) {
 }
 
 // must be a global template
-private template isMemberFunction(A...) if(A.length == 1) {
+private template isMemberFunction(A...)
+if(A.length == 1)
+{
     alias T = A[0];
     static if(__traits(compiles, __traits(identifier, T)))
         enum isMemberFunction = isPublicFunction!T && __traits(identifier, T) != "__ctor";
@@ -26,7 +30,8 @@ private template isMemberFunction(A...) if(A.length == 1) {
         enum isMemberFunction = false;
 }
 
-private template isPublicFunction(alias F) {
+private template isPublicFunction(alias F)
+{
     import std.traits: isFunction;
     enum prot = __traits(getProtection, F);
     enum isPublicFunction = isFunction!F && (prot == "export" || prot == "public");
@@ -34,7 +39,8 @@ private template isPublicFunction(alias F) {
 
 // Given a parent (module, struct, ...) and a memberName, alias the actual member,
 // or void if not possible
-package template Symbol(alias parent, string memberName) {
+package template Symbol(alias parent, string memberName)
+{
     static if(__traits(compiles, I!(__traits(getMember, parent, memberName))))
         alias Symbol = I!(__traits(getMember, parent, memberName));
     else
@@ -57,7 +63,8 @@ pyname = The name of the function as it will appear in Python. Defaults to
 fn's name in D
 docstring = The function's docstring. Defaults to "".
 */
-struct MemberFunction(alias fn, Options...) {
+struct MemberFunction(alias fn, Options...)
+{
     import pyd.def: Args;
 
     alias args = Args!("", "", __traits(identifier, fn), "", Options);
@@ -74,7 +81,9 @@ struct MemberFunction(alias fn, Options...) {
 /**
    Wrap aggregate of type T.
  */
-auto wrapAggregate(T)() if(isUserAggregate!T) {
+void wrapAggregate(T)()
+if(isUserAggregate!T)
+{
 
     import pyd.pyd: wrap_class, Member, Init;
     import std.meta: staticMap, Filter, AliasSeq;

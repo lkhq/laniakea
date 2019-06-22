@@ -93,7 +93,7 @@ public:
                                      syncConfig.sourceKeyrings);
         m_importsTrusted = true; // we trust everything by default
 
-        setSourceSuite (syncConfig.source.defaultSuite);
+        setSourceSuiteByName (syncConfig.source.defaultSuite);
     }
 
     void setBlacklist (string[] pkgnames)
@@ -104,18 +104,23 @@ public:
     }
 
     @property
-    bool importsTrusted ()
+    final bool importsTrusted ()
     {
         return m_importsTrusted;
     }
 
     @property
-    void importsTrusted (bool v)
+    final void importsTrusted (bool v)
     {
         m_importsTrusted = v;
     }
 
     void setSourceSuite (string suiteName)
+    {
+        setSourceSuiteByName (suiteName);
+    }
+
+    private void setSourceSuiteByName (string suiteName)
     {
         auto ret = false;
         foreach (ref suite; syncConfig.source.suites) {

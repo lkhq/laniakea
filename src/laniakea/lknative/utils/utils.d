@@ -137,7 +137,7 @@ public auto randomString (uint len)
 /**
  * Read the current time and return it as DateTime
  */
-export auto currentDateTime ()
+export DateTime currentDateTime ()
 {
     import std.conv : to;
     import std.datetime : Clock, DateTime;
