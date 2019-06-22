@@ -27,6 +27,7 @@ RUN apt-get install -yq --no-install-recommends \
 RUN apt-get install -yq --no-install-recommends \
     python3-pip \
     python3-setuptools \
+    python3-pytest \
     python3-gi \
     python3-sqlalchemy \
     python3-psycopg2 \

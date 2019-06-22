@@ -46,4 +46,4 @@ subdir('data')
 #
 # Tests
 #
-#subdir('tests')
+subdir('tests')

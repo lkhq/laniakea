@@ -1,4 +1,4 @@
-FROM debian:testing
+FROM debian:buster
 
 # prepare
 ENV LANG C.UTF-8

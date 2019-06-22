@@ -19,7 +19,7 @@ meson ..
 ninja
 
 # Test
-ninja test -v
+meson test -v
 
 # Test Install
 DESTDIR=/tmp/lk-install-root ninja install

@@ -6,7 +6,8 @@
 import sys
 
 
-modules_base = ['sqlalchemy',
+modules_base = ['pytest',
+                'sqlalchemy',
                 'psycopg2',
                 'debian',
                 'zmq',
