@@ -54,12 +54,12 @@ def make_linked_dependency(suite_name, depstr):
 def bin_package_details(suite_name, name):
     with session_scope() as session:
         bpkgs = session.query(BinaryPackage) \
-            .options(joinedload(BinaryPackage.architecture)) \
-            .options(joinedload(BinaryPackage.pkg_file)) \
-            .options(undefer(BinaryPackage.version)) \
-            .filter(BinaryPackage.name == name) \
-            .filter(BinaryPackage.suites.any(ArchiveSuite.name == suite_name)) \
-            .order_by(BinaryPackage.version.desc()).all()
+                       .options(joinedload(BinaryPackage.architecture)) \
+                       .options(joinedload(BinaryPackage.pkg_file)) \
+                       .options(undefer(BinaryPackage.version)) \
+                       .filter(BinaryPackage.name == name) \
+                       .filter(BinaryPackage.suites.any(ArchiveSuite.name == suite_name)) \
+                       .order_by(BinaryPackage.version.desc()).all()
         if not bpkgs:
             abort(404)
 
@@ -68,7 +68,7 @@ def bin_package_details(suite_name, name):
                                        .all()]
 
         architectures = set()
-        bpkg_rep = bpkgs[0]
+        bpkg_rep = bpkgs[0]  # the first package is always the most recent one
         for bpkg in bpkgs:
             architectures.add(bpkg.architecture)
         if not bpkg_rep:
@@ -84,32 +84,27 @@ def bin_package_details(suite_name, name):
                                make_linked_dependency=make_linked_dependency)
 
 
-@packages.route('/src/<name>/<version>')
-def src_package_details(name, version):
+@packages.route('/src/<suite_name>/<name>')
+def src_package_details(suite_name, name):
     with session_scope() as session:
         spkgs = session.query(SourcePackage) \
-            .filter(SourcePackage.name == name) \
-            .order_by(SourcePackage.version.desc()) \
-            .all()
+                       .options(undefer(SourcePackage.version)) \
+                       .filter(SourcePackage.suites.any(ArchiveSuite.name == suite_name)) \
+                       .filter(SourcePackage.name == name) \
+                       .order_by(SourcePackage.version.desc()) \
+                       .all()
         if not spkgs:
             abort(404)
 
-        # TODO: Doing this in Python is probably inefficient, we could also
-        # directly fetch the informatuion with some SQL to improve performance
-        suites = set()
-        versions = set()
-        spkg_rep = None
-        for spkg in spkgs:
-            suites.update(spkg.suites)
-            versions.add(spkg.version)
-            if spkg.version == version:
-                spkg_rep = spkg
-        if not spkg_rep:
-            abort(404)
+        suites = [s[0] for s in session.query(ArchiveSuite.name.distinct())
+                                       .filter(ArchiveSuite.src_packages.any(SourcePackage.name == name))
+                                       .all()]
+        spkg_rep = spkgs[0]  # the first package is always the most recent one
 
         return render_template('packages/src_details.html',
                                pkg=spkg_rep,
-                               versions=versions,
+                               pkgs_all=spkgs,
+                               pkg_suite_name=suite_name,
                                suites=suites,
                                make_linked_dependency=make_linked_dependency)
 

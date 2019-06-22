@@ -16,10 +16,10 @@
 
 <div class="row">
     <div class="col-md-3">
-        <p class="lead">Versions</p>
+        <p class="lead">Suites</p>
         <div class="list-group">
-        {% for ver in versions %}
-            <a class="list-group-item {{ 'active' if ver == pkg.version }}" href="{{ url_for('packages.src_package_details', name=pkg.name, version=ver) }}">{{ver}}</a>
+        {% for suite_name in suites %}
+            <a class="list-group-item {{ 'active' if suite_name == pkg_suite_name }}" href="{{ url_for('packages.src_package_details', suite_name=suite_name, name=pkg.name) }}">{{suite_name}}</a>
         {% endfor %}
         </div>
     </div>
@@ -33,19 +33,19 @@
                     </small>
                 </h3>
 
-                <b>Suites:</b> {% for s in suites %}<span class="badge badge-pill badge-info">{{s.name}}</span>&nbsp;{% endfor %}
-                <br/><br/>
+                <b>Versions in {{pkg_suite_name}}:</b> {{ pkgs_all|join(', ', attribute='version') }}
+                <div class="mt-2" />
                 <b>Maintainer:</b> {{pkg.maintainer}}
                 <br/>
                 {% if pkg.uploaders %}
                 <b>Uploaders:</b>
-                  <ul>
+                  <ul class="mb-2">
                   {% for id in pkg.uploaders %}
                     <li>{{id}}</li>
                   {% endfor %}
                 </ul>
                 {% else %}
-                <br>
+                <div class="mt-2" />
                 {% endif %}
                 <b>Format:</b> {{pkg.format_version}}
                 <br/>
@@ -70,7 +70,7 @@
                 <h4>Build Dependencies</h4>
                 <ul>
                 {% for dep in pkg.build_depends %}
-                    <li>{{ make_linked_dependency(suite_name, dep)|safe }}</li>
+                    <li>{{ make_linked_dependency(pkg_suite_name, dep)|safe }}</li>
 		{% endfor %}
                 </ul>
                 {% endif %}

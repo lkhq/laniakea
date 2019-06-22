@@ -22,7 +22,7 @@
             <a class="list-group-item {{ 'active' if suite_name == pkg_suite_name }}" href="{{ url_for('packages.bin_package_details', suite_name=suite_name, name=pkg.name) }}">{{suite_name}}</a>
         {% endfor %}
         </div>
-        <a class="btn btn-outline-secondary" href="{{ url_for('packages.src_package_details', name=pkg.source_name, version=pkg.source_version) }}" role="button" style="margin-top: 100%;">Source Package</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('packages.src_package_details', suite_name=pkg_suite_name, name=pkg.source_name) }}" role="button" style="margin-top: 100%;">Source Package</a>
     </div>
     <div class="col-md-9">
         <div class="thumbnail">
