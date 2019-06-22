@@ -41,6 +41,6 @@ if (get_option('test-dscanner'))
     run_dscanner_exe = find_program(join_paths(source_root, 'tests', 'ci', 'run-dscanner.py'))
     test('dscanner',
          run_dscanner_exe,
-         args: [source_root, 'tests/dscanner.ini']
+         args: [source_root, 'tests/ci/dscanner.ini']
     )
 endif
