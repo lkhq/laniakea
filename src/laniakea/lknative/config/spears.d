@@ -23,7 +23,7 @@ module lknative.db.schema.spears;
 import std.uuid : UUID;
 import std.datetime : DateTime;
 
-import lkshared.repository.types : VersionPriority;
+import lknative.repository.types : VersionPriority;
 
 
 /**

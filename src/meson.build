@@ -12,7 +12,6 @@ lk_priv_bin_target = 'lib/laniakea/'
 #
 
 # Laniakea core
-subdir('lkshared')
 subdir('laniakea')
 
 # Admin cli tool

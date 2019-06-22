@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.logging;
+module lknative.logging;
 
 import std.stdio;
 import std.string : format;

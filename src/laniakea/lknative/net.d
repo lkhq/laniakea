@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.net;
+module lknative.net;
 
 import std.stdio : File;
 import std.string : startsWith;
@@ -25,7 +25,7 @@ import std.path : dirName;
 import std.conv : to;
 static import std.file;
 
-import lkshared.logging;
+import lknative.logging;
 
 /**
  * Check if string contains a remote URI.

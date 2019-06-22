@@ -24,8 +24,8 @@ import std.array : appender;
 import std.algorithm : canFind;
 static import dyaml;
 
-import lkshared.utils : currentDateTime;
-import lkshared.logging;
+import lknative.utils : currentDateTime;
+import lknative.logging;
 import lknative.config.spears;
 
 /**

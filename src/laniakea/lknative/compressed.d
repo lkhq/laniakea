@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.compressed;
+module lknative.compressed;
 
 import std.stdio;
 import std.string;
@@ -28,10 +28,10 @@ import std.path : buildNormalizedPath;
 import std.array : appender;
 import std.concurrency : Generator, yield;
 
-import lkshared.logging;
-import lkshared.utils : GENERIC_BUFFER_SIZE;
+import lknative.logging;
+import lknative.utils : GENERIC_BUFFER_SIZE;
 
-import lkshared.c.libarchive;
+import lknative.c.libarchive;
 
 private immutable DEFAULT_BLOCK_SIZE = 65_536;
 

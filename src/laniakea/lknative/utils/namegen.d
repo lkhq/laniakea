@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.utils.namegen;
+module lknative.utils.namegen;
 
 import std.string : splitLines, format;
 import std.random : dice, rndGen, uniform;

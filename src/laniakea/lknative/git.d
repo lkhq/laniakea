@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.git;
+module lknative.git;
 
 import std.stdio : File;
 import std.process;
@@ -26,7 +26,7 @@ import std.array : appender;
 import std.path : baseName;
 static import std.file;
 
-import lkshared.logging;
+import lknative.logging;
 
 /**
  * Thrown on an error from Git.

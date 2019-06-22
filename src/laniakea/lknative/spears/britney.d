@@ -26,8 +26,8 @@ import std.string : format;
 import std.path : baseName, buildPath, dirName;
 static import std.file;
 
-import lkshared.logging;
-import lkshared.git;
+import lknative.logging;
+import lknative.git;
 import lknative.config : BaseConfig;
 
 /**

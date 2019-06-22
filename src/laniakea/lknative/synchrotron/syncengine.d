@@ -28,10 +28,10 @@ import std.typecons : Nullable, Tuple;
 
 import lknative.config : BaseConfig, SuiteInfo;
 import lknative.config.synchrotron;
-import lkshared.repository;
-import lkshared.repository.dak;
-import lkshared.utils : compareVersions, getDebianRev, currentDateTime;
-import lkshared.logging;
+import lknative.repository;
+import lknative.repository.dak;
+import lknative.utils : compareVersions, getDebianRev, currentDateTime;
+import lknative.logging;
 
 /**
  * Thrown on a package sync error.

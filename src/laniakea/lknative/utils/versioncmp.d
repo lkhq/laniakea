@@ -18,7 +18,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.utils.versioncmp;
+module lknative.utils.versioncmp;
 @safe:
 
 import std.ascii;

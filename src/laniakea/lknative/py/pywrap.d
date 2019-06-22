@@ -8,9 +8,9 @@ import pyd.pyd;
 import pyd.embedded;
 import lknative.py.pyhelper;
 
-import lkshared.utils : SignedFile, compareVersions;
-import lkshared.utils.namegen : generateName;
-import lkshared.logging : setVerboseLog;
+import lknative.utils : SignedFile, compareVersions;
+import lknative.utils.namegen : generateName;
+import lknative.logging : setVerboseLog;
 import lknative.config;
 
 extern(C) void PydMain()
@@ -35,7 +35,7 @@ extern(C) void PydMain()
     wrapAggregate!(SuiteInfo)();
 
     /* Repo infrastructure */
-    import lkshared.repository;
+    import lknative.repository;
     wrapAggregate!(ArchiveFile)();
     wrapAggregate!(SourcePackage)();
     wrapAggregate!(BinaryPackage)();

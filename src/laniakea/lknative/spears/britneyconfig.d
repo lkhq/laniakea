@@ -28,8 +28,8 @@ import std.conv : to;
 static import std.file;
 
 import lknative.config.spears;
-import lkshared.logging;
-import lkshared.repository : VersionPriority;
+import lknative.logging;
+import lknative.repository : VersionPriority;
 
 /**
  * A Britney2 configuration file.

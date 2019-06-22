@@ -1,6 +1,26 @@
 # Meson definition for Laniakea - Shared
 
+add_languages('c')
+
 lknative_src = [
+    'c/libarchive.d',
+    'compressed.d',
+    'git.d',
+    'logging.d',
+    'net.d',
+    'repository/dak.d',
+    'repository/dscfile.d',
+    'repository/package.d',
+    'repository/repository.d',
+    'repository/types.d',
+    'tagfile.d',
+    'utils/consts.d',
+    'utils/gpg.d',
+    'utils/namegen.d',
+    'utils/package.d',
+    'utils/utils.d',
+    'utils/versioncmp.d',
+
     'cmdargs.d',
     'config/core.d',
     'config/package.d',
@@ -19,22 +39,33 @@ lknative_src = [
     'spears/excuses.d',
 ]
 
+lknative_deps = [pyd_dep,
+                 dcontainers_dep,
+                 archive_dep,
+                 curl_dep,
+                 dyaml_dep
+]
+
+lkdrcompat_lib = static_library('lkdrcompat', 'druntime.c')
+
 lknative_pylib = shared_library('lknative',
     [lknative_src],
     name_prefix: '',
     include_directories: [lknative_src_dir],
-    dependencies: [laniakea_utils_dep, pyd_dep],
+    dependencies: lknative_deps,
+    objects: lkdrcompat_lib.extract_objects('druntime.c'),
+    d_import_dirs: [source_root + '/data/'],
     install: true,
     install_dir : 'lib/laniakea/laniakea/'
 )
 
 # Test
-lk_pynative_test_exe = executable ('lk_test_self-lknative',
+lk_pynative_test_exe = executable ('lk_test_lknative',
     [lknative_src],
-    dependencies: [laniakea_utils_dep],
+    dependencies: lknative_deps,
     include_directories: [lknative_src_dir],
     d_import_dirs: [source_root + '/data/'],
     d_unittest: true,
     link_args: '-main',
 )
-test('lk_test_self-lknative', lk_pynative_test_exe)
+test('lknative', lk_pynative_test_exe)

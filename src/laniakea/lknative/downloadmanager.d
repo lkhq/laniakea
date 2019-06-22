@@ -24,8 +24,8 @@ import std.path : buildPath, baseName;
 import std.array : appender, empty;
 static import std.file;
 
-import lkshared.utils : GENERIC_BUFFER_SIZE;
-import lkshared.net;
+import lknative.utils : GENERIC_BUFFER_SIZE;
+import lknative.net;
 
 
 /**

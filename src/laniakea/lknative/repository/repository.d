@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.repository.repository;
+module lknative.repository.repository;
 
 import std.stdio;
 import std.path : buildPath, dirName;
@@ -31,11 +31,11 @@ import std.uuid : UUID;
 static import std.file;
 import containers : DynamicArray, HashMap;
 
-import lkshared.logging;
-import lkshared.net : downloadFile;
-import lkshared.utils : isRemote, splitStrip, compareVersions, hashFile;
-import lkshared.tagfile;
-import lkshared.repository.types;
+import lknative.logging;
+import lknative.net : downloadFile;
+import lknative.utils : isRemote, splitStrip, compareVersions, hashFile;
+import lknative.tagfile;
+import lknative.repository.types;
 
 
 /**
@@ -123,7 +123,7 @@ public:
 
     private InReleaseData getRepoInformation (string suite) @trusted
     {
-        import lkshared.utils.gpg : SignedFile;
+        import lknative.utils.gpg : SignedFile;
 
         auto irP = suite in inRelease;
         if (irP !is null)

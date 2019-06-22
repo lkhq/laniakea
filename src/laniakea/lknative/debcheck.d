@@ -29,9 +29,9 @@ import std.datetime : DateTime;
 static import dyaml;
 
 import lknative.config : BaseConfig, SuiteInfo;
-import lkshared.utils : currentDateTime;
-import lkshared.repository;
-import lkshared.logging;
+import lknative.utils : currentDateTime;
+import lknative.repository;
+import lknative.logging;
 
 
 /**

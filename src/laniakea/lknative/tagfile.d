@@ -17,7 +17,7 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.tagfile;
+module lknative.tagfile;
 @safe:
 
 import std.string : startsWith, indexOf, chompPrefix, strip, split, splitLines;
@@ -27,9 +27,9 @@ import std.path : buildPath;
 import std.typecons : Flag, Yes;
 import containers : HashMap;
 
-import lkshared.utils : splitStrip;
-import lkshared.compressed;
-import lkshared.repository.types;
+import lknative.utils : splitStrip;
+import lknative.compressed;
+import lknative.repository.types;
 
 /**
  * Parser for Debian's RFC2822-style metadata.

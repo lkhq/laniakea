@@ -17,6 +17,6 @@
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module lkshared.utils.consts;
+module lknative.utils.consts;
 
 public immutable GENERIC_BUFFER_SIZE = 2048;

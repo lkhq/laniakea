@@ -27,9 +27,9 @@ import std.parallelism : parallel;
 static import std.file;
 import containers : HashMap;
 
-import lkshared.repository.dak;
-import lkshared.repository.types;
-import lkshared.logging;
+import lknative.repository.dak;
+import lknative.repository.types;
+import lknative.logging;
 import lknative.config : BaseConfig, SpearsConfig, SuiteInfo;
 import lknative.config.spears;
 
@@ -195,7 +195,7 @@ public:
     private void prepareSourceData (string miWorkspace, SuiteInfo[] sourceSuites, SuiteInfo targetSuite)
     {
         import std.file : exists;
-        import lkshared.compressed : decompressFile, compressAndSave, ArchiveType;
+        import lknative.compressed : decompressFile, compressAndSave, ArchiveType;
 
         // only one suite means we can use the suite's data directky
         if (sourceSuites.length <= 1)
@@ -432,7 +432,7 @@ public:
         // source suites packages can originate from.
         auto pkgSourceSuiteMap = HashMap!(string, string) (32);
         if (fromSuites.length > 1) {
-            import lkshared.repository : Repository;
+            import lknative.repository : Repository;
 
             // we need repository information to attribute packages to their right suites
             auto repo = new Repository (baseConf.archive.rootPath,
