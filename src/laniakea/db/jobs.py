@@ -92,3 +92,12 @@ class Job(Base):
     data = Column(JSON)  # Job description data
 
     latest_log_excerpt = Column(Text())  # An excerpt of the current job log
+
+    def is_taken(self):
+        return self.status == JobStatus.SCHEDULED or self.status == JobStatus.RUNNING
+
+    def has_result(self):
+        return self.result != JobResult.UNKNOWN
+
+    def is_failed(self):
+        return self.result == JobResult.FAILURE or self.result == JobResult.FAILURE_PENDING or self.result == JobResult.FAILURE_DEPENDENCY

@@ -97,29 +97,52 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
     if not any_arch_matches(arch.name, spkg.architectures):
         return False
 
-    # check if we have already scheduled a job for this in the past and don't create
-    # another one in that case
-    (ret, ), = session.query(exists()
-                             .where(Job.trigger == spkg.source_uuid)
-                             .where(Job.version == spkg.version)
-                             .where(Job.architecture == arch.name))
-    if ret:
-        return False
-
-    # check if this package has binaries on already, in that case we don't
+    # check if this package has binaries installed already, in that case we don't
     # need a rebuild.
     if binaries_exist_for_package(session, repo, spkg, arch):
         return False
 
     # we have no binaries, looks like we might need to schedule a build job
-    # check if all dependencies are there
-    if debcheck_has_issues_for_package(session, incoming_suite, spkg, arch):
+    #
+    # check if all dependencies are there, if not we might create a job anyway and
+    # set it to wait for dependencies to become available
+    has_dependency_issues = debcheck_has_issues_for_package(session, incoming_suite, spkg, arch)
+
+    # check if we have already scheduled a job for this in the past and don't create
+    # another one in that case
+    job = session.query(Job) \
+                 .options(undefer(Job.status)) \
+                 .options(undefer(Job.result)) \
+                 .filter(Job.trigger == spkg.source_uuid) \
+                 .filter(Job.version == spkg.version) \
+                 .filter(Job.architecture == arch.name) \
+                 .order_by(Job.time_created) \
+                 .first()
+    if job:
+        if has_dependency_issues:
+            # dependency issues and an already existing job means there is nothing to
+            # do for us
+            if job.has_result() and job.is_failed() and job.status != JobStatus.DEPWAIT:
+                # the job ran, likely failed due to missing dependencies,
+                # and was not set back to dependency-wait status, so we'll do that now
+                job.status = JobStatus.DEPWAIT
+            return False
+        elif job.status == JobStatus.DEPWAIT:
+            # no dependency issues anymore, but the job is waiting for dependencies?
+            # unblock it!
+            job.status = JobStatus.WAITING
+            return True
+
+        # we already have a job, we don't need to create another one
         return False
 
     # no issues found and a build seems required.
     # let's go!
     if simulate:
-        log.info('New job for {} on {}'.format(str(spkg), arch.name))
+        if has_dependency_issues:
+            log.info('New dependency-wait job for {} on {}'.format(str(spkg), arch.name))
+        else:
+            log.info('New actionable job for {} on {}'.format(str(spkg), arch.name))
     else:
         log.debug('Creating new job for {} on {}'.format(str(spkg), arch.name))
         job = Job()
@@ -129,6 +152,8 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
         job.architecture = arch.name
         job.trigger = spkg.source_uuid
         job.data = {'suite': incoming_suite.name}
+        if has_dependency_issues:
+            job.status = JobStatus.DEPWAIT
         session.add(job)
 
     return True
