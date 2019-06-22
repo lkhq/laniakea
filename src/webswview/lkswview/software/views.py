@@ -20,6 +20,7 @@
 from flask import current_app, Blueprint, render_template, abort
 from laniakea.db import session_scope, BinaryPackage, SoftwareComponent
 from sqlalchemy.orm import joinedload
+from ..extensions import cache
 import gi
 gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
@@ -37,6 +38,7 @@ def screenshot_get_orig_image_url(scr):
 
 
 @software.route('/<cid>')
+@cache.cached(timeout=120)
 def details(cid):
     with session_scope() as session:
         # FIXME: Fetch all components with the ID and display them by version

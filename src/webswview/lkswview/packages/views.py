@@ -21,9 +21,10 @@ import math
 import humanize
 from flask import current_app, Blueprint, render_template, abort, url_for
 from laniakea.db import session_scope, BinaryPackage, SourcePackage, ArchiveSuite, \
-    Job, JobStatus, JobResult, SparkWorker
+    Job, JobStatus, JobResult, SparkWorker, ArchiveArchitecture, DebcheckIssue
 from sqlalchemy.orm import undefer, joinedload
 from laniakea.utils import get_dir_shorthand_for_uuid
+from ..extensions import cache
 from ..utils import humanized_timediff, is_uuid
 
 packages = Blueprint('packages',
@@ -31,6 +32,7 @@ packages = Blueprint('packages',
                      url_prefix='/package')
 
 
+@cache.memoize(1800)
 def make_linked_dependency(suite_name, depstr):
     if not depstr:
         return depstr
@@ -51,6 +53,7 @@ def make_linked_dependency(suite_name, depstr):
 
 
 @packages.route('/bin/<suite_name>/<name>')
+@cache.cached(timeout=120)
 def bin_package_details(suite_name, name):
     with session_scope() as session:
         bpkgs = session.query(BinaryPackage) \
@@ -85,6 +88,7 @@ def bin_package_details(suite_name, name):
 
 
 @packages.route('/src/<suite_name>/<name>')
+@cache.cached(timeout=120)
 def src_package_details(suite_name, name):
     with session_scope() as session:
         spkgs = session.query(SourcePackage) \
@@ -110,6 +114,7 @@ def src_package_details(suite_name, name):
 
 
 @packages.route('/builds/<name>/<int:page>')
+@cache.cached(timeout=50)
 def builds_list(name, page):
     with session_scope() as session:
         spkg = session.query(SourcePackage) \
@@ -126,11 +131,17 @@ def builds_list(name, page):
             .count()
         page_count = math.ceil(jobs_total / jobs_per_page)
 
-        jobs = session.query(Job) \
-            .filter(Job.trigger == spkg.source_uuid) \
-            .order_by(Job.time_created.desc()) \
-            .slice((page - 1) * jobs_per_page, page * jobs_per_page) \
-            .all()
+        jobs_list = session.query(Job) \
+                          .filter(Job.trigger == spkg.source_uuid) \
+                          .order_by(Job.time_created.desc()) \
+                          .slice((page - 1) * jobs_per_page, page * jobs_per_page) \
+                          .all()
+
+        jobs_arch = {}
+        for j in jobs:
+            if j.architecture not in jobs_arch:
+                jobs_arch[j.architecture] = []
+            jobs_arch[j.architecture].append(j)
 
         return render_template('packages/builds_list.html',
                                JobStatus=JobStatus,
@@ -144,6 +155,7 @@ def builds_list(name, page):
 
 
 @packages.route('/builds/job/<uuid>')
+@cache.cached(timeout=5)
 def build_details(uuid):
     if not is_uuid(uuid):
         abort(404)

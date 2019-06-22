@@ -41,6 +41,7 @@ RUN apt-get install -yq --no-install-recommends \
     python3-humanize \
     python3-marshmallow
 RUN pip3 install firehose
+RUN pip3 install flask-caching
 
 # install PyD dependencies
 RUN apt-get install -yq --no-install-recommends \

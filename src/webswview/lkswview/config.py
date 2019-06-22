@@ -36,6 +36,12 @@ class BaseConfig(object):
     APPSTREAM_MEDIA_URL = LocalConfig().archive_appstream_media_url
     ARCHIVE_URL = LocalConfig().archive_url
 
+    #
+    # Caching behavior
+    #
+    CACHE_TYPE = 'simple'
+    CACHE_DEFAULT_TIMEOUT = 300
+
     # Get app root path, also can use flask.root_path.
     # ../../config.py
     PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))

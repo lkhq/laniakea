@@ -21,6 +21,7 @@ import math
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from laniakea.db import session_scope, BinaryPackage, SoftwareComponent
 from sqlalchemy.sql import func
+from ..extensions import cache
 
 portal = Blueprint('portal', __name__)
 
@@ -31,6 +32,7 @@ def index():
 
 
 @portal.route('/search_pkg', methods=['GET', 'POST'])
+@cache.cached(timeout=40)
 def search_pkg():
     term = request.args.get('term')
     if not term:
@@ -57,6 +59,7 @@ def search_pkg():
 
 
 @portal.route('/search_sw', methods=['GET', 'POST'])
+@cache.cached(timeout=40)
 def search_software():
     term = request.args.get('term')
     if not term:
