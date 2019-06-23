@@ -14,7 +14,7 @@
     },
 
     "Synchrotron": {
-      "SourceKeyringDir": "/etc/apt/trusted.gpg.d/",
+      "SourceKeyringDir": "/etc/apt/trusted.gpg.d/"
     },
 
    "Workspace": "/tmp/test-lkws/",

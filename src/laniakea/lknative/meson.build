@@ -69,4 +69,7 @@ lk_pynative_test_exe = executable ('lk_test_lknative',
     d_unittest: true,
     link_args: '-main',
 )
-test('lknative', lk_pynative_test_exe)
+test('lknative',
+     lk_pynative_test_exe,
+     is_parallel: false
+)

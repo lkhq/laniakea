@@ -64,17 +64,17 @@ class LocalConfig:
             self._cache_dir = jdata.get('CacheLocation', '/var/tmp/laniakea')
 
             jdb = jdata.get('Database', {})
-            databaseHost = jdb.get('host', 'localhost')
-            databasePort = int(jdb.get('port', 5432))
-            databaseName = jdb.get('db', 'laniakea')
-            databaseUser = jdb.get('user', 'laniakea-user')
-            databasePassword = jdb.get('password', '')
+            db_host = jdb.get('host', 'localhost')
+            db_port = int(jdb.get('port', 5432))
+            db_name = jdb.get('db', 'laniakea')
+            db_user = jdb.get('user', 'laniakea-user')
+            db_password = jdb.get('password', '')
 
-            self._database_url = 'postgresql://{user}:{password}@{host}:{port}/{dbname}'.format(user=databaseUser,
-                                                                                                password=databasePassword,
-                                                                                                host=databaseHost,
-                                                                                                port=databasePort,
-                                                                                                dbname=databaseName)
+            self._database_url = 'postgresql://{user}:{password}@{host}:{port}/{dbname}'.format(user=db_user,
+                                                                                                password=db_password,
+                                                                                                host=db_host,
+                                                                                                port=db_port,
+                                                                                                dbname=db_name)
 
             self._archive_root_dir = jarchive.get('path', '/nonexistent')
             self._archive_url = jarchive.get('url', '#')
