@@ -21,7 +21,6 @@ lknative_src = [
     'utils/utils.d',
     'utils/versioncmp.d',
 
-    'cmdargs.d',
     'config/core.d',
     'config/package.d',
     'config/spears.d',

@@ -155,9 +155,7 @@ public:
     }
 
     /**
-     * Return suite/component objects from their names. Either use the database
-     * to retrieve persistable entities, or create new ones in case no database
-     * session is given.
+     * Return suite/component objects from their names.
      */
     private Tuple!(ArchiveSuite, "suite", ArchiveComponent, "component")
     getSuiteComponentEntities (const string suiteName, const string componentName) @trusted
@@ -169,38 +167,15 @@ public:
         res.suite.repo = new ArchiveRepository (repoName);
         res.component = new ArchiveComponent (componentName);
 
-        /+
-            // we work with the database
-            res.suite = session.createQuery ("FROM ArchiveSuite WHERE name=:nm AND repo.name=:rn")
-                               .setParameter ("nm", suiteName)
-                               .setParameter ("rn", repoName)
-                               .uniqueResult!ArchiveSuite;
-            foreach (c; res.suite.components) {
-                if (c.name == componentName) {
-                    res.component = c;
-                    break;
-                }
-            }
-            if (res.component is null)
-                throw new Exception ("Can not load packages in suite '%s/%s': Suite in database does not have component '%s'".format (suiteName, componentName, componentName));
-        +/
-
         return res;
     }
 
     /**
-     * Get an architecture entity from the database, or create a new one if
-     * we do not have a database session.
+     * Get an architecture entity.
      */
     private auto getArchitectureEntity (string archName) @trusted
     {
         return new ArchiveArchitecture (archName);
-        /+
-        return session.createQuery ("FROM ArchiveArchitecture WHERE name=:nm")
-                      .setParameter ("nm", archName)
-                      .uniqueResult!ArchiveArchitecture;
-        +/
-
     }
 
     /**
@@ -258,17 +233,6 @@ public:
         auto dbPackages = HashMap!(UUID, SourcePackage) (128);
         auto validPackages = HashMap!(UUID, bool) (128);
 
-        /+
-        if (updateDb) {
-            auto q = session.createQuery ("FROM SourcePackage WHERE repo.name=:repo
-                                             AND component.name=:component")
-                            .setParameter ("repo", repoName)
-                            .setParameter ("component", componentName);
-            foreach (spkg; q.list!SourcePackage)
-                dbPackages[spkg.uuid] = spkg;
-        }
-        +/
-
         auto pkgs = appender!(SourcePackage[]);
         pkgs.reserve (dbPackages.length? dbPackages.length : 256);
 
@@ -287,7 +251,6 @@ public:
                 break;
             }
 
-            // get the database package to update it, if available
             auto pkgP = SourcePackage.generateUUID (this.repoName, pkgname, pkgversion) in dbPackages;
             SourcePackage pkg;
             if (pkgP !is null)
@@ -338,52 +301,12 @@ public:
             // ensure we don't delete this package later
             validPackages[pkg.uuid] = true;
 
-            // update the database, if necessary
-            /+
-            if (updateDb) {
-                if (pkgP is null) {
-                    session.save (pkg);
-                    dbPackages[pkg.uuid] = pkg;
-                    logDebug ("Added new source package '%s::%s/%s' to database", repoName, pkg.name, pkg.ver);
-                } else {
-                    session.update (pkg);
-                }
-            }
-            +/
-
             // limit RAM usage a little by collecting after processing a batch of packages
             if (pkgs.data.length % 2500 == 0)
                 GC.collect ();
 
         } while (tf.nextSection ());
         GC.collect ();
-
-        // drop copies from the database that are no longer in the imported data
-        /+
-        if (updateDb) {
-            foreach (pkg; dbPackages.byValue) {
-                if (pkg.uuid !in validPackages) {
-                    auto suiteRemoved = false;
-                    foreach (i, ref s; pkg.suites) {
-                        import std.algorithm : remove;
-                        if (s == suite) {
-                            pkg.suites = pkg.suites.get.remove (i);
-                            suiteRemoved = true;
-                            break;
-                        }
-                    }
-
-                    if (pkg.suites[].empty) {
-                        session.remove (pkg);
-                        logDebug ("Removed source package '%s::%s/%s' from database", repoName, pkg.name, pkg.ver);
-                    } else if (suiteRemoved) {
-                        session.update (pkg);
-                        logDebug ("Removed source package '%s::%s/%s' from suite '%s'", repoName, pkg.name, pkg.ver, suiteName);
-                    }
-                }
-            }
-        }
-        +/
 
         return pkgs.data;
     }
@@ -402,21 +325,6 @@ public:
 
         auto dbPackages = HashMap!(UUID, BinaryPackage) (128);
         auto validPackages = HashMap!(UUID, bool) (128);
-
-        /+
-        if (updateDb) {
-            auto q = session.createQuery ("FROM BinaryPackage WHERE repo.name=:repo
-                                            AND component.name=:component
-                                            AND debType_i=:dtype
-                                            AND architecture.name=:arch")
-                            .setParameter ("repo", repoName)
-                            .setParameter ("component", componentName)
-                            .setParameter ("dtype", debType.to!short)
-                            .setParameter ("arch", architecture);
-            foreach (bpkg; q.list!BinaryPackage)
-                    dbPackages[bpkg.uuid] = bpkg;
-        }
-        +/
 
         auto archEntities = HashMap!(string, ArchiveArchitecture) (8);
         auto pkgs = appender!(BinaryPackage[]);
@@ -447,7 +355,6 @@ public:
                 logWarning ("Found package '%s::%s/%s' with unexpeced architecture '%s' (expected '%s')", repoName, pkgname, pkgversion, archName, architecture);
             }
 
-            // get the database package to update it, if available
             auto pkgP = BinaryPackage.generateUUID (this.repoName, pkgname, pkgversion, architecture) in dbPackages;
             BinaryPackage pkg;
             if (pkgP !is null)
@@ -520,55 +427,12 @@ public:
             pkgs ~= pkg;
             validPackages[pkg.uuid] = true;
 
-            // update the database, if necessary
-            /+
-            if (updateDb) {
-                if (pkgP is null) {
-                    // create DB copy
-                    session.save (pkg);
-                    dbPackages[pkg.uuid] = pkg;
-                    logDebug ("Added new binary package '%s::%s/%s/%s' to database", repoName, pkg.name, pkg.ver, pkg.architecture.name);
-                } else {
-                    // update the database copy
-                    session.update (pkg);
-                }
-            }
-            +/
-
             // limit RAM usage a little by collecting after processing a batch of packages
             if (pkgs.data.length % 2500 == 0)
                 GC.collect ();
 
         } while (tf.nextSection ());
         GC.collect ();
-
-        // drop copies from the database that are no longer in the imported data
-        /+
-        if (updateDb) {
-            foreach (pkg; dbPackages.byValue) {
-                if (pkg.uuid !in validPackages) {
-                    auto suiteRemoved = false;
-
-                    foreach (i, ref s; pkg.suites) {
-                        import std.algorithm : remove;
-                        if (s == suite) {
-                            pkg.suites = pkg.suites.get.remove (i);
-                            suiteRemoved = true;
-                            break;
-                        }
-                    }
-
-                    if (pkg.suites[].empty) {
-                        session.remove (pkg);
-                        logDebug ("Removed binary package '%s::%s/%s/%s' from database", repoName, pkg.name, pkg.ver, pkg.architecture.name);
-                    } else if (suiteRemoved) {
-                        session.update (pkg);
-                        logDebug ("Removed binary package '%s::%s/%s/%s' from suite '%s'", repoName, pkg.name, pkg.ver, pkg.architecture.name, suiteName);
-                    }
-                }
-            }
-        }
-        +/
 
         return pkgs.data;
     }
