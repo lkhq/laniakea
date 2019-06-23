@@ -54,14 +54,14 @@ def issue_list(suite_name, ptype, arch_name, page):
         issues_total = session.query(DebcheckIssue) \
             .filter(DebcheckIssue.package_type == package_type) \
             .filter(DebcheckIssue.suite_id == suite.id) \
-            .filter(DebcheckIssue.architecture == arch_name) \
+            .filter(DebcheckIssue.architectures.any(arch_name)) \
             .count()
         page_count = math.ceil(issues_total / issues_per_page)
 
         issues = session.query(DebcheckIssue) \
             .filter(DebcheckIssue.package_type == package_type) \
             .filter(DebcheckIssue.suite_id == suite.id) \
-            .filter(DebcheckIssue.architecture == arch_name) \
+            .filter(DebcheckIssue.architectures.any(arch_name)) \
             .order_by(DebcheckIssue.package_name) \
             .slice((page - 1) * issues_per_page, page * issues_per_page) \
             .all()
@@ -105,7 +105,7 @@ def issue_details(suite_name, uuid):
                                PackageType=PackageType,
                                ptype=ptype,
                                issue=issue,
-                               arch_name=issue.architecture,
+                               arch_name=', '.join(issue.architectures),
                                suite=suite,
                                missing=missing,
                                conflicts=conflicts)

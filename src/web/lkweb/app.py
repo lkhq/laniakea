@@ -21,6 +21,7 @@ import os
 import logging as log
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template
+from .extensions import cache
 from .config import DefaultConfig, INSTANCE_FOLDER_PATH
 
 
@@ -32,8 +33,13 @@ def create_app(config=None, app_name=None):
     if app_name is None:
         app_name = DefaultConfig.PROJECT
 
-    app = Flask(app_name, template_folder='templates', instance_path=INSTANCE_FOLDER_PATH, instance_relative_config=True)
+    app = Flask(app_name,
+                template_folder='templates',
+                instance_path=INSTANCE_FOLDER_PATH,
+                instance_relative_config=True)
     configure_app(app, config)
+    cache.init_app(app)
+
     configure_blueprints(app)
     configure_logging(app)
     configure_error_handlers(app)

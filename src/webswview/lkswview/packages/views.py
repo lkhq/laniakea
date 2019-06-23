@@ -82,13 +82,16 @@ def link_for_bin_package_id(suite_name, pkgstr):
 @cache.memoize(600)
 def architectures_with_issues_for_spkg(suite, spkg):
     with session_scope() as session:
-        results = session.query(DebcheckIssue.architecture.distinct()) \
+        results = session.query(DebcheckIssue.architectures.distinct()) \
                          .filter(DebcheckIssue.package_type == PackageType.SOURCE) \
                          .filter(DebcheckIssue.suite_id == suite.id) \
                          .filter(DebcheckIssue.package_name == spkg.name) \
                          .filter(DebcheckIssue.package_version == spkg.version) \
                          .all()
-        return [r[0] for r in results]
+        arches = set()
+        for r in results:
+            arches.update(r[0])
+        return arches
 
 
 @packages.route('/bin/<suite_name>/<name>')
@@ -252,7 +255,7 @@ def build_details(uuid):
                             .filter(DebcheckIssue.suite_id == suite.id) \
                             .filter(DebcheckIssue.package_name == spkg.name) \
                             .filter(DebcheckIssue.package_version == spkg.version) \
-                            .filter(DebcheckIssue.architecture.in_((job.architecture, 'any'))) \
+                            .filter(DebcheckIssue.architectures.overlap([job.architecture, 'any'])) \
                             .all()
 
         return render_template('packages/build_details.html',

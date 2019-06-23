@@ -4,7 +4,7 @@
 
 {% block body_header %}
 <h1 class="h2">Issue details for {{'binary' if issue.package_type == PackageType.BINARY else 'source'}} {{issue.package_name}}/{{issue.package_version}} in {{suite.name}}
-  <small><span class="text-secondary"><i class="fas fa-microchip"></i> {{issue.architecture}}</span></small>
+  <small><span class="text-secondary"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</span></small>
 </h1>
 {% endblock %}
 

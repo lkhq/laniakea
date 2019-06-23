@@ -83,7 +83,7 @@ def _update_debcheck_issues(session, repo, si, new_issues, package_type):
         issue.package_type = ni.packageKind
         issue.repo = repo
         issue.suite = suite
-        issue.architecture = ni.architecture
+        issue.architectures = str(ni.architecture).split(',')
 
         issue.package_name = ni.packageName
         issue.package_version = ni.packageVersion

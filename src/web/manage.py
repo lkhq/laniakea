@@ -17,9 +17,10 @@
 
 from flask_script import Manager
 from lkweb import create_app
+from lkweb.config import DebugConfig
 
 
-app = create_app()
+app = create_app(config=DebugConfig)
 manager = Manager(app)
 
 
@@ -31,7 +32,7 @@ def run():
 
 
 manager.add_option('-c', '--config',
-                   dest="config",
+                   dest='config',
                    required=False,
                    help="config file")
 

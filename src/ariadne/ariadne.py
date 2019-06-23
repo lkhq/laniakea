@@ -82,7 +82,7 @@ def debcheck_has_issues_for_package(session, suite, spkg, arch):
         .filter(DebcheckIssue.suite_id == suite.id) \
         .filter(DebcheckIssue.package_name == spkg.name) \
         .filter(DebcheckIssue.package_version == spkg.version) \
-        .filter(DebcheckIssue.architecture == arch.name).exists()
+        .filter(DebcheckIssue.architectures.any(arch.name)).exists()
     return session.query(eq).scalar()
 
 

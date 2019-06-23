@@ -18,7 +18,7 @@
 import json
 from sqlalchemy import Column, Text, String, Integer, DateTime, Enum, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import JSON, ARRAY
 from marshmallow import Schema, fields, EXCLUDE
 from uuid import uuid4
 from datetime import datetime
@@ -77,7 +77,7 @@ class DebcheckIssue(Base):
     suite_id = Column(Integer, ForeignKey('archive_suites.id'))
     suite = relationship('ArchiveSuite')
 
-    architecture = Column(Text(), default='any')  # Architecture this issue affects, may be a wildcard like "any" or architecture expression
+    architectures = Column(ARRAY(Text()), default=['any'])  # Architectures this issue affects, may be a wildcard like "any" or (list of) architecture expressions
 
     package_name = Column(String(256))  # Name of the package this issue affects
     package_version = Column(DebVersion())  # Version of the package this issue affects

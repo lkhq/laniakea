@@ -17,5 +17,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+from flask_caching import Cache
 from flask_login import LoginManager
+
+
 login_manager = LoginManager()
+
+cache = Cache()

@@ -40,7 +40,7 @@
         {% for issue in issues %}
             <a class="list-group-item" href="{{ url_for('depcheck.issue_details', suite_name=suite.name, uuid=issue.uuid) }}">
               <h4 class="list-group-item-heading">{{issue.package_name}} {{issue.package_version}}</h4>
-              <p class="mb-1 text-secondary"><i class="fas fa-microchip"></i> {{issue.architecture}}</p>
+              <p class="mb-1 text-secondary"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</p>
               {% for missing in issue.missing %}
               <p class="mb-1"><i class="far fa-question-circle"></i> {{missing.package_name}} {{missing.package_version}}</p>
               {% endfor %}

@@ -32,7 +32,7 @@ def run():
 
 
 manager.add_option('-c', '--config',
-                   dest="config",
+                   dest='config',
                    required=False,
                    help="config file")
 

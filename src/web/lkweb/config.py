@@ -30,6 +30,12 @@ class BaseConfig(object):
 
     LOG_STORAGE_URL = '/raw/logs'  # web URL where raw logs are stored by Rubicon
 
+    #
+    # Caching behavior
+    #
+    CACHE_TYPE = 'simple'
+    CACHE_DEFAULT_TIMEOUT = 300
+
     # Get app root path, also can use flask.root_path.
     # ../../config.py
     PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
@@ -45,12 +51,11 @@ class BaseConfig(object):
 
 class DefaultConfig(BaseConfig):
 
+    DEBUG = False
+    CACHE_TYPE = 'simple'
+
+
+class DebugConfig(BaseConfig):
+
     DEBUG = True
-
-    SENTRY_DSN = ""
-
-    MAIL_HOST = ""
-    FROM_ADDR = ""
-    TO_ADDRS = [""]
-    MAIL_USERNAME = ""
-    MAIL_PASSWORD = ""
+    CACHE_TYPE = 'null'

@@ -114,5 +114,5 @@ def print_query(query, literals=True):
     from sqlalchemy.dialects import postgresql
 
     sql = query.statement.compile(dialect=postgresql.dialect(), compile_kwargs={'literal_binds': literals})
-    print('---- SQL (with literals) ----')
+    print('---- SQL ({} literals) ----'.format('with' if literals else 'without'))
     print(str(sql))
