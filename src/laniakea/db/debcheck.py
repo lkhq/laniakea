@@ -85,28 +85,39 @@ class DebcheckIssue(Base):
     _missing_json = Column('missing', JSON)  # information about missing packages
     _conflicts_json = Column('conflicts', JSON)  # information about conflicts
 
+    _missing = None
+    _conflicts = None
+
     @property
     def missing(self):
+        if self._missing is not None:
+            return self._missing
         if not self._missing_json:
             return []
         jlist = json.loads(self._missing_json)
         schema = PackageIssue()
-        return [schema.load(d) for d in jlist]
+        self._missing = [schema.load(d) for d in jlist]
+        return self._missing
 
     @missing.setter
     def missing(self, v):
+        self._missing = None
         schema = PackageIssue()
         self._missing_json = json.dumps([schema.dump(e) for e in v])
 
     @property
     def conflicts(self):
+        if self._conflicts is not None:
+            return self._conflicts
         if not self._conflicts_json:
             return []
         jlist = json.loads(self._conflicts_json)
         schema = PackageConflict()
-        return [schema.load(d) for d in jlist]
+        self._conflicts = [schema.load(d) for d in jlist]
+        return self._conflicts
 
     @conflicts.setter
     def conflicts(self, v):
+        self._conflicts = None
         schema = PackageConflict()
         self._conflicts_json = json.dumps([schema.dump(e) for e in v])

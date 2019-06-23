@@ -14,7 +14,7 @@
     <div class="col-md-8">
         {% if missing %}
         <h3>Missing dependencies</h3>
-        <ul class="list-group"></ul>
+        <ul class="list-group">
             {% for m in missing %}
               <li class="list-group-item">
               <h4 class="list-group-item-heading">{{m.unsat_dependency}}</h4>
@@ -30,7 +30,6 @@
         {% if conflicts %}
         <h3>Conflicts in the dependency chain</h3>
         {% for c in conflicts %}
-        <ul class="list-group"></ul>
             <h4>{{c.pkg1.package_name}} vs. {{c.pkg2.package_name}}</h4>
             <div class="card">
                 <div class="card-body">
@@ -65,10 +64,10 @@
                    </li>
                 {% endfor %}
                 </ul>
+              </div>
             </div>
-        </ul>
         {% endfor %}
         {% endif %}
-    </div>#
+    </div>
 </div>
 {% endblock %}

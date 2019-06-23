@@ -13,16 +13,19 @@
 <b>Created:</b> {{humanized_timediff(job.time_created)}}<br/>
 <b>Assigned:</b> {{humanized_timediff(job.time_assigned)}}<br/>
 {% if job.time_finished %}<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>{% endif %}
-<br/>
 {% if worker %}
 <b>Worker:</b> {{worker.name}}<br/>
 {% endif %}
 
-<b>Status:</b>
+<b class="mt-2 mb-2">Status:</b>
 {% if job.status == JobStatus.WAITING %}
   <span style="font-size: 20px; line-height: 1.5em;">
     <i class="fa fa-hourglass-start" aria-hidden="true"></i>
   </span> Waiting
+{% elif job.status == JobStatus.DEPWAIT %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-puzzle-piece" aria-hidden="true"></i>
+  </span> Waiting for dependency
 {% elif job.status == JobStatus.SCHEDULED %}
   <span style="font-size: 20px; line-height: 1.5em;">
     <i class="fa fa-circle-o-notch fa-spin" aria-hidden="true"></i>
@@ -46,10 +49,8 @@
 {% endif %}
 <br/>
 
-
-<br/>
 {% if job.result != JobResult.UNKNOWN %}
-<h3>Result</h3>
+<h4 class="mt-2">Result</h4>
 <p>
 {% if job.result == JobResult.SUCCESS_PENDING %}
   <span style="font-size: 20px; line-height: 1.5em;">
@@ -74,7 +75,7 @@
 {% endif %}
 
 
-<h3>Details</h3>
+<h4 class="mt-2">Details</h4>
 <p>
 <b>Repository:</b> {{spkg.repo.name}}<br/>
 <b>Suite:</b> {{suite_name}}<br/>
@@ -84,11 +85,78 @@
 <b>Architecture:</b> <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{job.architecture}}</span><br/>
 </p>
 
+{% if dep_issues %}
+<h4 class="mt-2">Dependency Issues</h4>
+
+{% for issue in dep_issues %}
+    {% if issue.missing %}
+    <h5 class="mt-2">Missing dependencies ({{issue.package_name}} {{issue.package_version}})</h5>
+    <ul class="list-group list-group-flush">
+        {% for m in issue.missing %}
+          <li class="list-group-item pl-2">
+          <h5 class="list-group-item-heading">{{ link_for_bin_package_id(suite_name, m.unsat_dependency)|safe }}
+              <small class="text-muted"><i class="fas fa-microchip"></i> {{m.architecture}}</small>
+          </h5>
+          <span class="text-muted">
+          <p class="mb-1"><b>Required by:</b> {{m.package_name}}<br/>
+          {% if m.package_version %}<b>Version:</b> {{m.package_version}}<br/>{% endif %}
+          </span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if issue.conflicts %}
+    <h5 class="mt-2">Conflicts in the dependency chain ({{issue.package_name}} {{issue.package_version}})</h5>
+    {% for c in issue.conflicts %}
+        <h5>{{c.pkg1.package_name}} vs. {{c.pkg2.package_name}}</h5>
+        <div class="card">
+        <div class="card-body">
+
+        <!-- Package 1-->
+        <h5>Package 1: {{c.pkg1.package_name}} {{c.pkg1.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg1.architecture}}</h5>
+        {% if c.pkg1.unsat_conflict %}
+        <p><b>Conflict:</b> {{c.pkg1.unsat_conflict}}</p>
+        {% endif %}
+
+        <ul class="list-group list-group-flush">
+        {% for d in c.depchain1 %}
+            <li class="list-group-item pl-2">
+              <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
+              <p class="mb-1 text-secondary"><b>Depends:</b> {{d.depends}}</p>
+           </li>
+        {% endfor %}
+        </ul>
+
+        <br/>
+        <!-- Package 2-->
+        <h5>Package 2: {{c.pkg2.package_name}} {{c.pkg2.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg2.architecture}}</h5>
+        {% if c.pkg2.unsat_conflict %}
+        <p><b>Conflict:</b> {{c.pkg2.unsat_conflict}}</p>
+        {% endif %}
+
+        <ul class="list-group list-group-flush">
+        {% for d in c.depchain2 %}
+            <li class="list-group-item pl-2">
+              <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
+              <p class="mb-1 text-secondary"><b>Depends:</b> {{d.depends}}</p>
+           </li>
+        {% endfor %}
+        </ul>
+        </div>
+        </div>
+    {% endfor %}
+    {% endif %}
+    <div class="mt-2 mb-2 border-top"></div>
+
+{% endfor %}
+{% endif %}
+
 {% if log_url %}
 <p><a class="btn btn-info" href="{{log_url}}" role="button">View Full Log</a></p>
 {% else %}
 
-<h3>Log Excerpt</h3>
+<h4 class="mt-2">Log Excerpt</h4>
 <div class="row">
   <div class="col-md-8">
     <div class="card card-body bg-light">

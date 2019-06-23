@@ -91,7 +91,6 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
     Schedule a job for the given architecture, if the
     package can be built on it and no prior job was scheduled.
     '''
-    from sqlalchemy import exists
 
     # check if we can build the package on the current architecture
     if not any_arch_matches(arch.name, spkg.architectures):

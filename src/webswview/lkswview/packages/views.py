@@ -21,7 +21,8 @@ import math
 import humanize
 from flask import current_app, Blueprint, render_template, abort, url_for
 from laniakea.db import session_scope, BinaryPackage, SourcePackage, ArchiveSuite, \
-    Job, JobStatus, JobResult, SparkWorker, ArchiveArchitecture
+    Job, JobStatus, JobResult, SparkWorker, ArchiveArchitecture, DebcheckIssue, \
+    PackageType
 from sqlalchemy.orm import undefer, joinedload
 from laniakea.utils import get_dir_shorthand_for_uuid
 from ..extensions import cache
@@ -55,6 +56,20 @@ def make_linked_dependency(suite_name, depstr):
 @cache.memoize(3600)
 def all_architectures(session):
     return session.query(ArchiveArchitecture).all()
+
+
+@cache.memoize(1800)
+def link_for_bin_package_id(suite_name, pkgstr):
+    if not pkgstr:
+        return pkgstr
+    parts = pkgstr.split(':', 1)
+    pkgname = parts[0]
+    extra = parts[1].strip() if len(parts) > 1 else ''
+
+    url = '<a href="{url}">{pkgname}</a> {extra}'.format(url=url_for('packages.bin_package_details', suite_name=suite_name, name=pkgname),
+                                                         pkgname=pkgname,
+                                                         extra=extra)
+    return url
 
 
 @packages.route('/bin/<suite_name>/<name>')
@@ -163,7 +178,7 @@ def builds_list(name, page):
 
 
 @packages.route('/builds/job/<uuid>')
-@cache.cached(timeout=5)
+@cache.cached(timeout=10)
 def build_details(uuid):
     if not is_uuid(uuid):
         abort(404)
@@ -188,7 +203,18 @@ def build_details(uuid):
 
         suite_name = 'unknown'
         if job.data:
-            suite_name = job.data.get('suite')
+            suite = session.query(ArchiveSuite) \
+                           .filter(ArchiveSuite.name == job.data.get('suite')) \
+                           .one_or_none()
+            suite_name = suite.name
+
+        dep_issues = session.query(DebcheckIssue) \
+                            .filter(DebcheckIssue.package_type == PackageType.SOURCE) \
+                            .filter(DebcheckIssue.suite_id == suite.id) \
+                            .filter(DebcheckIssue.package_name == spkg.name) \
+                            .filter(DebcheckIssue.package_version == spkg.version) \
+                            .filter(DebcheckIssue.architecture.in_((job.architecture, 'any'))) \
+                            .all()
 
         return render_template('packages/build_details.html',
                                humanized_timediff=humanized_timediff,
@@ -197,5 +223,7 @@ def build_details(uuid):
                                job=job,
                                worker=worker,
                                spkg=spkg,
+                               dep_issues=dep_issues,
                                suite_name=suite_name,
-                               log_url=log_url)
+                               log_url=log_url,
+                               link_for_bin_package_id=link_for_bin_package_id)
