@@ -6,6 +6,31 @@
 <h2>Build {{spkg.name}} {{job.version}} on {{job.architecture}}</h2>
 {% endblock %}
 
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.index') }}">Portal</a>
+        </li>
+        <li class="breadcrumb-item">
+            Packages
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('packages.src_package_details', suite_name=suite_name, name=spkg.name) }}">{{spkg.name}}</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('packages.builds_list', name=spkg.name, page=1) }}">Builds</a>
+        </li>
+        <li class="breadcrumb-item">
+            {{suite_name}}
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            {{spkg.name}} {{job.version}} on {{job.architecture}}
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block body %}
 
 <b>ID:</b> {{job.uuid}}<br/>

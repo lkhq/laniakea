@@ -6,6 +6,25 @@
 <h2>Builds for {{pkg.name}}</h2>
 {% endblock %}
 
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.index') }}">Portal</a>
+        </li>
+        <li class="breadcrumb-item">
+            Packages
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('packages.src_package_details', suite_name=pkg.suites[0].name, name=pkg.name) }}">{{pkg.name}}</a>
+        </li>
+        <li class="breadcrumb-item">
+            Builds
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block body %}
 <p><b>Latest</b>: {{pkg.version}}</p>
 <div class="row">
