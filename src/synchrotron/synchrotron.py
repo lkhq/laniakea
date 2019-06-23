@@ -36,8 +36,7 @@ from lknative import SynchrotronConfig, SyncEngine
 
 
 def get_sync_config():
-    from lknative import SyncSourceSuite
-    from laniakea.lknative_utils import create_native_baseconfig
+    from laniakea.lknative import SyncSourceSuite, create_native_baseconfig
 
     lconf = LocalConfig()
     bconf = create_native_baseconfig()

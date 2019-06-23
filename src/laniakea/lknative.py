@@ -15,7 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+# import all of lknative and expose its API intentionally here
+from lknative import *  # noqa
 from lknative import BaseConfig, SuiteInfo
+
 from laniakea.db import config_get_project_name, config_get_distro_tag, session_factory, \
     ArchiveSuite
 from laniakea import LocalConfig

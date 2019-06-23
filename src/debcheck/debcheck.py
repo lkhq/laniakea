@@ -31,8 +31,7 @@ from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, Packag
 
 
 def _create_debcheck(session, suite_name):
-    from lknative import Debcheck
-    from laniakea.lknative_utils import create_native_baseconfig, \
+    from laniakea.lknative import Debcheck, create_native_baseconfig, \
         get_suiteinfo_all_suites, get_suiteinfo_for_suite
 
     bconf = create_native_baseconfig()
