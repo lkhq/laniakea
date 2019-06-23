@@ -57,5 +57,5 @@
   {"name": "web"},
   {"name": "x11"},
   {"name": "xfce"},
-  {"name": "zope"},
+  {"name": "zope"}
 ]

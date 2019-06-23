@@ -44,3 +44,12 @@ def test_base64():
     # test decoding of urlunsafe chars
     assert decode_base64(u'/+aa') == b'\xff\xe6\x9a'
     assert decode_base64(u'_-aa') == b'\xff\xe6\x9a'
+
+
+def test_loadsections(localconfig):
+    from laniakea.db import get_archive_sections
+
+    sections = get_archive_sections()
+    assert len(sections) == 59
+    assert sections[0]['name'] == 'admin'
+    assert sections[-1]['name'] == 'zope'

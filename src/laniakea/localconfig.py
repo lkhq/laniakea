@@ -35,6 +35,25 @@ def get_config_file(fname):
     return None
 
 
+def get_data_file(fname):
+    '''
+    Determine the path of a local Laniakea data file.
+    '''
+    thisfile = __file__
+    if not os.path.isabs(thisfile):
+        thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+    if thisfile.startswith('/usr'):
+        if thisfile.startswith('/usr/local'):
+            path = os.path.join('/usr/local/share/laniakea/', fname)
+        else:
+            path = os.path.join('/usr/share/laniakea/', fname)
+    else:
+        # we run from a non-installed (development?) directory
+        path = os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', '..', 'data', fname))
+
+    return path
+
+
 class LocalConfig:
     '''
     Local, machine-specific configuration for a Laniakea module.

@@ -534,3 +534,26 @@ class SoftwareComponent(Base):
         self.cpt.set_active_locale('C')
 
         return self.cpt
+
+
+def get_archive_sections():
+    '''
+    Retrieve a list of dictionaries describing the archive
+    sections that are currently supported.
+    This function does read a local data file, instead of information
+    from the database.
+    '''
+    import json
+    from laniakea.localconfig import get_data_file
+
+    with open(get_data_file('archive-sections.json'), 'r') as f:
+        sections = json.load(f)
+
+    # validate & refine data
+    for section in sections:
+        if 'name' not in section:
+            raise Exception('Invalid section contained in archive sections file (name missing).')
+        if 'summary' not in section:
+            section['summary'] = 'The {} section'.format(section['name'])
+
+    return sections

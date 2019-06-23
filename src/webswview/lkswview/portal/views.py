@@ -18,9 +18,12 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import math
-from flask import Blueprint, render_template, request, flash, redirect, url_for
-from laniakea.db import session_scope, BinaryPackage, SoftwareComponent
+from flask import Blueprint, render_template, request, flash, redirect, url_for, abort
+from laniakea.db import session_scope, BinaryPackage, SoftwareComponent, ArchiveSuite, \
+    get_archive_sections
 from sqlalchemy.sql import func
+from sqlalchemy.orm import joinedload
+from ..extensions import cache
 
 portal = Blueprint('portal', __name__)
 
@@ -80,3 +83,59 @@ def search_software():
                                results_per_page=results_per_page,
                                page_count=page_count,
                                software=software)
+
+
+@portal.route('/suites')
+@cache.cached(timeout=8400)
+def suites_index():
+    with session_scope() as session:
+        suites = session.query(ArchiveSuite).all()
+
+        return render_template('suites_index.html', suites=suites)
+
+
+@portal.route('/suite/<suite_name>/sections')
+@cache.cached(timeout=8400)
+def sections_index(suite_name):
+    with session_scope() as session:
+        suite = session.query(ArchiveSuite) \
+                       .filter(ArchiveSuite.name == suite_name) \
+                       .one_or_none()
+        if not suite:
+            abort(404)
+
+        sections = get_archive_sections()
+        return render_template('sections_index.html', suite=suite, sections=sections)
+
+
+@portal.route('/suite/<suite_name>/<section_name>/<int:page>')
+@cache.cached(timeout=3600)
+def section_view(suite_name, section_name, page):
+    with session_scope() as session:
+        suite = session.query(ArchiveSuite) \
+                       .filter(ArchiveSuite.name == suite_name) \
+                       .one_or_none()
+        if not suite:
+            abort(404)
+
+        pkgs_per_page = 100
+        pkg_query = session.query(BinaryPackage) \
+                           .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \
+                           .filter(BinaryPackage.section == section_name) \
+                           .distinct(BinaryPackage.name, BinaryPackage.version) \
+                           .order_by(BinaryPackage.name)
+        pkgs_total = pkg_query.count()
+        page_count = math.ceil(pkgs_total / pkgs_per_page)
+
+        packages = pkg_query.options(joinedload(BinaryPackage.component)) \
+                            .slice((page - 1) * pkgs_per_page, page * pkgs_per_page) \
+                            .all()
+
+        return render_template('section_view.html',
+                               section_name=section_name,
+                               suite=suite,
+                               packages=packages,
+                               pkgs_per_page=pkgs_per_page,
+                               pkgs_total=pkgs_total,
+                               current_page=page,
+                               page_count=page_count)

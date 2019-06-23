@@ -1,0 +1,55 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Suites' %}
+
+{% block body_header %}
+<h1 class="h2">Available suites in {{ config.OS_NAME }}</h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.index') }}">Portal</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            Suites
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block body %}
+
+<div class="col-md-9">
+    <div class="btn-group-vertical">
+    {% for suite in suites %}
+        {% set btn_style = 'btn-secondary' %}
+        {% if suite.parent %}
+          {% set btn_style = 'btn-light' %}
+        {% endif %}
+        {% if suite.accept_uploads %}
+          {% set btn_style = 'btn-info' %}
+        {% endif %}
+        {% if suite.devel_target %}
+          {% set btn_style = 'btn-primary' %}
+        {% endif %}
+
+        <a class="btn btn-lg btn-block {{btn_style}} mb-3" href="{{ url_for('portal.sections_index', suite_name=suite.name) }}"
+           role="button" style="border-radius:10px !important;">
+        {{suite.name}}<br>
+        {% if suite.parent %}
+            <small>Overlay for {{suite.parent.name}}</small><br/>
+        {% endif %}
+        {% if suite.accept_uploads %}
+            <small>Accepts uploads</small><br/>
+        {% endif %}
+        {% if suite.devel_target %}
+            <small>Development target</small><br/>
+        {% endif %}
+        </a>
+    {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
