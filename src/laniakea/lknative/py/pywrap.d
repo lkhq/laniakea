@@ -48,6 +48,16 @@ extern(C) void PydMain()
             Def!(Repository.getInstallerPackages),
             Def!(Repository.getIndexFile),
     )();
+    wrap_class!(SignedFile,
+            Init!(string[]),
+
+            Def!(SignedFile.open),
+            Def!(SignedFile.isValid),
+            Def!(SignedFile.fingerprint),
+            Def!(SignedFile.primaryFingerprint),
+            Def!(SignedFile.signatureId),
+            Def!(SignedFile.content),
+    )();
 
     /* Synchrotron */
     import lknative.synchrotron;
