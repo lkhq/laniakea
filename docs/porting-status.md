@@ -40,10 +40,10 @@ Planter | Generate metapackage information from seeds | Core | :heavy_check_mark
 Rubicon | Accept build artifacts into a trusted area | Core, Lighthouse | :heavy_check_mark: Completed
 Spears | Migrate packages between suites with Britney | Core | :heavy_check_mark: Completed
 Ariadne | Package build scheduler | Dataimport, Debcheck, Lighthouse | :heavy_check_mark: Completed
-Web | Web UI | All backend modules | :soon: In progress
-Web-SWView | Web package and application browser | Dataimport, AppStream | :red_circle: Not started
+Web | Web UI | All backend modules | :heavy_check_mark: Completed
+Web-SWView | Web package and application browser | Dataimport, AppStream | :heavy_check_mark: Completed
 Irk | IRC bot | Lighthouse | :broken_heart: Will not be ported and has been removed
-Mirk | Matrix bot | Lighthouse | :red_circle: Not started
+Mirk | Matrix bot | Lighthouse | :large_orange_diamond: In progress
 PhabBridge | Bridge to Phabricator | Lighthouse | :red_circle: Not started
 
 
