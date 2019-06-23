@@ -22,8 +22,9 @@ import humanize
 from flask import current_app, Blueprint, render_template, abort, url_for
 from laniakea.db import session_scope, BinaryPackage, SourcePackage, ArchiveSuite, \
     Job, JobStatus, JobResult, SparkWorker, ArchiveArchitecture, DebcheckIssue, \
-    PackageType
+    PackageType, SpearsExcuse
 from sqlalchemy.orm import undefer, joinedload
+from sqlalchemy import or_
 from laniakea.utils import get_dir_shorthand_for_uuid
 from ..extensions import cache
 from ..utils import humanized_timediff, is_uuid
@@ -92,6 +93,32 @@ def architectures_with_issues_for_spkg(suite, spkg):
         for r in results:
             arches.update(r[0])
         return arches
+
+
+@cache.memoize(600)
+def migration_excuse_info(spkg, suite_name):
+    with session_scope() as session:
+        qres = session.query(SpearsExcuse.uuid,
+                             SpearsExcuse.version_new,
+                             SpearsExcuse.suite_source,
+                             SpearsExcuse.suite_target,
+                             SpearsExcuse.age_current,
+                             SpearsExcuse.age_required) \
+                      .filter(or_(SpearsExcuse.suite_source == suite_name,
+                                  SpearsExcuse.suite_target == suite_name,)) \
+                      .filter(SpearsExcuse.source_package == spkg.name) \
+                      .all()
+        if not qres:
+            return []
+        infos = []
+        for e in qres:
+            stuck = e[4] >= e[5]
+            infos.append({'uuid': e[0],
+                          'version_new': e[1],
+                          'source': e[2],
+                          'target': e[3],
+                          'stuck': stuck})
+        return infos
 
 
 @packages.route('/bin/<suite_name>/<name>')
@@ -165,6 +192,7 @@ def src_package_details(suite_name, name):
         spkg_rep = spkgs[0]  # the first package is always the most recent one
 
         broken_archs = architectures_with_issues_for_spkg(suite, spkg_rep)
+        migration_infos = migration_excuse_info(spkg_rep, suite_name)
 
         return render_template('packages/src_details.html',
                                pkg=spkg_rep,
@@ -172,6 +200,7 @@ def src_package_details(suite_name, name):
                                pkg_suite_name=suite_name,
                                suites=suites,
                                broken_archs=broken_archs,
+                               migration_infos=migration_infos,
                                make_linked_dependency=make_linked_dependency)
 
 
@@ -268,4 +297,19 @@ def build_details(uuid):
                                dep_issues=dep_issues,
                                suite_name=suite_name,
                                log_url=log_url,
+                               link_for_bin_package_id=link_for_bin_package_id)
+
+
+@packages.route('/excuses/<uuid>')
+def view_excuse(uuid):
+    if not is_uuid(uuid):
+        abort(404)
+
+    with session_scope() as session:
+        excuse = session.query(SpearsExcuse).filter(SpearsExcuse.uuid == uuid).one_or_none()
+        if not excuse:
+            abort(404)
+
+        return render_template('packages/excuse_details.html',
+                               excuse=excuse,
                                link_for_bin_package_id=link_for_bin_package_id)

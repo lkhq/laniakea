@@ -67,6 +67,30 @@
                 </div>
                 {% endif %}
 
+                {% if migration_infos %}
+                {% for info in migration_infos %}
+                  <div class="alert {{ 'alert-danger' if info.stuck else 'alert-secondary' }}" role="alert">
+                    {% if info.target == pkg_suite_name %}
+                      {% if info.stuck %}
+                        Version {{ info.version_new }} fails to migrate to this suite from <strong>{{ info.source }}</strong>.
+                        <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Check why</a>.
+                      {% else %}
+                        Version {{ info.version_new }} is scheduled for migration to this suite from <strong>{{ info.source }}</strong>.
+                        <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Details</a>.
+                      {% endif %}
+                    {% else %}
+                      {% if info.stuck %}
+                        Version {{ info.version_new }} fails to migrate to <strong>{{ info.target }}</strong> (from <strong>{{ info.source }}</strong>).
+                        <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Check why</a>.
+                      {% else %}
+                        Version {{ info.version_new }} is scheduled for migration to <strong>{{ info.target }}</strong> (from <strong>{{ info.source }}</strong>).
+                        <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Details</a>.
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                {% endfor %}
+                {% endif %}
+
                 {% if pkg.homepage %}
                 <a class="btn btn-outline-success" href="{{pkg.homepage}}" role="button">Homepage</a>
                 {% endif %}

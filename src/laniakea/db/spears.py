@@ -89,8 +89,8 @@ class SpearsExcuse(Base):
 
     migration_id = Column(Text(), nullable=False)  # Identifier for the respective migration task, in the form of "source1+source2-to-target"
 
-    suite_target = Column(String(128))  # Source suite of this package
-    suite_source = Column(String(128))  # Target suite of this package
+    suite_target = Column(String(128))  # Target suite of this package
+    suite_source = Column(String(128))  # Source suite of this package
 
     is_candidate = Column(Boolean())  # True if the package is considered for migration at all
 
