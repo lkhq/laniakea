@@ -1,7 +1,5 @@
 # Meson definition for Laniakea - Shared
 
-add_languages('c')
-
 lknative_src = [
     'c/libarchive.d',
     'compressed.d',
@@ -39,7 +37,6 @@ lknative_src = [
 ]
 
 lknative_deps = [pyd_dep,
-                 dcontainers_dep,
                  archive_dep,
                  curl_dep,
                  dyaml_dep

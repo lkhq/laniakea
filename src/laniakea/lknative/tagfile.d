@@ -25,7 +25,6 @@ import std.array : appender, empty;
 import std.conv : to;
 import std.path : buildPath;
 import std.typecons : Flag, Yes;
-import containers : HashMap;
 
 import lknative.utils : splitStrip;
 import lknative.compressed;
@@ -40,7 +39,7 @@ final class TagFile
 private:
     string[] content;
     uint pos;
-    HashMap!(string, string) currentBlock;
+    string[string] currentBlock;
 
     string _fname;
     bool _isEmpty;
@@ -49,7 +48,7 @@ public:
 
     this () @trusted
     {
-        currentBlock = HashMap!(string, string) (16);
+        currentBlock.clear ();
         _isEmpty = true;
     }
 

@@ -29,7 +29,6 @@ import std.digest.sha;
 import std.algorithm : canFind;
 import std.uuid : UUID;
 static import std.file;
-import containers : DynamicArray, HashMap;
 
 import lknative.logging;
 import lknative.net : downloadFile;
@@ -57,7 +56,7 @@ private:
     string[] keyrings;
     bool repoTrusted;
 
-    HashMap!(string, InReleaseData) inRelease;
+    InReleaseData[string] inRelease;
 
 public:
 
@@ -75,7 +74,6 @@ public:
         keyrings = trustedKeyrings;
         repoTrusted = false;
         this.repoName = repoName;
-        inRelease = HashMap!(string, InReleaseData) (16);
     }
 
     @property @safe
@@ -230,11 +228,11 @@ public:
         auto suite = scTuple.suite;
         auto component = scTuple.component;
 
-        auto dbPackages = HashMap!(UUID, SourcePackage) (128);
-        auto validPackages = HashMap!(UUID, bool) (128);
+        SourcePackage[UUID] dbPackages;
+        bool[UUID] validPackages;
 
         auto pkgs = appender!(SourcePackage[]);
-        pkgs.reserve (dbPackages.length? dbPackages.length : 256);
+        pkgs.reserve (512);
 
         // if we don't pay attention, of a 1m run, this code will spend more than 20s in the GC
         // so, we control a bit when we run a collection cycle
@@ -323,12 +321,12 @@ public:
         auto component = scTuple.component;
         immutable requestedArchIsAll = architecture == "all";
 
-        auto dbPackages = HashMap!(UUID, BinaryPackage) (128);
-        auto validPackages = HashMap!(UUID, bool) (128);
+        BinaryPackage[UUID] dbPackages;
+        bool[UUID] validPackages;
 
-        auto archEntities = HashMap!(string, ArchiveArchitecture) (8);
+        ArchiveArchitecture[string] archEntities;
         auto pkgs = appender!(BinaryPackage[]);
-        pkgs.reserve (dbPackages.length? dbPackages.length : 256);
+        pkgs.reserve (512);
 
         // if we don't pay attention, of a 1m run, this code will spend more than 20s in the GC
         // so, we control a bit when we run a collection cycle
@@ -520,7 +518,7 @@ public auto getNewestPackagesAA(T) (T[] pkgList) @trusted
  */
 public auto getNewestPackagesMap(T) (T[] pkgList) @trusted
 {
-    auto res = HashMap!(string, T) (64);
+    T[string] res;
 
     foreach (ref pkg; pkgList) {
         auto epkgP = pkg.name in res;

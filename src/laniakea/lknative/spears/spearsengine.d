@@ -25,7 +25,6 @@ import std.array : appender;
 import std.typecons : Tuple, Nullable;
 import std.parallelism : parallel;
 static import std.file;
-import containers : HashMap;
 
 import lknative.repository.dak;
 import lknative.repository.types;
@@ -430,7 +429,7 @@ public:
         // their excuses to the database.
         // This is only needed for multi-source-suite combined migrations, otherwise there is only one
         // source suites packages can originate from.
-        auto pkgSourceSuiteMap = HashMap!(string, string) (32);
+        string[string] pkgSourceSuiteMap;
         if (fromSuites.length > 1) {
             import lknative.repository : Repository;
 
@@ -446,6 +445,7 @@ public:
                 }
             }
         }
+        pkgSourceSuiteMap.rehash ();
 
         auto excuses = appender!(SpearsExcuse[]);
         foreach (id, excuse; efile.getExcuses) {
