@@ -21,7 +21,6 @@ import math
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from laniakea.db import session_scope, BinaryPackage, SoftwareComponent
 from sqlalchemy.sql import func
-from ..extensions import cache
 
 portal = Blueprint('portal', __name__)
 
