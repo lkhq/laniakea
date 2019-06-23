@@ -51,20 +51,18 @@
 
                 {% for issue in dep_issues %}
                   {% if issue.missing %}
-                  <h6>Missing</h6>
+                  <h6 class="pl-2"><small class="fas fa-question-circle"></small> Missing <small class="text-muted"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</small></h6>
                   <ul class="mb-0">
                     {% for m in issue.missing %}
-                      <li>{{ link_for_bin_package_id(suite_name, m.unsat_dependency)|safe }}
-                        <small class="text-muted"><i class="fas fa-microchip"></i> {{m.architecture}}</small>
-                      </li>
+                      <li>{{ link_for_bin_package_id(pkg_suite_name, m.unsat_dependency)|safe }}</li>
                     {% endfor %}
                   </ul>
                   {% endif %}
 
                   {% if issue.conflicts %}
-                  <h6 class="mt-2">Conflicts</h6>
+                  <h6 class="mt-2 pl-2"><small class="fas fa-fist-raised"></small> Conflicts <small class="text-muted"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</small></h6>
                   {% for c in issue.conflicts %}
-                      <h7>{{c.pkg1.package_name}} vs. {{c.pkg2.package_name}}</h7>
+                      <h7 class="pl-3">{{ link_for_bin_package_id(pkg_suite_name, c.pkg1.package_name)|safe }} vs. {{ link_for_bin_package_id(pkg_suite_name, c.pkg2.package_name)|safe }}</h7>
                   {% endfor %}
                   {% endif %}
                 {% endfor %}
