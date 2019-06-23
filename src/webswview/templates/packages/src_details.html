@@ -52,7 +52,20 @@
                 <b>Standards Version:</b> {{pkg.standards_version}}
                 <br/>
                 <b>Architectures</b>: {% for src_arch in pkg.architectures %}<span class="badge badge-pill badge-secondary"><i class="far fa-dot-circle"></i> {{src_arch}}</span>&nbsp;{% endfor %}
-                <br/><br/>
+                <br/>
+                <div class="mt-2" />
+
+                {% if broken_archs %}
+                <div class="alert alert-warning" role="alert">
+                <h6>This package may currently be <strong>unbuildable</strong> on the following architectures:</h6>
+
+                  <ul class="mb-0">
+                    {% for a in broken_archs %}
+                      <li><small class="text-muted"><i class="fas fa-microchip"></i></small> {{a}}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+                {% endif %}
 
                 {% if pkg.homepage %}
                 <a class="btn btn-outline-success" href="{{pkg.homepage}}" role="button">Homepage</a>
