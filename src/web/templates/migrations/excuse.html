@@ -25,14 +25,14 @@
 <b>Destination:</b> {{excuse.suite_target}} <i>(old version: {{excuse.version_old}})</i><br/>
 </p>
 
-<h3>Age</h3>
+<h4>Age</h4>
 <p>Package is {{excuse.age_current}} days old (needed {{excuse.age_required}})</p>
 
 {% if excuse.missing_archs_primary or excuse.missing_archs_secondary %}
-<h3>Architectures</h3>
+<h4>Architectures</h4>
 
 {% if excuse.missing_archs_primary %}
-<h4>Primary</h4>
+<h5>Primary</h5>
 <ul>
     {% for arch in excuse.missing_archs_primary %}
     <li>{{arch}}</li>
@@ -41,7 +41,7 @@
 {% endif %}
 
 {% if excuse.missing_archs_secondary %}
-<h4>Secondary</h4>
+<h5>Secondary</h5>
 <ul>
     {% for arch in excuse.missing_archs_secondary %}
     <li>{{arch}}</li>
@@ -53,7 +53,7 @@
 
 
 {% if excuse.old_binaries %}
-<h3>Old Binaries</h3>
+<h4>Old Binaries</h4>
 <ul>
     {% for obin in excuse.old_binaries %}
     <li><b>{{obin.pkg_version}}</b>: {{obin.binaries|join(', ')}}</li>
@@ -62,7 +62,7 @@
 {% endif %}
 
 {% if excuse.blocked_by %}
-<h3>Blocked By</h3>
+<h4>Blocked By</h4>
 <ul>
     {% for block in excuse.blocked_by %}
     <li>{{block}}</li>
@@ -71,7 +71,7 @@
 {% endif %}
 
 {% if excuse.migrate_after %}
-<h3>Migrates After</h3>
+<h4>Migrates After</h4>
 <ul>
     {% for wait_entry in excuse.migrate_after %}
     <li>{{wait_entry}}</li>
@@ -80,7 +80,7 @@
 {% endif %}
 
 {% if excuse.manual_block %}
-<h3>Manually Blocked</h3>
+<h4>Manually Blocked</h4>
 <ul>
     {% for block in excuse.manual_block %}
     <li>{{block}}</li>
@@ -89,7 +89,7 @@
 {% endif %}
 
 {% if excuse.other %}
-<h3>Other Reasons</h3>
+<h4>Other Reasons</h4>
 <ul>
     {% for reason in excuse.other %}
     <li>{{reason}}</li>
@@ -98,7 +98,7 @@
 {% endif %}
 
 {% if excuse.log_excerpt %}
-<h3>Log Excerpt</h3>
+<h4>Log Excerpt</h4>
 <div class="row">
     <div class="col-md-4">
         <div class="card card-body bg-light">
