@@ -1,4 +1,6 @@
-# Copyright (C) 2016-2019 Matthias Klumpp <matthias@tenstral.net>
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -15,21 +17,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-from lknative import compare_versions
-from laniakea.utils.command import run_command, safe_run
-from laniakea.utils.arches import arch_matches, any_arch_matches
-from laniakea.utils.deb822 import Changes
-from laniakea.utils.misc import get_dir_shorthand_for_uuid, random_string, cd
-from laniakea.utils.base64 import encode_base64, decode_base64
+from laniakea.signedjson.sign import SignatureVerifyException, sign_json, verify_signed_json, signature_ids
 
-__all__ = ['compare_versions',
-           'arch_matches',
-           'any_arch_matches',
-           'Changes',
-           'get_dir_shorthand_for_uuid',
-           'random_string',
-           'run_command',
-           'safe_run',
-           'cd',
-           'encode_base64',
-           'decode_base64']
+
+__all__ = ['SignatureVerifyException',
+           'sign_json',
+           'verify_signed_json',
+           'signature_ids']

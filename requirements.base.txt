@@ -9,3 +9,4 @@ humanize
 marshmallow
 tornado
 PyGObject
+PyNaCl
