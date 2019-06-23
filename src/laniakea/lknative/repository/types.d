@@ -56,7 +56,7 @@ class ArchiveSuite
 
     ArchiveRepository repo;
 
-    ArchiveArchitecture[] architectures;
+    string[] architectureNames;
 
     ArchiveComponent[] components;
 
@@ -71,16 +71,16 @@ class ArchiveSuite
         this.name = name;
     }
 
-    private ArchiveArchitecture _primaryArch;
+    private string _primaryArch;
     auto primaryArchitecture () @trusted
     {
         if (_primaryArch !is null)
             return _primaryArch;
-        if (architectures.length == 0)
+        if (architectureNames.length == 0)
             return null;
-        _primaryArch = architectures[0];
-        foreach (ref arch; architectures) {
-            if (arch.name != "all") {
+        _primaryArch = architectureNames[0];
+        foreach (ref arch; architectureNames) {
+            if (arch != "all") {
                 _primaryArch = arch;
                 break;
             }
@@ -104,27 +104,6 @@ class ArchiveComponent
 
     BinaryPackage[] binPackages;
     BinaryPackage[] srcPackages;
-
-    this () {}
-    this (string name)
-    {
-        this.name = name;
-    }
-}
-
-/**
- * A system architecture software can be compiled for.
- * Usually associated with an @ArchiveSuite
- */
-class ArchiveArchitecture
-{
-    int id;
-
-    string name;
-
-    ArchiveSuite[] suites; /// Suites that contain this architecture
-
-    BinaryPackage[] binPackages;
 
     this () {}
     this (string name)
@@ -337,7 +316,7 @@ struct BinaryPackage
     ArchiveComponent component;         /// Component this package is in
     ArchiveRepository repo;             /// Repository this package is part of
 
-    ArchiveArchitecture architecture; /// Architecture this binary was built for
+    string architectureName; /// Architecture this binary was built for
     int installedSize; /// Size of the installed package (an int instead of e.g. ulong for now for database reasons)
 
     string description;
@@ -370,19 +349,20 @@ struct BinaryPackage
         import std.array : empty;
         if (this.uuid.empty && !regenerate)
             return;
-        assert (this.architecture !is null);
+        assert (!this.architectureName.empty);
 
         string repoName = "?";
         if (this.repo !is null) {
             repoName = this.repo.name;
         }
 
-        this.uuid = BinaryPackage.generateUUID (repoName, this.name, this.ver, this.architecture.name);
+        this.uuid = BinaryPackage.generateUUID (repoName, this.name, this.ver, this.architectureName);
     }
 
     string stringId () @trusted
     {
-        assert (this.architecture !is null);
+        import std.array : empty;
+        assert (!this.architectureName.empty);
 
         string repoName = "";
         if (this.suites.length != 0) {
@@ -391,6 +371,6 @@ struct BinaryPackage
                 repoName = "?";
         }
 
-        return repoName ~ "::" ~ this.name ~ "/" ~ this.ver ~ "/" ~ this.architecture.name;
+        return repoName ~ "::" ~ this.name ~ "/" ~ this.ver ~ "/" ~ this.architectureName;
     }
 }

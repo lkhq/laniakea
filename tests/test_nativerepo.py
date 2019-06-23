@@ -102,7 +102,7 @@ def validate_bin_packages(bpkgs):
 
         assert pkg.depends == ['debhelper (>= 9)', 'make']
 
-        # FIXME: assert pkg.architecture.name == 'all'
+        assert pkg.architectureName == 'all'
         assert pkg.section == 'utils'
         assert pkg.priority == PackagePriority.OPTIONAL
         assert pkg.installedSize == 89

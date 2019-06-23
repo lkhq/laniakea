@@ -169,14 +169,6 @@ public:
     }
 
     /**
-     * Get an architecture entity.
-     */
-    private auto getArchitectureEntity (string archName) @trusted
-    {
-        return new ArchiveArchitecture (archName);
-    }
-
-    /**
      * Retrieve a package list (index) file from the repository.
      * The file will be downloaded if necessary:
      *
@@ -324,7 +316,6 @@ public:
         BinaryPackage[UUID] dbPackages;
         bool[UUID] validPackages;
 
-        ArchiveArchitecture[string] archEntities;
         auto pkgs = appender!(BinaryPackage[]);
         pkgs.reserve (512);
 
@@ -365,17 +356,7 @@ public:
             if (!pkg.suites[].canFind (suite))
                 pkg.suites ~= suite;
 
-            // get the architecture entity
-            auto archP = archName in archEntities;
-            ArchiveArchitecture arch;
-            if (archP is null) {
-                arch = getArchitectureEntity (archName);
-                archEntities[archName] = arch;
-            } else {
-                arch = *archP;
-            }
-
-            pkg.architecture = arch;
+            pkg.architectureName = archName;
             pkg.maintainer = tf.readField ("Maintainer");
 
             immutable sourceId = tf.readField ("Source");
@@ -418,7 +399,7 @@ public:
 
             // Do some issue-reporting
             if (pkg.file.fname.empty)
-                logWarning ("Binary package %s/%s/%s seems to have no files.", pkg.name, pkg.ver, pkg.architecture.name);
+                logWarning ("Binary package %s/%s/%s seems to have no files.", pkg.name, pkg.ver, pkg.architectureName);
 
             // update UUID and add package to results set
             pkg.ensureUUID (true);
