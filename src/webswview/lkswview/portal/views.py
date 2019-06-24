@@ -207,7 +207,7 @@ def category_view(cat_id, subcat_id, page):
         sw_query = session.query(SoftwareComponent) \
                           .filter(SoftwareComponent.categories.overlap(cast(dcats, ARRAY(String())))) \
                           .distinct(SoftwareComponent.cid)
-        software = sw_query.all()
+        software = sw_query.slice((page - 1) * sw_per_page, page * sw_per_page).all()
 
         sw_total = sw_query.count()
         page_count = math.ceil(sw_total / sw_per_page)
