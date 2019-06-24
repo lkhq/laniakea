@@ -480,7 +480,7 @@ class SoftwareComponent(Base):
     project_license = Column(Text())  # License of this software
     developer_name = Column(Text())  # Name of the developer of this software
 
-    categories = Column(ARRAY(String(128)))  # Categories this component is in
+    categories = Column(ARRAY(String(256)))  # Categories this component is in
 
     bin_packages = relationship('BinaryPackage', secondary=swcpt_binpkg_assoc_table, back_populates='sw_cpts')  # Packages this software component is contained in
 

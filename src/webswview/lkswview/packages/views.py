@@ -216,17 +216,14 @@ def builds_list(name, page):
             abort(404)
 
         jobs_per_page = 20
-        jobs_total = session.query(Job) \
-            .filter(Job.trigger == spkg.source_uuid) \
-            .order_by(Job.time_created.desc()) \
-            .count()
+        jobs_query = session.query(Job) \
+                            .filter(Job.trigger == spkg.source_uuid) \
+                            .order_by(Job.time_created.desc())
+        jobs_total = jobs_query.count()
         page_count = math.ceil(jobs_total / jobs_per_page)
 
-        jobs_list = session.query(Job) \
-                           .filter(Job.trigger == spkg.source_uuid) \
-                           .order_by(Job.time_created.desc()) \
-                           .slice((page - 1) * jobs_per_page, page * jobs_per_page) \
-                           .all()
+        jobs_list = jobs_query.slice((page - 1) * jobs_per_page, page * jobs_per_page) \
+                              .all()
 
         # create by-architecture view on jobs
         jobs_arch = {}

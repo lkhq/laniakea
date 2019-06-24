@@ -21,9 +21,13 @@ import math
 from flask import Blueprint, render_template, request, flash, redirect, url_for, abort
 from laniakea.db import session_scope, BinaryPackage, SoftwareComponent, ArchiveSuite, \
     get_archive_sections
-from sqlalchemy.sql import func
+from sqlalchemy import String, func, cast
 from sqlalchemy.orm import joinedload
+from sqlalchemy.dialects.postgresql import ARRAY
 from ..extensions import cache
+import gi
+gi.require_version('AppStream', '1.0')
+from gi.repository import AppStream
 
 portal = Blueprint('portal', __name__)
 
@@ -137,5 +141,82 @@ def section_view(suite_name, section_name, page):
                                packages=packages,
                                pkgs_per_page=pkgs_per_page,
                                pkgs_total=pkgs_total,
+                               current_page=page,
+                               page_count=page_count)
+
+
+# cached app category dictionary
+_app_categories = None
+
+
+def get_app_categories():
+    '''
+    Retrieve a cached dict of software categories.
+    '''
+    global _app_categories
+    if _app_categories:
+        return _app_categories
+
+    cats = {}
+    ascats = AppStream.get_default_categories(False)
+    for c in ascats:
+        cats[c.get_id()] = c
+    _app_categories = cats
+    return cats
+
+
+@portal.route('/categories')
+@cache.cached(timeout=8400)
+def categories_index():
+    categories = get_app_categories()
+    return render_template('categories_index.html', categories=categories.values())
+
+
+@portal.route('/category/<cat_id>/<subcat_id>/<int:page>')
+@portal.route('/category/<cat_id>/<int:page>', defaults={'subcat_id': None})
+@cache.cached(timeout=8400)
+def category_view(cat_id, subcat_id, page):
+    categories = get_app_categories()
+    category = categories.get(cat_id)
+    if not category:
+        abort(404)
+
+    parent_category = None
+    if subcat_id:
+        parent_category = category
+        category = None
+        for c in parent_category.get_children():
+            if c.get_id() == subcat_id:
+                category = c
+                break
+        if not category:
+            abort(404)
+
+    sw_per_page = 50
+
+    with session_scope() as session:
+        # TODO: Do this inefficient filtering in advance
+        dcats = []
+        for c in category.get_desktop_groups():
+            parts = c.split('::')
+            if len(parts) <= 1:
+                dcats.append(c)
+            else:
+                dcats.append(parts[-1])
+
+        sw_query = session.query(SoftwareComponent) \
+                          .filter(SoftwareComponent.categories.overlap(cast(dcats, ARRAY(String())))) \
+                          .distinct(SoftwareComponent.cid)
+        software = sw_query.all()
+
+        sw_total = sw_query.count()
+        page_count = math.ceil(sw_total / sw_per_page)
+
+        return render_template('category_view.html',
+                               parent_category=parent_category,
+                               category=category,
+                               software=software,
+                               sw_per_page=sw_per_page,
+                               sw_total=sw_total,
                                current_page=page,
                                page_count=page_count)

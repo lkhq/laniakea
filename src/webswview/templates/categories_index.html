@@ -1,0 +1,55 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Software categories' %}
+
+{% block body_header %}
+<h1 class="h2">Software categories</h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.index') }}">Portal</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.suites_index') }}">Software</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            Categories
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block body %}
+<div class="col-md-auto">
+
+    <div class="card-columns">
+    {% for c in categories %}
+
+        <div class="card">
+          <div class="card-body">
+          <div class="row">
+            <img width="64" height="64" class="align-middle" src="{{ url_for('static', filename='img/categories/%s.svg'|format(c.get_icon())) }}" alt="{{c.get_icon()}}" />
+
+            <a href="{{ url_for('portal.category_view', cat_id=c.get_id(), page=1) }}" class="card-link mt-2 align-middle">
+              <h5 class="card-title">{{c.get_name()}}</h5>
+
+              {% if c.get_summary() %}
+                <h6 class="card-subtitle mb-2 text-muted">{{c.get_summary()}}</h6>
+              {% else %}
+                <h6 class="card-subtitle mb-2 text-muted">{{c.get_children()|length}} subcategories</h6>
+              {% endif %}
+            </a>
+
+          </div>
+          </div>
+        </div>
+
+    {% endfor %}
+    </div>
+
+</div>
+
+{% endblock %}
