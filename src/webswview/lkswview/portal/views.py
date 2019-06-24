@@ -122,7 +122,7 @@ def section_view(suite_name, section_name, page):
         if not suite:
             abort(404)
 
-        pkgs_per_page = 100
+        pkgs_per_page = 50
         pkg_query = session.query(BinaryPackage) \
                            .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \
                            .filter(BinaryPackage.section == section_name) \
@@ -192,7 +192,7 @@ def category_view(cat_id, subcat_id, page):
         if not category:
             abort(404)
 
-    sw_per_page = 50
+    sw_per_page = 25
 
     with session_scope() as session:
         # TODO: Do this inefficient filtering in advance
