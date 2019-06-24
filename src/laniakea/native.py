@@ -1,4 +1,4 @@
-# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -21,10 +21,11 @@ from lknative import BaseConfig, SuiteInfo
 
 from laniakea.db import config_get_project_name, config_get_distro_tag, session_factory, \
     ArchiveSuite
-from laniakea import LocalConfig
 
 
 def create_native_baseconfig():
+    from laniakea import LocalConfig
+
     session = session_factory()
     bconf = BaseConfig()
 

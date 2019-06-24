@@ -18,7 +18,7 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from laniakea.lknative import Repository
+from laniakea.native import Repository
 from laniakea.db import DebType, PackagePriority
 
 

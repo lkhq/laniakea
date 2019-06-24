@@ -22,7 +22,7 @@ import pytest
 
 
 def test_lknative_gpg(samplesdir):
-    from laniakea.lknative import SignedFile
+    from laniakea.native import SignedFile
 
     keyring_path = os.path.join(samplesdir, 'gpg', 'keyrings', 'keyring.gpg')
     other_keyring_path = os.path.join(samplesdir, 'gpg', 'keyrings', 'other-keyring.gpg')

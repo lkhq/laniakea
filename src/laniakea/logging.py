@@ -33,7 +33,7 @@ if not __verbose_logging:
 
 
 def set_verbose(enabled):
-    from lknative import logging_set_verbose
+    from laniakea.native import logging_set_verbose
     global __verbose_logging
 
     __verbose_logging = enabled

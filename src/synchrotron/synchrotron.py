@@ -32,11 +32,11 @@ from argparse import ArgumentParser
 from laniakea import LocalConfig, LkModule
 from laniakea.db import config_get_value, session_factory, ArchiveSuite, \
     SyncBlacklistEntry, SynchrotronIssue, SynchrotronIssueKind
-from lknative import SynchrotronConfig, SyncEngine
+from laniakea.native import SynchrotronConfig, SyncEngine
 
 
 def get_sync_config():
-    from laniakea.lknative import SyncSourceSuite, create_native_baseconfig
+    from laniakea.native import SyncSourceSuite, create_native_baseconfig
 
     lconf = LocalConfig()
     bconf = create_native_baseconfig()
@@ -66,7 +66,7 @@ def get_sync_config():
 
 
 def get_incoming_suite_info():
-    from lknative import SuiteInfo
+    from laniakea.native import SuiteInfo
 
     session = session_factory()
     si = SuiteInfo()

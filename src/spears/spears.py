@@ -28,12 +28,12 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 from argparse import ArgumentParser
 from laniakea.db import session_factory, SpearsMigrationEntry, SpearsHint, \
     SpearsExcuse, SpearsOldBinaries
-from laniakea.lknative import SpearsEngine
+from laniakea.native import SpearsEngine
 
 
 def get_spears_config():
-    from laniakea.lknative import SpearsHint as LknSpearsHint
-    from laniakea.lknative import create_native_baseconfig, get_suiteinfo_all_suites, \
+    from laniakea.native import SpearsHint as LknSpearsHint
+    from laniakea.native import create_native_baseconfig, get_suiteinfo_all_suites, \
         SpearsConfig, SpearsConfigEntry, int_to_versionpriority
     from laniakea.localconfig import ExternalToolsUrls
 

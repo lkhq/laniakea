@@ -33,7 +33,7 @@ from laniakea.logging import log
 from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, ArchiveArchitecture, \
     SourcePackage, BinaryPackage, ArchiveFile, PackageInfo, SoftwareComponent
 from sqlalchemy.orm import joinedload
-from lknative import Repository
+from laniakea.native import Repository
 import gi
 gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
