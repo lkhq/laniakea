@@ -181,9 +181,8 @@ def category_view(cat_id, subcat_id, page):
     if not category:
         abort(404)
 
-    parent_category = None
+    parent_category = category
     if subcat_id:
-        parent_category = category
         category = None
         for c in parent_category.get_children():
             if c.get_id() == subcat_id:
@@ -215,6 +214,7 @@ def category_view(cat_id, subcat_id, page):
         return render_template('category_view.html',
                                parent_category=parent_category,
                                category=category,
+                               subcat_id=subcat_id,
                                software=software,
                                sw_per_page=sw_per_page,
                                sw_total=sw_total,

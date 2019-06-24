@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 
-{% if parent_category %}
+{% if parent_category != category %}
   {% set page_title = 'Category %s/%s'|format(parent_category.get_name(), category.get_name()) %}
 {% else %}
   {% set page_title = 'Category %s'|format(category.get_name()) %}
@@ -15,7 +15,7 @@
         <li class="breadcrumb-item">
             <a href="{{ url_for('portal.categories_index') }}">Software</a>
         </li>
-        {% if parent_category %}
+        {% if parent_category != category %}
         <li class="breadcrumb-item">
             <a href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), page=1) }}">{{parent_category.get_name()}}</a>
         </li>
@@ -35,7 +35,7 @@
         <p class="lead">Categories</p>
         <div class="list-group">
         {% for sc in category.get_children() %}
-            <a class="list-group-item" href="{{ url_for('portal.category_view', cat_id=category.get_id(), subcat_id=sc.get_id(), page=1) }}">{{sc.get_name()}}</a>
+            <a class="list-group-item" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=sc.get_id(), page=1) }}">{{sc.get_name()}}</a>
         {% endfor %}
         </div>
 
@@ -73,18 +73,18 @@
         <nav aria-label="Page navigation">
             <ul class="pagination pagination-sm flex-wrap">
                 <li class="page-item {{'disabled' if current_page <= 1 }}">
-                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=category.get_id(), page=current_page-1) if current_page > 1 else '#'}}" aria-label="Previous">
+                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=current_page-1) if current_page > 1 else '#'}}" aria-label="Previous">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
                 {% for i in range(1, page_count + 1) %}
                 <li class="page-item {{'active' if i == current_page }}">
-                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=category.get_id(), page=i) }}">{{i}}</a>
+                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=i) }}">{{i}}</a>
             </li>
                 {% endfor %}
 
                 <li class="page-item {{'disabled' if current_page >= page_count }}">
-                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=category.get_id(), page=current_page+1) if current_page < page_count else '#'}}" aria-label="Next">
+                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=current_page+1) if current_page < page_count else '#'}}" aria-label="Next">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
