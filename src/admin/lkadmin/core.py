@@ -95,7 +95,7 @@ def _add_new_suite(session):
             .filter(ArchiveSuite.name == parent_suite_name).one_or_none()
         if not parent_suite:
             print_note('Parent suite "{}" was not found.'.format(parent_suite_name))
-        suite.parent_suite = parent_suite
+        suite.parent = parent_suite
 
     session.add(suite)
     session.commit()

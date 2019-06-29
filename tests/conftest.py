@@ -70,10 +70,71 @@ def database(localconfig):
     This will wipe the global database, so tests using this can
     never run in parallel.
     '''
-    from laniakea.db import Database
-    db = Database(localconfig)
+    from laniakea.db import Database, session_scope, ArchiveRepository, ArchiveSuite, \
+        ArchiveComponent, ArchiveArchitecture
+    from laniakea.db.core import config_set_project_name, config_set_distro_tag
+    db = Database(localconfig)  # create singleton, if it didn't exist yet
 
-    # TODO: Clear database contents so tests have a pristine database
-    # to work with.
+    # clear database tables sop test function has a pristine database to work with
+    with session_scope() as session:
+        rows = session.execute('select \'drop table if exists "\' || tablename || \'" cascade;\' from pg_tables where schemaname = \'public\';').fetchall()
+        for row in rows:
+            sql = row[0]
+            session.execute(sql)
+    db.create_tables()
+
+    # add core configuration data to the database
+    config_set_project_name('Test Project')
+    config_set_distro_tag('test')
+    with session_scope() as session:
+        # master repository, currently the only one we support
+        repo = ArchiveRepository('master')
+        session.add(repo)
+
+        # components
+        acpt_main = ArchiveComponent('main')
+        acpt_contrib = ArchiveComponent('contrib')
+        acpt_nonfree = ArchiveComponent('non-free')
+        acpt_contrib.parent_component = acpt_main
+        acpt_nonfree.parent_component = acpt_main
+
+        all_components = [acpt_main, acpt_contrib, acpt_nonfree]
+        session.add_all(all_components)
+
+        # architectures
+        arch_all = ArchiveArchitecture('all')
+        arch_amd64 = ArchiveArchitecture('amd64')
+        arch_arm64 = ArchiveArchitecture('arm64')
+
+        all_architectures = [arch_all, arch_amd64, arch_arm64]
+        session.add_all(all_architectures)
+
+        # add 'unstable' suite
+        suite_us = ArchiveSuite()
+        suite_us.name = 'unstable'
+        suite_us.repos = [repo]
+        suite_us.components = all_components
+        suite_us.architectures = all_architectures
+        suite_us.accept_uploads = True
+        session.add(suite_us)
+
+        # add 'testing' suite
+        suite_te = ArchiveSuite()
+        suite_te.name = 'testing'
+        suite_te.repos = [repo]
+        suite_te.components = all_components
+        suite_te.architectures = all_architectures
+        suite_te.devel_target = True
+        session.add(suite_te)
+
+        # add 'experimental' suite
+        suite_ex = ArchiveSuite()
+        suite_ex.name = 'experimental'
+        suite_ex.repos = [repo]
+        suite_ex.components = all_components
+        suite_ex.architectures = [arch_all, arch_amd64]
+        suite_ex.accept_uploads = True
+        suite_ex.parent = suite_us
+        session.add(suite_ex)
 
     return db
