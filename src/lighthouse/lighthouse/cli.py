@@ -16,13 +16,17 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-from argparse import ArgumentParser, HelpFormatter
+from argparse import ArgumentParser
 
 __mainfile = None
 
 
 def run_server(options):
     from lighthouse.server import LhServer
+    from laniakea.localconfig import LocalConfig
+
+    if options.config_fname:
+        LocalConfig(options.config_fname)
 
     server = LhServer(options.verbose)
     server.run()
@@ -35,28 +39,18 @@ def check_print_version(options):
         sys.exit(0)
 
 
-class CustomArgparseFormatter(HelpFormatter):
-
-    def _split_lines(self, text, width):
-        print(text)
-        if text.startswith('CF|'):
-            return text[3:].splitlines()
-        return HelpFormatter._split_lines(self, text, width)
-
-
-def create_parser(formatter_class=None):
+def create_parser():
     ''' Create Lighthouse CLI argument parser '''
 
-    if not formatter_class:
-        formatter_class = CustomArgparseFormatter
-
-    parser = ArgumentParser(description='Message and job relay station', formatter_class=formatter_class)
+    parser = ArgumentParser(description='Message relay and job assignment')
 
     # generic arguments
     parser.add_argument('--verbose', action='store_true', dest='verbose',
                         help='Enable debug messages.')
     parser.add_argument('--version', action='store_true', dest='show_version',
                         help='Display the version of Laniakea itself.')
+    parser.add_argument('--config', action='store', dest='config_fname', default=None,
+                        help='Location of the base configuration file to use.')
 
     parser.set_defaults(func=run_server)
 

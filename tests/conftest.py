@@ -18,9 +18,12 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import sys
 import pytest
 from laniakea import LocalConfig
 from laniakea.logging import set_verbose
+from laniakea.utils import random_string
+from laniakea.db import LkModule
 
 
 # unconditionally enable verbose mode
@@ -41,6 +44,19 @@ def samplesdir():
     return samples_dir
 
 
+@pytest.fixture(scope='session')
+def sourcesdir():
+    '''
+    Return the location of Laniakea's sources root directory.
+    '''
+    from . import source_root
+
+    sources_dir = os.path.join(source_root, 'src')
+    if not os.path.isdir(sources_dir):
+        raise Exception('Unable to find Laniakea source directory (tried: {})'.format(sources_dir))
+    return sources_dir
+
+
 @pytest.fixture(scope='session', autouse=True)
 def localconfig(samplesdir):
     '''
@@ -48,12 +64,22 @@ def localconfig(samplesdir):
     up for testing.
     '''
     conf = LocalConfig(os.path.join(samplesdir, 'config', 'base-config.json'))
+    test_aux_data_dir = os.path.join('/tmp', 'lk-test-tmp')
+
+    if os.path.isdir(test_aux_data_dir):
+        from shutil import rmtree
+        rmtree(test_aux_data_dir)
 
     assert conf.cache_dir == '/var/tmp/laniakea'
     assert conf.workspace == '/tmp/test-lkws/'
 
     assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_test'
     assert conf.lighthouse_endpoint == 'tcp://*:5570'
+
+    # Inject sample certificate directory
+    conf.set_zcurve_keys_dir(os.path.join(test_aux_data_dir, 'keys', 'curve'))
+    assert conf.zcurve_secret_keyfile_for_module('test').startswith('/tmp/lk-test-tmp/keys/curve/secret/')
+    os.makedirs(conf._zcurve_keys_basedir, exist_ok=True)
 
     # add the trusted keyring with test keys
     conf.trusted_gpg_keyrings = []
@@ -138,3 +164,88 @@ def database(localconfig):
         session.add(suite_ex)
 
     return db
+
+
+def generate_zcurve_keys_for_module(sourcesdir, localconfig, mod):
+    '''
+    Generate new CurveZMQ keys for use by Lighthouse.
+    '''
+    import subprocess
+
+    sec_dest_fname = localconfig.zcurve_secret_keyfile_for_module(mod)
+    if os.path.isfile(sec_dest_fname):
+        return
+    keytool_exe = os.path.join(sourcesdir, 'keytool', 'keytool.py')
+    tmp_basepath = os.path.join('/tmp', 'lksec-{}'.format(random_string()))
+
+    subprocess.run([keytool_exe,
+                    'cert-new',
+                    '--name', 'Test Key for {}'.format(mod),
+                    '--email', 'test-{}@example.org'.format(mod),
+                    tmp_basepath], check=True)
+
+    assert os.path.isfile(tmp_basepath + '.key')
+    assert os.path.isfile(tmp_basepath + '.key_secret')
+
+    os.remove(tmp_basepath + '.key')
+    os.rename(tmp_basepath + '.key_secret', sec_dest_fname)
+
+
+@pytest.fixture
+def make_zcurve_trusted_key(sourcesdir, localconfig):
+
+    def _make_zcurve_trusted_key(name):
+        import subprocess
+
+        pub_dest_fname = os.path.join(localconfig.zcurve_trusted_certs_dir, '{}.key'.format(name))
+        sec_dest_fname = os.path.join(localconfig.zcurve_trusted_certs_dir, '..', '{}.key_secret'.format(name))
+        if os.path.isfile(sec_dest_fname) and os.path.isfile(pub_dest_fname):
+            return sec_dest_fname
+        keytool_exe = os.path.join(sourcesdir, 'keytool', 'keytool.py')
+        tmp_basepath = os.path.join('/tmp', 'lksec-{}'.format(random_string()))
+
+        subprocess.run([keytool_exe,
+                        'cert-new',
+                        '--name', 'Test Key {}'.format(name),
+                        '--email', 'test-{}@example.org'.format(name.replace(' ', '_')),
+                        tmp_basepath], check=True)
+
+        assert os.path.isfile(tmp_basepath + '.key')
+        assert os.path.isfile(tmp_basepath + '.key_secret')
+
+        os.rename(tmp_basepath + '.key', pub_dest_fname)
+        os.rename(tmp_basepath + '.key_secret', sec_dest_fname)
+
+        return sec_dest_fname
+
+    return _make_zcurve_trusted_key
+
+
+@pytest.fixture(scope='class')
+def lighthouse_server(request, sourcesdir, localconfig, database):
+    '''
+    Spawn a Lighthouse server to communicate with.
+    '''
+    import time
+    import subprocess
+
+    # create new secret key for Lighthouse
+    generate_zcurve_keys_for_module(sourcesdir, localconfig, LkModule.LIGHTHOUSE)
+
+    lh_exe = os.path.join(sourcesdir, 'lighthouse', 'lighthouse.py')
+    pipe = subprocess.Popen([lh_exe,
+                             '--verbose',
+                             '--config', localconfig.fname],
+                            shell=False,
+                            stdout=sys.stdout,
+                            stderr=sys.stderr)
+    time.sleep(0.5)
+    if pipe.poll():
+        pytest.fail('Lighthouse failed to start up, check stderr')
+
+    def fin():
+        pipe.terminate()
+        if not pipe.wait(30):
+            pipe.kill()
+            pytest.fail('Lighthouse failed to terminate in time')
+    request.addfinalizer(fin)

@@ -36,8 +36,10 @@ class JobWorker:
         with session_scope() as session:
             # FIXME: We need much better ways to select the right suite to synchronize with
             incoming_suite = session.query(ArchiveSuite) \
-                .filter(ArchiveSuite.accept_uploads == True).one()  # noqa: E712
-            self._incoming_suite_name = incoming_suite.name
+                .filter(ArchiveSuite.accept_uploads == True) \
+                .order_by(ArchiveSuite.name) \
+                .first()  # noqa: E712
+            self._default_incoming_suite_name = incoming_suite.name
 
     def _error_reply(self, message):
         return json.dumps({'error': message})
@@ -121,7 +123,7 @@ class JobWorker:
 
             suite_target_name = job.data.get('suite')
             if not suite_target_name:
-                suite_target_name = self._incoming_suite_name
+                suite_target_name = self._default_incoming_suite_name
 
             jdata['package_name'] = spkg.name
             jdata['package_version'] = spkg.version
