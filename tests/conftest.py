@@ -63,22 +63,32 @@ def localconfig(samplesdir):
     Retrieve a Laniakea LocalConfig object which is set
     up for testing.
     '''
-    conf = LocalConfig(os.path.join(samplesdir, 'config', 'base-config.json'))
-    test_aux_data_dir = os.path.join('/tmp', 'lk-test-tmp')
+    import json
 
+    test_aux_data_dir = os.path.join('/tmp', 'test-lkaux')
     if os.path.isdir(test_aux_data_dir):
         from shutil import rmtree
         rmtree(test_aux_data_dir)
+    os.makedirs(test_aux_data_dir)
 
+    config_tmpl_fname = os.path.join(samplesdir, 'config', 'base-config.json')
+    with open(config_tmpl_fname, 'r') as f:
+        config_json = json.load(f)
+    config_json['ZCurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
+
+    config_fname = os.path.join(test_aux_data_dir, 'base-config.json')
+    with open(config_fname, 'w') as f:
+        json.dump(config_json, f)
+
+    conf = LocalConfig(config_fname)
     assert conf.cache_dir == '/var/tmp/laniakea'
     assert conf.workspace == '/tmp/test-lkws/'
 
     assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_test'
     assert conf.lighthouse_endpoint == 'tcp://*:5570'
 
-    # Inject sample certificate directory
-    conf.set_zcurve_keys_dir(os.path.join(test_aux_data_dir, 'keys', 'curve'))
-    assert conf.zcurve_secret_keyfile_for_module('test').startswith('/tmp/lk-test-tmp/keys/curve/secret/')
+    # Check injected sample certificate directory
+    assert conf.zcurve_secret_keyfile_for_module('test').startswith('/tmp/test-lkaux/keys/curve/secret/')
     os.makedirs(conf._zcurve_keys_basedir, exist_ok=True)
 
     # add the trusted keyring with test keys

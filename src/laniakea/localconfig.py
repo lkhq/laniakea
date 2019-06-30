@@ -110,17 +110,13 @@ class LocalConfig:
                     self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
 
             # ZCurve
-            self._zcurve_keys_basedir = '/etc/laniakea/keys/curve/'
+            self._zcurve_keys_basedir = jdata.get('ZCurveKeysDir', '/etc/laniakea/keys/curve/')
 
             # Trusted GPG keyrings
             self._trusted_gpg_keyrings = []
             self._trusted_gpg_keyring_dir = jdata.get('TrustedGpgKeyringDir')
             if self._trusted_gpg_keyring_dir:
                 self._trusted_gpg_keyrings = glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))
-
-        def set_zcurve_keys_dir(self, location):
-            '''Override the ZCurve key directory - primarily used by the test suite.'''
-            self._zcurve_keys_basedir = location
 
         @property
         def workspace(self) -> str:
