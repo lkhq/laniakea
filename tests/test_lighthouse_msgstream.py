@@ -17,15 +17,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import pytest
 
 
-@pytest.mark.usefixtures('lighthouse_server')
-class TestLighthouseJobRequests:
+class TestLighthouseMsgStream:
 
-    def test_request_job(self, make_zcurve_trusted_key):
-        client_key = make_zcurve_trusted_key('spark-builder')
-        os.remove(client_key)
+    @pytest.fixture(autouse=True)
+    def setup(self, lighthouse_server):
 
-        # TODO
+        # Launch server process
+        lighthouse_server.start()
+
+    def test_msg_simple(self, database):
+        pass  # TODO

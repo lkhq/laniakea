@@ -355,6 +355,8 @@ def create_parser(formatter_class=None):
                         help='Enable debug messages.')
     parser.add_argument('--version', action='store_true', dest='show_version',
                         help='Display the version of Laniakea itself.')
+    parser.add_argument('--config', action='store', dest='config_fname', default=None,
+                        help='Location of the base configuration file to use.')
 
     sp = subparsers.add_parser('repo', help='Import repository data for a specific suite.')
     sp.add_argument('suite', type=str, help='The suite to import data for.', nargs='?')
@@ -382,10 +384,12 @@ def run(args):
         sys.exit(1)
 
     parser = create_parser()
-
     args = parser.parse_args(args)
     check_print_version(args)
     check_verbose(args)
+    if args.config_fname:
+        LocalConfig(args.config_fname)
+
     args.func(args)
 
 
