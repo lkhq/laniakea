@@ -87,7 +87,12 @@ def localconfig(samplesdir):
     assert conf.workspace == '/tmp/test-lkws/'
 
     assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_test'
-    assert conf.lighthouse_endpoint == 'tcp://*:5570'
+    assert conf.lighthouse.endpoints_jobs == ['tcp://*:5570']
+    assert conf.lighthouse.endpoints_submit == ['tcp://*:5571']
+    assert conf.lighthouse.endpoints_publish == ['tcp://*:5572']
+    assert conf.lighthouse.servers_jobs == ['tcp://localhost:5570']
+    assert conf.lighthouse.servers_submit == ['tcp://localhost:5571']
+    assert conf.lighthouse.servers_publish == ['tcp://localhost:5572']
 
     # Check injected sample certificate directory
     assert conf.zcurve_secret_keyfile_for_module('test').startswith('/tmp/test-lkaux/keys/curve/secret/')
@@ -268,12 +273,12 @@ def lighthouse_server(request, sourcesdir, localconfig, database):
 
 
 @pytest.fixture
-def new_zmq_curve_socket(request, localconfig):
+def new_zmq_curve_socket(request):
     '''
     Create an encrypted ZeroMQ client connection to a Lighthouse server.
     '''
 
-    def _zmq_curve_socket(kind, server_cert_fname, client_secret_file):
+    def _zmq_curve_socket(kind, location, server_cert_fname, client_secret_file):
         import zmq
         import zmq.auth
 
@@ -292,10 +297,8 @@ def new_zmq_curve_socket(request, localconfig):
         sock.curve_secretkey = client_secret
         sock.curve_publickey = client_public
 
-        port = localconfig.lighthouse_endpoint.split(':', 2)[-1]
-
         # connect
-        sock.connect('tcp://localhost:{port}'.format(port=port))
+        sock.connect(location)
 
         def fin():
             sock.close()

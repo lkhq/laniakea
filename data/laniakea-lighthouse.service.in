@@ -4,7 +4,7 @@ After=syslog.target network.target
 ConditionPathExists=/etc/laniakea/base-config.json
 
 [Service]
-Type=simple
+Type=notify
 Restart=on-failure
 ProtectSystem=full
 User=lklighthouse

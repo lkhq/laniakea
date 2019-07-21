@@ -17,7 +17,19 @@
       "SourceKeyringDir": "/etc/apt/trusted.gpg.d/"
     },
 
-   "Workspace": "/tmp/test-lkws/",
+    "Workspace": "/tmp/test-lkws/",
 
-   "LighthouseEndpoint": "tcp://*:5570"
+    "Lighthouse": {
+      "endpoints": {
+        "jobs": ["tcp://*:5570"],
+        "events": ["tcp://*:5571"],
+        "publish": ["tcp://*:5572"]
+      },
+
+      "servers": {
+        "jobs": ["tcp://localhost:5570"],
+        "events": ["tcp://localhost:5571"],
+        "publish": ["tcp://localhost:5572"]
+      }
+    }
 }

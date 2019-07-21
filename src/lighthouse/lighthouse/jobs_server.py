@@ -20,7 +20,7 @@ import sys
 import json
 import logging as log
 from laniakea import LocalConfig, LkModule
-from lighthouse.worker import JobWorker
+from lighthouse.jobs_worker import JobWorker
 
 import zmq
 import zmq.auth
@@ -28,23 +28,20 @@ from zmq.auth.ioloop import IOLoopAuthenticator
 from zmq.eventloop import ioloop, zmqstream
 
 
-class LhServer:
+class JobsServer:
     '''
-    Lighthouse Server
+    Lighthouse module serving job requests.
     '''
 
-    def __init__(self, verbose=False):
+    def __init__(self, endpoint):
         self._server = None
         self._ctx = zmq.Context.instance()
-
-        if verbose:
-            log.basicConfig(level=log.DEBUG, format="[%(levelname)s] %(message)s")
 
         lconf = LocalConfig()
         self._trusted_keys_dir = lconf.zcurve_trusted_certs_dir + '/'
         self._server_private_key = lconf.zcurve_secret_keyfile_for_module(LkModule.LIGHTHOUSE)
 
-        self._jobs_endpoint = lconf.lighthouse_endpoint
+        self._jobs_endpoint = endpoint
         self._worker = JobWorker()
 
     def _client_request_received(self, server, msg):

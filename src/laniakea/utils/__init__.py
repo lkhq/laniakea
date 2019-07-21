@@ -19,7 +19,7 @@ from lknative import compare_versions
 from laniakea.utils.command import run_command, safe_run
 from laniakea.utils.arches import arch_matches, any_arch_matches
 from laniakea.utils.deb822 import Changes
-from laniakea.utils.misc import get_dir_shorthand_for_uuid, random_string, cd
+from laniakea.utils.misc import get_dir_shorthand_for_uuid, random_string, cd, listify
 from laniakea.utils.base64 import encode_base64, decode_base64
 
 __all__ = ['compare_versions',
@@ -31,5 +31,6 @@ __all__ = ['compare_versions',
            'run_command',
            'safe_run',
            'cd',
+           'listify',
            'encode_base64',
            'decode_base64']

@@ -49,3 +49,10 @@ def cd(where):
         yield os.chdir(where)
     finally:
         os.chdir(ncwd)
+
+
+def listify(item):
+    '''
+    Return a list of :item, unless :item already is a lit.
+    '''
+    return item if type(item) == list else [item]

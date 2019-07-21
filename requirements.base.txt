@@ -10,3 +10,4 @@ marshmallow
 tornado
 PyGObject
 PyNaCl
+systemd-python

@@ -19,6 +19,7 @@ import os
 import json
 import platform
 from glob import glob
+from laniakea.utils import listify
 
 
 def get_config_file(fname):
@@ -58,6 +59,19 @@ class LocalConfig:
     '''
     Local, machine-specific configuration for a Laniakea module.
     '''
+
+    class LighthouseConfig:
+        '''
+        Configuration for a Lighthouse server and/or client.
+        The configuration is loaded from a :LocalConfig.
+        '''
+        endpoints_jobs = []
+        endpoints_submit = []
+        endpoints_publish = []
+
+        servers_jobs = []
+        servers_submit = []
+        servers_publish = []
 
     instance = None
 
@@ -100,12 +114,23 @@ class LocalConfig:
             self._archive_url = jarchive.get('url', '#')
             self._archive_appstream_media_url = jarchive.get('appstream_media_url', 'https://appstream.debian.org/media/pool')
 
-            self._lighthouse_endpoint = jdata.get('LighthouseEndpoint')
+            self._lighthouse = LocalConfig.LighthouseConfig()
+            lhconf = jdata.get('Lighthouse', {})
+            lhconf_endpoints = lhconf.get('endpoints', {})
+            lhconf_servers = lhconf.get('servers', {})
+
+            self._lighthouse.endpoints_jobs = listify(lhconf_endpoints.get('jobs', 'tcp://*:5570'))
+            self._lighthouse.endpoints_submit = listify(lhconf_endpoints.get('submit', 'tcp://*:5571'))
+            self._lighthouse.endpoints_publish = listify(lhconf_endpoints.get('publish', 'tcp://*:5572'))
+
+            self._lighthouse.servers_jobs = listify(lhconf_servers.get('jobs', 'tcp://localhost:5570'))
+            self._lighthouse.servers_submit = listify(lhconf_servers.get('submit', 'tcp://localhost:5571'))
+            self._lighthouse.servers_publish = listify(lhconf_servers.get('publish', 'tcp://localhost:5572'))
 
             # Synchrotron-specific configuration
             self._synchrotron_sourcekeyrings = []
-            if 'Synchrotron' in jdata:
-                syncconf = jdata.get('Synchrotron')
+            syncconf = jdata.get('Synchrotron')
+            if syncconf:
                 if 'SourceKeyringDir' in syncconf:
                     self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
 
@@ -143,8 +168,8 @@ class LocalConfig:
             return self._archive_appstream_media_url
 
         @property
-        def lighthouse_endpoint(self) -> str:
-            return self._lighthouse_endpoint
+        def lighthouse(self):
+            return self._lighthouse
 
         @property
         def synchrotron_sourcekeyrings(self) -> str:

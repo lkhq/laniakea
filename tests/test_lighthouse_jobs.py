@@ -91,8 +91,11 @@ class TestLighthouseJobRequests:
 
         return reply
 
-    def test_request_job(self, new_zmq_curve_socket, database):
-        sock = new_zmq_curve_socket(zmq.DEALER, self._server_key, self._client_key)
+    def test_request_job(self, new_zmq_curve_socket, localconfig, database):
+        sock = new_zmq_curve_socket(zmq.DEALER,
+                                    localconfig.lighthouse.servers_jobs[0],
+                                    self._server_key,
+                                    self._client_key)
 
         req = self.req_base()
         req['request'] = 'job'
