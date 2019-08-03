@@ -193,19 +193,23 @@ def generate_zcurve_keys_for_module(sourcesdir, localconfig, mod):
     if os.path.isfile(sec_dest_fname):
         return
     keytool_exe = os.path.join(sourcesdir, 'keytool', 'keytool.py')
-    tmp_basepath = os.path.join('/tmp', 'lksec-{}'.format(random_string()))
+
+    key_id = 'test-{}_{}'.format(mod, random_string(4))
+    tmp_path = '/tmp'
+    key_basepath = os.path.join(tmp_path, key_id)
 
     subprocess.run([keytool_exe,
-                    'cert-new',
+                    'key-new',
+                    '--id', key_id,
                     '--name', 'Test Key for {}'.format(mod),
                     '--email', 'test-{}@example.org'.format(mod),
-                    tmp_basepath], check=True)
+                    tmp_path], check=True)
 
-    assert os.path.isfile(tmp_basepath + '.key')
-    assert os.path.isfile(tmp_basepath + '.key_secret')
+    assert os.path.isfile(key_basepath + '.key')
+    assert os.path.isfile(key_basepath + '.key_secret')
 
-    os.remove(tmp_basepath + '.key')
-    os.rename(tmp_basepath + '.key_secret', sec_dest_fname)
+    os.remove(key_basepath + '.key')
+    os.rename(key_basepath + '.key_secret', sec_dest_fname)
 
 
 @pytest.fixture
@@ -219,19 +223,23 @@ def make_zcurve_trusted_key(sourcesdir, localconfig):
         if os.path.isfile(sec_dest_fname) and os.path.isfile(pub_dest_fname):
             return sec_dest_fname
         keytool_exe = os.path.join(sourcesdir, 'keytool', 'keytool.py')
-        tmp_basepath = os.path.join('/tmp', 'lksec-{}'.format(random_string()))
+
+        key_id = name.replace(' ', '_')
+        tmp_path = '/tmp'
+        key_basepath = os.path.join(tmp_path, key_id)
 
         subprocess.run([keytool_exe,
-                        'cert-new',
+                        'key-new',
+                        '--id', key_id,
                         '--name', 'Test Key {}'.format(name),
-                        '--email', 'test-{}@example.org'.format(name.replace(' ', '_')),
-                        tmp_basepath], check=True)
+                        '--email', 'test-{}@example.org'.format(key_id),
+                        tmp_path], check=True)
 
-        assert os.path.isfile(tmp_basepath + '.key')
-        assert os.path.isfile(tmp_basepath + '.key_secret')
+        assert os.path.isfile(key_basepath + '.key')
+        assert os.path.isfile(key_basepath + '.key_secret')
 
-        os.rename(tmp_basepath + '.key', pub_dest_fname)
-        os.rename(tmp_basepath + '.key_secret', sec_dest_fname)
+        os.rename(key_basepath + '.key', pub_dest_fname)
+        os.rename(key_basepath + '.key_secret', sec_dest_fname)
 
         return sec_dest_fname
 

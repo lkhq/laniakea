@@ -39,7 +39,7 @@ def random_string(length=8):
     import random
     import string
 
-    return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+    return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(length)])
 
 
 @contextmanager

@@ -30,17 +30,60 @@ import datetime
 import zmq.auth
 from argparse import ArgumentParser
 from laniakea import LocalConfig
+from laniakea.signedjson.key import generate_signing_key, get_verify_key, encode_signing_key_base64, encode_verify_key_base64
 
 
-def command_cert_new(options):
+def _create_metadata_section(metadata):
+    ''' Create metadata string for use in Laniakea keyfiles '''
+
+    s = 'metadata\n'
+    for key, value in metadata.items():
+        s += '    {} = "{}"\n'.format(key.replace(' ', '_'), value)
+    return s
+
+
+def _write_key_file(fname, metadata, curve_public_key, curve_secret_key, ed_public_key, ed_secret_key):
+    ''' Create a Laniakea keyfile for the given set of keys '''
+
+    secret_keyfile = True
+    with open(fname, 'w') as f:
+        if curve_secret_key or ed_secret_key:
+            f.write(('#\n# Laniakea Messaging **Secret** Certificate\n'
+                     '# DO NOT PROVIDE THIS FILE TO OTHER USERS nor change its permissions.\n#\n'))
+            secret_keyfile = True
+        else:
+            f.write(('#\n# Laniakea Messaging Public Certificate\n'
+                     '# Exchange securely, or use a secure mechanism to verify the contents\n'
+                     '# of this file after exchange.\n#\n'))
+            secret_keyfile = False
+        f.write('\n')
+        f.write(_create_metadata_section(metadata))
+
+        # Curve25519 section
+        f.write('curve\n')
+        if curve_public_key:
+            f.write('    public-key = "{}"\n'.format(curve_public_key))
+        if curve_secret_key and secret_keyfile:
+            f.write('    secret-key = "{}"\n'.format(curve_secret_key))
+
+        # Ed25519 section
+        f.write('ed\n')
+        if ed_public_key:
+            f.write('    public-key = "{}"\n'.format(ed_public_key))
+        if ed_secret_key and secret_keyfile:
+            f.write('    secret-key = "{}"\n'.format(ed_secret_key))
+
+
+def command_keyfile_new(options):
     ''' Create new certificate '''
 
-    base_path = options.basepath
+    base_path = options.path
     if not base_path:
-        print('The base filename of the certificate is missing.')
+        print('No directory to store they key files in was specified.')
         sys.exit(1)
 
     metadata = {}
+    metadata['id'] = options.id
     metadata['name'] = options.name
     metadata['email'] = options.email
     if options.organization:
@@ -48,12 +91,36 @@ def command_cert_new(options):
     metadata['created-by'] = 'Laniakea Keytool'
     metadata['date-created'] = str(datetime.datetime.now())
 
-    zmq.auth.create_certificates(os.path.dirname(base_path),
-                                 os.path.basename(base_path),
-                                 metadata)
+    secret_fname = os.path.join(base_path, '{}.key_secret'.format(options.id))
+    public_fname = os.path.join(base_path, '{}.key'.format(options.id))
+
+    # create Curve25519 keys for ZCurve
+    curve_public_key, curve_secret_key = zmq.curve_keypair()
+
+    # create Ed25519 for our message signing
+    ed_key = generate_signing_key(options.id)
+    ed_verify_key = get_verify_key(ed_key)
+    ed_secret_key = encode_signing_key_base64(ed_key)
+    ed_public_key = encode_verify_key_base64(ed_verify_key)
+
+    # write secret keyfile
+    _write_key_file(secret_fname,
+                    metadata,
+                    curve_public_key,
+                    curve_secret_key,
+                    ed_public_key,
+                    ed_secret_key)
+
+    # write public keyfile
+    _write_key_file(public_fname,
+                    metadata,
+                    curve_public_key,
+                    None,
+                    ed_public_key,
+                    None)
 
 
-def install_service_cert(options):
+def install_service_keyfile(options):
     ''' Install a private key for a specific service '''
     from shutil import copyfile
 
@@ -89,7 +156,7 @@ def install_service_cert(options):
     print('Installed private key as {}'.format(target_keyfile))
 
 
-def install_trusted_cert(options):
+def install_trusted_keyfile(options):
     ''' Install a public key to trust a client node. '''
     from shutil import copyfile
 
@@ -132,7 +199,7 @@ def install_trusted_cert(options):
 def create_parser(formatter_class=None):
     ''' Create KeyTool CLI argument parser '''
 
-    parser = ArgumentParser(description='Manage keys and certificates')
+    parser = ArgumentParser(description='Manage key-files used for secure messaging between modules')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
@@ -141,24 +208,25 @@ def create_parser(formatter_class=None):
     parser.add_argument('--version', action='store_true', dest='show_version',
                         help='Display the version of Laniakea itself.')
 
-    sp = subparsers.add_parser('cert-new', help='Create new ZCurve certificate.')
+    sp = subparsers.add_parser('key-new', help='Create new keyfile for use with Laniakea\'s messaging.')
+    sp.add_argument('--id', help='Service/signer ID used with this key. Is used as part of the key filenames.', required=True)
     sp.add_argument('--name', help='Name of the certificate issuer.', required=True)
     sp.add_argument('--email', help='E-Mail address of the certificate issuer.', required=True)
     sp.add_argument('--organization', help='Organization of the certificate issuer.')
-    sp.add_argument('basepath', type=str, help='The base filename of the new certificate.', nargs='?')
-    sp.set_defaults(func=command_cert_new)
+    sp.add_argument('path', type=str, help='Directory to store the generated keyfiles in.', nargs='?')
+    sp.set_defaults(func=command_keyfile_new)
 
-    sp = subparsers.add_parser('install-service-cert', help='Install a private certificate for a specific service on this machine.')
+    sp = subparsers.add_parser('install-service-key', help='Install a private key for a specific service on this machine.')
     sp.add_argument('--force', action='store_true', help='Enforce installation of the key file, overriding any existing one.')
     sp.add_argument('service', type=str, help='Name of the Laniakea service.', nargs='?')
     sp.add_argument('keyfile', type=str, help='The private key filename.', nargs='?')
-    sp.set_defaults(func=install_service_cert)
+    sp.set_defaults(func=install_service_keyfile)
 
-    sp = subparsers.add_parser('install-trusted-cert', help='Install a public certificate from a client node to trust it.')
+    sp = subparsers.add_parser('install-trusted-key', help='Install a public key from a client node to trust it.')
     sp.add_argument('--force', action='store_true', help='Enforce installation of the key file, overriding any existing one.')
     sp.add_argument('name', type=str, help='Name of the client this public key file belongs to.', nargs='?')
     sp.add_argument('keyfile', type=str, help='The public key filename.', nargs='?')
-    sp.set_defaults(func=install_trusted_cert)
+    sp.set_defaults(func=install_trusted_keyfile)
 
     return parser
 
