@@ -19,7 +19,7 @@ import sys
 import signal
 import logging as log
 from argparse import ArgumentParser
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 
 __mainfile = None
 server_processes = []
@@ -36,23 +36,36 @@ def run_jobs_server(endpoint):
     server.run()
 
 
-def run_events_server(endpoint):
+def run_events_receiver_server(endpoint, pub_queue):
     '''
     Run a server process which handles submissions to the
     event stream and publishes new events publicly.
     '''
-    from lighthouse.events_server import EventsServer
+    from lighthouse.events_receiver import EventsReceiver
 
-    server = EventsServer(endpoint)
-    server.run()
+    receiver = EventsReceiver(endpoint, pub_queue)
+    receiver.run()
+
+
+def run_events_publisher_server(endpoints, pub_queue):
+    '''
+    Run a server process which publishes processed events on
+    one or multiple ZeroMQ publisher sockets.
+    '''
+    from lighthouse.events_publisher import EventsPublisher
+
+    publisher = EventsPublisher(endpoints, pub_queue)
+    publisher.run()
 
 
 def term_signal_handler(signum, frame):
     log.info('Received signal {}, shutting down.'.format(signum))
     for p in server_processes:
-        p.terminate()
-        p.join(10)
-        p.kill()
+        try:
+            p.terminate()
+            p.join(10)
+        finally:
+            p.kill()
 
 
 def run_server(options):
@@ -81,35 +94,50 @@ def run_server(options):
         p.start()
         server_processes.append(p)
 
-    # spawn processes that handle event stream submissions
-    log.info('Creating event stream handlers.')
-    for submit_endpoint in lconf.lighthouse.endpoints_submit:
-        p = Process(target=run_events_server,
-                    args=(submit_endpoint,),
-                    name='EventsServer-{}'.format(i),
-                    daemon=True)
-        p.start()
-        server_processes.append(p)
+    publish_endpoints = lconf.lighthouse.endpoints_publish
+    if publish_endpoints:
+        log.info('Creating event stream publisher.')
+        pub_queue = Queue()
+        spub = Process(target=run_events_publisher_server,
+                       args=(publish_endpoints,
+                             pub_queue),
+                       name='EventsPublisher',
+                       daemon=True)
+        spub.start()
+        server_processes.append(spub)
+
+        # spawn processes that handle event stream submissions
+        log.info('Creating event stream receivers ({}).'.format(len(lconf.lighthouse.endpoints_submit)))
+        for submit_endpoint in lconf.lighthouse.endpoints_submit:
+            p = Process(target=run_events_receiver_server,
+                        args=(submit_endpoint,
+                              pub_queue),
+                        name='EventsServer-{}'.format(i),
+                        daemon=True)
+            p.start()
+            server_processes.append(p)
 
     # set up termination signal handler
     signal.signal(signal.SIGQUIT, term_signal_handler)
     signal.signal(signal.SIGTERM, term_signal_handler)
     signal.signal(signal.SIGINT, term_signal_handler)
 
+    # signal readiness
     log.info('Ready.')
     systemd.daemon.notify('READY=1')
 
-    # wait for processes to terminate
-    for p in server_processes:
-        p.join(20)
-        if not p.is_alive():
-            log.info('Worker process has died, shutting down.')
-            # one of our workers must have failed, shut down
-            for pr in server_processes:
-                pr.terminate()
-                pr.join(10)
-                pr.kill()
-            sys.exit(p.exitcode)
+    # wait for processes to terminate (possibly forever)
+    while True:
+        for p in server_processes:
+            p.join(20)
+            if not p.is_alive():
+                log.info('Server worker process has died, shutting down.')
+                # one of our workers must have failed, shut down
+                for pr in server_processes:
+                    pr.terminate()
+                    pr.join(10)
+                    pr.kill()
+                sys.exit(p.exitcode)
 
 
 def check_print_version(options):

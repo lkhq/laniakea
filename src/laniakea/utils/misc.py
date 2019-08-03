@@ -56,3 +56,16 @@ def listify(item):
     Return a list of :item, unless :item already is a lit.
     '''
     return item if type(item) == list else [item]
+
+
+def stringify(item):
+    '''
+    Convert anything into a string, if it isn't one already.
+    Assume UTF-8 encoding if we have bytes.
+    '''
+    if type(item) is str:
+        return item
+    if type(item) is bytes:
+        return str(item, 'utf-8')
+
+    return str(item)

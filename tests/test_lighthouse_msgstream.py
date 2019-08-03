@@ -28,5 +28,5 @@ class TestLighthouseMsgStream:
         # Launch server process
         lighthouse_server.start()
 
-    def test_msg_simple(self, database):
+    def test_msg_simple(self, database, new_zmq_socket):
         pass  # TODO

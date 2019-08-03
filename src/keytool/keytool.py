@@ -30,7 +30,9 @@ import datetime
 import zmq.auth
 from argparse import ArgumentParser
 from laniakea import LocalConfig
-from laniakea.signedjson.key import generate_signing_key, get_verify_key, encode_signing_key_base64, encode_verify_key_base64
+from laniakea.utils import stringify
+from laniakea.signedjson.key import generate_signing_key, get_verify_key, \
+    encode_signing_key_base64, encode_verify_key_base64
 
 
 def _create_metadata_section(metadata):
@@ -62,16 +64,23 @@ def _write_key_file(fname, metadata, curve_public_key, curve_secret_key, ed_publ
         # Curve25519 section
         f.write('curve\n')
         if curve_public_key:
-            f.write('    public-key = "{}"\n'.format(curve_public_key))
+            f.write('    public-key = "{}"\n'.format(stringify(curve_public_key)))
         if curve_secret_key and secret_keyfile:
-            f.write('    secret-key = "{}"\n'.format(curve_secret_key))
+            f.write('    secret-key = "{}"\n'.format(stringify(curve_secret_key)))
+
+        # NOTE: We can't name the Ed25519 keys 'public-key' and 'secret-key' as well,
+        # because CurveZMQ will not actually read the section these keys are in and
+        # simply take the last entry with the respective names.
+        # That's why we use 'verify-key' and 'signing-key' here, so the generated
+        # file can still be read by CurveZMQ without modifications.
+        # Lighthouse is still able to filter out the Ed25519 signing keys that way
 
         # Ed25519 section
         f.write('ed\n')
         if ed_public_key:
-            f.write('    public-key = "{}"\n'.format(ed_public_key))
+            f.write('    verify-key = "{}"\n'.format(stringify(ed_public_key)))
         if ed_secret_key and secret_keyfile:
-            f.write('    secret-key = "{}"\n'.format(ed_secret_key))
+            f.write('    signing-key = "{}"\n'.format(stringify(ed_secret_key)))
 
 
 def command_keyfile_new(options):
@@ -95,7 +104,11 @@ def command_keyfile_new(options):
     public_fname = os.path.join(base_path, '{}.key'.format(options.id))
 
     # create Curve25519 keys for ZCurve
-    curve_public_key, curve_secret_key = zmq.curve_keypair()
+    if options.sign_only:
+        curve_public_key = None
+        curve_secret_key = None
+    else:
+        curve_public_key, curve_secret_key = zmq.curve_keypair()
 
     # create Ed25519 for our message signing
     ed_key = generate_signing_key(options.id)
@@ -213,6 +226,7 @@ def create_parser(formatter_class=None):
     sp.add_argument('--name', help='Name of the certificate issuer.', required=True)
     sp.add_argument('--email', help='E-Mail address of the certificate issuer.', required=True)
     sp.add_argument('--organization', help='Organization of the certificate issuer.')
+    sp.add_argument('--sign-only', action='store_true', help='Only generate Ed25519 keys to sign data, but none to encrypt data streams.')
     sp.add_argument('path', type=str, help='Directory to store the generated keyfiles in.', nargs='?')
     sp.set_defaults(func=command_keyfile_new)
 
