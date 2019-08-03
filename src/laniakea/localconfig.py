@@ -134,8 +134,8 @@ class LocalConfig:
                 if 'SourceKeyringDir' in syncconf:
                     self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
 
-            # ZCurve
-            self._zcurve_keys_basedir = jdata.get('ZCurveKeysDir', '/etc/laniakea/keys/curve/')
+            # ZCurve / Message signing
+            self._curve_keys_basedir = jdata.get('CurveKeysDir', '/etc/laniakea/keys/curve/')
 
             # Trusted GPG keyrings
             self._trusted_gpg_keyrings = []
@@ -175,10 +175,10 @@ class LocalConfig:
         def synchrotron_sourcekeyrings(self) -> str:
             return self._synchrotron_sourcekeyrings
 
-        def zcurve_secret_keyfile_for_module(self, module) -> str:
+        def secret_curve_keyfile_for_module(self, module) -> str:
             ''' Retrieve the secret ZCurve key filename for a given module name. '''
 
-            secrets_dir = os.path.join(self._zcurve_keys_basedir, 'secret')
+            secrets_dir = os.path.join(self._curve_keys_basedir, 'secret')
             try:
                 os.makedirs(secrets_dir, exist_ok=True)
             except:  # noqa: E722
@@ -187,10 +187,10 @@ class LocalConfig:
             return os.path.join(secrets_dir, '{}-{}_private.sec'.format(platform.node(), module))
 
         @property
-        def zcurve_trusted_certs_dir(self) -> str:
+        def trusted_curve_keys_dir(self) -> str:
             ''' Retrieve the directory for trusted ZCurve public keys '''
 
-            trusted_dir = os.path.join(self._zcurve_keys_basedir, 'trusted')
+            trusted_dir = os.path.join(self._curve_keys_basedir, 'trusted')
             try:
                 os.makedirs(trusted_dir, exist_ok=True)
             except:  # noqa: E722

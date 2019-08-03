@@ -38,8 +38,8 @@ class JobsServer:
         self._ctx = zmq.Context.instance()
 
         lconf = LocalConfig()
-        self._trusted_keys_dir = lconf.zcurve_trusted_certs_dir + '/'
-        self._server_private_key = lconf.zcurve_secret_keyfile_for_module(LkModule.LIGHTHOUSE)
+        self._trusted_keys_dir = lconf.trusted_curve_keys_dir + '/'
+        self._server_private_key = lconf.secret_curve_keyfile_for_module(LkModule.LIGHTHOUSE)
 
         self._jobs_endpoint = endpoint
         self._worker = JobWorker()

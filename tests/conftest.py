@@ -75,7 +75,7 @@ def localconfig(samplesdir):
     with open(config_tmpl_fname, 'r') as f:
         config_json = json.load(f)
 
-    config_json['ZCurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
+    config_json['CurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
     config_json['Archive']['path'] = os.path.join(samplesdir, 'samplerepo', 'dummy')
 
     config_fname = os.path.join(test_aux_data_dir, 'base-config.json')
@@ -95,8 +95,8 @@ def localconfig(samplesdir):
     assert conf.lighthouse.servers_publish == ['tcp://localhost:5572']
 
     # Check injected sample certificate directory
-    assert conf.zcurve_secret_keyfile_for_module('test').startswith('/tmp/test-lkaux/keys/curve/secret/')
-    os.makedirs(conf._zcurve_keys_basedir, exist_ok=True)
+    assert conf.secret_curve_keyfile_for_module('test').startswith('/tmp/test-lkaux/keys/curve/secret/')
+    os.makedirs(conf._curve_keys_basedir, exist_ok=True)
 
     # add the trusted keyring with test keys
     conf.trusted_gpg_keyrings = []
@@ -183,13 +183,13 @@ def database(localconfig):
     return db
 
 
-def generate_zcurve_keys_for_module(sourcesdir, localconfig, mod):
+def generate_curve_keys_for_module(sourcesdir, localconfig, mod):
     '''
     Generate new CurveZMQ keys for use by Lighthouse.
     '''
     import subprocess
 
-    sec_dest_fname = localconfig.zcurve_secret_keyfile_for_module(mod)
+    sec_dest_fname = localconfig.secret_curve_keyfile_for_module(mod)
     if os.path.isfile(sec_dest_fname):
         return
     keytool_exe = os.path.join(sourcesdir, 'keytool', 'keytool.py')
@@ -213,13 +213,13 @@ def generate_zcurve_keys_for_module(sourcesdir, localconfig, mod):
 
 
 @pytest.fixture
-def make_zcurve_trusted_key(sourcesdir, localconfig):
+def make_curve_trusted_key(sourcesdir, localconfig):
 
-    def _make_zcurve_trusted_key(name):
+    def _make_curve_trusted_key(name):
         import subprocess
 
-        pub_dest_fname = os.path.join(localconfig.zcurve_trusted_certs_dir, '{}.key'.format(name))
-        sec_dest_fname = os.path.join(localconfig.zcurve_trusted_certs_dir, '..', '{}.key_secret'.format(name))
+        pub_dest_fname = os.path.join(localconfig.trusted_curve_keys_dir, '{}.key'.format(name))
+        sec_dest_fname = os.path.join(localconfig.trusted_curve_keys_dir, '..', '{}.key_secret'.format(name))
         if os.path.isfile(sec_dest_fname) and os.path.isfile(pub_dest_fname):
             return sec_dest_fname
         keytool_exe = os.path.join(sourcesdir, 'keytool', 'keytool.py')
@@ -243,7 +243,7 @@ def make_zcurve_trusted_key(sourcesdir, localconfig):
 
         return sec_dest_fname
 
-    return _make_zcurve_trusted_key
+    return _make_curve_trusted_key
 
 
 @pytest.fixture(scope='class')
@@ -257,7 +257,7 @@ def lighthouse_server(request, sourcesdir, localconfig, database):
     class LhServer:
         def start(self):
             # create new secret key for Lighthouse
-            generate_zcurve_keys_for_module(sourcesdir, localconfig, LkModule.LIGHTHOUSE)
+            generate_curve_keys_for_module(sourcesdir, localconfig, LkModule.LIGHTHOUSE)
 
             lh_exe = os.path.join(sourcesdir, 'lighthouse', 'lighthouse.py')
             pipe = subprocess.Popen([lh_exe,

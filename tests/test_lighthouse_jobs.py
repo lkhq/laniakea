@@ -29,12 +29,12 @@ dataimport_suite = 'unstable'
 class TestLighthouseJobRequests:
 
     @pytest.fixture(autouse=True)
-    def setup(self, localconfig, make_zcurve_trusted_key, lighthouse_server,
+    def setup(self, localconfig, make_curve_trusted_key, lighthouse_server,
               import_package_data, database):
         from laniakea.db import LkModule
 
-        self._client_key = make_zcurve_trusted_key('spark-builder')
-        self._server_key = localconfig.zcurve_secret_keyfile_for_module(LkModule.LIGHTHOUSE)
+        self._client_key = make_curve_trusted_key('spark-builder')
+        self._server_key = localconfig.secret_curve_keyfile_for_module(LkModule.LIGHTHOUSE)
 
         self._base_req = {}
         self._base_req['machine_name'] = 'testmachine'

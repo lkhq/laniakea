@@ -156,7 +156,7 @@ def install_service_keyfile(options):
         print('The given keyfile does not contain a secret key!')
 
     lconf = LocalConfig()
-    target_keyfile = lconf.zcurve_secret_keyfile_for_module(service)
+    target_keyfile = lconf.secret_curve_keyfile_for_module(service)
     if os.path.isfile(target_keyfile) and not options.force:
         print('We already have a secret key for this service on the current machine. You can override the existing one by specifying "--force".')
         sys.exit(2)
@@ -196,7 +196,7 @@ def install_trusted_keyfile(options):
         print('')
 
     lconf = LocalConfig()
-    target_keyfile = os.path.join(lconf.zcurve_trusted_certs_dir, '{}.pub.key'.format(options.name))
+    target_keyfile = os.path.join(lconf.trusted_curve_keys_dir, '{}.pub.key'.format(options.name))
     if os.path.isfile(target_keyfile) and not options.force:
         print('We already trust a key for "{}" on this machine. You can override the existing one by specifying "--force".'.format(options.name))
         sys.exit(2)
