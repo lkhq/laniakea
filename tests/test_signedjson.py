@@ -68,22 +68,22 @@ class TestDecode:
 
     def test_decode(self):
         decoded_key = decode_signing_key_base64(
-            "ed25519", self.version, self.key_base64
+            "ed25519", self.key_base64, self.version
         )
         assert decoded_key.alg == "ed25519"
         assert decoded_key.version == self.version
 
     def test_decode_invalid_base64(self):
         with pytest.raises(Exception):
-            decode_signing_key_base64("ed25519", self.version, "not base 64")
+            decode_signing_key_base64("ed25519", "not base 64", self.version)
 
     def test_decode_signing_invalid_algorithm(self):
         with pytest.raises(Exception):
-            decode_signing_key_base64("not a valid alg", self.version, "")
+            decode_signing_key_base64("not a valid alg", "", self.version)
 
     def test_decode_invalid_key(self):
         with pytest.raises(Exception):
-            decode_signing_key_base64("ed25519", self.version, "")
+            decode_signing_key_base64("ed25519", "", self.version)
 
     def test_read_keys(self):
         stream = ["ed25519 %s %s" % (self.version, self.key_base64)]

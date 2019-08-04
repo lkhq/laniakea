@@ -39,7 +39,7 @@ NACL_ED25519 = 'ed25519'
 SUPPORTED_ALGORITHMS = [NACL_ED25519]
 
 
-def generate_signing_key(version):
+def generate_signing_key(version=0):
     '''
     Generate a new signing key
     Args:
@@ -61,7 +61,7 @@ def get_verify_key(signing_key):
     return verify_key
 
 
-def decode_signing_key_base64(algorithm, version, key_base64):
+def decode_signing_key_base64(algorithm, key_base64, version=0):
     '''
     Decode a base64 encoded signing key
     Args:
@@ -141,7 +141,7 @@ def read_signing_keys(stream):
     keys = []
     for line in stream:
         algorithm, version, key_base64 = line.split()
-        key = decode_signing_key_base64(algorithm, version, key_base64)
+        key = decode_signing_key_base64(algorithm, key_base64, version)
         keys.append(key)
     return keys
 

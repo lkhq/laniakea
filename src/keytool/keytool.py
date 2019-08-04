@@ -111,7 +111,7 @@ def command_keyfile_new(options):
         curve_public_key, curve_secret_key = zmq.curve_keypair()
 
     # create Ed25519 for our message signing
-    ed_key = generate_signing_key(options.id)
+    ed_key = generate_signing_key(0)
     ed_verify_key = get_verify_key(ed_key)
     ed_secret_key = encode_signing_key_base64(ed_key)
     ed_public_key = encode_verify_key_base64(ed_verify_key)

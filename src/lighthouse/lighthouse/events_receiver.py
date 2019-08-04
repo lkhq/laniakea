@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import zmq
 import json
 import logging as log
@@ -29,11 +30,52 @@ class EventsReceiver:
     '''
 
     def __init__(self, endpoint, pub_queue):
+        from glob import glob
+        from laniakea.localconfig import LocalConfig
+        from laniakea.utils import decode_base64
+        from laniakea.signedjson.key import NACL_ED25519, decode_verify_key_bytes
+
         self._socket = None
         self._ctx = zmq.Context.instance()
 
         self._pub_queue = pub_queue
         self._endpoint = endpoint
+
+        self._trusted_keys = {}
+
+        # TODO: Implement auto-reloading of valid keys list if directory changes
+        for keyfname in glob(os.path.join(LocalConfig().trusted_curve_keys_dir, '*')):
+            signer_id = None
+            verify_key = None
+
+            with open(keyfname, 'r') as f:
+                metadata_sec = False
+                ed_sec = False
+                for line in f:
+                    if not line.startswith(' '):
+                        ed_sec = False
+                        metadata_sec = False
+                    line = line.strip()
+                    if line == 'metadata':
+                        metadata_sec = True
+                        continue
+                    if line == 'ed':
+                        ed_sec = True
+                        continue
+
+                    if metadata_sec:
+                        if line.startswith('id'):
+                            key, value = line.split('=')
+                            signer_id = value.strip().strip('"')
+                            continue
+                    elif ed_sec:
+                        if line.startswith('verify-key'):
+                            key, value = line.split('=')
+                            verify_key = value.strip().strip('"')
+                            continue
+            if signer_id and verify_key:
+                self._trusted_keys[signer_id] = decode_verify_key_bytes(NACL_ED25519 + ':' + '0',
+                                                                        decode_base64(verify_key))
 
     def _event_message_received(self, socket, msg):
         try:
@@ -56,11 +98,18 @@ class EventsReceiver:
 
         signature_checked = False
         for signer in signatures.keys():
+            key = self._trusted_keys.get(signer)
+            if not key:
+                continue
             try:
-                verify_signed_json(event, signer, 'TODO')  # TODO
+                verify_signed_json(event, signer, key)
             except Exception as e:
                 log.info('Invalid signature on event ({}): {}'.format(str(e), str(event)))
                 return
+
+            # if we are here, we verified a signature without issues, which means
+            # the message is legit and we can sign it ourselves and publish it
+            signature_checked = True
 
         if not signature_checked:
             log.info('Unable to verify signature on event: {}'.format(str(event)))

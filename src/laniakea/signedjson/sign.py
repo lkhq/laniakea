@@ -137,6 +137,7 @@ def verify_signed_json(json_object, signature_name, verify_key):
                          ensure_ascii=False,
                          separators=(',', ':'),
                          sort_keys=True)
+    message = bytes(message, 'utf-8')
 
     try:
         verify_key.verify(message, signature)
