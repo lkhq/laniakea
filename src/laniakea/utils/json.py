@@ -17,17 +17,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-from laniakea.msgstream.event_msg import create_event_message, event_message_is_valid_and_signed, verify_event_message, \
-    create_submit_socket, submit_event_message, create_event_listen_socket
-from laniakea.msgstream.signedjson import SignatureVerifyException
-from laniakea.msgstream.signing import keyfile_read_verify_key
+import json
 
 
-__all__ = ['create_event_message',
-           'verify_event_message',
-           'event_message_is_valid_and_signed',
-           'SignatureVerifyException',
-           'keyfile_read_verify_key',
-           'create_submit_socket',
-           'submit_event_message',
-           'create_event_listen_socket']
+def json_compact_dump(obj, as_bytes=False):
+    '''
+    Convert :obj to JSON string reproducibly and
+    in the most compact form possible.
+    '''
+    s = json.dumps(obj,
+                   ensure_ascii=False,
+                   separators=(',', ':'),
+                   sort_keys=True)
+    if as_bytes:
+        return bytes(s, 'utf-8')
+    return s

@@ -32,8 +32,7 @@ class EventsReceiver:
     def __init__(self, endpoint, pub_queue):
         from glob import glob
         from laniakea.localconfig import LocalConfig
-        from laniakea.utils import decode_base64
-        from laniakea.msgstream.signing import NACL_ED25519, decode_verify_key_bytes
+        from laniakea.msgstream import keyfile_read_verify_key
 
         self._socket = None
         self._ctx = zmq.Context.instance()
@@ -45,37 +44,9 @@ class EventsReceiver:
 
         # TODO: Implement auto-reloading of valid keys list if directory changes
         for keyfname in glob(os.path.join(LocalConfig().trusted_curve_keys_dir, '*')):
-            signer_id = None
-            verify_key = None
-
-            with open(keyfname, 'r') as f:
-                metadata_sec = False
-                ed_sec = False
-                for line in f:
-                    if not line.startswith(' '):
-                        ed_sec = False
-                        metadata_sec = False
-                    line = line.strip()
-                    if line == 'metadata':
-                        metadata_sec = True
-                        continue
-                    if line == 'ed':
-                        ed_sec = True
-                        continue
-
-                    if metadata_sec:
-                        if line.startswith('id'):
-                            key, value = line.split('=')
-                            signer_id = value.strip().strip('"')
-                            continue
-                    elif ed_sec:
-                        if line.startswith('verify-key'):
-                            key, value = line.split('=')
-                            verify_key = value.strip().strip('"')
-                            continue
+            signer_id, verify_key = keyfile_read_verify_key(keyfname)
             if signer_id and verify_key:
-                self._trusted_keys[signer_id] = decode_verify_key_bytes(NACL_ED25519 + ':' + '0',
-                                                                        decode_base64(verify_key))
+                self._trusted_keys[signer_id] = verify_key
 
     def _event_message_received(self, socket, msg):
         try:

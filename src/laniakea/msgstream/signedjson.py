@@ -32,8 +32,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-from laniakea.utils import encode_base64, decode_base64
+from laniakea.utils import json_compact_dump, encode_base64, decode_base64
 from laniakea.msgstream.signing import SUPPORTED_ALGORITHMS
 from laniakea.logging import log
 
@@ -57,12 +56,8 @@ def sign_json(json_object, signature_name, signing_key):
     signatures = json_object.pop('signatures', {})
     unsigned = json_object.pop('unsigned', None)
 
-    message_str = json.dumps(json_object,
-                             ensure_ascii=False,
-                             separators=(',', ':'),
-                             sort_keys=True)
-    message_bytes = bytes(message_str, 'utf-8')
-    signed = signing_key.sign(message_bytes)
+    message = json_compact_dump(json_object, as_bytes=True)
+    signed = signing_key.sign(message)
     signature_base64 = encode_base64(signed.signature)
 
     key_id = '%s:%s' % (signing_key.alg, signing_key.version)
@@ -133,12 +128,7 @@ def verify_signed_json(json_object, signature_name, verify_key):
     del json_object_copy['signatures']
     json_object_copy.pop('unsigned', None)
 
-    message = json.dumps(json_object_copy,
-                         ensure_ascii=False,
-                         separators=(',', ':'),
-                         sort_keys=True)
-    message = bytes(message, 'utf-8')
-
+    message = json_compact_dump(json_object_copy, as_bytes=True)
     try:
         verify_key.verify(message, signature)
     except Exception:

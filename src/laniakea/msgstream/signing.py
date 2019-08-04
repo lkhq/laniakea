@@ -174,3 +174,44 @@ def write_signing_keys(stream, keys):
     for key in keys:
         key_base64 = encode_signing_key_base64(key)
         stream.write('{} {} {}\n'.format(key.alg, key.version, key_base64))
+
+
+def keyfile_read_verify_key(fname):
+    '''
+    Read verify key and signer ID from a Laniakea keyfile and return them
+    as tuple.
+    '''
+    signer_id = None
+    verify_key = None
+
+    with open(fname, 'r') as f:
+        metadata_sec = False
+        ed_sec = False
+        for line in f:
+            if not line.startswith(' '):
+                ed_sec = False
+                metadata_sec = False
+            line = line.strip()
+            if line == 'metadata':
+                metadata_sec = True
+                continue
+            if line == 'ed':
+                ed_sec = True
+                continue
+
+            if metadata_sec:
+                if line.startswith('id'):
+                    key, value = line.split('=')
+                    signer_id = value.strip().strip('"')
+                    continue
+            elif ed_sec:
+                if line.startswith('verify-key'):
+                    key, value = line.split('=')
+                    verify_key = value.strip().strip('"')
+                    continue
+
+    if verify_key:
+        decode_verify_key_bytes(NACL_ED25519 + ':' + '0',
+                                decode_base64(verify_key))
+
+    return signer_id, verify_key

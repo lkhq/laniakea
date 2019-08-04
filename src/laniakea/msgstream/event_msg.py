@@ -18,10 +18,13 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import uuid
+import random
+import zmq
 from datetime import datetime
 from laniakea.msgstream.signing import NACL_ED25519, decode_signing_key_base64, decode_verify_key_bytes
 from laniakea.msgstream.signedjson import sign_json, verify_signed_json
-from laniakea.utils import decode_base64
+from laniakea.utils import decode_base64, json_compact_dump
+from laniakea.localconfig import LocalConfig
 
 
 def create_event_message(sender, tag, data, key):
@@ -76,3 +79,47 @@ def verify_event_message(sender, event, key, assume_valid=False):
         key = decode_verify_key_bytes(NACL_ED25519 + ':' + '0', decode_base64(key))
 
     verify_signed_json(event, sender, key)  # this will raise an error if validation fails
+
+
+def create_submit_socket(zmq_context):
+    '''
+    Create a ZeroMQ socket that is connected to a Lighthouse instance in order
+    to submit messages to it.
+    '''
+
+    lconf = LocalConfig()
+    submit_server = random.choice(lconf.lighthouse.servers_submit)
+
+    socket = zmq_context.socket(zmq.DEALER)
+    socket.connect(submit_server)
+
+    return socket
+
+
+def submit_event_message(socket, sender, tag, data, key):
+    '''
+    Create a new event message, sign it and send it via the specified socket.
+    '''
+    msg = create_event_message(sender, tag, data, key)
+    socket.send_string(json_compact_dump(msg))
+
+
+def create_event_listen_socket(zmq_context, subscribed_tags=[]):
+    '''
+    Create a ZeroMQ socket that is listening to events published on a
+    Lighthouse event publisher socket.
+    '''
+
+    lconf = LocalConfig()
+    publish_server = random.choice(lconf.lighthouse.servers_publish)
+
+    socket = zmq_context.socket(zmq.SUB)
+    socket.connect(publish_server)
+
+    if not subscribed_tags:
+        socket.setsockopt_string(zmq.SUBSCRIBE, '')
+    else:
+        for tag in subscribed_tags:
+            socket.setsockopt_string(zmq.SUBSCRIBE, tag)
+
+    return socket
