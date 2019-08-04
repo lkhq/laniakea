@@ -95,7 +95,11 @@ def create_submit_socket(zmq_context):
     '''
 
     lconf = LocalConfig()
-    submit_server = random.choice(lconf.lighthouse.servers_submit)
+    servers = lconf.lighthouse.servers_submit
+    if not servers:
+        return  # we can't send events, as there are no Lighthouse instances registered
+
+    submit_server = random.choice(servers)
 
     socket = zmq_context.socket(zmq.DEALER)
     socket.connect(submit_server)
@@ -107,6 +111,8 @@ def submit_event_message(socket, sender, tag, data, key):
     '''
     Create a new event message, sign it and send it via the specified socket.
     '''
+    if not socket:
+        return  # don't send the message if we do not have a valid socket
     msg = create_event_message(sender, tag, data, key)
     socket.send_string(json_compact_dump(msg))
 
