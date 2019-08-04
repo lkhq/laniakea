@@ -27,6 +27,13 @@ from laniakea.utils import decode_base64, json_compact_dump
 from laniakea.localconfig import LocalConfig
 
 
+def create_message_tag(module, subject):
+    '''
+    Create a message tyoe tag for internal Laniakea modules.
+    '''
+    return '_lk.{}.{}'.format(module, subject)
+
+
 def create_event_message(sender, tag, data, key):
     '''
     Create and sign a new event message to send to a Laniakea Lighthouse

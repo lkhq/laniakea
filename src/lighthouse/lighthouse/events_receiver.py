@@ -68,7 +68,7 @@ class EventsReceiver:
             if not key:
                 continue
             try:
-                verify_event_message(event, signer, key, assume_valid=True)
+                verify_event_message(signer, event, key, assume_valid=True)
             except Exception as e:
                 log.info('Invalid signature on event ({}): {}'.format(str(e), str(event)))
                 return

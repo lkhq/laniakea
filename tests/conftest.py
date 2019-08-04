@@ -317,34 +317,6 @@ def new_zmq_curve_socket(request):
     return _zmq_curve_socket
 
 
-@pytest.fixture
-def new_zmq_socket(request):
-    '''
-    Create a ZeroMQ socket to connect to a Lighthouse server.
-    '''
-
-    def _create_zmq_socket(kind, location):
-        import zmq
-        import zmq.auth
-
-        if not kind:
-            kind = zmq.DEALER
-
-        zctx = zmq.Context()
-        sock = zctx.socket(kind)
-
-        # connect
-        sock.connect(location)
-
-        def fin():
-            sock.close()
-        request.addfinalizer(fin)
-
-        return sock
-
-    return _create_zmq_socket
-
-
 @pytest.fixture(scope='class')
 def import_package_data(request, sourcesdir, localconfig, database):
     '''

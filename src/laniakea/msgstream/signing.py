@@ -180,6 +180,7 @@ def keyfile_read_verify_key(fname):
     '''
     Read verify key and signer ID from a Laniakea keyfile and return them
     as tuple.
+    The resulting key can be used to verify messages.
     '''
     signer_id = None
     verify_key = None
@@ -211,7 +212,48 @@ def keyfile_read_verify_key(fname):
                     continue
 
     if verify_key:
-        decode_verify_key_bytes(NACL_ED25519 + ':' + '0',
-                                decode_base64(verify_key))
+        verify_key = decode_verify_key_bytes(NACL_ED25519 + ':' + '0',
+                                             decode_base64(verify_key))
 
     return signer_id, verify_key
+
+
+def keyfile_read_signing_key(fname):
+    '''
+    Read signing key and signer ID from a Laniakea keyfile and return them
+    as tuple.
+    The resulting key can be used to sign new messages.
+    '''
+    signer_id = None
+    signing_key = None
+
+    with open(fname, 'r') as f:
+        metadata_sec = False
+        ed_sec = False
+        for line in f:
+            if not line.startswith(' '):
+                ed_sec = False
+                metadata_sec = False
+            line = line.strip()
+            if line == 'metadata':
+                metadata_sec = True
+                continue
+            if line == 'ed':
+                ed_sec = True
+                continue
+
+            if metadata_sec:
+                if line.startswith('id'):
+                    key, value = line.split('=')
+                    signer_id = value.strip().strip('"')
+                    continue
+            elif ed_sec:
+                if line.startswith('signing-key'):
+                    key, value = line.split('=')
+                    signing_key = value.strip().strip('"')
+                    continue
+
+    if signing_key:
+        signing_key = decode_signing_key_base64(NACL_ED25519, signing_key, 0)
+
+    return signer_id, signing_key
