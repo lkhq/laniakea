@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -17,10 +17,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-from laniakea.signedjson.sign import SignatureVerifyException, sign_json, verify_signed_json, signature_ids
+from laniakea.msgstream.event_msg import create_event_message, event_message_is_valid_and_signed, verify_event_message
+from laniakea.msgstream.signedjson import SignatureVerifyException
 
 
-__all__ = ['SignatureVerifyException',
-           'sign_json',
-           'verify_signed_json',
-           'signature_ids']
+__all__ = ['create_event_message',
+           'verify_event_message',
+           'event_message_is_valid_and_signed',
+           'SignatureVerifyException']

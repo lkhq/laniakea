@@ -20,7 +20,7 @@ import zmq
 import json
 import logging as log
 from zmq.eventloop import ioloop, zmqstream
-from laniakea.signedjson import verify_signed_json
+from laniakea.msgstream import verify_event_message, event_message_is_valid_and_signed
 
 
 class EventsReceiver:
@@ -33,7 +33,7 @@ class EventsReceiver:
         from glob import glob
         from laniakea.localconfig import LocalConfig
         from laniakea.utils import decode_base64
-        from laniakea.signedjson.key import NACL_ED25519, decode_verify_key_bytes
+        from laniakea.msgstream.signing import NACL_ED25519, decode_verify_key_bytes
 
         self._socket = None
         self._ctx = zmq.Context.instance()
@@ -85,24 +85,19 @@ class EventsReceiver:
             log.info('Received invalid JSON message from sender: %s (%s)', msg[1] if len(msg) > 1 else msg, str(e))
             return
 
-        event_tag = event.get('tag')
-        signatures = event.get('signatures')
-
         # check if the message is actually valid and can be processed
-        if not event_tag or not signatures:
+        if not event_message_is_valid_and_signed(event):
+            # we currently just silently ignore invalid submissions
             return
 
-        if len(signatures) < 1:
-            log.info('Signature missing on message: {}'.format(str(event)))
-            return
-
+        signatures = event.get('signatures')
         signature_checked = False
         for signer in signatures.keys():
             key = self._trusted_keys.get(signer)
             if not key:
                 continue
             try:
-                verify_signed_json(event, signer, key)
+                verify_event_message(event, signer, key, assume_valid=True)
             except Exception as e:
                 log.info('Invalid signature on event ({}): {}'.format(str(e), str(event)))
                 return
@@ -116,7 +111,7 @@ class EventsReceiver:
             return
 
         # now publish the event to the world
-        self._pub_queue.put([bytes(event_tag, 'utf-8'), msg[1]])
+        self._pub_queue.put([bytes(event['tag'], 'utf-8'), msg[1]])
 
     def run(self):
         if self._socket:

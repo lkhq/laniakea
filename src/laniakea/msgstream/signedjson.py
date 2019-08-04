@@ -34,7 +34,7 @@
 
 import json
 from laniakea.utils import encode_base64, decode_base64
-from laniakea.signedjson.key import SUPPORTED_ALGORITHMS
+from laniakea.msgstream.signing import SUPPORTED_ALGORITHMS
 from laniakea.logging import log
 
 

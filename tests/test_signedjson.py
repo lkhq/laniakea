@@ -35,8 +35,8 @@
 import pytest
 import nacl.signing
 from laniakea.utils import decode_base64, encode_base64
-from laniakea.signedjson import SignatureVerifyException, sign_json, verify_signed_json, signature_ids
-from laniakea.signedjson.key import (
+from laniakea.msgstream.signedjson import SignatureVerifyException, sign_json, verify_signed_json, signature_ids
+from laniakea.msgstream.signing import (
     generate_signing_key,
     get_verify_key,
     decode_signing_key_base64,

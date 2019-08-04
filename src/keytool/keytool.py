@@ -31,7 +31,7 @@ import zmq.auth
 from argparse import ArgumentParser
 from laniakea import LocalConfig
 from laniakea.utils import stringify
-from laniakea.signedjson.key import generate_signing_key, get_verify_key, \
+from laniakea.msgstream.signing import generate_signing_key, get_verify_key, \
     encode_signing_key_base64, encode_verify_key_base64
 
 
