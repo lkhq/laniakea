@@ -43,8 +43,8 @@ Ariadne | Package build scheduler | Dataimport, Debcheck, Lighthouse | :heavy_ch
 Web | Web UI | All backend modules | :heavy_check_mark: Completed
 Web-SWView | Web package and application browser | Dataimport, AppStream | :heavy_check_mark: Completed
 Irk | IRC bot | Lighthouse | :broken_heart: Will not be ported and has been removed
-Mirk | Matrix bot | Lighthouse | :large_orange_diamond: In progress
-PhabBridge | Bridge to Phabricator | Lighthouse | :red_circle: Not started
+Mirk | Matrix bot | Lighthouse | :heavy_check_mark: Completed
+PhabBridge | Bridge to Phabricator | Lighthouse | :large_orange_diamond: In progress
 
 
 :bangbang: The module ports have different complexities. The core port was the most difficult, the Lighthouse and Dataimport ports will also be time-intensive, while the other

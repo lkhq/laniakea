@@ -32,5 +32,17 @@ if (get_option('webgui'))
                  install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 endif
 
+if (get_option('mirk'))
+    mirk_data = configuration_data()
+    mirk_data.set('MIRK_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/mirk/mirk.py')
+
+    configure_file(input: 'laniakea-mirk.service.in',
+                   output: 'laniakea-mirk.service',
+                   configuration: mirk_data)
+
+    install_data(current_build_dir + '/laniakea-mirk.service',
+                 install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+endif
+
 install_data('3rd-party.json', install_dir: lk_data_dir)
 install_data('archive-sections.json', install_dir: lk_data_dir)

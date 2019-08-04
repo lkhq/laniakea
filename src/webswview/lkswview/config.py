@@ -25,7 +25,7 @@ from laniakea.db import config_get_project_name
 INSTANCE_FOLDER_PATH = '/var/lib/laniakea-webswview/'
 
 
-class BaseConfig(object):
+class BaseConfig:
 
     PROJECT = 'Laniakea Software View'
     BUG_REPORT_URL = 'https://github.com/lkorigin/laniakea/issues'

@@ -8,5 +8,5 @@ if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
-from lighthouse import cli
+from mirk import cli
 sys.exit(cli.run(thisfile, sys.argv[1:]))

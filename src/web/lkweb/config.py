@@ -23,7 +23,7 @@ import os
 INSTANCE_FOLDER_PATH = '/var/lib/laniakea-web/'
 
 
-class BaseConfig(object):
+class BaseConfig:
 
     PROJECT = 'Laniakea Web'
     BUG_REPORT_URL = 'https://github.com/lkorigin/laniakea/issues'

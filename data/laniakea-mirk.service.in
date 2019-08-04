@@ -1,0 +1,15 @@
+[Unit]
+Description=Laniakea Matrix Bot
+After=syslog.target network.target
+ConditionPathExists=/etc/laniakea/mirk.json
+
+[Service]
+Type=notify
+Restart=on-failure
+ProtectSystem=full
+User=lkweb
+Group=nogroup
+ExecStart=@MIRK_INSTALL_BIN@
+
+[Install]
+WantedBy=multi-user.target

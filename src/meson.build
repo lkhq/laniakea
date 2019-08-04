@@ -64,6 +64,11 @@ if (get_option('ariadne'))
     subdir('ariadne')
 endif
 
+# mIrk
+if (get_option('mirk'))
+    subdir('mirk')
+endif
+
 # web frontends
 if (get_option('webgui'))
     # Additional Python deps

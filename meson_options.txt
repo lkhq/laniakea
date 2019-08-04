@@ -67,3 +67,8 @@ option('ariadne',
     value: true,
     description: 'Build the "Ariadne" package build planner'
 )
+option('mirk',
+    type: 'boolean',
+    value: false,
+    description: 'Enable the "mIrk" Matrix messaging bot'
+)
