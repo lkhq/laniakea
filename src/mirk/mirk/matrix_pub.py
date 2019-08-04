@@ -28,10 +28,10 @@ from .config import MirkConfig
 
 
 message_templates = {'_lk.job.package-build-success':
-                     'Package build for <b>{pkgname} {version}</b> was successful.',
+                     'Package build for <b>{pkgname} {version}</b> was <font color="#265500">successful</font>.',
 
                      '_lk.job.package-build-failed':
-                     'Package build for <b>{pkgname} {version}</b> failed.'}
+                     'Package build for <b>{pkgname} {version}</b> has <font color="#b7241b">failed</font>.'}
 
 
 class MatrixPublisher:
