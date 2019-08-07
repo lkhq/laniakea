@@ -23,6 +23,7 @@ from laniakea.git import Git
 from laniakea.logging import get_verbose
 from laniakea.utils import listify
 
+
 class DakBridge:
     '''
     Call commands on the Debian Archive Kit (dak)
@@ -34,7 +35,6 @@ class DakBridge:
 
         self._dak_dist_dir = os.path.join(lconf.workspace, 'dist', 'dak')
         self._dak_exe = os.path.join(self._dak_dist_dir, 'dak', 'dak.py')
-
 
     def update_dak(self):
         ext_urls = ExternalToolsUrls()

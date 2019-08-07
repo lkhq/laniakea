@@ -23,7 +23,9 @@ from .dakbridge import DakBridge
 
 def run_dak_command(options):
     dak = DakBridge()
-    dak.run(options.run)
+    r = dak.run(options.run)
+    if r:
+        print(r)
 
 
 def module_admin_init(options):
