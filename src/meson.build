@@ -64,6 +64,11 @@ if (get_option('ariadne'))
     subdir('ariadne')
 endif
 
+# Daktape
+if (get_option('daktape'))
+    subdir('daktape')
+endif
+
 # mIrk
 if (get_option('mirk'))
     subdir('mirk')

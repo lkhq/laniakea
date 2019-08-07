@@ -230,3 +230,6 @@ class ExternalToolsUrls:
 
         jspears = jdata.get('Spears', {})
         self.britney_git_repository = jspears.get('britneyGitRepository', 'https://salsa.debian.org/release-team/britney2.git')
+
+        jdaktape = jdata.get('DakTape', {})
+        self.dak_git_repository = jdaktape.get('dakGitRepository', 'https://salsa.debian.org/ftp-team/dak.git')

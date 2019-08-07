@@ -1,5 +1,9 @@
 {
   "Spears": {
     "britneyGitRepository": "https://salsa.debian.org/release-team/britney2.git"
+  },
+
+  "DakTape": {
+    "dakGitRepository": "https://salsa.debian.org/ftp-team/dak.git"
   }
 }

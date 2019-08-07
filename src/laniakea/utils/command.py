@@ -58,8 +58,8 @@ def run_command(command, input=None, capture_output=True):
                                 stdout=p_stdout,
                                 stderr=p_stderr,
                                 )
-    except OSError:
-        return (None, None, -1)
+    except OSError as e:
+        return (None, str(e), -1)
 
     (output, stderr) = pipe.communicate(input=input)
     if capture_output:
