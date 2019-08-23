@@ -16,7 +16,7 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-from laniakea.db import session_factory
+from laniakea.db import session_factory, session_scope
 from .utils import print_header, print_note, input_str, input_bool, input_list
 
 
@@ -146,6 +146,11 @@ def ask_settings(options):
     session.commit()
 
 
+def add_suite(options):
+    with session_scope() as session:
+        _add_new_suite(session)
+
+
 def module_core_init(options):
     ''' Change the Laniakea Core module '''
 
@@ -153,6 +158,8 @@ def module_core_init(options):
         database_init(options)
     elif options.config:
         ask_settings(options)
+    elif options.add_suite:
+        add_suite(options)
     else:
         print('No action selected.')
         sys.exit(1)
@@ -163,6 +170,8 @@ def add_cli_parser(parser):
 
     sp.add_argument('--init-db', action='store_true', dest='init_db',
                     help='Initialize database tables.')
+    sp.add_argument('--add-suite', action='store_true', dest='add_suite',
+                    help='Register new suite.')
     sp.add_argument('--config', action='store_true', dest='config',
                     help='Configure this module.')
 
