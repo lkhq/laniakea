@@ -133,7 +133,7 @@ public:
         immutable heidiData = std.file.readText (heidiFile).strip;
         if (heidiData.empty) {
             logWarning ("Stopped Britney result import: File '%s' is empty.", heidiFile);
-            return false;
+            return true;
         }
 
         logInfo ("Importing britney result from %s", heidiFile);
