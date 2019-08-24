@@ -33,6 +33,7 @@ extern(C) void PydMain()
     wrapAggregate!(BaseConfig)();
     wrapAggregate!(BaseArchiveConfig)();
     wrapAggregate!(SuiteInfo)();
+    wrapAggregate!(ParentSuiteInfo)();
 
     /* Repo infrastructure */
     import lknative.repository;
