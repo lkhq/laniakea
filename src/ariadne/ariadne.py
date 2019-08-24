@@ -273,10 +273,13 @@ def schedule_builds(repo_name, simulate=False, limit_architecture=None, limit_co
     session = session_factory()
 
     # FIXME: We need much better ways to select the right suite to synchronize with
-    incoming_suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.accept_uploads == True).one()  # noqa: E712
+    incoming_suites = session.query(ArchiveSuite) \
+        .filter(ArchiveSuite.accept_uploads == True).all()  # noqa: E712
 
-    return schedule_builds_for_suite(repo_name, incoming_suite.name, simulate, limit_architecture, limit_count)
+    for incoming_suite in incoming_suites:
+        if not schedule_builds_for_suite(repo_name, incoming_suite.name, simulate, limit_architecture, limit_count):
+            return False
+    return True
 
 
 def command_run(options):
