@@ -24,6 +24,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from contextlib import contextmanager
 from ..localconfig import LocalConfig
+from ..utils import cd
 
 
 __all__ = ['Base',
@@ -68,7 +69,33 @@ class Database:
             self._SessionFactory = sessionmaker(bind=self._engine)
 
         def create_tables(self):
+            ''' Initialize the database and create all tables '''
+            self.upgrade()
             Base.metadata.create_all(self._engine)
+
+        def upgrade(self):
+            ''' Upgrade database schema to the newest revision '''
+            import alembic.config
+            from .. import lk_py_directory
+
+            with cd(lk_py_directory):
+                alembicArgs = [
+                    '--raiseerr',
+                    'upgrade', 'head',
+                ]
+                alembic.config.main(argv=alembicArgs)
+
+        def downgrade(self, revision):
+            ''' Upgrade database schema to the newest revision '''
+            import alembic.config
+            from .. import lk_py_directory
+
+            with cd(lk_py_directory):
+                alembicArgs = [
+                    '--raiseerr',
+                    'downgrade', revision,
+                ]
+                alembic.config.main(argv=alembicArgs)
 
     def __init__(self, lconf=None):
         if not Database.instance:

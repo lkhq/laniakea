@@ -118,12 +118,8 @@ def database(localconfig):
     from laniakea.db.core import config_set_project_name, config_set_distro_tag
     db = Database(localconfig)  # create singleton, if it didn't exist yet
 
-    # clear database tables sop test function has a pristine database to work with
-    with session_scope() as session:
-        rows = session.execute('select \'drop table if exists "\' || tablename || \'" cascade;\' from pg_tables where schemaname = \'public\';').fetchall()
-        for row in rows:
-            sql = row[0]
-            session.execute(sql)
+    # clear database tables so test function has a pristine database to work with
+    db.downgrade('base')
     db.create_tables()
 
     # add core configuration data to the database

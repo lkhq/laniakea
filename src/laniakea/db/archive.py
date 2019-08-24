@@ -90,6 +90,7 @@ class ArchiveSuite(Base):
 
     accept_uploads = Column(Boolean())  # Whether new packages can arrive in this suite via regular uploads ("unstable", "staging", ...)
     devel_target = Column(Boolean())  # Whether this is a development target suite ("testing", "green", ...)
+    frozen = Column(Boolean())  # Whether the suite is fozen and immutable for changes
 
     repos = relationship('ArchiveRepository', secondary=repo_suite_assoc_table, back_populates='suites')
     architectures = relationship('ArchiveArchitecture', secondary=suite_arch_assoc_table, back_populates='suites')

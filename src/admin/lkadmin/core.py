@@ -28,6 +28,14 @@ def database_init(options):
     print('Database tables created.')
 
 
+def database_upgrade(options):
+    from laniakea.db import Database
+    db = Database()
+    db.upgrade()
+
+    print('Database upgraded.')
+
+
 def _add_new_suite(session):
     '''
     Interactively register a new suite.
@@ -156,6 +164,8 @@ def module_core_init(options):
 
     if options.init_db:
         database_init(options)
+    elif options.upgrade:
+        database_upgrade(options)
     elif options.config:
         ask_settings(options)
     elif options.add_suite:
@@ -170,6 +180,8 @@ def add_cli_parser(parser):
 
     sp.add_argument('--init-db', action='store_true', dest='init_db',
                     help='Initialize database tables.')
+    sp.add_argument('--upgrade', action='store_true', dest='upgrade',
+                    help='Upgrade database.')
     sp.add_argument('--add-suite', action='store_true', dest='add_suite',
                     help='Register new suite.')
     sp.add_argument('--config', action='store_true', dest='config',
