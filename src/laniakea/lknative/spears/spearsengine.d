@@ -330,21 +330,23 @@ public:
         f.close ();
     }
 
-    private void setupVarious (string miWorkspace)
+    private void setupVarious (string miWorkspace, SuiteInfo[] sourceSuites, SuiteInfo targetSuite)
     {
         import std.stdio : File;
 
         // set up some random files which we do not use at all currently
-        immutable rcbugsPolicyFileU = buildPath (miWorkspace, "state", "rc-bugs-unstable");
-        if (!std.file.exists (rcbugsPolicyFileU)) {
-            logInfo ("Writing RC bugs policy file (source).");
-            // just make an empty file for now
-            auto f = File (rcbugsPolicyFileU, "w");
-            f.write ("");
-            f.close ();
+        foreach (ref si; sourceSuites) {
+            immutable rcbugsPolicyFileU = buildPath (miWorkspace, "state", "rc-bugs-%s".format (si.name));
+            if (!std.file.exists (rcbugsPolicyFileU)) {
+                logInfo ("Writing RC bugs policy file (source).");
+                 // just make an empty file for now
+                auto f = File (rcbugsPolicyFileU, "w");
+                f.write ("");
+                f.close ();
+            }
         }
 
-        immutable rcbugsPolicyFileT = buildPath (miWorkspace, "state", "rc-bugs-testing");
+        immutable rcbugsPolicyFileT = buildPath (miWorkspace, "state", "rc-bugs-%s".format (targetSuite.name));
         if (!std.file.exists (rcbugsPolicyFileT)) {
             logInfo ("Writing RC bugs policy file (target).");
             // just make an empty file for now
@@ -354,16 +356,18 @@ public:
         }
 
         // there is no support for Piuparts yet, but Britney crashes without these files
-        immutable piupartsFileU = buildPath (miWorkspace, "state", "piuparts-summary-unstable.json");
-        if (!std.file.exists (piupartsFileU)) {
-            logInfo ("Writing Piuparts summary file (source).");
-            // just make an empty file for now
-            auto f = File (piupartsFileU, "w");
-            f.write ("");
-            f.close ();
+        foreach (ref si; sourceSuites) {
+            immutable piupartsFileU = buildPath (miWorkspace, "state", "piuparts-summary-%s.json".format (si.name));
+            if (!std.file.exists (piupartsFileU)) {
+                logInfo ("Writing Piuparts summary file (source).");
+                // just make an empty file for now
+                auto f = File (piupartsFileU, "w");
+                f.write ("");
+                f.close ();
+            }
         }
 
-        immutable piupartsFileT = buildPath (miWorkspace, "state", "piuparts-summary-testing.json");
+        immutable piupartsFileT = buildPath (miWorkspace, "state", "piuparts-summary-%s.json".format (targetSuite.name));
         if (!std.file.exists (piupartsFileT)) {
             logInfo ("Writing Piuparts summary file (target).");
             // just make an empty file for now
@@ -474,7 +478,7 @@ public:
         prepareSourceData (miWorkspace, fromSuites, toSuite);
         collectUrgencies (miWorkspace);
         setupDates (miWorkspace);
-        setupVarious (miWorkspace);
+        setupVarious (miWorkspace, fromSuites, toSuite);
 
         // execute the migration tester
         britney.run (britneyConf);
