@@ -14,7 +14,7 @@ import laniakea
 
 # revision identifiers, used by Alembic.
 revision = 'b71d5948f5b7'
-down_revision = None
+down_revision = '34ccc7e6f9b8'
 branch_labels = None
 depends_on = None
 
