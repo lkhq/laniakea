@@ -30,7 +30,7 @@ import lzma
 from argparse import ArgumentParser
 from laniakea import LocalConfig
 from laniakea.logging import log
-from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, ArchiveArchitecture, \
+from laniakea.db import session_factory, session_scope, ArchiveSuite, ArchiveRepository, ArchiveArchitecture, \
     SourcePackage, BinaryPackage, ArchiveFile, PackageInfo, SoftwareComponent
 from sqlalchemy.orm import joinedload
 from laniakea.native import Repository
@@ -202,14 +202,7 @@ def import_appstream_data(session, local_repo, repo, suite, component, arch):
     session.commit()
 
 
-def command_repo(options):
-    ''' Import repository data '''
-
-    suite_name = options.suite
-    if not suite_name:
-        print('Suite parameter is missing!')
-        sys.exit(1)
-
+def import_suite_packages(suite_name):
     # FIXME: Don't hardcode the "master" repository here, fully implement
     # the "multiple repositories" feature
     repo_name = 'master'
@@ -342,6 +335,25 @@ def command_repo(options):
     for cpt in session.query(SoftwareComponent).filter(not SoftwareComponent.bin_packages).all():
         session.delete(cpt)
     session.commit()
+
+
+def command_repo(options):
+    ''' Import repository data '''
+
+    suite_names = []
+    if options.suite:
+        suite_names.append(options.suite)
+    else:
+        log.debug('Importing data from all mutable suites.')
+        with session_scope() as session:
+            suite_names = [r[0] for r in session.query(ArchiveSuite.name)
+                           .filter(ArchiveSuite.frozen == False).all()]  # noqa
+
+    # TODO: Optimize this so we can run it in parallel, as well as skip
+    # imports if they are not needed
+    for suite_name in suite_names:
+        log.debug('Importing data for suite "{}".'.format(suite_name))
+        import_suite_packages(suite_name)
 
 
 def create_parser(formatter_class=None):
