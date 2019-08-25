@@ -124,8 +124,8 @@ class LocalConfig:
             self._lighthouse.endpoints_publish = listify(lhconf_endpoints.get('publish', 'tcp://*:5572'))
 
             self._lighthouse.servers_jobs = listify(lhconf_servers.get('jobs', 'tcp://localhost:5570'))
-            self._lighthouse.servers_submit = listify(lhconf_servers.get('submit', 'tcp://localhost:5571'))
-            self._lighthouse.servers_publish = listify(lhconf_servers.get('publish', 'tcp://localhost:5572'))
+            self._lighthouse.servers_submit = listify(lhconf_servers.get('submit'))
+            self._lighthouse.servers_publish = listify(lhconf_servers.get('publish'))
 
             # Synchrotron-specific configuration
             self._synchrotron_sourcekeyrings = []

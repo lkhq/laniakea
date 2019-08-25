@@ -17,14 +17,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import uuid
 import random
 import zmq
 from datetime import datetime
-from laniakea.msgstream.signing import NACL_ED25519, decode_signing_key_base64, decode_verify_key_bytes
+from laniakea.msgstream.signing import NACL_ED25519, decode_signing_key_base64, decode_verify_key_bytes, \
+    keyfile_read_signing_key
 from laniakea.msgstream.signedjson import sign_json, verify_signed_json
 from laniakea.utils import decode_base64, json_compact_dump
 from laniakea.localconfig import LocalConfig
+from laniakea.logging import log
 
 
 def create_message_tag(module, subject):
@@ -136,3 +139,39 @@ def create_event_listen_socket(zmq_context, subscribed_tags=[]):
             socket.setsockopt_string(zmq.SUBSCRIBE, tag)
 
     return socket
+
+
+class EventEmitter:
+    '''
+    Emit events on the Laniakea Message Stream if the system
+    is configured to do so.
+    Otherwise do nothing.
+    '''
+
+    def __init__(self, module):
+        lconf = LocalConfig()
+        self._keyfile = lconf.secret_curve_keyfile_for_module(module)
+
+        self._zctx = zmq.Context()
+        self._socket = create_submit_socket(self._zctx)
+
+        signer_id = None
+        signing_key = None
+        if os.path.isfile(self._keyfile):
+            signer_id, signing_key = keyfile_read_signing_key(self._keyfile)
+
+        if self._socket and not signing_key:
+            log.warning('Can not publish events: No valid signing key found for this module.')
+            self._socket = None
+        self._signer_id = signer_id
+        self._signing_key = signing_key
+
+    def submit_event(self, tag, data):
+        '''
+        Submit an event to a Lighthouse instance for publication.
+        '''
+        submit_event_message(self._socket,
+                             self._signer_id,
+                             tag,
+                             data,
+                             self._signing_key)
