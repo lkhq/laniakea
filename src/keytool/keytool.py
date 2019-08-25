@@ -139,8 +139,8 @@ def install_service_keyfile(options):
     from shutil import copyfile
 
     service = '' if not options.service else options.service.lower()
-    if service != 'lighthouse':
-        print('The "service" option is not "lighthouse". Currently, keys can only be installed for the Lighthouse module.')
+    if not service:
+        print('The "service" option must not be empty')
         sys.exit(1)
 
     source_keyfile = options.keyfile
