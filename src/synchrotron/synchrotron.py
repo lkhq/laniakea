@@ -157,7 +157,6 @@ def command_autosync(options):
 
             log.info('Synchronizing packages from {}/{} with {}'.format(autosync.source.os_name, autosync.source.suite_name,
                                                                         autosync.destination_suite.name))
-            continue
 
             emitter = EventEmitter(LkModule.SYNCHROTRON)
 
