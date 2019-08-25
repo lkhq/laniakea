@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
@@ -33,7 +35,7 @@ class JobsServer:
     Lighthouse module serving job requests.
     '''
 
-    def __init__(self, endpoint):
+    def __init__(self, endpoint, pub_queue):
         self._server = None
         self._ctx = zmq.Context.instance()
 
@@ -42,7 +44,7 @@ class JobsServer:
         self._server_private_key = lconf.secret_curve_keyfile_for_module(LkModule.LIGHTHOUSE)
 
         self._jobs_endpoint = endpoint
-        self._worker = JobWorker()
+        self._worker = JobWorker(pub_queue)
 
     def _client_request_received(self, server, msg):
         try:

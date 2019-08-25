@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
@@ -22,6 +24,8 @@ from datetime import datetime
 from laniakea import LocalConfig, LkModule
 from laniakea.db import session_scope, config_get_value, Job, JobStatus, JobKind, JobResult, \
     SparkWorker, SourcePackage, ArchiveSuite, ImageBuildRecipe
+from laniakea.msgstream import create_message_tag
+from laniakea.utils import json_compact_dump
 
 
 class JobWorker:
@@ -29,9 +33,10 @@ class JobWorker:
     Lighthouse class that handles job requests and distributes tasks.
     '''
 
-    def __init__(self):
+    def __init__(self, event_pub_queue):
         self._lconf = LocalConfig()
         self._arch_indep_affinity = config_get_value(LkModule.ARIADNE, 'indep_arch_affinity')
+        self._event_pub_queue = event_pub_queue
 
         with session_scope() as session:
             # FIXME: We need much better ways to select the right suite to synchronize with
@@ -40,6 +45,19 @@ class JobWorker:
                 .order_by(ArchiveSuite.name) \
                 .first()  # noqa: E712
             self._default_incoming_suite_name = incoming_suite.name
+
+    def _emit_event(self, subject, data):
+        if not self._event_pub_queue:
+            return  # do nothing if event publishing is disabled
+
+        tag = create_message_tag('jobs', subject)
+        msg = {'tag': tag,
+               'uuid': str(uuid.uuid1()),
+               'format': '1.0',
+               'time': datetime.now().isoformat(),
+               'data': data}
+        self._event_pub_queue.put([bytes(tag, 'utf-8'),
+                                   bytes(json_compact_dump(msg), 'utf-8')])
 
     def _error_reply(self, message):
         return json.dumps({'error': message})
@@ -230,6 +248,15 @@ class JobWorker:
                 if job:
                     job_data = self._get_job_details(session, job)
                     job_assigned = True
+
+                    event_data = {'job_id': job_data['uuid'],
+                                  'client_name': client_name,
+                                  'client_id': client_id,
+                                  'job_module': job_data['module'],
+                                  'job_kind': job_data['kind'],
+                                  'job_version': job_data['version'],
+                                  'job_architecture': job_data['architecture']}
+                    self._emit_event('job-assigned', event_data)
                     break
             if job_assigned:
                 break
@@ -260,6 +287,11 @@ class JobWorker:
 
         job.status = JobStatus.RUNNING
         session.commit()
+
+        event_data = {'job_id': job_id,
+                      'client_name': client_name,
+                      'client_id': client_id}
+        self._emit_event('job-accepted', event_data)
 
     def _process_job_rejected_request(self, session, request):
         '''
@@ -346,6 +378,12 @@ class JobWorker:
         # (if things get lost along the way or fail verification, we may need to restart this job)
         job.result = JobResult.SUCCESS_PENDING if success else JobResult.FAILURE_PENDING
         job.status = JobStatus.DONE
+
+        event_data = {'job_id': job_id,
+                      'client_name': client_name,
+                      'client_id': client_id,
+                      'result': str(job.result)}
+        self._emit_event('job-finished', event_data)
 
         return None
 

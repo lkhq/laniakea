@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
@@ -25,14 +27,14 @@ __mainfile = None
 server_processes = []
 
 
-def run_jobs_server(endpoint):
+def run_jobs_server(endpoint, pub_queue):
     '''
     Run a server process which serves job requests to
     Laniakea Spark instances.
     '''
     from lighthouse.jobs_server import JobsServer
 
-    server = JobsServer(endpoint)
+    server = JobsServer(endpoint, pub_queue)
     server.run()
 
 
@@ -84,16 +86,8 @@ def run_server(options):
     # TODO: Disable server features requiring the database if Lighthouse is
     # configured as relay, making it only forward requests to other instances.
 
-    # spawn processes to serve job requests
-    log.info('Creating job handlers.')
-    for i, jobs_endpoint in enumerate(lconf.lighthouse.endpoints_jobs):
-        p = Process(target=run_jobs_server,
-                    args=(jobs_endpoint,),
-                    name='JobsServer-{}'.format(i),
-                    daemon=True)
-        p.start()
-        server_processes.append(p)
-
+    # event stream plumbing
+    pub_queue = None
     publish_endpoints = lconf.lighthouse.endpoints_publish
     if publish_endpoints:
         log.info('Creating event stream publisher.')
@@ -108,7 +102,7 @@ def run_server(options):
 
         # spawn processes that handle event stream submissions
         log.info('Creating event stream receivers ({}).'.format(len(lconf.lighthouse.endpoints_submit)))
-        for submit_endpoint in lconf.lighthouse.endpoints_submit:
+        for i, submit_endpoint in enumerate(lconf.lighthouse.endpoints_submit):
             p = Process(target=run_events_receiver_server,
                         args=(submit_endpoint,
                               pub_queue),
@@ -116,6 +110,17 @@ def run_server(options):
                         daemon=True)
             p.start()
             server_processes.append(p)
+
+    # spawn processes to serve job requests
+    log.info('Creating job handlers.')
+    for i, jobs_endpoint in enumerate(lconf.lighthouse.endpoints_jobs):
+        p = Process(target=run_jobs_server,
+                    args=(jobs_endpoint,
+                          pub_queue),
+                    name='JobsServer-{}'.format(i),
+                    daemon=True)
+        p.start()
+        server_processes.append(p)
 
     # set up termination signal handler
     signal.signal(signal.SIGQUIT, term_signal_handler)

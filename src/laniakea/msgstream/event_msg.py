@@ -32,7 +32,7 @@ from laniakea.logging import log
 
 def create_message_tag(module, subject):
     '''
-    Create a message tyoe tag for internal Laniakea modules.
+    Create a message type tag for internal Laniakea modules.
     '''
     return '_lk.{}.{}'.format(module, subject)
 
