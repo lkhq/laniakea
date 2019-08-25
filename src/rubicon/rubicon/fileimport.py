@@ -22,12 +22,13 @@ from glob import glob
 from laniakea import LkModule
 from laniakea.dud import Dud
 from laniakea.utils import get_dir_shorthand_for_uuid, random_string
-from laniakea.db import session_scope, Job, JobResult
+from laniakea.db import session_scope, Job, JobResult, JobKind, SourcePackage
+from laniakea.msgstream import EventEmitter
 from .rubiconfig import RubiConfig
 from .utils import safe_rename
 
 
-def accept_upload(conf, dud):
+def accept_upload(conf, dud, event_emitter):
     '''
     Accept the upload and move its data to the right places.
     '''
@@ -73,12 +74,31 @@ def accept_upload(conf, dud):
             if job.module == LkModule.ISOTOPE:
                 handle_isotope_upload(session, conf, dud, job)
 
+        # announce this event to the world
+        if job.kind == JobKind.PACKAGE_BUILD:
+            spkg = session.query(SourcePackage) \
+                .filter(SourcePackage.source_uuid == job.trigger) \
+                .filter(SourcePackage.version == job.version) \
+                .one_or_none()
+            if spkg:
+                event_data = {'pkgname': spkg.name,
+                              'version': job.version,
+                              'architecture': job.architecture,
+                              'job_id': job_id}
+                if job_success:
+                    event_emitter.submit_event_for_tag('_lk.job.package-build-success', event_data)
+                else:
+                    event_emitter.submit_event_for_tag('_lk.job.package-build-failed', event_data)
+        else:
+            event_emitter.submit_event('upload-accepted', {'job_id': job_id, 'job_failed': not job_success})
+
     # remove the upload description file from incoming
     os.remove(dud.get_dud_file())
+
     log.info("Upload {} accepted.", dud.get_filename())
 
 
-def reject_upload(conf, dud, reason='Unknown'):
+def reject_upload(conf, dud, reason='Unknown', event_emitter=None):
     '''
     If a file has issues, we reject it and put it into the rejected queue.
     '''
@@ -106,6 +126,8 @@ def reject_upload(conf, dud, reason='Unknown'):
         f.write(reason + '\n')
 
     log.info('Upload {} rejected.', dud.get_filename())
+    if event_emitter:
+        event_emitter.submit_event('upload-rejected', {'dud_filename': dud.get_filename(), 'reason': reason})
 
 
 def import_files_from(conf, incoming_dir):
@@ -116,6 +138,7 @@ def import_files_from(conf, incoming_dir):
     If they could, we would be vulnerable to timing attacks here.
     '''
 
+    emitter = EventEmitter(LkModule.RUBICON)
     for dud_file in glob(os.path.join(incoming_dir, '*.dud')):
         dud = Dud(dud_file)
 
@@ -123,11 +146,11 @@ def import_files_from(conf, incoming_dir):
             dud.validate(keyrings=conf.trusted_gpg_keyrings)
         except Exception as e:
             reason = 'Signature validation failed: {}'.format(str(e))
-            reject_upload(conf, dud, reason)
+            reject_upload(conf, dud, reason, emitter)
             continue
 
         # if we are here, the file is good to go
-        accept_upload(conf, dud)
+        accept_upload(conf, dud, emitter)
 
 
 def import_files(options):

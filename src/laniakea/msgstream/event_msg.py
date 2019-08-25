@@ -177,3 +177,13 @@ class EventEmitter:
                              tag,
                              data,
                              self._signing_key)
+
+    def submit_event_for_tag(self, tag, data):
+        '''
+        Submit and event and set a custom tag.
+        '''
+        submit_event_message(self._socket,
+                             self._signer_id,
+                             tag,
+                             data,
+                             self._signing_key)
