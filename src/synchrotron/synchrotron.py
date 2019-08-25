@@ -30,11 +30,12 @@ if not thisfile.startswith(('/usr', '/bin')):
     sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', 'laniakea')))
 
 from argparse import ArgumentParser
-from laniakea import LocalConfig
+from laniakea import LocalConfig, LkModule
 from laniakea.db import session_scope, SynchrotronSource, SynchrotronConfig, SyncBlacklistEntry, \
     ArchiveSuite, SynchrotronIssue, SynchrotronIssueKind
 from laniakea.native import SyncEngine
 from laniakea.logging import log
+from laniakea.msgstream import EventEmitter
 
 
 def get_sync_config():
@@ -53,7 +54,6 @@ def get_sync_config():
         # the D code in Python...
         sconf = laniakea.native.SynchrotronConfig()
         sconf.sourceName = sync_sources[0].os_name
-        sconf.syncEnabled = True
         sconf.syncBinaries = False
         sconf.sourceKeyrings = lconf.synchrotron_sourcekeyrings
 
@@ -90,6 +90,22 @@ def get_package_blacklist():
     return pkgnames
 
 
+def publish_synced_spkg_events(engine, src_os, src_suite, dest_suite, forced=False, emitter=None):
+    ''' Submit events for the synced source packages to the message stream '''
+    if not emitter:
+        emitter = EventEmitter(LkModule.SYNCHROTRON)
+    spkgs = engine.getSyncedSourcePackages()
+    for spkg in spkgs:
+        data = {'name': spkg.name,
+                'version': spkg.ver,
+                'src_os': src_os,
+                'src_suite': src_suite,
+                'dest_suite': dest_suite,
+                'forced': forced}
+
+        emitter.submit_event('src-package-synced', data)
+
+
 def command_sync(options):
     ''' Synchronize a dedicated set of packages '''
 
@@ -116,7 +132,6 @@ def command_sync(options):
             return
 
         incoming_suite = make_suite_info_for_suite(si.destination_suite)
-        sconf.syncEnabled = True
         sconf.syncBinaries = si.sync_binaries
         sconf.source.defaultSuite = si.source.suite_name
 
@@ -127,6 +142,11 @@ def command_sync(options):
         engine.setBlacklist(blacklist_pkgnames)
 
         ret = engine.syncPackages(options.component, options.packages, options.force)
+        publish_synced_spkg_events(engine,
+                                   si.source.os_name,
+                                   si.source.suite_name,
+                                   si.destination_suite.name,
+                                   options.force)
         if not ret:
             sys.exit(2)
 
@@ -143,7 +163,6 @@ def command_autosync(options):
 
         for autosync in autosyncs:
             incoming_suite = make_suite_info_for_suite(autosync.destination_suite)
-            sconf.syncEnabled = True
             sconf.syncBinaries = autosync.sync_binaries
             sconf.source.defaultSuite = autosync.source.suite_name
 
@@ -151,10 +170,17 @@ def command_autosync(options):
                                                                         autosync.destination_suite.name))
             continue
 
+            emitter = EventEmitter(LkModule.SYNCHROTRON)
+
             engine = SyncEngine(bconf, sconf, incoming_suite)
             engine.setBlacklist(blacklist_pkgnames)
 
             ret, issue_data = engine.autosync()
+            publish_synced_spkg_events(engine,
+                                       autosync.source.os_name,
+                                       autosync.source.suite_name,
+                                       autosync.destination_suite.name,
+                                       emitter=emitter)
             if not ret:
                 sys.exit(2)
                 return

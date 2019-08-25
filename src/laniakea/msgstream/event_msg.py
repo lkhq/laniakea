@@ -149,16 +149,17 @@ class EventEmitter:
     '''
 
     def __init__(self, module):
+        self._module = str(module)
         lconf = LocalConfig()
-        self._keyfile = lconf.secret_curve_keyfile_for_module(module)
+        keyfile = lconf.secret_curve_keyfile_for_module(self._module)
 
         self._zctx = zmq.Context()
         self._socket = create_submit_socket(self._zctx)
 
         signer_id = None
         signing_key = None
-        if os.path.isfile(self._keyfile):
-            signer_id, signing_key = keyfile_read_signing_key(self._keyfile)
+        if os.path.isfile(keyfile):
+            signer_id, signing_key = keyfile_read_signing_key(keyfile)
 
         if self._socket and not signing_key:
             log.warning('Can not publish events: No valid signing key found for this module.')
@@ -166,10 +167,11 @@ class EventEmitter:
         self._signer_id = signer_id
         self._signing_key = signing_key
 
-    def submit_event(self, tag, data):
+    def submit_event(self, subject, data):
         '''
         Submit an event to a Lighthouse instance for publication.
         '''
+        tag = create_message_tag(self._module, subject)
         submit_event_message(self._socket,
                              self._signer_id,
                              tag,

@@ -66,6 +66,8 @@ private:
 
     bool[string] syncBlacklist;
 
+    SourcePackage[] syncedSourcePackages;
+
     immutable string distroTag;
 
 public:
@@ -133,12 +135,6 @@ public:
 
         if (!ret)
             throw new Exception ("The source suite name '%s' is unknown.".format (suiteName));
-    }
-
-    private void checkSyncReady ()
-    {
-        if (!syncConfig.syncEnabled)
-            throw new PackageSyncError ("Synchronization is disabled.");
     }
 
     /**
@@ -231,7 +227,12 @@ public:
             return false;
         }
 
-        return importPackageFiles (targetSuite.name, component, [dscfile]);
+        if (importPackageFiles (targetSuite.name, component, [dscfile])) {
+            syncedSourcePackages ~= spkg;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -350,7 +351,7 @@ public:
     in { assert (pkgnames.length > 0); }
     body
     {
-        checkSyncReady ();
+        syncedSourcePackages = [];
 
         auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
         auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
@@ -427,7 +428,7 @@ public:
      */
     Tuple!(bool, SynchrotronIssue[]) autosync ()
     {
-        checkSyncReady ();
+        syncedSourcePackages = [];
 
         Tuple!(bool, SynchrotronIssue[]) res;
         res[0] = false;
@@ -582,6 +583,11 @@ public:
 
         res[0] = true;
         return res;
+    }
+
+    SourcePackage[] getSyncedSourcePackages ()
+    {
+        return syncedSourcePackages;
     }
 
 }

@@ -74,6 +74,8 @@ extern(C) void PydMain()
 
             Def!(SyncEngine.autosync),
             Def!(SyncEngine.syncPackages),
+
+            Def!(SyncEngine.getSyncedSourcePackages),
     )();
 
     /* Spears */

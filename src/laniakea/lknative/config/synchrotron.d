@@ -51,7 +51,6 @@ struct SynchrotronConfig {
     string sourceName;     // Name of the source OS (usually "Debian")
     SyncSourceInfo source;
 
-    bool syncEnabled;      // true if syncs should happen
     bool syncBinaries;     // true if we should also sync binary packages
 
     string[] sourceKeyrings; // Keyrings to verify the integrity of packages fetched from a source
