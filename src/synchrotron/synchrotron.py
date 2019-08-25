@@ -204,6 +204,16 @@ def command_autosync(options):
                 issue.details = info.details
                 session.add(issue)
 
+                data = {'name': issue.package_name,
+                        'src_os': autosync.source.os_name,
+                        'src_suite': issue.source_suite,
+                        'dest_suite': issue.target_suite,
+                        'src_version': issue.source_version,
+                        'dest_version': issue.target_version,
+                        'kind': str(issue.kind)}
+
+                emitter.submit_event('autosync-issue', data)
+
 
 def create_parser(formatter_class=None):
     ''' Create synchrotron CLI argument parser '''
