@@ -32,7 +32,8 @@ from argparse import ArgumentParser
 from laniakea import LocalConfig
 from laniakea.utils import stringify
 from laniakea.msgstream.signing import generate_signing_key, get_verify_key, \
-    encode_signing_key_base64, encode_verify_key_base64
+    encode_signing_key_base64, encode_verify_key_base64, keyfile_read_verify_key, keyfile_read_signing_key
+from laniakea.logging import log
 
 
 def _create_metadata_section(metadata):
@@ -186,13 +187,30 @@ def install_trusted_keyfile(options):
         print('Public key file "{}" was not found.'.format(source_keyfile))
         sys.exit(1)
 
-    pub_key, sec_key = zmq.auth.load_certificate(source_keyfile)
+    pub_key = None
+    sec_key = None
+    try:
+        pub_key, sec_key = zmq.auth.load_certificate(source_keyfile)
+    except ValueError:
+        pass
     if not pub_key:
-        print('The given keyfile does not contain a public key!')
-        sys.exit(1)
+        log.info('The given keyfile does not contain a public ZCurve key!')
     if sec_key:
         print('')
-        print('/!\\ The current file contains a secret key. This file should never leave the client machine it is installed on.')
+        print('/!\\ The current file contains a secret ZCurve key. This file should never leave the client machine it is installed on.')
+        print('')
+
+    _, verify_key = keyfile_read_verify_key(source_keyfile)
+    if not verify_key:
+        log.info('The given keyfile does not contain a verification key!')
+    if not verify_key and not pub_key:
+        log.error('The keyfile does not contain either a public encryption, nor a verification key. Can not continue.')
+        sys.exit(4)
+
+    _, sign_key = keyfile_read_signing_key(source_keyfile)
+    if sign_key:
+        print('')
+        print('/!\\ The current file contains a secret signing key. This file should never leave the client machine it is installed on.')
         print('')
 
     lconf = LocalConfig()
