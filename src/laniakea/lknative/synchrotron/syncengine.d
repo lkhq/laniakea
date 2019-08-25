@@ -198,6 +198,47 @@ public:
                                     withInstaller);
     }
 
+
+    private Tuple!(SourcePackage[string], "suitePkgMap", SourcePackage[string], "suiteParentPkgMap")
+    getTargetSourcePackages(string component, string arch = null, bool withInstaller = true)
+    {
+        Tuple!(SourcePackage[string], "suitePkgMap", SourcePackage[string], "suiteParentPkgMap") res;
+        res.suitePkgMap = getRepoPackageMap!SourcePackage (targetRepo,
+                                                        targetSuite.name,
+                                                        component,
+                                                        arch,
+                                                        withInstaller);
+        if (!targetSuite.parent.name.empty) {
+            // we have a parent suite
+            auto parentMap = getRepoPackageMap!SourcePackage (targetRepo,
+                                                              targetSuite.parent.name,
+                                                              component,
+                                                              arch,
+                                                              withInstaller);
+
+            // merge the two arrays, keeping only the latest versions
+            foreach (ref pkg; res.suitePkgMap.values) {
+                auto epkgP = pkg.name in parentMap;
+                if (epkgP is null) {
+                    parentMap[pkg.name] = pkg;
+                } else {
+                    auto epkg = *epkgP;
+                    if (compareVersions (pkg.ver, epkg.ver) > 0) {
+                        parentMap[pkg.name] = pkg;
+                    }
+                }
+            }
+
+            parentMap.rehash;
+            res.suiteParentPkgMap = parentMap;
+        } else {
+            // if we have no parent suite, contents in both mappings are equal
+            res.suiteParentPkgMap = res.suitePkgMap;
+        }
+
+        return res;
+    }
+
     /**
      * Import an arbitrary amount of packages via the archive management software.
      */
@@ -353,8 +394,10 @@ public:
     {
         syncedSourcePackages = [];
 
-        auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
+        auto targetSrcTuple = getTargetSourcePackages (component);
         auto srcPkgMap = getSourceRepoPackageMap!SourcePackage (component);
+
+        auto destPkgMap = targetSrcTuple.suiteParentPkgMap;
 
         auto syncedSrcPkgs = appender!(SourcePackage[]);
         foreach (ref pkgname; pkgnames) {
@@ -436,7 +479,9 @@ public:
         auto activeSrcPkgs = appender!(SourcePackage[]); // source packages which should have their binary packages updated
 
         foreach (ref component; targetSuite.components) {
-            auto destPkgMap = getTargetRepoPackageMap!SourcePackage (component);
+            auto destPkgTuple = getTargetSourcePackages (component);
+            auto destPkgMapFull = destPkgTuple.suiteParentPkgMap;
+            auto destPkgMapNoParent = destPkgTuple.suitePkgMap;
 
             // The source package lists contains many different versions, some source package
             // versions are explicitly kept for GPL-compatibility.
@@ -460,7 +505,7 @@ public:
                 if (spkg.name in syncBlacklist)
                     continue;
 
-                auto dpkgP = spkg.name in destPkgMap;
+                auto dpkgP = spkg.name in destPkgMapFull;
                 if (dpkgP !is null) {
                     auto dpkg = *dpkgP;
 
@@ -500,9 +545,9 @@ public:
 
             // all packages in the target distribution are considered active, as long as they don't
             // have modifications.
-            // we explicitly use the destPkgMap here, because it always contains only the newest
+            // we explicitly use the destPkgMapNoParent here, because it always contains only the newest
             // package versions.
-            foreach (ref spkg; destPkgMap.byValue) {
+            foreach (ref spkg; destPkgMapNoParent.byValue) {
                 if (!spkg.ver.getDebianRev.canFind (distroTag))
                     activeSrcPkgs ~= spkg;
             }

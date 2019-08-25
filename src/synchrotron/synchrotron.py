@@ -33,7 +33,7 @@ from argparse import ArgumentParser
 from laniakea import LocalConfig, LkModule
 from laniakea.db import session_scope, SynchrotronSource, SynchrotronConfig, SyncBlacklistEntry, \
     ArchiveSuite, SynchrotronIssue, SynchrotronIssueKind
-from laniakea.native import SyncEngine
+from laniakea.native import SyncEngine, get_suiteinfo_for_suite
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 
@@ -71,17 +71,6 @@ def get_sync_config():
         sconf.source.suites = source_suites
 
     return bconf, sconf
-
-
-def make_suite_info_for_suite(suite):
-    from laniakea.native import SuiteInfo
-
-    si = SuiteInfo()
-    si.name = suite.name
-    si.architectures = list(a.name for a in suite.architectures)
-    si.components = list(c.name for c in suite.components)
-
-    return si
 
 
 def get_package_blacklist():
@@ -131,7 +120,7 @@ def command_sync(options):
             sys.exit(3)
             return
 
-        incoming_suite = make_suite_info_for_suite(si.destination_suite)
+        incoming_suite = get_suiteinfo_for_suite(si.destination_suite)
         sconf.syncBinaries = si.sync_binaries
         sconf.source.defaultSuite = si.source.suite_name
 
@@ -162,7 +151,7 @@ def command_autosync(options):
         blacklist_pkgnames = get_package_blacklist()  # the blacklist is global for now
 
         for autosync in autosyncs:
-            incoming_suite = make_suite_info_for_suite(autosync.destination_suite)
+            incoming_suite = get_suiteinfo_for_suite(autosync.destination_suite)
             sconf.syncBinaries = autosync.sync_binaries
             sconf.source.defaultSuite = autosync.source.suite_name
 
