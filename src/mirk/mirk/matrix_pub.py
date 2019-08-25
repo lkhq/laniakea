@@ -31,7 +31,32 @@ message_templates = {'_lk.job.package-build-success':
                      'Package build for <b>{pkgname} {version}</b> was <font color="#265500">successful</font>.',
 
                      '_lk.job.package-build-failed':
-                     'Package build for <b>{pkgname} {version}</b> has <font color="#b7241b">failed</font>.'}
+                     'Package build for <b>{pkgname} {version}</b> has <font color="#b7241b">failed</font>.',
+
+                     '_lk.synchrotron.src-package-synced':
+                     'Synchronized package {name} from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
+
+                     '_lk.synchrotron.src-package-synced:forced':
+                     'Enforced synchronization of package {name} from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
+
+                     '_lk.synchrotron.autosync-issue':
+                     '''Unable to automatically synchronize {name} from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>
+                     (source: <code>{src_version}</code>, destination: <code>{dest_version}</code>). Type: {kind}'''}
+
+
+def tag_data_to_html_message(tag, data):
+    ''' Convert the JSON message into a nice HTML string for display. '''
+
+    if data.get('forced'):
+        tag = tag + ':forced'
+    text = ''
+    templ = message_templates.get(tag)
+    if templ:
+        text = templ.format(**data)
+    else:
+        text = 'Received event type <code>{}</code> with data <code>{}</code>'.format(tag, str(data))
+
+    return text
 
 
 class MatrixPublisher:
@@ -51,14 +76,7 @@ class MatrixPublisher:
     def _on_event_received(self, event):
         tag = event['tag']
         data = event['data']
-
-        text = ''
-        templ = message_templates.get(tag)
-        if templ:
-            text = templ.format(**data)
-        else:
-            text = 'Received event type <code>{}</code> with data <code>{}</code>'.format(tag, str(data))
-
+        text = tag_data_to_html_message(tag, data)
         self._rooms_publish_text(text)
 
     def _rooms_publish_text(self, text):
