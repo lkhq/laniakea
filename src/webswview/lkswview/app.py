@@ -34,7 +34,6 @@ def create_app(config=None, app_name=None):
         app_name = DefaultConfig.PROJECT
 
     app = Flask(app_name,
-                template_folder='templates',
                 instance_path=INSTANCE_FOLDER_PATH,
                 instance_relative_config=True)
     configure_app(app, config)
@@ -59,6 +58,9 @@ def configure_app(app, config=None):
 
     if config:
         app.config.from_object(config)
+
+    app.template_folder = 'templates/{}'.format(app.config['THEME'])
+    app.static_folder = 'templates/{}/static'.format(app.config['THEME'])
 
 
 def configure_blueprints(app):
