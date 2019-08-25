@@ -332,7 +332,7 @@ def import_suite_packages(suite_name):
             import_appstream_data(session, local_repo, repo, suite, component, arch)
 
     # delete orphaned AppStream metadata
-    for cpt in session.query(SoftwareComponent).filter(SoftwareComponent.bin_packages == []).all():  # noqa
+    for cpt in session.query(SoftwareComponent).filter(~SoftwareComponent.bin_packages.any()).all():
         session.delete(cpt)
     session.commit()
 
