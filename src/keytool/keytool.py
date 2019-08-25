@@ -66,6 +66,10 @@ def _write_key_file(fname, metadata, curve_public_key, curve_secret_key, ed_publ
         f.write('curve\n')
         if curve_public_key:
             f.write('    public-key = "{}"\n'.format(stringify(curve_public_key)))
+        else:
+            # ZeroMQ will stop all authentication if there is just one file in its trusted keyring
+            # that does not have a public-key set. So we cheat here and add an empty one.
+            f.write('    public-key = ""\n')
         if curve_secret_key and secret_keyfile:
             f.write('    secret-key = "{}"\n'.format(stringify(curve_secret_key)))
 
