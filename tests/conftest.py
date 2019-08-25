@@ -119,6 +119,8 @@ def database(localconfig):
     db = Database(localconfig)  # create singleton, if it didn't exist yet
 
     # clear database tables so test function has a pristine database to work with
+    with session_scope() as session:
+        session.execute('DROP owned BY lkdbuser_test;')
     db.downgrade('base')
     db.create_tables()
 

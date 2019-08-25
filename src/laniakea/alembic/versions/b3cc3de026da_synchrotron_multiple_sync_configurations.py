@@ -20,8 +20,12 @@ depends_on = None
 
 
 def upgrade():
-    with session_scope() as session:
-        session.query(SynchrotronIssue).delete()
+    try:
+        with session_scope() as session:
+            session.query(SynchrotronIssue).delete()
+    except Exception as e:
+        pass
+
     op.create_table('synchrotron_sources',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('os_name', sa.Text(), nullable=False),
