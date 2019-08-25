@@ -123,6 +123,7 @@ def command_sync(options):
         incoming_suite = get_suiteinfo_for_suite(si.destination_suite)
         sconf.syncBinaries = si.sync_binaries
         sconf.source.defaultSuite = si.source.suite_name
+        sconf.source.repoUrl = si.source.repo_url
 
         engine = SyncEngine(bconf, sconf, incoming_suite)
 
@@ -154,6 +155,7 @@ def command_autosync(options):
             incoming_suite = get_suiteinfo_for_suite(autosync.destination_suite)
             sconf.syncBinaries = autosync.sync_binaries
             sconf.source.defaultSuite = autosync.source.suite_name
+            sconf.source.repoUrl = autosync.source.repo_url
 
             log.info('Synchronizing packages from {}/{} with {}'.format(autosync.source.os_name, autosync.source.suite_name,
                                                                         autosync.destination_suite.name))
