@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
@@ -29,51 +30,53 @@ if not thisfile.startswith(('/usr', '/bin')):
     sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', 'laniakea')))
 
 from argparse import ArgumentParser
-from laniakea import LocalConfig, LkModule
-from laniakea.db import config_get_value, session_factory, ArchiveSuite, \
-    SyncBlacklistEntry, SynchrotronIssue, SynchrotronIssueKind
-from laniakea.native import SynchrotronConfig, SyncEngine
+from laniakea import LocalConfig
+from laniakea.db import session_scope, SynchrotronSource, SynchrotronConfig, SyncBlacklistEntry, \
+    ArchiveSuite, SynchrotronIssue, SynchrotronIssueKind
+from laniakea.native import SyncEngine
+from laniakea.logging import log
 
 
 def get_sync_config():
+    import laniakea.native
     from laniakea.native import SyncSourceSuite, create_native_baseconfig
 
     lconf = LocalConfig()
     bconf = create_native_baseconfig()
 
-    sconf = SynchrotronConfig()
-    sconf.sourceName = config_get_value(LkModule.SYNCHROTRON, 'source_name')
-    sconf.syncEnabled = True if config_get_value(LkModule.SYNCHROTRON, 'sync_enabled') else False
-    sconf.syncBinaries = True if config_get_value(LkModule.SYNCHROTRON, 'sync_binaries') else False
-    sconf.sourceKeyrings = lconf.synchrotron_sourcekeyrings
+    with session_scope() as session:
+        sync_sources = session.query(SynchrotronSource).all()
 
-    sconf.source.defaultSuite = config_get_value(LkModule.SYNCHROTRON, 'source_default_suite')
-    sconf.source.repoUrl = config_get_value(LkModule.SYNCHROTRON, 'source_repo_url')
-    suites_list = config_get_value(LkModule.SYNCHROTRON, 'source_suites')
-    if not suites_list:
-        suites_list = []
-    source_suites = []
-    for sd in suites_list:
-        sssuite = SyncSourceSuite()
-        sssuite.name = sd['name']
-        sssuite.architectures = sd['architectures']
-        sssuite.components = sd['components']
+        # FIXME: SynchrotronConfig needs adjustments in the D code to work
+        # better with the new "multiple autosync tasks" model.
+        # Maybe when doing this there's a good opportunity to rewrite some of
+        # the D code in Python...
+        sconf = laniakea.native.SynchrotronConfig()
+        sconf.sourceName = sync_sources[0].os_name
+        sconf.syncEnabled = True
+        sconf.syncBinaries = False
+        sconf.sourceKeyrings = lconf.synchrotron_sourcekeyrings
 
-        source_suites.append(sssuite)
-    sconf.source.suites = source_suites
+        sconf.source.defaultSuite = None
+        sconf.source.repoUrl = sync_sources[0].repo_url
+
+        source_suites = []
+        for sd in sync_sources:
+            sssuite = SyncSourceSuite()
+            sssuite.name = sd.suite_name
+            sssuite.architectures = sd.architectures
+            sssuite.components = sd.components
+
+            source_suites.append(sssuite)
+        sconf.source.suites = source_suites
 
     return bconf, sconf
 
 
-def get_incoming_suite_info():
+def make_suite_info_for_suite(suite):
     from laniakea.native import SuiteInfo
 
-    session = session_factory()
     si = SuiteInfo()
-
-    # FIXME: We need much better ways to select the right suite to synchronize with
-    suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.accept_uploads == True).one()  # noqa: E712
     si.name = suite.name
     si.architectures = list(a.name for a in suite.architectures)
     si.components = list(c.name for c in suite.components)
@@ -82,9 +85,8 @@ def get_incoming_suite_info():
 
 
 def get_package_blacklist():
-    session = session_factory()
-
-    pkgnames = [value for value, in session.query(SyncBlacklistEntry.pkgname)]
+    with session_scope() as session:
+        pkgnames = [value for value, in session.query(SyncBlacklistEntry.pkgname)]
     return pkgnames
 
 
@@ -96,51 +98,85 @@ def command_sync(options):
         sys.exit(1)
 
     bconf, sconf = get_sync_config()
-    incoming_suite = get_incoming_suite_info()
-    engine = SyncEngine(bconf, sconf, incoming_suite)
 
-    blacklist_pkgnames = get_package_blacklist()
-    engine.setSourceSuite(options.source_suite)
-    engine.setBlacklist(blacklist_pkgnames)
+    with session_scope() as session:
+        si = session.query(SynchrotronConfig) \
+            .join(SynchrotronConfig.destination_suite) \
+            .join(SynchrotronConfig.source) \
+            .filter(ArchiveSuite.name == options.dest_suite,
+                    SynchrotronSource.suite_name == options.src_suite).one_or_none()
+        if not si:
+            log.error('Unable to find a sync config for this source/destination combination.')
+            sys.exit(4)
+            return
 
-    ret = engine.syncPackages(options.component, options.packages, options.force)
-    if not ret:
-        sys.exit(2)
+        if not si.sync_enabled:
+            log.error('Can not synchronize package: Synchronization is disabled for this configuration.')
+            sys.exit(3)
+            return
+
+        incoming_suite = make_suite_info_for_suite(si.destination_suite)
+        sconf.syncEnabled = True
+        sconf.syncBinaries = si.sync_binaries
+        sconf.source.defaultSuite = si.source.suite_name
+
+        engine = SyncEngine(bconf, sconf, incoming_suite)
+
+        blacklist_pkgnames = get_package_blacklist()
+        engine.setSourceSuite(si.source.suite_name)
+        engine.setBlacklist(blacklist_pkgnames)
+
+        ret = engine.syncPackages(options.component, options.packages, options.force)
+        if not ret:
+            sys.exit(2)
 
 
 def command_autosync(options):
     ''' Automatically synchronize packages '''
 
-    bconf, sconf = get_sync_config()
-    incoming_suite = get_incoming_suite_info()
-    engine = SyncEngine(bconf, sconf, incoming_suite)
+    with session_scope() as session:
+        autosyncs = session.query(SynchrotronConfig).filter(SynchrotronConfig.sync_enabled == True) \
+            .filter(SynchrotronConfig.sync_auto_enabled == True).all()  # noqa: E712
 
-    blacklist_pkgnames = get_package_blacklist()
-    engine.setBlacklist(blacklist_pkgnames)
+        bconf, sconf = get_sync_config()
+        blacklist_pkgnames = get_package_blacklist()  # the blacklist is global for now
 
-    ret, issue_data = engine.autosync()
-    if not ret:
-        sys.exit(2)
-        return
+        for autosync in autosyncs:
+            incoming_suite = make_suite_info_for_suite(autosync.destination_suite)
+            sconf.syncEnabled = True
+            sconf.syncBinaries = autosync.sync_binaries
+            sconf.source.defaultSuite = autosync.source.suite_name
 
-    session = session_factory()
-    for ssuite in sconf.source.suites:
-        session.query(SynchrotronIssue) \
-            .filter(SynchrotronIssue.source_suite == ssuite.name,
-                    SynchrotronIssue.target_suite == incoming_suite.name) \
-            .delete()
+            log.info('Synchronizing packages from {}/{} with {}'.format(autosync.source.os_name, autosync.source.suite_name,
+                                                                        autosync.destination_suite.name))
+            continue
 
-    for info in issue_data:
-        issue = SynchrotronIssue()
-        issue.kind = SynchrotronIssueKind(info.kind)
-        issue.package_name = info.packageName
-        issue.source_suite = info.sourceSuite
-        issue.target_suite = info.targetSuite
-        issue.source_version = info.sourceVersion
-        issue.target_version = info.targetVersion
-        issue.details = info.details
-        session.add(issue)
-    session.commit()
+            engine = SyncEngine(bconf, sconf, incoming_suite)
+            engine.setBlacklist(blacklist_pkgnames)
+
+            ret, issue_data = engine.autosync()
+            if not ret:
+                sys.exit(2)
+                return
+
+            for ssuite in sconf.source.suites:
+                session.query(SynchrotronIssue) \
+                    .filter(SynchrotronIssue.source_suite == ssuite.name,
+                            SynchrotronIssue.target_suite == incoming_suite.name,
+                            SynchrotronIssue.autosync_id == autosync.id) \
+                    .delete()
+
+            for info in issue_data:
+                issue = SynchrotronIssue()
+                issue.autosync = autosync
+                issue.kind = SynchrotronIssueKind(info.kind)
+                issue.package_name = info.packageName
+                issue.source_suite = info.sourceSuite
+                issue.target_suite = info.targetSuite
+                issue.source_version = info.sourceVersion
+                issue.target_version = info.targetVersion
+                issue.details = info.details
+                session.add(issue)
 
 
 def create_parser(formatter_class=None):
@@ -157,7 +193,8 @@ def create_parser(formatter_class=None):
 
     sp = subparsers.add_parser('sync', help='Synchronize a package or set of packages')
     sp.add_argument('--force', action='store_true', dest='force', help='Force package import and ignore version conflicts.')
-    sp.add_argument('source_suite', type=str, help='The suite to synchronize from')
+    sp.add_argument('src_suite', type=str, help='The suite to synchronize from')
+    sp.add_argument('dest_suite', type=str, help='The suite to synchronize to')
     sp.add_argument('component', type=str, help='The archive component to import from')
     sp.add_argument('packages', nargs='+', help='The (source) packages to import')
     sp.set_defaults(func=command_sync)

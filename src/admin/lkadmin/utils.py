@@ -63,7 +63,12 @@ def input_int(prompt, allow_empty=False):
 
 
 def print_header(msg):
-    print('\n== {} =='.format(msg))
+    print('\n{}'.format(msg))
+    print('~' * len(msg))
+
+
+def print_section(msg):
+    print('\n## {}'.format(msg))
 
 
 def print_done(msg):

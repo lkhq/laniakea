@@ -1,4 +1,6 @@
-# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -16,43 +18,60 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-from .utils import print_header, print_note, input_str, input_bool, input_list
-from laniakea.db import session_scope, SyncBlacklistEntry
+from .utils import print_header, print_section, print_note, input_str, input_bool, input_list
+from laniakea.db import session_scope, SynchrotronSource, SynchrotronConfig, SyncBlacklistEntry, \
+    ArchiveSuite
 
 
 def ask_settings(options):
-
-    def syncconf_set_value(key, value):
-        from laniakea.db.core import LkModule, config_set_value
-        config_set_value(LkModule.SYNCHROTRON, key, value)
-
     print_header('Configuring base settings for Synchrotron')
+    print_section('Add synchronization sources')
 
-    syncconf_set_value('source_name', input_str('Name of the source distribution'))
-    syncconf_set_value('source_repo_url', input_str('Source repository URL'))
+    source_distro_name = input_str('Name of the source distribution')
+    source_repo_url = input_str('Source repository URL')
 
-    add_suite = True
-    suites = {}
+    add_suite = input_bool('Add a new source suite?')
     while add_suite:
-        suite = {}
+        with session_scope() as session:
+            sync_source = SynchrotronSource()
 
-        suite['name'] = input_str('Adding a new source suite. Please set a name')
-        suite['components'] = input_list('List of components for suite \'{}\''.format(suite['name']))
-        suite['architectures'] = input_list('List of architectures for suite \'{}\''.format(suite['name']))
+            sync_source.os_name = source_distro_name
+            sync_source.repo_url = source_repo_url
+            sync_source.suite_name = input_str('Adding a new source suite. Please set a name')
 
-        suites[suite['name']] = suite
-        add_suite = input_bool('Add another suite?')
+            sync_source.components = input_list('List of components for suite \'{}\''.format(sync_source.suite_name))
+            sync_source.architectures = input_list('List of architectures for suite \'{}\''.format(sync_source.suite_name))
 
-    syncconf_set_value('source_suites', list(suites.values()))
-    while True:
-        default_suite_name = input_str('Default source suite')
-        if default_suite_name in suites:
-            syncconf_set_value('source_default_suite', default_suite_name)
-            break
-        print_note('Selected default suite not found in previously defined suites list.')
+            session.add(sync_source)
+            add_suite = input_bool('Add another suite?')
 
-    syncconf_set_value('sync_enabled', input_bool('Enable synchronization?'))
-    syncconf_set_value('sync_binaries', input_bool('Synchronize binary packages?'))
+    print_section('Add sync tasks')
+    add_sync_tasks = True
+    while add_sync_tasks:
+        with session_scope() as session:
+            autosync = SynchrotronConfig()
+            sync_source = None
+            while not sync_source:
+                src_suite = input_str('Source suite name')
+                sync_source = session.query(SynchrotronSource).filter(SynchrotronSource.suite_name == src_suite).one_or_none()
+                if not sync_source:
+                    print_note('Could not find sync source with suite name "{}"'.format(src_suite))
+            autosync.source = sync_source
+
+            dest_suite = None
+            while not dest_suite:
+                dest_suite_name = input_str('Destination suite name')
+                dest_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == dest_suite_name).one_or_none()
+                if not dest_suite:
+                    print_note('Could not find suite with name "{}"'.format(dest_suite_name))
+            autosync.destination_suite = dest_suite
+
+            autosync.sync_auto_enabled = input_bool('Enable automatic synchronization?')
+            autosync.sync_enabled = input_bool('Enable synchronization?')
+            autosync.sync_binaries = input_bool('Synchronize binary packages?')
+
+            session.add(autosync)
+            add_sync_tasks = input_bool('Add another sync task?')
 
 
 def add_blacklist_entry(pkgname, reason):

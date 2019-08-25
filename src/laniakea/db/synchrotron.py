@@ -1,4 +1,6 @@
-# Copyright (C) 2018 Matthias Klumpp <matthias@tenstral.net>
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -16,12 +18,64 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
-from typing import List
-from sqlalchemy import Column, Text, String, DateTime, Enum
+from sqlalchemy import Column, Text, String, DateTime, Enum, Integer, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import ARRAY
 from uuid import uuid4
 from datetime import datetime
 from .base import Base, UUID, DebVersion
-from .core import LkModule
+
+
+class SynchrotronSource(Base):
+    '''
+    Definition of a foreign suite to sync packages from.
+    '''
+    __tablename__ = 'synchrotron_sources'
+
+    id = Column(Integer, primary_key=True)
+
+    os_name = Column(Text(), nullable=False)  # Name of the source OS (usually "Debian")
+    suite_name = Column(String(256), nullable=False, unique=True)
+    architectures = Column(ARRAY(String(64)))
+    components = Column(ARRAY(String(128)))
+    repo_url = Column(Text(), nullable=False)
+
+
+class SynchrotronConfig(Base):
+    '''
+    Configuration for automatic synchrotron tasks.
+    '''
+    __tablename__ = 'synchrotron_config'
+
+    id = Column(Integer, primary_key=True)
+
+    source_id = Column(Integer, ForeignKey('synchrotron_sources.id'))
+    source = relationship('SynchrotronSource')
+
+    destination_suite_id = Column(Integer, ForeignKey('archive_suites.id'))
+    destination_suite = relationship('ArchiveSuite')
+
+    sync_enabled = Column(Boolean(), default=True)  # true if syncs should happen
+    sync_auto_enabled = Column(Boolean(), default=False)  # true if syncs should happen automatically
+    sync_binaries = Column(Boolean(), default=False)  # true if we should also sync binary packages
+
+
+class SyncBlacklistEntry(Base):
+    '''
+    Synchrotron blacklist
+    '''
+    __tablename__ = 'synchrotron_blacklist'
+
+    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    config_id = Column(Integer, ForeignKey('synchrotron_config.id'))
+    config = relationship('SynchrotronConfig')
+
+    pkgname = Column(String(256))  # Name of the blacklisted package
+    time_created = Column(DateTime(), default=datetime.utcnow)  # Time when the package was blacklisted
+    reason = Column(Text())  # Reason why the package is blacklisted
+
+    user = Column(String(256))  # Person who marked this to be ignored
 
 
 class SynchrotronIssueKind(enum.Enum):
@@ -44,6 +98,9 @@ class SynchrotronIssue(Base):
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
+    config_id = Column(Integer, ForeignKey('synchrotron_config.id'), nullable=False)
+    config = relationship('SynchrotronConfig')
+
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 
     kind = Column(Enum(SynchrotronIssueKind))  # Kind of this issue, and usually also the reason for its existence.
@@ -57,104 +114,3 @@ class SynchrotronIssue(Base):
     target_version = Column(DebVersion())  # version of the package in the target suite and repo, to be overriden
 
     details = Column(Text())  # additional information text about the issue (usually a log excerpt)
-
-
-class SyncBlacklistEntry(Base):
-    '''
-    Synchrotron blacklist
-    '''
-    __tablename__ = 'synchrotron_blacklist'
-
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-
-    pkgname = Column(String(256))  # Name of the blacklisted package
-    time_created = Column(DateTime(), default=datetime.utcnow)  # Time when the package was blacklisted
-    reason = Column(Text())  # Reason why the package is blacklisted
-
-    user = Column(String(256))  # Person who marked this to be ignored
-
-
-class SyncSourceSuite:
-    '''
-    Information about a distribution suite the we can sync data from
-    '''
-    name: str
-    architectures = []
-    components = []
-
-
-class SyncSourceInfo:
-    '''
-    Information about a Synchrotron data source
-    '''
-    default_suite: str  # default suite name, e.g. "sid"
-    suites: List[SyncSourceSuite]  # suites available in the source ("sid", "jessie", ...)
-
-    repo_url: str  # URL of the package repository
-
-    def __init_(self):
-        self.suites = []
-
-
-class SynchrotronConfig:
-    '''
-    Basic configuration for Synchrotron
-    '''
-    source_name: str    # Name of the source OS (usually "Debian")
-    source: SyncSourceInfo
-
-    sync_enabled: bool   # true if syncs should happen
-    sync_binaries: bool  # true if we should also sync binary packages
-
-    def __init__(self):
-        self.source = SyncSourceInfo()
-
-
-def get_synchrotron_config():
-    from .core import config_get_value
-
-    d = config_get_value(LkModule.SYNCHROTRON, 'config')
-    conf = SynchrotronConfig()
-    conf.source_name = d.get('source_name')
-
-    conf.sync_enabled = d.get('sync_enabled', False)
-    conf.sync_binaries = d.get('sync_binaries', False)
-
-    dsrc = d.get('source')
-    if dsrc:
-        conf.source.default_suite = dsrc.get('default_suite')
-        conf.source.repo_url = dsrc.get('repo_url')
-
-        for ds in dsrc.get('suites', []):
-            suite = SyncSourceSuite()
-            suite.name = ds.get('name')
-            suite.architectures = ds.get('architectures', [])
-            suite.components = ds.get('components', [])
-            conf.source.suites.append(suite)
-
-
-def set_synchrotron_config(conf):
-    from .core import config_set_value
-
-    d = {}
-    d['source_name'] = conf.source_name
-
-    d['sync_enabled'] = conf.sync_enabled
-    d['sync_binaries'] = conf.sync_binaries
-
-    dsrc = {}
-    dsrc['default_suite'] = conf.source.default_suite
-    dsrc['repo_url'] = conf.source.repo_url
-    dsrc['suites'] = []
-
-    for suite in conf.source.suites:
-        ds = {}
-        ds['name'] = suite.name
-        ds['architectures'] = suite.architectures
-        ds['components'] = suite.components
-
-        dsrc['suites'].append(ds)
-
-    d['source'] = dsrc
-
-    config_set_value(LkModule.SYNCHROTRON, 'config', d)
