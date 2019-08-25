@@ -4,9 +4,11 @@ After=syslog.target network.target
 ConditionPathExists=/etc/laniakea/mirk.json
 
 [Service]
-Type=notify
 Restart=on-failure
-ProtectSystem=full
+
+#ProtectSystem=full
+#ProtectHome=true
+
 User=lkweb
 Group=nogroup
 ExecStart=@MIRK_INSTALL_BIN@
