@@ -328,6 +328,11 @@ class JobWorker:
         job.status = JobStatus.WAITING
         session.commit()
 
+        event_data = {'job_id': job_id,
+                      'client_name': client_name,
+                      'client_id': client_id}
+        self._emit_event('job-rejected', event_data)
+
     def _process_job_status_request(self, session, request):
         '''
         When a job is running, the worker will periodically send

@@ -41,22 +41,21 @@ message_templates = {'_lk.job.package-build-success':
 
                      '_lk.synchrotron.autosync-issue':
                      '''Unable to automatically synchronize {name} from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>
-                     (source: <code>{src_version}</code>, destination: <code>{dest_version}</code>). Type: {kind}'''}
+                     (source: <code>{src_version}</code>, destination: <code>{dest_version}</code>). Type: {kind}''',
 
+                     '_lk.jobs.job-assigned':
+                     '''Assigned {job_kind} job <a href="{webswview_url}/package/builds/job/{job_id}">{job_id}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
 
-def tag_data_to_html_message(tag, data):
-    ''' Convert the JSON message into a nice HTML string for display. '''
+                     '_lk.jobs.job-accepted':
+                     '''Job <a href="{webswview_url}/package/builds/job/{job_id}">{job_id}</a> was <font color="#265500">accepted</font> by <em>{client_name}</em>''',
 
-    if data.get('forced'):
-        tag = tag + ':forced'
-    text = ''
-    templ = message_templates.get(tag)
-    if templ:
-        text = templ.format(**data)
-    else:
-        text = 'Received event type <code>{}</code> with data <code>{}</code>'.format(tag, str(data))
+                     '_lk.jobs.job-rejected':
+                     '''Job <a href="{webswview_url}/package/builds/job/{job_id}">{job_id}</a> was <font color="#b7241b">rejected</font> by <em>{client_name}</em>''',
 
-    return text
+                     '_lk.jobs.job-finished':
+                     '''Job <a href="{webswview_url}/package/builds/job/{job_id}">{job_id}</a> finished with result {result}''',
+
+                     }
 
 
 class MatrixPublisher:
@@ -70,13 +69,27 @@ class MatrixPublisher:
         self._mconf = MirkConfig()
         self._mconf.load()
 
+    def _tag_data_to_html_message(self, tag, data):
+        ''' Convert the JSON message into a nice HTML string for display. '''
+
+        if data.get('forced'):
+            tag = tag + ':forced'
+        text = ''
+        templ = message_templates.get(tag)
+        if templ:
+            text = templ.format(webswview_url=self._mconf.webswview_url, **data)
+        else:
+            text = 'Received event type <code>{}</code> with data <code>{}</code>'.format(tag, str(data))
+
+        return text
+
     def _on_room_message(self, room, event):
         pass
 
     def _on_event_received(self, event):
         tag = event['tag']
         data = event['data']
-        text = tag_data_to_html_message(tag, data)
+        text = self._tag_data_to_html_message(tag, data)
         self._rooms_publish_text(text)
 
     def _rooms_publish_text(self, text):

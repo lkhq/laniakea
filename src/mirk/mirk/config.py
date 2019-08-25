@@ -62,6 +62,8 @@ class MirkConfig():
         if not self.rooms:
             raise Exception('No "Rooms" entry in mIrk configuration: We need at least one room to join.')
 
+        self.webswview_url = jdata.get('WebSWViewUrl', '#')
+
         self._loaded = True
 
     def load(self):
