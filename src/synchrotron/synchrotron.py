@@ -177,12 +177,12 @@ def command_autosync(options):
                 session.query(SynchrotronIssue) \
                     .filter(SynchrotronIssue.source_suite == ssuite.name,
                             SynchrotronIssue.target_suite == incoming_suite.name,
-                            SynchrotronIssue.autosync_id == autosync.id) \
+                            SynchrotronIssue.config_id == autosync.id) \
                     .delete()
 
             for info in issue_data:
                 issue = SynchrotronIssue()
-                issue.autosync = autosync
+                issue.config = autosync
                 issue.kind = SynchrotronIssueKind(info.kind)
                 issue.package_name = info.packageName
                 issue.source_suite = info.sourceSuite
