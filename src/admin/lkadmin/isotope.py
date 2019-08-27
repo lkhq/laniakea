@@ -89,6 +89,7 @@ def trigger_image_build(options):
             job.trigger = recipe.uuid
             job.architecture = arch
             session.add(job)
+            session.commit()  # to generate an uuid for this job to announce
 
             job_count += 1
 
