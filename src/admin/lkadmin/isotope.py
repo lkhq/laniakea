@@ -18,6 +18,7 @@
 import sys
 from laniakea.db import session_scope, ImageBuildRecipe, ImageKind, LkModule, Job, JobKind
 from .utils import print_header, print_done, print_note, input_str, input_list
+from laniakea.msgstream import EventEmitter
 
 
 def add_image_recipe(options):
@@ -53,6 +54,18 @@ def add_image_recipe(options):
         session.add(recipe)
         session.commit()
 
+        # announce the event
+        emitter = EventEmitter(LkModule.ADMINCLI)
+        ev_data = {'name': recipe.name,
+                   'kind': kind_str,
+                   'architectures': recipe.architectures,
+                   'os': recipe.distribution,
+                   'suite': recipe.suite,
+                   'flavor': recipe.flavor}
+        emitter.submit_event_for_mod(LkModule.ISOTOPE,
+                                     'recipe-created',
+                                     ev_data)
+
         print_done('Created recipe with name: {}'.format(recipe.name))
 
 
@@ -66,6 +79,8 @@ def trigger_image_build(options):
             print_note('Recipe with name "{}" was not found!'.format(recipe_name))
             sys.exit(2)
 
+        emitter = EventEmitter(LkModule.ADMINCLI)
+
         job_count = 0
         for arch in recipe.architectures:
             job = Job()
@@ -76,6 +91,17 @@ def trigger_image_build(options):
             session.add(job)
 
             job_count += 1
+
+            # announce the event
+            ev_data = {'name': recipe.name,
+                       'architecture': arch,
+                       'os': recipe.distribution,
+                       'suite': recipe.suite,
+                       'flavor': recipe.flavor,
+                       'job_id': str(job.uuid)}
+            emitter.submit_event_for_mod(LkModule.ISOTOPE,
+                                         'build-job-added',
+                                         ev_data)
 
         session.commit()
         print_done('Scheduled {} job(s) for {}.'.format(job_count, recipe.name))

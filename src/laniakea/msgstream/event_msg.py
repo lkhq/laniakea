@@ -178,6 +178,18 @@ class EventEmitter:
                              data,
                              self._signing_key)
 
+    def submit_event_for_mod(self, mod, subject, data):
+        '''
+        Submit and event for a different module than what the
+        :EventEmitter was created for.
+        '''
+        tag = create_message_tag(mod, subject)
+        submit_event_message(self._socket,
+                             self._signer_id,
+                             tag,
+                             data,
+                             self._signing_key)
+
     def submit_event_for_tag(self, tag, data):
         '''
         Submit and event and set a custom tag.

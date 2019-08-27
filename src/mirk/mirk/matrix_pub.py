@@ -64,6 +64,12 @@ message_templates = {'_lk.job.package-build-success':
                      '_lk.rubicon.upload-rejected':
                      '''<b>Rejected</b> upload <code>{dud_filename}</code>. Reason: {reason}''',
 
+                     '_lk.isotope.recipe-created':
+                     '''Created new <em>{kind}</em> image build recipe "{name}" for {os}/{suite} of flavor {flavor} on <code>{architectures}</code>''',
+
+                     '_lk.isotope.build-job-added':
+                     '''Created image build job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> on <code>{architecture}</code> for "{name}" ({os}/{suite} of flavor {flavor})''',
+
                      }
 
 
