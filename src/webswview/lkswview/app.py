@@ -29,6 +29,12 @@ from .config import DefaultConfig, INSTANCE_FOLDER_PATH
 __all__ = ['create_app']
 
 
+thisfile = __file__
+if not os.path.isabs(thisfile):
+    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+app_root_dir = os.path.normpath(os.path.join(os.path.dirname(thisfile), '..'))
+
+
 def create_app(config=None, app_name=None):
     if app_name is None:
         app_name = DefaultConfig.PROJECT
@@ -59,8 +65,12 @@ def configure_app(app, config=None):
     if config:
         app.config.from_object(config)
 
-    app.template_folder = 'templates/{}'.format(app.config['THEME'])
-    app.static_folder = 'templates/{}/static'.format(app.config['THEME'])
+    template_root = os.path.join(INSTANCE_FOLDER_PATH, 'templates', app.config['THEME'])
+    if not os.path.isdir(template_root):
+        template_root = os.path.join(app_root_dir, 'templates', app.config['THEME'])
+
+    app.template_folder = template_root
+    app.static_folder = os.path.join(template_root, 'static')
 
 
 def configure_blueprints(app):
