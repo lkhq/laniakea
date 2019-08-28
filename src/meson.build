@@ -77,10 +77,22 @@ endif
 # web frontends
 if (get_option('webgui'))
     # Additional Python deps
-    r = run_command('../check_modules.py', 'web')
+    r = run_command('python3', '../check_modules.py', 'web')
     if r.returncode() != 0
         message(r.stdout().strip()+'\n'+r.stderr().strip())
         error('Unable to find required Python modules.')
+    endif
+
+    # JS/CSS/etc frontend 3rd-party downloaded code
+    if get_option('download-js')
+        find_program('yarn') # check for the yarn executable
+        if run_command('[', '-d', 'web/static/bootstrap', ']').returncode() != 0
+            message('Downloading JavaScript libraries...')
+            getjs_cmd = run_command('python3', source_root + '/contrib/js-setup/fetch_js.py')
+            if getjs_cmd.returncode() != 0
+                error('Unable to install JavaScript files with Yarn:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
+            endif
+        endif
     endif
 
     # admin & technical overview

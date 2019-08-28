@@ -15,6 +15,15 @@ option('test-dscanner',
 )
 
 #
+# Build config flags
+#
+option('download-js',
+    type: 'boolean',
+    value: true,
+    description: 'Download JavaScript dependencies with Yarn when configuring the build'
+)
+
+#
 # Feature flags
 #
 option('clitools',
