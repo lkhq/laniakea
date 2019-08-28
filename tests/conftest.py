@@ -244,38 +244,66 @@ def make_curve_trusted_key(sourcesdir, localconfig):
     return _make_curve_trusted_key
 
 
+class LighthouseServer:
+    '''
+    Helper class to manage running background Lighthouse instances for tests.
+    '''
+
+    instance = None
+
+    class __LhServer:
+        def __init__(self, sourcesdir, lconf):
+            self._sources_dir = sourcesdir
+            self._lconf = lconf
+            self._pipe = None
+
+        def start(self):
+            import time
+            import subprocess
+
+            # ensure we are not running anymore, in case we were before
+            self.terminate()
+
+            # create new secret key for Lighthouse
+            generate_curve_keys_for_module(self._sources_dir, self._lconf, LkModule.LIGHTHOUSE)
+
+            lh_exe = os.path.join(self._sources_dir, 'lighthouse', 'lighthouse.py')
+            self._pipe = subprocess.Popen([lh_exe,
+                                           '--verbose',
+                                           '--config', self._lconf.fname],
+                                          shell=False,
+                                          stdout=sys.stdout,
+                                          stderr=sys.stderr)
+            time.sleep(0.5)
+            if self._pipe.poll():
+                pytest.fail('Lighthouse failed to start up, check stderr')
+
+        def terminate(self):
+            if not self._pipe:
+                return
+            self._pipe.terminate()
+            if not self._pipe.wait(20):
+                self._pipe.kill()
+                pytest.fail('Lighthouse failed to terminate in time')
+            self._pipe = None
+
+    def __init__(self, sourcesdir, lconf):
+        if not LighthouseServer.instance:
+            LighthouseServer.instance = LighthouseServer.__LhServer(sourcesdir, lconf)
+
+    def __getattr__(self, name):
+        return getattr(self.instance, name)
+
+
 @pytest.fixture(scope='class')
 def lighthouse_server(request, sourcesdir, localconfig, database):
     '''
     Spawn a Lighthouse server to communicate with.
     '''
-    import time
-    import subprocess
 
-    class LhServer:
-        def start(self):
-            # create new secret key for Lighthouse
-            generate_curve_keys_for_module(sourcesdir, localconfig, LkModule.LIGHTHOUSE)
-
-            lh_exe = os.path.join(sourcesdir, 'lighthouse', 'lighthouse.py')
-            pipe = subprocess.Popen([lh_exe,
-                                     '--verbose',
-                                     '--config', localconfig.fname],
-                                    shell=False,
-                                    stdout=sys.stdout,
-                                    stderr=sys.stderr)
-            time.sleep(0.5)
-            if pipe.poll():
-                pytest.fail('Lighthouse failed to start up, check stderr')
-
-            def fin():
-                pipe.terminate()
-                if not pipe.wait(30):
-                    pipe.kill()
-                    pytest.fail('Lighthouse failed to terminate in time')
-            request.addfinalizer(fin)
-
-    return LhServer()
+    lhs = LighthouseServer(sourcesdir, localconfig)
+    yield lhs
+    lhs.terminate()
 
 
 @pytest.fixture
