@@ -1,5 +1,5 @@
 Flask
 Flask-Script
 Flask-RESTful
-Flask-Cache
+Flask-Caching
 pytest-flask
