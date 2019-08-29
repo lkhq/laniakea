@@ -1,7 +1,7 @@
 # Initial Setup
 
-If you're interested in running Laniakea in Docker, see (this
-document)[https://github.com/lkorigin/laniakea/blob/master/tests/ci/Dockerfile]
+If you're interested in running Laniakea in Docker, see [this
+document](https://github.com/lkorigin/laniakea/blob/master/tests/ci/README.md)
 
 ## Requirements
 Laniakea requires a postgresql database, a D compiler, and the meson
@@ -50,9 +50,9 @@ $ ./src/webswview/manage.py run
 
 A webserver will be running, serving a version of webswview. The site
 will probably be quite empty, because there are no packages and apps
-in the database, but maybe I can write something that adds a bunch of
-those in future for testing reasons.
+in the database
 
+[ placeholder to sync with another postgres db? ]
 
 ## TODO
 
@@ -64,5 +64,4 @@ You may run into an error around the python module 'pyd'
 Run-time dependency pyd found: NO (tried pkgconfig and cmake)
 meson.build:21:0: ERROR: Dependency "pyd" not found, tried pkgconfig and cmake
 ```
-
 Simply follow the instructions above to build pyd from source.
