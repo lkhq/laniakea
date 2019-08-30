@@ -79,7 +79,11 @@ class Germinate:
     def run(self):
         session = session_factory()
         dev_suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.devel_target == True).one()  # noqa: E712
+            .filter(ArchiveSuite.devel_target == True).one_or_none()  # noqa: E712
+
+        if not dev_suite:
+            log.info('No development target suite found, doing nothing.')
+            return True
 
         # update the seed (contained in the metapackage repository)
         self._update_seed_data()
