@@ -73,7 +73,6 @@ struct SuiteInfo {
  * Basic archive configuration
  **/
 struct BaseArchiveConfig {
-    string develSuite;     /// Development target suite ("testing", "green", ...)
     string distroTag;      /// Version tag for this distribution ("pureos", "tanglu", ...) - will usually be part of a package version, e.g. "1.0-0tanglu1"
     string rootPath;       /// Repository root directory
     string incomingSuite;  /// Suite where new packages typically arrive ("unstable", "staging", ...)
