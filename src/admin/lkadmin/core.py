@@ -159,6 +159,26 @@ def add_suite(options):
         _add_new_suite(session)
 
 
+def delete_suite(options):
+    from laniakea.db import ArchiveSuite
+
+    suite_name = options.delete_suite
+    if not suite_name:
+        print('No suite name was given!')
+        sys.exit(1)
+
+    if not input_bool('Do you really want to remove suite "{}" and all its associcated data?'.format(suite_name)):
+        sys.exit(3)
+
+    with session_scope() as session:
+        suite = session.query(ArchiveSuite) \
+            .filter(ArchiveSuite.name == suite_name).one_or_none()
+        if not suite:
+            print('A suite with name "{}" was not found!'.format(suite_name))
+            sys.exit(4)
+        session.delete(suite)
+
+
 def module_core_init(options):
     ''' Change the Laniakea Core module '''
 
@@ -170,6 +190,8 @@ def module_core_init(options):
         ask_settings(options)
     elif options.add_suite:
         add_suite(options)
+    elif options.delete_suite:
+        delete_suite(options)
     else:
         print('No action selected.')
         sys.exit(1)
@@ -182,9 +204,11 @@ def add_cli_parser(parser):
                     help='Initialize database tables.')
     sp.add_argument('--upgrade', action='store_true', dest='upgrade',
                     help='Upgrade database.')
-    sp.add_argument('--add-suite', action='store_true', dest='add_suite',
-                    help='Register new suite.')
     sp.add_argument('--config', action='store_true', dest='config',
                     help='Configure this module.')
+    sp.add_argument('--add-suite', action='store_true', dest='add_suite',
+                    help='Register new suite.')
+    sp.add_argument('--delete-suite', dest='delete_suite', type=str, metavar='SUITE_NAME',
+                    help='Remove a suite from the archive.')
 
     sp.set_defaults(func=module_core_init)

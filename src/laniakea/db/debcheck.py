@@ -17,7 +17,7 @@
 
 import json
 from sqlalchemy import Column, Text, String, Integer, DateTime, Enum, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 from marshmallow import Schema, fields, EXCLUDE
 from uuid import uuid4
@@ -74,8 +74,8 @@ class DebcheckIssue(Base):
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     repo = relationship('ArchiveRepository')
 
-    suite_id = Column(Integer, ForeignKey('archive_suites.id'))
-    suite = relationship('ArchiveSuite')
+    suite_id = Column(Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
+    suite = relationship('ArchiveSuite', backref=backref('debcheck_issues', passive_deletes=True))
 
     architectures = Column(ARRAY(Text()), default=['any'])  # Architectures this issue affects, may be a wildcard like "any" or (list of) architecture expressions
 

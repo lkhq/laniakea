@@ -33,8 +33,8 @@ UUID_NS_SWCOMPONENT = uuid.UUID('94c8e196-e236-48fe-81c8-38dd47de4650')
 
 
 repo_suite_assoc_table = Table('archive_repo_suite_association', Base.metadata,
-                               Column('repo_id', Integer, ForeignKey('archive_repositories.id')),
-                               Column('suite_id', Integer, ForeignKey('archive_suites.id'))
+                               Column('repo_id', Integer, ForeignKey('archive_repositories.id', ondelete='cascade')),
+                               Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
                                )
 
 
@@ -48,35 +48,37 @@ class ArchiveRepository(Base):
     id = Column(Integer, primary_key=True)
 
     name = Column(String(128), unique=True)  # Name of the repository
-    suites = relationship('ArchiveSuite', secondary=repo_suite_assoc_table, back_populates='repos')
+    suites = relationship('ArchiveSuite',
+                          secondary=repo_suite_assoc_table,
+                          back_populates='repos')
 
     def __init__(self, name):
         self.name = name
 
 
 suite_component_assoc_table = Table('archive_suite_component_association', Base.metadata,
-                                    Column('suite_id', Integer, ForeignKey('archive_suites.id')),
-                                    Column('component_id', Integer, ForeignKey('archive_components.id'))
+                                    Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade')),
+                                    Column('component_id', Integer, ForeignKey('archive_components.id', ondelete='cascade'))
                                     )
 
 suite_arch_assoc_table = Table('archive_suite_architecture_association', Base.metadata,
-                               Column('suite_id', Integer, ForeignKey('archive_suites.id')),
-                               Column('arch_id', Integer, ForeignKey('archive_architectures.id'))
+                               Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade')),
+                               Column('arch_id', Integer, ForeignKey('archive_architectures.id', ondelete='cascade'))
                                )
 
 srcpkg_suite_assoc_table = Table('archive_srcpkg_suite_association', Base.metadata,
-                                 Column('src_package_uuid', UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid')),
-                                 Column('suite_id', Integer, ForeignKey('archive_suites.id'))
+                                 Column('src_package_uuid', UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid', ondelete='cascade')),
+                                 Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
                                  )
 
 binpkg_suite_assoc_table = Table('archive_binpkg_suite_association', Base.metadata,
-                                 Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid')),
-                                 Column('suite_id', Integer, ForeignKey('archive_suites.id'))
+                                 Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid', ondelete='cascade')),
+                                 Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
                                  )
 
 swcpt_binpkg_assoc_table = Table('archive_swcpt_binpkg_association', Base.metadata,
-                                 Column('sw_cpt_uuid', UUID(as_uuid=True), ForeignKey('archive_sw_components.uuid')),
-                                 Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid'))
+                                 Column('sw_cpt_uuid', UUID(as_uuid=True), ForeignKey('archive_sw_components.uuid', ondelete='cascade')),
+                                 Column('bin_package_uuid', UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid', ondelete='cascade'))
                                  )
 
 
@@ -99,10 +101,17 @@ class ArchiveSuite(Base):
     components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
 
     parent_id = Column(Integer, ForeignKey('archive_suites.id'))
-    parent = relationship('ArchiveSuite', remote_side=[id])
+    parent = relationship('ArchiveSuite',
+                          remote_side=[id],
+                          backref=backref('children',
+                                          cascade='all, delete'))
 
-    src_packages = relationship('SourcePackage', secondary=srcpkg_suite_assoc_table, back_populates='suites')
-    bin_packages = relationship('BinaryPackage', secondary=binpkg_suite_assoc_table, back_populates='suites')
+    src_packages = relationship('SourcePackage',
+                                secondary=srcpkg_suite_assoc_table,
+                                back_populates='suites')
+    bin_packages = relationship('BinaryPackage',
+                                secondary=binpkg_suite_assoc_table,
+                                back_populates='suites')
 
     _primary_arch = None
 
@@ -323,7 +332,7 @@ class SourcePackage(Base):
 
     build_depends = Column(ARRAY(Text()))
 
-    files = relationship('ArchiveFile', back_populates='srcpkg')
+    files = relationship('ArchiveFile', back_populates='srcpkg', cascade='all, delete, delete-orphan')
     directory = Column(Text())
 
     @property
@@ -419,7 +428,7 @@ class BinaryPackage(Base):
     maintainer = Column(Text())
     homepage = Column(Text())
 
-    pkg_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg')
+    pkg_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg', cascade='all, delete, delete-orphan')
     sw_cpts = relationship('SoftwareComponent', secondary=swcpt_binpkg_assoc_table, back_populates='bin_packages')
 
     __ts_vector__ = create_tsvector(
