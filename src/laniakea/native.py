@@ -26,7 +26,6 @@ from laniakea.db import config_get_project_name, config_get_distro_tag, session_
 def create_native_baseconfig():
     from laniakea import LocalConfig
 
-    session = session_factory()
     bconf = BaseConfig()
 
     bconf.projectName = config_get_project_name()
