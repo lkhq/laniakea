@@ -52,9 +52,13 @@ node_modules = [{'name': 'bootstrap',
 
 
 def fetch_node_modules():
-    subprocess.run(['yarn',
+    yarn_cmd = '/usr/share/yarn/bin/yarn'
+    if not os.path.isfile(yarn_cmd):
+        print('WARNING: Using `yarn` from PATH which may not be yarnpkg.com\'s Yarn, but from cmdtest')
+        yarn_cmd = 'yarn'
+    subprocess.run([yarn_cmd,
                     'install',
-                    # '--no-bin-links',  # Disabled, as for some reason not all Yarn versions recognize this
+                    '--no-bin-links',
                     '--prod',
                     '--no-lockfile',
                     '--non-interactive'], check=True)
