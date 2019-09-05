@@ -81,6 +81,8 @@ class LocalConfig:
             if not fname:
                 fname = get_config_file('base-config.json')
             self.fname = fname
+            if not self.fname:
+                raise Exception('Unable to find base configuration (usually in `/etc/laniakea/base-config.json`')
 
             jdata = {}
             if os.path.isfile(fname):

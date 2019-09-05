@@ -71,3 +71,5 @@ class RubiConfig():
         fname = get_config_file('rubicon.json')
         if fname:
             self.load_from_file(fname)
+        else:
+            raise Exception('Unable to find Rubicon configuration (usually in `/etc/laniakea/rubicon.json`')

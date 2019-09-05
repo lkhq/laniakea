@@ -71,3 +71,5 @@ class MirkConfig():
         fname = get_config_file('mirk.json')
         if fname:
             self.load_from_file(fname)
+        else:
+            raise Exception('Unable to find Mirk configuration (usually in `/etc/laniakea/mirk.json`')
