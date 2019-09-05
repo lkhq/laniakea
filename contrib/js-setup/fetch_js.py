@@ -54,7 +54,7 @@ node_modules = [{'name': 'bootstrap',
 def fetch_node_modules():
     subprocess.run(['yarn',
                     'install',
-                    '--no-bin-links',
+                    # '--no-bin-links',  # Disabled, as for some reason not all Yarn versions recognize this
                     '--prod',
                     '--no-lockfile',
                     '--non-interactive'], check=True)
