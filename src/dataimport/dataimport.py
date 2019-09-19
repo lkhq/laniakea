@@ -228,7 +228,8 @@ def import_suite_packages(suite_name):
         for e_spkg in all_existing_src_packages:
             existing_spkgs[e_spkg.uuid] = e_spkg
 
-        for spi in local_repo.getSourcePackages(suite.name, component.name):
+        srcPkgInfos = local_repo.getSourcePackages(suite.name, component.name)
+        for spi in srcPkgInfos:
             spkg = SourcePackage()
             spkg.name = spi.name
             spkg.version = spi.ver

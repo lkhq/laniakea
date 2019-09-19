@@ -229,7 +229,7 @@ public:
         // if we don't pay attention, of a 1m run, this code will spend more than 20s in the GC
         // so, we control a bit when we run a collection cycle
         GC.disable ();
-        scope (exit) { GC.collect (); GC.enable (); }
+        scope (exit) { GC.enable (); }
 
         do {
             immutable pkgname = tf.readField ("Package");
