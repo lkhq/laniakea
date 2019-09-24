@@ -28,10 +28,10 @@ from .config import MirkConfig
 
 
 message_templates = {'_lk.job.package-build-success':
-                     'Package build for <b>{pkgname} {version}</b> on <em>{architecture}</em> was <font color="#265500">successful</font>.',
+                     'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> was <font color="#265500">successful</font>.',
 
                      '_lk.job.package-build-failed':
-                     'Package build for <b>{pkgname} {version}</b> on <em>{architecture}</em> has <font color="#b7241b">failed</font>.',
+                     'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> has <font color="#b7241b">failed</font>.',
 
                      '_lk.synchrotron.src-package-synced':
                      'Synchronized package <em>{name}</em> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
@@ -53,7 +53,7 @@ message_templates = {'_lk.job.package-build-success':
                      '''Job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> was <font color="#b7241b">rejected</font> by <em>{client_name}</em>''',
 
                      '_lk.jobs.job-finished':
-                     '''Job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> finished with result {result}''',
+                     '''Job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> finished with result <em>{result}</em>''',
 
                      '_lk.rubicon.upload-accepted':
                      '''Accepted upload for <font color="#265500">successful</font> job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a>.''',
