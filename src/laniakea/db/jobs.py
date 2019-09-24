@@ -49,6 +49,19 @@ class JobResult(IntEnum):
     FAILURE_PENDING = enum.auto()     # job failed, but artifacts or reports are still missing
     FAILURE = enum.auto()             # job failed
 
+    def __str__(self):
+        if self.value == self.SUCCESS_PENDING:
+            return 'success-pending'
+        if self.value == self.SUCCESS:
+            return 'success'
+        if self.value == self.FAILURE_DEPENDENCY:
+            return 'failure-dependency'
+        if self.value == self.FAILURE_PENDING:
+            return 'failure-pending'
+        if self.value == self.FAILURE:
+            return 'failure'
+        return 'JobResult.' + str(self.name)
+
 
 class JobKind:
     '''
