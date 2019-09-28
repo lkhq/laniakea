@@ -51,11 +51,12 @@ class EventsReceiver:
                 self._trusted_keys[signer_id] = verify_key
 
     def _event_message_received(self, socket, msg):
+        data = str(msg[1], 'utf-8', 'replace')
         try:
-            event = json.loads(msg[1])
+            event = json.loads(data)
         except json.JSONDecodeError as e:
             # we ignore invalid requests
-            log.info('Received invalid JSON message from sender: %s (%s)', msg[1] if len(msg) > 1 else msg, str(e))
+            log.info('Received invalid JSON message from sender: %s (%s)', data if len(data) > 1 else msg, str(e))
             return
 
         # check if the message is actually valid and can be processed
@@ -84,7 +85,8 @@ class EventsReceiver:
             return
 
         # now publish the event to the world
-        self._pub_queue.put([bytes(event['tag'], 'utf-8'), msg[1]])
+        self._pub_queue.put([bytes(event['tag'], 'utf-8'),
+                             bytes(data, 'utf-8')])
 
     def run(self):
         if self._socket:
