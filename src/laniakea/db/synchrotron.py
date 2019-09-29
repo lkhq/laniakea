@@ -78,7 +78,7 @@ class SyncBlacklistEntry(Base):
     user = Column(String(256))  # Person who marked this to be ignored
 
 
-class SynchrotronIssueKind(enum.Enum):
+class SynchrotronIssueKind(enum.IntEnum):
     '''
     Kind of a Synchrotron issue.
     '''
