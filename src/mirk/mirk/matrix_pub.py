@@ -33,11 +33,11 @@ message_templates = {'_lk.job.package-build-success':
                      '_lk.job.package-build-failed':
                      'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> has <font color="#b7241b">failed</font>.',
 
-                     '_lk.synchrotron.src-package-synced':
-                     'Synchronized package <em>{name}</em> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
+                     '_lk.synchrotron.src-package-imported':
+                     'Imported package <em>{name}</em> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
 
-                     '_lk.synchrotron.src-package-synced:forced':
-                     'Enforced synchronization of package <em>{name}</em> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
+                     '_lk.synchrotron.src-package-imported:forced':
+                     'Enforced import of package <em>{name}</em> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
 
                      '_lk.synchrotron.autosync-issue':
                      '''Unable to automatically synchronize {name} from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>

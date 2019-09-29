@@ -92,7 +92,7 @@ def publish_synced_spkg_events(engine, src_os, src_suite, dest_suite, forced=Fal
                 'dest_suite': dest_suite,
                 'forced': forced}
 
-        emitter.submit_event('src-package-synced', data)
+        emitter.submit_event('src-package-imported', data)
 
 
 def command_sync(options):
