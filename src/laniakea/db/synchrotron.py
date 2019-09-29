@@ -89,6 +89,19 @@ class SynchrotronIssueKind(enum.Enum):
     SYNC_FAILED = 4
     REMOVAL_FAILED = 5
 
+    def __str__(self):
+        if self.value == self.NONE:
+            return 'none'
+        if self.value == self.MERGE_REQUIRED:
+            return 'merge-required'
+        if self.value == self.MAYBE_CRUFT:
+            return 'maybe-cruft'
+        if self.value == self.SYNC_FAILED:
+            return 'sync-failed'
+        if self.value == self.REMOVAL_FAILED:
+            return 'removal-failed'
+        return 'SynchrotronIssueKind.' + str(self.name)
+
 
 class SynchrotronIssue(Base):
     '''
