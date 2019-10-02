@@ -53,7 +53,7 @@ class SynchrotronConfig(Base):
     source = relationship('SynchrotronSource')
 
     destination_suite_id = Column(Integer, ForeignKey('archive_suites.id'))
-    destination_suite = relationship('ArchiveSuite', backref=backref('synchrotron_configs', cascade='all, delete-orphan'))
+    destination_suite = relationship('ArchiveSuite', backref=backref('synchrotron_configs', cascade='all, delete'))
 
     sync_enabled = Column(Boolean(), default=True)  # true if syncs should happen
     sync_auto_enabled = Column(Boolean(), default=False)  # true if syncs should happen automatically
@@ -69,7 +69,7 @@ class SyncBlacklistEntry(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     config_id = Column(Integer, ForeignKey('synchrotron_config.id'))
-    config = relationship('SynchrotronConfig', cascade='all, delete-orphan', single_parent=True)
+    config = relationship('SynchrotronConfig', cascade='all, delete')
 
     pkgname = Column(String(256))  # Name of the blacklisted package
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when the package was blacklisted
@@ -112,7 +112,7 @@ class SynchrotronIssue(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     config_id = Column(Integer, ForeignKey('synchrotron_config.id'), nullable=False)
-    config = relationship('SynchrotronConfig', cascade='all, delete-orphan', single_parent=True)
+    config = relationship('SynchrotronConfig', cascade='all, delete')
 
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 
