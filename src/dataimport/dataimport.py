@@ -31,8 +31,8 @@ from argparse import ArgumentParser
 from laniakea import LocalConfig
 from laniakea.logging import log
 from laniakea.db import session_factory, session_scope, ArchiveSuite, ArchiveRepository, ArchiveArchitecture, \
-    SourcePackage, BinaryPackage, ArchiveFile, PackageInfo, SoftwareComponent
-from sqlalchemy.orm import joinedload
+    SourcePackage, BinaryPackage, ArchiveFile, PackageInfo, SoftwareComponent, binpkg_suite_assoc_table
+from sqlalchemy.orm import joinedload, Bundle
 from laniakea.native import Repository
 import gi
 gi.require_version('AppStream', '1.0')
@@ -49,10 +49,13 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
         bpkg.architecture = arch
         bpkg.update_uuid()  # we can generate the uuid from name/version/repo-name/arch now
 
-        db_bpkg = existing_bpkgs.pop(bpkg.uuid, None)
-        if db_bpkg:
-            if suite in db_bpkg.suites:
+        e_suites = existing_bpkgs.pop(bpkg.uuid, None)
+        if e_suites is not None:
+            if suite.id in e_suites:
                 continue  # the binary package is already registered with this suite
+            db_bpkg = session.query(BinaryPackage) \
+                             .options(joinedload(BinaryPackage.suites)) \
+                             .filter(BinaryPackage.uuid == bpkg.uuid).one()
             db_bpkg.suites.append(suite)
             continue
 
@@ -287,15 +290,20 @@ def import_suite_packages(suite_name):
 
         for arch in suite.architectures:
 
-            # Get all binary packages for the given architecture
-            # FIXME: Urgh... We need to do this better, this is not efficient.
+            # Get all binary packages UUID/suite-id combinations for the given architecture and suite
+            bpkg_b = Bundle('bin_package', BinaryPackage.uuid)
+            suite_b = Bundle('archive_suite', ArchiveSuite.id)
             existing_bpkgs = dict()
-            for e_bpkg in session.query(BinaryPackage) \
-                    .options(joinedload(BinaryPackage.suites)) \
+            for e_bpkg, suite_i in session.query(bpkg_b, suite_b) \
+                    .filter(BinaryPackage.suites.any(ArchiveSuite.id.in_([suite.id]))) \
                     .filter(BinaryPackage.repo_id == repo.id) \
                     .filter(BinaryPackage.component_id == component.id) \
-                    .filter(BinaryPackage.architecture_id == arch.id).all():
-                existing_bpkgs[e_bpkg.uuid] = e_bpkg
+                    .filter(BinaryPackage.architecture_id == arch.id).join(BinaryPackage.suites):
+                sl = existing_bpkgs.get(e_bpkg.uuid)
+                if not sl:
+                    existing_bpkgs[e_bpkg.uuid] = [suite_i.id]  # if there is just one suite, we may get a scalar here
+                else:
+                    sl.append(suite_i.id)
 
             # add information about regular binary packages
             existing_bpkgs = _register_binary_packages(session,
@@ -321,12 +329,21 @@ def import_suite_packages(suite_name):
                                                                                        arch.name))
             session.commit()
 
-            for old_bpkg in existing_bpkgs.values():
-                if suite in old_bpkg.suites:
-                    old_bpkg.suites.remove(suite)
-                if len(old_bpkg.suites) <= 0:
-                    session.delete(old_bpkg.pkg_file)
-                    session.delete(old_bpkg)
+            for old_bpkg_uuid, suites in existing_bpkgs.items():
+                suites_count = len(suites)
+                if suite.id in suites:
+                    rc = session.query(binpkg_suite_assoc_table) \
+                                .filter(binpkg_suite_assoc_table.c.suite_id == suite.id) \
+                                .filter(binpkg_suite_assoc_table.c.bin_package_uuid == old_bpkg_uuid) \
+                                .delete(synchronize_session=False)
+                    if rc > 0:
+                        suites_count -= 1
+                if suites_count <= 0:
+                    # delete the old package, we don't need it anymore if it is in no suites
+                    session.query(ArchiveFile) \
+                        .filter(ArchiveFile.binpkg_id == old_bpkg_uuid).delete()
+                    session.query(BinaryPackage) \
+                        .filter(BinaryPackage.uuid == old_bpkg_uuid).delete()
             session.commit()
 
             # import new AppStream component metadata
