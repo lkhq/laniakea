@@ -233,6 +233,10 @@ def import_suite_packages(suite_name):
 
         srcPkgInfos = local_repo.getSourcePackages(suite.name, component.name)
         for spi in srcPkgInfos:
+            # FIXME: this safeguards against PyD weirdness
+            if not spi:
+                continue
+
             spkg = SourcePackage()
             spkg.name = spi.name
             spkg.version = spi.ver
