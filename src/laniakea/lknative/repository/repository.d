@@ -296,9 +296,8 @@ public:
                 GC.collect ();
 
         } while (tf.nextSection ());
-        GC.collect ();
 
-        return pkgs.data;
+        return pkgs.data.dup;
     }
 
     /**

@@ -231,12 +231,7 @@ def import_suite_packages(suite_name):
         for e_spkg in all_existing_src_packages:
             existing_spkgs[e_spkg.uuid] = e_spkg
 
-        srcPkgInfos = local_repo.getSourcePackages(suite.name, component.name)
-        for spi in srcPkgInfos:
-            # FIXME: this safeguards against PyD weirdness
-            if not spi:
-                continue
-
+        for spi in local_repo.getSourcePackages(suite.name, component.name):
             spkg = SourcePackage()
             spkg.name = spi.name
             spkg.version = spi.ver
