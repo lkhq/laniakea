@@ -222,7 +222,7 @@ def import_suite_packages(suite_name):
     for component in suite.components:
 
         # fetch all source packages for the given repository
-        # FIXME: Urgh... We need to do this better, this is not efficient.
+        # FIXME: Urgh... Can this be more efficient?
         existing_spkgs = dict()
         all_existing_src_packages = session.query(SourcePackage) \
             .options(joinedload(SourcePackage.suites)) \
@@ -295,11 +295,11 @@ def import_suite_packages(suite_name):
         for arch in suite.architectures:
 
             # Get all binary packages UUID/suite-id combinations for the given architecture and suite
+            # FIXME: Urgh... Can this be more efficient?
             bpkg_b = Bundle('bin_package', BinaryPackage.uuid)
             suite_b = Bundle('archive_suite', ArchiveSuite.id)
             existing_bpkgs = dict()
             for e_bpkg, suite_i in session.query(bpkg_b, suite_b) \
-                    .filter(BinaryPackage.suites.any(ArchiveSuite.id.in_([suite.id]))) \
                     .filter(BinaryPackage.repo_id == repo.id) \
                     .filter(BinaryPackage.component_id == component.id) \
                     .filter(BinaryPackage.architecture_id == arch.id).join(BinaryPackage.suites):
