@@ -207,6 +207,8 @@ public:
      */
     SourcePackage[] getSourcePackages (const string suiteName, const string componentName)
     {
+        import core.memory : GC;
+
         immutable indexFname = getIndexFile (suiteName, buildPath (componentName, "source", "Sources.xz"));
         if (indexFname.empty)
             return [];
@@ -223,6 +225,11 @@ public:
 
         auto pkgs = appender!(SourcePackage[]);
         pkgs.reserve (512);
+
+        // if we don't pay attention, of a 1m run, this code will spend more than 20s in the GC
+        // so, we control a bit when we run a collection cycle
+        GC.disable ();
+        scope (exit) { GC.enable (); }
 
         do {
             immutable pkgname = tf.readField ("Package");
@@ -283,6 +290,11 @@ public:
 
             // ensure we don't delete this package later
             validPackages[pkg.uuid] = true;
+
+            // limit RAM usage a little by collecting after processing a batch of packages
+            if (pkgs.data.length % 2500 == 0)
+                GC.collect ();
+
         } while (tf.nextSection ());
 
         return pkgs.data;
