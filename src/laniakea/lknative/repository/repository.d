@@ -60,10 +60,10 @@ private:
 
 public:
 
-    this (string location, string cacheDir, string repoName = null, string[] trustedKeyrings = []) @trusted
+    this (string location, string cacheDir, string repoName, string[] trustedKeyrings = []) @trusted
     {
         if (isRemote (location)) {
-            rootDir = buildPath (cacheDir, "repos_tmp", repoName);
+            rootDir = buildPath (cacheDir, "repo_cache", repoName);
             std.file.mkdirRecurse (rootDir);
             repoUrl = location;
         } else {

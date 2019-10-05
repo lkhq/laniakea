@@ -439,6 +439,7 @@ public:
 
             // we need repository information to attribute packages to their right suites
             auto repo = new Repository (baseConf.archive.rootPath,
+                                        baseConf.cacheDir,
                                         "master"); // FIXME: Use the correct repo vendor name here?
             repo.setTrusted (true);
 

@@ -92,6 +92,7 @@ class Debcheck
     this (BaseConfig conf)
     {
         repo = new Repository (conf.archive.rootPath,
+                               conf.cacheDir,
                                conf.projectName);
         repo.setTrusted (true);
     }
