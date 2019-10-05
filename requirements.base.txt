@@ -3,7 +3,9 @@ SQLAlchemy
 alembic
 psycopg2
 python-debian
+python-apt
 pyzmq
+requests
 PyYAML
 firehose
 humanize

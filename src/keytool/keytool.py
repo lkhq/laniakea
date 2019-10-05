@@ -158,7 +158,7 @@ def install_service_keyfile(options):
 
     pub_key, sec_key = zmq.auth.load_certificate(source_keyfile)
     if not sec_key:
-        print('The given keyfile does not contain a secret key!')
+        print('The given keyfile does not contain a secret ZCurve key!')
 
     lconf = LocalConfig()
     target_keyfile = lconf.secret_curve_keyfile_for_module(service)

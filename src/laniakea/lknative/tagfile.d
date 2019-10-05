@@ -186,7 +186,7 @@ public:
 /**
  * Parse a "Package-List" field and return its information in
  * PackageInfo data structures.
- * See https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Package-List
+ * See https://www.debian.org/doc/debian-policy/ch-controlfields.html#package-list
  */
 public PackageInfo[] parsePackageListString (const string pkgListRaw, const string defaultVersion = null) pure @safe
 {

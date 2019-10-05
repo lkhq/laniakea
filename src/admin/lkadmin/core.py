@@ -54,8 +54,7 @@ def _add_new_suite(session):
         session.delete(suite)
         session.commit()
 
-    suite = ArchiveSuite()
-    suite.name = suite_name
+    suite = ArchiveSuite(suite_name)
     suite.repos = [repo]
 
     component_names = input_list('List of components for suite "{}"'.format(suite.name))

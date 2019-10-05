@@ -115,6 +115,9 @@ class ArchiveSuite(Base):
 
     _primary_arch = None
 
+    def __init__(self, name):
+        self.name = name
+
     @property
     def primary_architecture(self):
         if self._primary_arch:
@@ -271,6 +274,9 @@ class PackageInfo:
     deb_type = DebType.DEB
     name = None
     version = None
+    section = None
+    priority = PackagePriority.UNKNOWN
+    architectures = None
 
 
 class ArchiveFile(Base):
@@ -287,7 +293,7 @@ class ArchiveFile(Base):
 
     srcpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_src_packages.uuid'))
     binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_bin_packages.uuid'), unique=True, nullable=True)
-    binpkg = relationship('BinaryPackage', back_populates='pkg_file')
+    binpkg = relationship('BinaryPackage', back_populates='bin_file')
     srcpkg = relationship('SourcePackage', back_populates='files')
 
     def make_url(self, urlbase):
@@ -344,6 +350,9 @@ class SourcePackage(Base):
             info.deb_type = e.get('deb_type', DebType.DEB)
             info.name = e.get('name')
             info.version = e.get('version')
+            info.section = e.get('section')
+            info.priority = e.get('priority', PackagePriority.UNKNOWN)
+            info.section = e.get('architectures')
             res.append(info)
         return info
 
@@ -356,16 +365,27 @@ class SourcePackage(Base):
         for v in value:
             d = {'deb_type': v.deb_type,
                  'name': v.name,
-                 'version': v.version}
+                 'version': v.version,
+                 'section': v.section,
+                 'priority': v.priority,
+                 'architectures': v.section}
             data.append(d)
         self._binaries_json = json.dumps(data)
+
+    @staticmethod
+    def generate_uuid(repo_name, name, version):
+        return uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}/{}'.format(repo_name, name, version))
+
+    @staticmethod
+    def generate_source_uuid(repo_name, name):
+        return uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}'.format(repo_name, name))
 
     def update_uuid(self):
         if not self.repo:
             raise Exception('Source package is not associated with a repository!')
 
         self.update_source_uuid()
-        self.uuid = uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}/{}'.format(self.repo.name, self.name, self.version))
+        self.uuid = SourcePackage.generate_uuid(self.repo.name, self.name, self.version)
 
         return self.uuid
 
@@ -373,7 +393,7 @@ class SourcePackage(Base):
         if not self.repo:
             raise Exception('Source package is not associated with a repository!')
 
-        self.source_uuid = uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}'.format(self.repo.name, self.name))
+        self.source_uuid = SourcePackage.generate_source_uuid(self.repo.name, self.name)
         return self.source_uuid
 
     def __str__(self):
@@ -381,10 +401,6 @@ class SourcePackage(Base):
         if self.repo:
             repo_name = self.repo.name
         return '{}::source/{}/{}'.format(repo_name, self.name, self.version)
-
-
-def auto_binpkg_uuid(context):
-    return context.get_current_parameters()['counter'] + 12
 
 
 class BinaryPackage(Base):
@@ -428,7 +444,7 @@ class BinaryPackage(Base):
     maintainer = Column(Text())
     homepage = Column(Text())
 
-    pkg_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg', cascade='all, delete, delete-orphan')
+    bin_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg', cascade='all, delete, delete-orphan')
     sw_cpts = relationship('SoftwareComponent', secondary=swcpt_binpkg_assoc_table, back_populates='bin_packages')
 
     __ts_vector__ = create_tsvector(
@@ -445,11 +461,15 @@ class BinaryPackage(Base):
         ),
     )
 
+    @staticmethod
+    def generate_uuid(repo_name, name, version, arch_name):
+        return uuid.uuid5(UUID_NS_BINPACKAGE, '{}::{}/{}/{}'.format(repo_name, name, version, arch_name))
+
     def update_uuid(self):
         if not self.repo:
             raise Exception('Binary package is not associated with a repository!')
 
-        self.uuid = uuid.uuid5(UUID_NS_BINPACKAGE, '{}::{}/{}/{}'.format(self.repo.name, self.name, self.version, self.architecture.name))
+        self.uuid = BinaryPackage.generate_uuid(self.repo.name, self.name, self.version, self.architecture.name)
         return self.uuid
 
     def __str__(self):

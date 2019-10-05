@@ -131,7 +131,7 @@ def bin_package_details(suite_name, name):
 
         bpkgs = session.query(BinaryPackage) \
                        .options(joinedload(BinaryPackage.architecture)) \
-                       .options(joinedload(BinaryPackage.pkg_file)) \
+                       .options(joinedload(BinaryPackage.bin_file)) \
                        .options(undefer(BinaryPackage.version)) \
                        .filter(BinaryPackage.name == name) \
                        .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \

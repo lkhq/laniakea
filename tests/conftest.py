@@ -151,8 +151,7 @@ def database(localconfig):
         session.add_all(all_architectures)
 
         # add 'unstable' suite
-        suite_us = ArchiveSuite()
-        suite_us.name = 'unstable'
+        suite_us = ArchiveSuite('unstable')
         suite_us.repos = [repo]
         suite_us.components = all_components
         suite_us.architectures = all_architectures
@@ -160,8 +159,7 @@ def database(localconfig):
         session.add(suite_us)
 
         # add 'testing' suite
-        suite_te = ArchiveSuite()
-        suite_te.name = 'testing'
+        suite_te = ArchiveSuite('testing')
         suite_te.repos = [repo]
         suite_te.components = all_components
         suite_te.architectures = all_architectures
@@ -169,8 +167,7 @@ def database(localconfig):
         session.add(suite_te)
 
         # add 'experimental' suite
-        suite_ex = ArchiveSuite()
-        suite_ex.name = 'experimental'
+        suite_ex = ArchiveSuite('experimental')
         suite_ex.repos = [repo]
         suite_ex.components = all_components
         suite_ex.architectures = [arch_all, arch_amd64]

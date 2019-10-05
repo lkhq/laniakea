@@ -53,3 +53,12 @@ def test_loadsections(localconfig):
     assert len(sections) == 59
     assert sections[0]['name'] == 'admin'
     assert sections[-1]['name'] == 'zope'
+
+
+def test_is_remote_url():
+    from laniakea.utils import is_remote_url
+
+    assert is_remote_url('http://test.com')
+    assert is_remote_url('https://example.org')
+    assert not is_remote_url('/srv/mirror')
+    assert not is_remote_url('file:///srv/test')

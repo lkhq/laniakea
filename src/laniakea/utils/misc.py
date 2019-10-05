@@ -18,6 +18,9 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import re
+import requests
+import shutil
 from contextlib import contextmanager
 
 
@@ -71,3 +74,34 @@ def stringify(item):
         return str(item, 'utf-8')
 
     return str(item)
+
+
+def is_remote_url(uri):
+    ''' Check if string contains a remote URI. '''
+
+    uriregex = re.compile('^(https?|ftps?)://')
+    return uriregex.match(uri) is not None
+
+
+def download_file(url, fname, check=False, headers={}, **kwargs):
+    hdr = {'user-agent': 'laniakea/0.0.1'}
+    hdr.update(headers)
+
+    r = requests.get(url, stream=True, headers=hdr, **kwargs)
+    if r.status_code == 200:
+        with open(fname, 'wb') as f:
+            shutil.copyfileobj(r.raw, f)
+        return r.status_code
+
+    if check:
+        raise Exception('Unable to download file "{}". Status: {}'.format(url, r.status_code))
+    return r.status_code
+
+
+def split_ignore_empty(s, sep):
+    ''' Split a string, removing empty segments from the result '''
+    res = []
+    for part in s.split(sep):
+        if part:
+            res.append(part)
+    return res
