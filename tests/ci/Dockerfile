@@ -31,9 +31,11 @@ RUN apt-get install -yq --no-install-recommends \
     python3-gi \
     python3-cairo-dev \
     python3-sqlalchemy \
+    python3-alembic \
     python3-psycopg2 \
     python3-nacl \
     python3-debian \
+    python3-apt \
     python3-zmq \
     python3-yaml \
     python3-flask \
