@@ -112,7 +112,8 @@ class SynchrotronIssue(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     config_id = Column(Integer, ForeignKey('synchrotron_config.id'), nullable=False)
-    config = relationship('SynchrotronConfig', cascade='all, delete')
+    config = relationship('SynchrotronConfig', backref=backref('issues',
+                                                               cascade='all, delete'))
 
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 
