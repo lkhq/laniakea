@@ -30,6 +30,8 @@ from laniakea.logging import log
 
 def parse_checksums_list(data, base_dir=None):
     files = []
+    if not data:
+        return files
     for line in data.split('\n'):
         parts = split_strip(line, ' ')  # f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955 2455 0ad_0.0.20-1.dsc
         if len(parts) != 3:
@@ -275,7 +277,7 @@ class Repository:
                 pkg.build_depends = split_strip(e.get('Build-Depends', ''), ',')
                 pkg.directory = e['Directory']
 
-                pkg.files = parse_checksums_list(e['Checksums-Sha256'], pkg.directory)
+                pkg.files = parse_checksums_list(e.get('Checksums-Sha256'), pkg.directory)
 
                 binaries = []
                 raw_pkg_list = e.get('Package-List', None)
