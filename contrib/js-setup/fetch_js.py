@@ -43,7 +43,7 @@ node_modules = [{'name': 'bootstrap',
                  },
 
                 {'name': 'popper.js',
-                 'files': ['dist/*.min.js'],
+                 'files': ['dist/umd/*.min.js'],
                  'copy_to': [os.path.join(src_dir, 'web/static/js/popper/'),
                              os.path.join(src_dir, 'webswview/templates/default/static/js/popper/')]
                  }
