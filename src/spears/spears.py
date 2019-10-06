@@ -25,9 +25,12 @@ if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
+from uuid import uuid4
 from argparse import ArgumentParser
+from laniakea import LkModule
 from laniakea.db import session_factory, SpearsMigrationEntry, SpearsHint, \
     SpearsExcuse, SpearsOldBinaries
+from laniakea.msgstream import EventEmitter
 from laniakea.native import SpearsEngine
 
 
@@ -93,69 +96,107 @@ def command_migrate(options):
 
     session = session_factory()
 
-    excuses = []
+    migration_entries = session.query(SpearsMigrationEntry).all()
     if options.suite1:
+        # we have parameters, so limit which migration entries we act on
         if not options.suite2:
             print('Target suite parameter is missing!')
             sys.exit(1)
 
-        ret, excuses = engine.runMigration(options.suite1, options.suite2)
+        migration_found = False
+        migration_id = '{}-to-{}'.format(options.suite1, options.suite2)
+        for entry in migration_entries:
+            if entry.make_migration_id() == migration_id:
+                migration_found = True
+                migration_entries = [entry]
+                break
+
+        if not migration_found:
+            print('Could not find migration recipe with ID "{}"'.format(migration_id))
+            sys.exit(1)
+
+    # event emitted for message publishing
+    emitter = EventEmitter(LkModule.SPEARS)
+
+    for entry in migration_entries:
+        print('\nRunning migration: {} to {}\n'.format('+'.join(entry.source_suites), entry.target_suite))
+        ret, n_excuses = engine.runMigration('+'.join(entry.source_suites), entry.target_suite)
         if not ret:
             sys.exit(2)
 
-        # remove old excuses
-        migration_id = '{}-to-{}'.format(options.suite1, options.suite2)
-        session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == migration_id).delete()
-    else:
-        migration_entries = session.query(SpearsMigrationEntry).all()
-        for entry in migration_entries:
-            print('\nRunning migration: {} to {}\n'.format('+'.join(entry.source_suites), entry.target_suite))
-            ret, tmp_excuses = engine.runMigration('+'.join(entry.source_suites), entry.target_suite)
-            if not ret:
-                sys.exit(2)
-            excuses.extend(tmp_excuses)
+        migration_id = entry.make_migration_id()
 
-        # remove old excuses
-        for entry in migration_entries:
-            session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == entry.make_migration_id()).delete()
+        # list existing excuses
+        existing_excuses = {}
+        all_excuses = session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == migration_id).all()
+        for excuse in all_excuses:
+            eid = '{}-{}:{}-{}/{}'.format(excuse.suite_source, excuse.suite_target, excuse.source_package, excuse.version_new, excuse.version_old)
+            existing_excuses[eid] = excuse
 
-    for ex in excuses:
-        excuse = SpearsExcuse()
+        for ex in n_excuses:
+            eid = '{}-{}:{}-{}/{}'.format(ex.sourceSuite, ex.targetSuite, ex.sourcePackage, ex.newVersion, ex.oldVersion)
+            excuse = existing_excuses.pop(eid, None)
+            if excuse:
+                # the excuse already exists, so we just update it
+                new_excuse = False
+            else:
+                new_excuse = True
+                excuse = SpearsExcuse()
+                #excuse.time = ex.date # noqa
+                excuse.migration_id = migration_id
 
-        #excuse.time = ex.date # noqa
-        excuse.migration_id = ex.migrationId
-        excuse.suite_source = ex.sourceSuite
-        excuse.suite_target = ex.targetSuite
+                excuse.suite_source = ex.sourceSuite
+                excuse.suite_target = ex.targetSuite
 
-        excuse.is_candidate = ex.isCandidate
+                excuse.source_package = ex.sourcePackage
 
-        excuse.source_package = ex.sourcePackage
-        excuse.maintainer = ex.maintainer
+                excuse.version_new = ex.newVersion
+                excuse.version_old = ex.oldVersion
 
-        excuse.age_current = ex.age.currentAge
-        excuse.age_required = ex.age.requiredAge
+            excuse.is_candidate = ex.isCandidate
+            excuse.maintainer = ex.maintainer
 
-        excuse.version_new = ex.newVersion
-        excuse.version_old = ex.oldVersion
+            excuse.age_current = ex.age.currentAge
+            excuse.age_required = ex.age.requiredAge
 
-        excuse.missing_archs_primary = ex.missingBuilds.primaryArchs
-        excuse.missing_archs_secondary = ex.missingBuilds.secondaryArchs
+            excuse.missing_archs_primary = ex.missingBuilds.primaryArchs
+            excuse.missing_archs_secondary = ex.missingBuilds.secondaryArchs
 
-        obins = []
-        for ob in ex.oldBinaries:
-            obin = SpearsOldBinaries()
-            obin.pkg_version = ob.pkgVersion
-            obin.binaries = ob.binaries
-            obins.append(obin)
-        excuse.set_old_binaries(obins)
+            obins = []
+            for ob in ex.oldBinaries:
+                obin = SpearsOldBinaries()
+                obin.pkg_version = ob.pkgVersion
+                obin.binaries = ob.binaries
+                obins.append(obin)
+            excuse.set_old_binaries(obins)
 
-        excuse.blocked_by = ex.reason.blockedBy
-        excuse.migrate_after = ex.reason.migrateAfter
-        excuse.manual_block = ex.reason.manualBlock
-        excuse.other = ex.reason.other
-        excuse.log_excerpt = ex.reason.logExcerpt
+            excuse.blocked_by = ex.reason.blockedBy
+            excuse.migrate_after = ex.reason.migrateAfter
+            excuse.manual_block = ex.reason.manualBlock
+            excuse.other = ex.reason.other
+            excuse.log_excerpt = ex.reason.logExcerpt
 
-        session.add(excuse)
+            if new_excuse:
+                excuse.uuid = uuid4()  # we need an UUID immediately to submit it in the event payload
+                session.add(excuse)
+
+                data = {'uuid': str(excuse.uuid),
+                        'suite_source': excuse.suite_source,
+                        'suite_target': excuse.suite_target,
+                        'source_package': excuse.source_package,
+                        'version_new': excuse.version_new,
+                        'version_old': excuse.version_old}
+                emitter.submit_event('new-excuse', data)
+
+        for excuse in existing_excuses.values():
+            data = {'uuid': str(excuse.uuid),
+                    'suite_source': excuse.suite_source,
+                    'suite_target': excuse.suite_target,
+                    'source_package': excuse.source_package,
+                    'version_new': excuse.version_new,
+                    'version_old': excuse.version_old}
+            emitter.submit_event('excuse-removed', data)
+            session.delete(excuse)
 
     session.commit()
 
