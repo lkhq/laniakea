@@ -177,7 +177,7 @@ class Debcheck:
 
             v.package_name = str(entry['package'])
             v.package_version = str(entry['version'])
-            v.architecture = str(entry['architecture']).split(',')
+            v.architectures = str(entry['architecture']).split(',')
 
         res = []
         yroot = yaml.safe_load(yaml_data)
@@ -199,8 +199,8 @@ class Debcheck:
             issue.repo = self._repo_entity
             issue.time = datetime.utcnow()
             issue.suite = suite
-            issue.missing = []
-            issue.conflicts = []
+            missing = []
+            conflicts = []
 
             set_basic_package_info(issue, entry)
 
@@ -213,7 +213,7 @@ class Debcheck:
                     set_basic_package_info(pkgissue, ymissing)
                     pkgissue.unsat_dependency = ymissing['unsat-dependency']
 
-                    issue.missing.append(pkgissue)
+                    missing.append(pkgissue)
                 elif 'conflict' in reason:
                     # we have a conflict in the dependency chain
                     yconflict = reason['conflict']
@@ -246,9 +246,12 @@ class Debcheck:
                             pkgissue.depends = ypkg.get('depends')
                             conflict.depchain2.append(pkgissue)
 
-                    issue.conflicts.append(conflict)
+                    conflicts.append(conflict)
                 else:
                     raise Exception('Found unknown dependency issue: ' + str(reason))
+
+                issue.missing = missing
+                issue.conflicts = conflicts
 
             res.append(issue)
 
