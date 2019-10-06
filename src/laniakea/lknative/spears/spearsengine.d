@@ -31,6 +31,7 @@ import lknative.repository.types;
 import lknative.logging;
 import lknative.config : BaseConfig, SpearsConfig, SuiteInfo;
 import lknative.config.spears;
+import lknative.tagfile : TagFile;
 
 import spears.britneyconfig;
 import spears.britney;
@@ -196,7 +197,7 @@ public:
         import std.file : exists;
         import lknative.compressed : decompressFile, compressAndSave, ArchiveType;
 
-        // only one suite means we can use the suite's data directky
+        // only one suite means we can use the suite's data directly
         if (sourceSuites.length <= 1)
             return;
 
@@ -290,6 +291,76 @@ public:
         if (targetReleaseFile.exists)
             std.file.remove (targetReleaseFile);
         std.file.copy (releaseFile, targetReleaseFile);
+    }
+
+    /**
+     * If we have a partial source and target suite, we need to let Britney know about the
+     * parent packages somehow.
+     * At the moment, we simply abuse the FauxPackages system for that.
+     */
+    private void createFauxPackages (string miWorkspace, SuiteInfo[] sourceSuites, SuiteInfo targetSuite)
+    {
+        import std.stdio : File;
+
+        // we don't support more than one source suite for this feature at the moment
+        if (sourceSuites.length > 1) {
+            logInfo("Not auto-generating faux packages: Multiple suites set as sources.");
+            return;
+        }
+        auto sourceSuite = sourceSuites[0];
+
+        if (!sourceSuite.parent.name.empty && !targetSuite.parent.name.empty) {
+            logInfo("Creating faux-packages to aid resolving of partial suites.");
+        } else {
+            logInfo("No auto-generating faux packages: No source and target suite parents, generation is unnecessary.");
+            return;
+        }
+
+        immutable archiveRootPath = baseConf.archive.rootPath;
+        immutable fauxPkgFname = buildPath (miWorkspace, "input", "faux-packages");
+
+        string[string] fauxPkgData;
+        foreach (ref component; targetSuite.parent.components) {
+            import std.path : dirName;
+            import std.file : mkdirRecurse, exists;
+
+            foreach (arch; parallel (array (targetSuite.parent.architectures))) {
+                immutable pfile = buildPath (archiveRootPath,
+                                             "dists",
+                                             targetSuite.parent.name,
+                                             component,
+                                             "binary-%s".format (arch), "Packages.xz");
+
+                if (!pfile.exists)
+                    continue;
+
+                logDebug ("Reading data for faux packages list: %s", pfile);
+                auto tf = new TagFile;
+                tf.open (pfile);
+
+                do {
+                    immutable pkgname = tf.readField ("Package");
+                    immutable pkgversion = tf.readField ("Version");
+                    immutable id = "%s-%s".format (pkgname, pkgversion);
+                    if (id in fauxPkgData)
+                        continue;
+                    immutable provides = tf.readField ("Provides", "");
+
+                    auto data = "Package: %s\nVersion: %s".format (pkgname, pkgversion);
+                    if (!provides.empty)
+                        data ~= "\nProvides: %s".format (provides);
+                    if (component != "main")
+                        data ~= "\nComponent: %s".format (component);
+                    fauxPkgData[id] = data;
+                } while (tf.nextSection ());
+            }
+        }
+
+        auto f = File (fauxPkgFname, "w");
+        foreach (ref segment; fauxPkgData.byValue) {
+            f.writeln (segment ~ "\n");
+        }
+        f.close ();
     }
 
     private void collectUrgencies (string miWorkspace)
@@ -477,6 +548,7 @@ public:
         logInfo ("Migration run for '%s'", getMigrationName (fromSuites, toSuite));
         // ensure prerequisites are met and Britney is fed with all the data it needs
         prepareSourceData (miWorkspace, fromSuites, toSuite);
+        createFauxPackages (miWorkspace, fromSuites, toSuite);
         collectUrgencies (miWorkspace);
         setupDates (miWorkspace);
         setupVarious (miWorkspace, fromSuites, toSuite);
