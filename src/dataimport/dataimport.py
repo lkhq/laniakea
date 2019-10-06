@@ -28,10 +28,11 @@ import json
 import gzip
 import lzma
 from argparse import ArgumentParser
-from laniakea import LocalConfig
+from laniakea import LocalConfig, LkModule
 from laniakea.logging import log
 from laniakea.db import session_factory, session_scope, ArchiveSuite, ArchiveRepository, ArchiveArchitecture, \
     SourcePackage, BinaryPackage, ArchiveFile, SoftwareComponent, binpkg_suite_assoc_table
+from laniakea.msgstream import EventEmitter
 from sqlalchemy.orm import joinedload, Bundle
 from laniakea.repository import Repository
 import gi
@@ -171,6 +172,18 @@ def import_appstream_data(session, local_repo, repo, suite, component, arch):
     session.commit()
 
 
+def _emit_package_event(emitter, tag, pkg, extra={}):
+    ''' Send a package event to Lighthouse '''
+
+    data = {'repo': pkg.repo.name,
+            'name': pkg.name,
+            'version': pkg.version,
+            'component': pkg.component.name,
+            'suites': [s.name for s in pkg.suites]}
+    data.update(extra)
+    emitter.submit_event(tag, data)
+
+
 def import_suite_packages(suite_name):
     # FIXME: Don't hardcode the "master" repository here, fully implement
     # the "multiple repositories" feature
@@ -191,6 +204,9 @@ def import_suite_packages(suite_name):
     # we unconditionally trsut the local repository - for now
     local_repo.set_trusted(True)
 
+    # event emitted for message passing
+    emitter = EventEmitter(LkModule.ARCHIVE)
+
     for component in suite.components:
 
         # fetch all source packages for the given repository
@@ -210,17 +226,21 @@ def import_suite_packages(suite_name):
                 if suite in db_spkg.suites:
                     continue  # the source package is already registered with this suite
                 db_spkg.suites.append(suite)
+                _emit_package_event(emitter, 'source-package-suite-added', spkg, {'new_suite': suite.name})
                 continue
 
             session.add(spkg)
+            _emit_package_event(emitter, 'new-source-package', spkg)
 
         for old_spkg in existing_spkgs.values():
             if suite in old_spkg.suites:
                 old_spkg.suites.remove(suite)
+                _emit_package_event(emitter, 'source-package-suite-removed', spkg, {'old_suite': suite.name})
             if len(old_spkg.suites) <= 0:
                 for f in old_spkg.files:
                     session.delete(f)
                 session.delete(old_spkg)
+                _emit_package_event(emitter, 'removed-source-package', spkg)
 
         # commit the source package changes already
         session.commit()

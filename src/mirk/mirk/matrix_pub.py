@@ -73,6 +73,18 @@ message_templates = {'_lk.job.package-build-success':
                      '_lk.isotope.build-job-added':
                      '''Created image build job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> on <code>{architecture}</code> for "{name}" ({os}/{suite} of flavor {flavor})''',
 
+                     '_lk.archive.new-source-package':
+                     '''Source package <b>{name}</b> {version} (<em>{component}</em>) is <font color="#27ae60">available</font> in the archive, published in suites {suites_str}.''',
+
+                     '_lk.archive.source-package-suite-added':
+                     '''Source package <b>{name}</b> {version} (<em>{component}</em>) was <font color="#27ae60">added</font> to suite {new_suite}.''',
+
+                     '_lk.archive.source-package-suite-removed':
+                     '''Source package <b>{name}</b> {version} (<em>{component}</em>) was <font color="#27ae60">removed</font> from suite {old_suite}.''',
+
+                     '_lk.archive.removed-source-package':
+                     '''Package <b>{name}</b> {version} (<em>{component}</em>) was <font color="#da4453">removed</font> from the archive.''',
+
                      }
 
 
@@ -94,6 +106,8 @@ class MatrixPublisher:
             tag = tag + ':forced'
         if data.get('job_failed'):
             tag = tag + ':failed'
+        if tag == '_lk.archive.new-source-package':
+            data['suites_str'] = ', '.join(data['suites'])
         text = ''
         templ = message_templates.get(tag)
         if templ:

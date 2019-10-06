@@ -41,6 +41,7 @@ class LkModule:
     ARCHIVE = 'archive'          # Lists packages in the database
     DATAIMPORT = 'dataimport'    # Import various data from other sources into the database
     ARIADNE = 'ariadne'          # Package autobuild scheduler
+    ARCHIVE = 'archive'          # A fake module for general archive related stuff (usually managed by dak)
 
 
 class ConfigEntry(Base):
