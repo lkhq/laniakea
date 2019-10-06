@@ -44,6 +44,7 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
     for bpkg in bpkgs:
         e_suites = existing_bpkgs.pop(bpkg.uuid, None)
         if e_suites is not None:
+            session.expunge(bpkg)
             if suite.id in e_suites:
                 continue  # the binary package is already registered with this suite
             db_bpkg = session.query(BinaryPackage) \
@@ -205,6 +206,7 @@ def import_suite_packages(suite_name):
         for spkg in local_repo.source_packages(suite, component):
             db_spkg = existing_spkgs.pop(spkg.uuid, None)
             if db_spkg:
+                session.expunge(spkg)
                 if suite in db_spkg.suites:
                     continue  # the source package is already registered with this suite
                 db_spkg.suites.append(suite)

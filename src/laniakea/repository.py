@@ -264,7 +264,7 @@ class Repository:
 
                 pkg.version = pkgversion
                 pkg.architectures = split_strip(e['Architecture'], ' ')
-                pkg.standards_version = e['Standards-Version']
+                pkg.standards_version = e.get('Standards-Version', '0~notset')
                 pkg.format_version = e['Format']
 
                 pkg.vcs_browser = e.get('Vcs-Browser')
