@@ -31,9 +31,9 @@ from argparse import ArgumentParser
 from laniakea import LocalConfig
 from laniakea.logging import log
 from laniakea.db import session_factory, session_scope, ArchiveSuite, ArchiveRepository, ArchiveArchitecture, \
-    SourcePackage, BinaryPackage, ArchiveFile, PackageInfo, SoftwareComponent, binpkg_suite_assoc_table
+    SourcePackage, BinaryPackage, ArchiveFile, SoftwareComponent, binpkg_suite_assoc_table
 from sqlalchemy.orm import joinedload, Bundle
-from laniakea.native import Repository
+from laniakea.repository import Repository
 import gi
 gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
@@ -41,14 +41,7 @@ from gi.repository import AppStream
 
 def _register_binary_packages(session, repo, suite, component, arch, existing_bpkgs, bpkgs):
 
-    for bpi in bpkgs:
-        bpkg = BinaryPackage()
-        bpkg.name = bpi.name
-        bpkg.version = bpi.ver
-        bpkg.repo = repo
-        bpkg.architecture = arch
-        bpkg.update_uuid()  # we can generate the uuid from name/version/repo-name/arch now
-
+    for bpkg in bpkgs:
         e_suites = existing_bpkgs.pop(bpkg.uuid, None)
         if e_suites is not None:
             if suite.id in e_suites:
@@ -58,34 +51,6 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
                              .filter(BinaryPackage.uuid == bpkg.uuid).one()
             db_bpkg.suites.append(suite)
             continue
-
-        # if we are here, the package is completely new and is only in one suite
-        bpkg.suites = [suite]
-        bpkg.component = component
-
-        bpkg.deb_type = bpi.debType
-
-        bpkg.size_installed = bpi.installedSize
-        bpkg.description = bpi.description
-        bpkg.description_md5 = bpi.descriptionMd5
-
-        bpkg.source_name = bpi.sourceName
-        bpkg.source_version = bpi.sourceVersion
-
-        bpkg.priority = bpi.priority
-        bpkg.section = bpi.section
-
-        bpkg.depends = bpi.depends
-        bpkg.pre_depends = bpi.preDepends
-
-        bpkg.maintainer = bpi.maintainer
-        bpkg.homepage = bpi.homepage
-
-        f = ArchiveFile()
-        f.fname = bpi.file.fname
-        f.size = bpi.file.size
-        f.sha256sum = bpi.file.sha256sum
-        bpkg.pkg_file = f
 
         session.add(bpkg)
 
@@ -106,11 +71,11 @@ def import_appstream_data(session, local_repo, repo, suite, component, arch):
     arch_all = session.query(ArchiveArchitecture) \
                       .filter(ArchiveArchitecture.name == 'all').one()
 
-    yaml_fname = local_repo.getIndexFile(suite.name, os.path.join(component.name, 'dep11', 'Components-{}.yml.xz'.format(arch.name)))
+    yaml_fname = local_repo.index_file(suite, os.path.join(component.name, 'dep11', 'Components-{}.yml.xz'.format(arch.name)))
     if not yaml_fname:
         return
 
-    cidmap_fname = local_repo.getIndexFile(suite.name, os.path.join(component.name, 'dep11', 'CID-Index-{}.json.gz'.format(arch.name)))
+    cidmap_fname = local_repo.index_file(suite, os.path.join(component.name, 'dep11', 'CID-Index-{}.json.gz'.format(arch.name)))
     if not cidmap_fname:
         return
 
@@ -217,7 +182,13 @@ def import_suite_packages(suite_name):
         .filter(ArchiveRepository.name == repo_name).one()
 
     lconf = LocalConfig()
-    local_repo = Repository(lconf.archive_root_dir, lconf.cache_dir, repo_name, [])
+    local_repo = Repository(lconf.archive_root_dir,
+                            repo.name,
+                            trusted_keyrings=[],
+                            entity=repo)
+
+    # we unconditionally trsut the local repository - for now
+    local_repo.set_trusted(True)
 
     for component in suite.components:
 
@@ -231,48 +202,13 @@ def import_suite_packages(suite_name):
         for e_spkg in all_existing_src_packages:
             existing_spkgs[e_spkg.uuid] = e_spkg
 
-        for spi in local_repo.getSourcePackages(suite.name, component.name):
-            spkg = SourcePackage()
-            spkg.name = spi.name
-            spkg.version = spi.ver
-            spkg.repo = repo
-            spkg.update_uuid()  # we can generate the uuid from name/version/repo-name now
-
+        for spkg in local_repo.source_packages(suite, component):
             db_spkg = existing_spkgs.pop(spkg.uuid, None)
             if db_spkg:
                 if suite in db_spkg.suites:
                     continue  # the source package is already registered with this suite
                 db_spkg.suites.append(suite)
                 continue
-
-            # if we are here, the source package is completely new and is only in one suite
-            spkg.suites = [suite]
-            spkg.component = component
-            spkg.architectures = spi.architectures
-            spkg.standards_version = spi.standardsVersion
-            spkg.format_version = spi.format
-            spkg.homepage = spi.homepage
-            spkg.vcs_browser = spi.vcsBrowser
-            spkg.maintainer = spi.maintainer
-            spkg.uploaders = spi.uploaders
-            spkg.build_depends = spi.buildDepends
-            spkg.directory = spi.directory
-
-            binaries = []
-            for b in spi.binaries:
-                binfo = PackageInfo()
-                binfo.deb_type = b.debType
-                binfo.name = b.name
-                binfo.version = b.ver
-                binaries.append(binfo)
-            spkg.binaries = binfo
-
-            for fi in spi.files:
-                f = ArchiveFile()
-                f.fname = fi.fname
-                f.size = fi.size
-                f.sha256sum = fi.sha256sum
-                spkg.files.append(f)
 
             session.add(spkg)
 
@@ -311,9 +247,9 @@ def import_suite_packages(suite_name):
                                                        component,
                                                        arch,
                                                        existing_bpkgs,
-                                                       local_repo.getBinaryPackages(suite.name,
-                                                                                    component.name,
-                                                                                    arch.name))
+                                                       local_repo.binary_packages(suite,
+                                                                                  component,
+                                                                                  arch))
             session.commit()
 
             # add information about debian-installer packages
@@ -323,9 +259,9 @@ def import_suite_packages(suite_name):
                                                        component,
                                                        arch,
                                                        existing_bpkgs,
-                                                       local_repo.getInstallerPackages(suite.name,
-                                                                                       component.name,
-                                                                                       arch.name))
+                                                       local_repo.installer_packages(suite,
+                                                                                     component,
+                                                                                     arch))
             session.commit()
 
             for old_bpkg_uuid, suites in existing_bpkgs.items():

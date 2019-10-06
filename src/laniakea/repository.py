@@ -204,13 +204,17 @@ class Repository:
         self._inrelease[suite_name] = ird
         return ird
 
-    def index_file(self, suite_name, fname):
+    def index_file(self, suite, fname):
         '''
         Retrieve a package list (index) file from the repository.
         The file will be downloaded if necessary:
 
         Returns: A file path to the index file.
         '''
+        if type(suite) is ArchiveSuite:
+            suite_name = suite.name
+        else:
+            suite_name = suite
 
         ird = self._read_repo_information(suite_name)
         index_fname = self._fetch_repo_file_internal(os.path.join('dists', suite_name, fname))
@@ -313,7 +317,7 @@ class Repository:
             arch_name = e['Architecture']
 
             # we deal with arch:all packages separately
-            if arch_name == 'all' and not requested_arch_is_all:
+            if not requested_arch_is_all and arch_name == 'all':
                 continue
 
             # sanity check
