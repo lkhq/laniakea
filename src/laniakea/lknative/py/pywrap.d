@@ -94,18 +94,6 @@ extern(C) void PydMain()
             Def!(SpearsEngine.updateConfig),
             Def!(SpearsEngine.runMigration),
     )();
-
-    /* Debcheck */
-    import lknative.debcheck;
-    wrapAggregate!(PackageIssue)();
-    wrapAggregate!(PackageConflict)();
-    wrapAggregate!(DebcheckIssue)();
-    wrap_class!(Debcheck,
-            Init!(BaseConfig),
-
-            Def!(Debcheck.getBuildDepCheckIssues),
-            Def!(Debcheck.getDepCheckIssues),
-    )();
 }
 
 

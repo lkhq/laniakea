@@ -23,7 +23,6 @@ lknative_src = [
     'config/package.d',
     'config/spears.d',
     'config/synchrotron.d',
-    'debcheck.d',
     'py/pyhelper.d',
     'py/pywrap.d',
     'synchrotron/package.d',
