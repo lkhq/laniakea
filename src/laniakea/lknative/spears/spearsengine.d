@@ -341,17 +341,21 @@ public:
                 do {
                     immutable pkgname = tf.readField ("Package");
                     immutable pkgversion = tf.readField ("Version");
-                    immutable id = "%s-%s".format (pkgname, pkgversion);
+                    immutable pkgarch = tf.readField ("Architecture");
+                    immutable id = "%s-%s-%s".format (pkgname, pkgversion, pkgarch);
                     if (id in fauxPkgData)
                         continue;
                     immutable provides = tf.readField ("Provides", "");
 
                     auto data = "Package: %s\nVersion: %s".format (pkgname, pkgversion);
+                    if ((!pkgarch.empty) && (pkgarch != "all"))
+                        data ~= "\nArchitecture: %s".format (pkgarch);
                     if (!provides.empty)
                         data ~= "\nProvides: %s".format (provides);
                     if (component != "main")
                         data ~= "\nComponent: %s".format (component);
-                    fauxPkgData[id] = data;
+
+                    synchronized fauxPkgData[id] = data;
                 } while (tf.nextSection ());
             }
         }
