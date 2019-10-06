@@ -198,6 +198,10 @@ def command_migrate(options):
             emitter.submit_event('excuse-removed', data)
             session.delete(excuse)
 
+        # add changes to the database early
+        session.commit()
+
+    # ensure everything is committed
     session.commit()
 
 
