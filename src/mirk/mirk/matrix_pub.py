@@ -28,10 +28,10 @@ from .config import MirkConfig
 
 
 message_templates = {'_lk.job.package-build-success':
-                     'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> was <font color="#265500">successful</font>.',
+                     'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> was <font color="#27ae60">successful</font>.',
 
                      '_lk.job.package-build-failed':
-                     'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> has <font color="#b7241b">failed</font>.',
+                     'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> has <font color="#da4453">failed</font>.',
 
                      '_lk.synchrotron.src-package-imported':
                      'Imported package <em>{name}</em> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
@@ -39,27 +39,30 @@ message_templates = {'_lk.job.package-build-success':
                      '_lk.synchrotron.src-package-imported:forced':
                      'Enforced import of package <em>{name}</em> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>, new version is <code>{version}</code>.',
 
-                     '_lk.synchrotron.autosync-issue':
-                     '''Unable to automatically synchronize {name} from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>
+                     '_lk.synchrotron.new-autosync-issue':
+                     '''Can not automatically synchronize <font color="#da4453"><b>{name}</b></font> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code>
                      (source: <code>{src_version}</code>, destination: <code>{dest_version}</code>). Type: {kind}''',
+
+                     '_lk.synchrotron.resolved-autosync-issue':
+                     '''The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <code>{src_suite}</code> to <code>{dest_suite}</code> was <font color="#27ae60">resolved</font>.''',
 
                      '_lk.jobs.job-assigned':
                      '''Assigned {job_kind} job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
 
                      '_lk.jobs.job-accepted':
-                     '''Job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> was <font color="#265500">accepted</font> by <em>{client_name}</em>''',
+                     '''Job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> was <font color="#27ae60">accepted</font> by <em>{client_name}</em>''',
 
                      '_lk.jobs.job-rejected':
-                     '''Job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> was <font color="#b7241b">rejected</font> by <em>{client_name}</em>''',
+                     '''Job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> was <font color="#da4453">rejected</font> by <em>{client_name}</em>''',
 
                      '_lk.jobs.job-finished':
                      '''Job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> finished with result <em>{result}</em>''',
 
                      '_lk.rubicon.upload-accepted':
-                     '''Accepted upload for <font color="#265500">successful</font> job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a>.''',
+                     '''Accepted upload for <font color="#27ae60">successful</font> job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a>.''',
 
                      '_lk.rubicon.upload-accepted:failed':
-                     '''Accepted upload for <font color="#b7241b">failed</font> job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a>.''',
+                     '''Accepted upload for <font color="#da4453">failed</font> job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a>.''',
 
                      '_lk.rubicon.upload-rejected':
                      '''<b>Rejected</b> upload <code>{dud_filename}</code>. Reason: {reason}''',
