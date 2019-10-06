@@ -95,7 +95,7 @@ class Debcheck:
 
         # add base suite packages to the background
         if suite.parent:
-            parent_indices = self._get_full_index_info(suite.parent, arch, sources)
+            parent_indices = self._get_full_index_info(suite.parent, arch, False)
             res['bg'].extend(parent_indices['bg'])
             res['bg'].extend(parent_indices['fg'])
 
@@ -121,7 +121,7 @@ class Debcheck:
                          '-f',
                          '--summary',
                          '--deb-emulate-sbuild',
-                         '--deb-native-arch={}'.format(suite.primary_architecture.name if arch == 'all' else arch.name)]
+                         '--deb-native-arch={}'.format(suite.primary_architecture.name if arch.name == 'all' else arch.name)]
 
             # run builddepcheck
             success, data = self._execute_dose('dose-builddebcheck', dose_args, indices['bg'] + indices['fg'])
@@ -150,7 +150,7 @@ class Debcheck:
                          '-e',
                          '-f',
                          '--summary',
-                         '--deb-native-arch={}'.format(suite.primary_architecture.name if arch == 'all' else arch.name)]
+                         '--deb-native-arch={}'.format(suite.primary_architecture.name if arch.name == 'all' else arch.name)]
 
             # run depcheck
             indices_args = []
