@@ -74,16 +74,16 @@ message_templates = {'_lk.job.package-build-success':
                      '''Created image build job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> on <code>{architecture}</code> for "{name}" ({os}/{suite} of flavor {flavor})''',
 
                      '_lk.archive.new-source-package':
-                     '''Source package <b>{name}</b> {version} (<em>{component}</em>) is <font color="#27ae60">available</font> in the archive, published in suites {suites_str}.''',
+                     '''Source package <b>{name}</b> {version} <small>[{component}]</small> is <font color="#27ae60">available</font> in the archive, published in suites <em>{suites_str}</em>.''',
 
                      '_lk.archive.source-package-suite-added':
-                     '''Source package <b>{name}</b> {version} (<em>{component}</em>) was <font color="#27ae60">added</font> to suite {new_suite}.''',
+                     '''Source package <b>{name}</b> {version} <small>[{component}]</small> was <font color="#27ae60">added</font> to suite <em>{new_suite}</em>.''',
 
                      '_lk.archive.source-package-suite-removed':
-                     '''Source package <b>{name}</b> {version} (<em>{component}</em>) was <font color="#27ae60">removed</font> from suite {old_suite}.''',
+                     '''Source package <b>{name}</b> {version} <small>[{component}]</small> was <font color="#27ae60">removed</font> from suite <em>{old_suite}</em>.''',
 
                      '_lk.archive.removed-source-package':
-                     '''Package <b>{name}</b> {version} (<em>{component}</em>) was <font color="#da4453">removed</font> from the archive.''',
+                     '''Package <b>{name}</b> {version} <small>[{component}]</small> was <font color="#da4453">removed</font> from the archive.''',
 
                      }
 
