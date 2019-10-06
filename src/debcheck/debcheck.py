@@ -26,83 +26,46 @@ if not os.path.isabs(thisfile):
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
-from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, PackageType, \
-    DebcheckIssue, PackageIssue, PackageConflict
+from laniakea.db import session_scope, ArchiveSuite, ArchiveRepository, PackageType, \
+    DebcheckIssue
+from laniakea.debcheck import Debcheck
 
 
 def _create_debcheck(session, suite_name):
-    from laniakea.native import Debcheck, create_native_baseconfig, \
-        get_suiteinfo_all_suites, get_suiteinfo_for_suite
+    # FIXME: Don't hardcode the "master" repository here, fully implement
+    # the "multiple repositories" feature
+    repo_name = 'master'
 
-    bconf = create_native_baseconfig()
+    repo = session.query(ArchiveRepository) \
+        .filter(ArchiveRepository.name == repo_name).one()
 
     scan_suites = []
     if suite_name:
         # we only scan a specific suite
         suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.name == suite_name).one()
-        scan_suites = [get_suiteinfo_for_suite(suite)]
+                       .filter(ArchiveSuite.name == suite_name).one()
+        scan_suites = [suite]
     else:
-        scan_suites = get_suiteinfo_all_suites()
+        scan_suites = session.query(ArchiveSuite) \
+                             .filter(ArchiveSuite.frozen == False) \
+                             .all()  # noqa: E712
 
-    return Debcheck(bconf), scan_suites
-
-
-def _native_issue_to_package_issue(m):
-    mpi = PackageIssue()
-
-    mpi.package_type = m.packageKind
-    mpi.package_name = m.packageName
-    mpi.packageVersion = m.packageVersion
-    mpi.architecture = m.architecture
-
-    mpi.depends = m.depends
-    mpi.unsat_dependency = m.unsatDependency
-    mpi.unsat_conflict = m.unsatConflict
-
-    return mpi
+    return Debcheck(repo), repo, scan_suites
 
 
-def _update_debcheck_issues(session, repo, si, new_issues, package_type):
-
-    suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.name == si.name).one()
+def _update_debcheck_issues(session, repo, suite, new_issues, package_type):
 
     # remove old entries
+    for issue in new_issues:
+        session.expunge(issue)
     session.query(DebcheckIssue) \
         .filter(DebcheckIssue.package_type == package_type) \
         .filter(DebcheckIssue.repo_id == repo.id) \
         .filter(DebcheckIssue.suite_id == suite.id).delete()
 
     # add new entries
-    for ni in new_issues:
-        issue = DebcheckIssue()
-        #issue.time = ni.date # FIXME: crashes in PyD at the moment # noqa
-
-        issue.package_type = ni.packageKind
-        issue.repo = repo
-        issue.suite = suite
-        issue.architectures = str(ni.architecture).split(',')
-
-        issue.package_name = ni.packageName
-        issue.package_version = ni.packageVersion
-
-        missing = list()
-        for m in ni.missing:
-            missing.append(_native_issue_to_package_issue(m))
-        issue.missing = missing
-
-        conflicts = list()
-        for c in ni.conflicts:
-            pc = PackageConflict()
-            pc.pkg1 = _native_issue_to_package_issue(c.pkg1)
-            pc.pkg2 = _native_issue_to_package_issue(c.pkg2)
-
-            pc.depchain1 = [_native_issue_to_package_issue(npi) for npi in c.depchain1]
-            pc.depchain2 = [_native_issue_to_package_issue(npi) for npi in c.depchain2]
-            conflicts.append(pc)
-        issue.conflicts = conflicts
-
+    for issue in new_issues:
+        issue.package_type = package_type
         session.add(issue)
 
     # make the result persistent
@@ -112,35 +75,23 @@ def _update_debcheck_issues(session, repo, si, new_issues, package_type):
 def command_sources(options):
     ''' Check source packages '''
 
-    session = session_factory()
-    debcheck, scan_suites = _create_debcheck(session, options.suite)
+    with session_scope() as session:
+        debcheck, repo, scan_suites = _create_debcheck(session, options.suite)
 
-    # FIXME: Don't hardcode the "master" repository here, fully implement
-    # the "multiple repositories" feature
-    repo_name = 'master'
-    repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name == repo_name).one()
-
-    for si in scan_suites:
-        ret, issues = debcheck.getBuildDepCheckIssues(si)
-        _update_debcheck_issues(session, repo, si, issues, PackageType.SOURCE)
+        for suite in scan_suites:
+            issues = debcheck.build_depcheck_issues(suite)
+            _update_debcheck_issues(session, repo, suite, issues, PackageType.SOURCE)
 
 
 def command_binaries(options):
     ''' Check binary packages '''
 
-    session = session_factory()
-    debcheck, scan_suites = _create_debcheck(session, options.suite)
+    with session_scope() as session:
+        debcheck, repo, scan_suites = _create_debcheck(session, options.suite)
 
-    # FIXME: Don't hardcode the "master" repository here, fully implement
-    # the "multiple repositories" feature
-    repo_name = 'master'
-    repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name == repo_name).one()
-
-    for si in scan_suites:
-        ret, issues = debcheck.getDepCheckIssues(si)
-        _update_debcheck_issues(session, repo, si, issues, PackageType.BINARY)
+        for suite in scan_suites:
+            issues = debcheck.depcheck_issues(suite)
+            _update_debcheck_issues(session, repo, suite, issues, PackageType.BINARY)
 
 
 def create_parser(formatter_class=None):
