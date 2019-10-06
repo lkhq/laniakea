@@ -40,6 +40,7 @@ from gi.repository import AppStream
 
 
 def _register_binary_packages(session, repo, suite, component, arch, existing_bpkgs, bpkgs):
+    import sqlalchemy as sa
 
     for bpkg in bpkgs:
         e_suites = existing_bpkgs.pop(bpkg.uuid, None)
@@ -47,11 +48,15 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
             session.expunge(bpkg)
             if suite.id in e_suites:
                 continue  # the binary package is already registered with this suite
-            db_bpkg = session.query(BinaryPackage) \
-                             .options(joinedload(BinaryPackage.suites)) \
-                             .filter(BinaryPackage.uuid == bpkg.uuid).one()
-            db_bpkg.suites.append(suite)
-            e_suites.append(suite.id)
+            be_q = session.query(BinaryPackage) \
+                          .options(joinedload(BinaryPackage.suites)) \
+                          .filter(BinaryPackage.uuid == bpkg.uuid) \
+                          .exists()
+            # sanity check
+            if session.query(be_q).scalar():
+                session.execute(sa.insert(binpkg_suite_assoc_table,
+                                          {'suite_id': suite.id, 'bin_package_uuid': bpkg.uuid}))
+                e_suites.append(suite.id)
             continue
 
         session.add(bpkg)
