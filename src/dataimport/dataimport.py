@@ -51,6 +51,7 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
                              .options(joinedload(BinaryPackage.suites)) \
                              .filter(BinaryPackage.uuid == bpkg.uuid).one()
             db_bpkg.suites.append(suite)
+            e_suites.append(suite.id)
             continue
 
         session.add(bpkg)
