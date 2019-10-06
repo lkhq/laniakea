@@ -75,7 +75,7 @@ def import_appstream_data(session, local_repo, repo, suite, component, arch):
     if not yaml_fname:
         return
 
-    cidmap_fname = local_repo.index_file(suite, os.path.join(component.name, 'dep11', 'CID-Index-{}.json.gz'.format(arch.name)))
+    cidmap_fname = local_repo.index_file(suite, os.path.join(component.name, 'dep11', 'CID-Index-{}.json.gz'.format(arch.name)), check=False)
     if not cidmap_fname:
         return
 
@@ -250,7 +250,6 @@ def import_suite_packages(suite_name):
                                                        local_repo.binary_packages(suite,
                                                                                   component,
                                                                                   arch))
-            session.commit()
 
             # add information about debian-installer packages
             existing_bpkgs = _register_binary_packages(session,

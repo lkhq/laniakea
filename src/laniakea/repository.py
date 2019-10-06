@@ -204,7 +204,7 @@ class Repository:
         self._inrelease[suite_name] = ird
         return ird
 
-    def index_file(self, suite, fname):
+    def index_file(self, suite, fname, check=True):
         '''
         Retrieve a package list (index) file from the repository.
         The file will be downloaded if necessary:
@@ -232,7 +232,7 @@ class Repository:
                     raise Exception('Checksum validation of "{}" failed ({} != {})'.format(fname, index_sha256sum, af.sha256sum))
                 valid = True
 
-        if not valid:
+        if not valid and check:
             raise Exception('Unable to validate "{}": File not mentioned in InRelease.'.format(fname))
 
         return index_fname
