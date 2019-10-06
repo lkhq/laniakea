@@ -141,9 +141,9 @@ public:
 
             if (yentry.containsKey ("policy_info")) {
                 auto ypolicy = yentry["policy_info"];
-                if (yentry.containsKey ("age")) {
-                    excuse.age.currentAge = ypolicy["age"]["current-age"].as!uint;
-                    excuse.age.requiredAge = ypolicy["age"]["age-requirement"].as!uint;
+                if (ypolicy.containsKey ("age")) {
+                    excuse.age.currentAge = ypolicy["age"]["current-age"].as!int;
+                    excuse.age.requiredAge = ypolicy["age"]["age-requirement"].as!int;
                 }
             }
 
