@@ -19,7 +19,7 @@
 
 import os
 from apt_pkg import TagFile, TagSection, sha256sum, version_compare
-from laniakea.utils import is_remote_url, download_file, split_ignore_empty
+from laniakea.utils import is_remote_url, download_file, split_strip
 from laniakea.utils.gpg import SignedFile
 from laniakea.localconfig import LocalConfig
 from laniakea.db import ArchiveFile, SourcePackage, BinaryPackage, PackageInfo, DebType, \
@@ -31,7 +31,7 @@ from laniakea.logging import log
 def parse_checksums_list(data, base_dir=None):
     files = []
     for line in data.split('\n'):
-        parts = split_ignore_empty(line, ' ')  # f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955 2455 0ad_0.0.20-1.dsc
+        parts = split_strip(line, ' ')  # f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955 2455 0ad_0.0.20-1.dsc
         if len(parts) != 3:
             continue
 
@@ -58,7 +58,7 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
     res = []
 
     for line in pkg_list_raw.split('\n'):
-        parts = split_ignore_empty(line, ' ')
+        parts = split_strip(line, ' ')
         if len(parts) < 4:
             continue
 
@@ -71,7 +71,7 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
 
         if len(parts) > 4:
             # we have additional data
-            raw_vals = parts[4].split(' ')
+            raw_vals = split_strip(parts[4], ' ')
             for v in raw_vals:
                 if v.startswith('arch='):
                     # handle architectures
@@ -161,7 +161,7 @@ class Repository:
         Get a file from the repository.
         Returns: An absolute path to the repository file.
         '''
-        assert type(afile) == ArchiveFile
+        assert type(afile) is ArchiveFile
 
         fname = self._fetch_repo_file_internal(afile.fname)
         if check:
@@ -235,8 +235,8 @@ class Repository:
 
     def source_packages(self, suite, component):
         ''' Return a list of all source packages in the given suite and component. '''
-        assert type(suite) == ArchiveSuite
-        assert type(component) == ArchiveComponent
+        assert type(suite) is ArchiveSuite
+        assert type(component) is ArchiveComponent
 
         index_fname = self.index_file(suite.name, os.path.join(component.name, 'source', 'Sources.xz'))
         if not index_fname:
@@ -259,16 +259,16 @@ class Repository:
                     pkg.suites.append(suite)
 
                 pkg.version = pkgversion
-                pkg.architectures = e['Architecture'].split(' ')
+                pkg.architectures = split_strip(e['Architecture'], ' ')
                 pkg.standards_version = e['Standards-Version']
                 pkg.format_version = e['Format']
 
                 pkg.vcs_browser = e.get('Vcs-Browser')
                 pkg.homepage = e.get('Homepage')
                 pkg.maintainer = e['Maintainer']
-                pkg.uploaders = [s.strip() for s in e.get('Uploaders', '').split(',')]  # FIXME: Careful! Splitting just by comma isn't enough! We need to parse this properly.
+                pkg.uploaders = split_strip(e.get('Uploaders', ''), ',')  # FIXME: Careful! Splitting just by comma isn't enough! We need to parse this properly.
 
-                pkg.build = [s.strip() for s in e.get('Build-Depends', '').split(',')]
+                pkg.build_depends = split_strip(e.get('Build-Depends', ''), ',')
                 pkg.directory = e['Directory']
 
                 pkg.files = parse_checksums_list(e['Checksums-Sha256'], pkg.directory)
@@ -276,14 +276,18 @@ class Repository:
                 binaries = []
                 raw_pkg_list = e.get('Package-List', None)
                 if not raw_pkg_list:
-                    for bpname in [s.strip() for s in e.get('Binary', '').split(',')]:
+                    for bpname in e.get('Binary', '').split(','):
+                        if not bpname:
+                            continue
+                        bpname = bpname.strip()
                         pi = PackageInfo()
                         pi.deb_type = DebType.DEB
                         pi.name = bpname
                         pi.ver = pkg.version
                         binaries.append(pi)
                 else:
-                    pkg.binaries = parse_package_list_str(raw_pkg_list, pkg.version)
+                    binaries = parse_package_list_str(raw_pkg_list, pkg.version)
+                pkg.binaries = binaries
 
                 # do some issue-reporting
                 if not pkg.files and pkg.format_version != '1.0':
@@ -340,8 +344,8 @@ class Repository:
 
             pkg.size_installed = int(e.get('Installed-Size', '0'))
 
-            pkg.depends = [s.strip() for s in e.get('Depends', '').split(',')]
-            pkg.pre_depends = [s.strip() for s in e.get('Pre-Depends', '').split(',')]
+            pkg.depends = split_strip(e.get('Depends', ''), ',')
+            pkg.pre_depends = split_strip(e.get('Pre-Depends', ''), ',')
 
             pkg.homepage = e.get('Homepage')
             pkg.section = e['Section']
@@ -376,9 +380,9 @@ class Repository:
         component and architecture.
         '''
 
-        assert type(suite) == ArchiveSuite
-        assert type(component) == ArchiveComponent
-        assert type(arch) == ArchiveArchitecture
+        assert type(suite) is ArchiveSuite
+        assert type(component) is ArchiveComponent
+        assert type(arch) is ArchiveArchitecture
 
         index_fname = self.index_file(suite.name, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz'))
         if not index_fname:
@@ -400,9 +404,9 @@ class Repository:
         be installed on an user's system.
         '''
 
-        assert type(suite) == ArchiveSuite
-        assert type(component) == ArchiveComponent
-        assert type(arch) == ArchiveArchitecture
+        assert type(suite) is ArchiveSuite
+        assert type(component) is ArchiveComponent
+        assert type(arch) is ArchiveArchitecture
 
         index_fname = self.index_file(suite.name, os.path.join(component.name, 'debian-installer', 'binary-{}'.format(arch.name), 'Packages.xz'))
         if not index_fname:

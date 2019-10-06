@@ -98,10 +98,10 @@ def download_file(url, fname, check=False, headers={}, **kwargs):
     return r.status_code
 
 
-def split_ignore_empty(s, sep):
-    ''' Split a string, removing empty segments from the result '''
+def split_strip(s, sep):
+    ''' Split a string, removing empty segments from the result and stripping the individual parts '''
     res = []
     for part in s.split(sep):
         if part:
-            res.append(part)
+            res.append(part.strip())
     return res

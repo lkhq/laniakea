@@ -341,8 +341,12 @@ class SourcePackage(Base):
     files = relationship('ArchiveFile', back_populates='srcpkg', cascade='all, delete, delete-orphan')
     directory = Column(Text())
 
+    _binaries = None
+
     @property
     def binaries(self):
+        if self._binaries:
+            return self._binaries
         data = json.loads(self._binaries_json)
         res = []
         for e in data:
@@ -352,9 +356,10 @@ class SourcePackage(Base):
             info.version = e.get('version')
             info.section = e.get('section')
             info.priority = e.get('priority', PackagePriority.UNKNOWN)
-            info.section = e.get('architectures')
+            info.architectures = e.get('architectures')
             res.append(info)
-        return info
+        self._binaries = res
+        return res
 
     @binaries.setter
     def binaries(self, value):
@@ -368,9 +373,10 @@ class SourcePackage(Base):
                  'version': v.version,
                  'section': v.section,
                  'priority': v.priority,
-                 'architectures': v.section}
+                 'architectures': v.architectures}
             data.append(d)
         self._binaries_json = json.dumps(data)
+        self._binaries = None  # Force the data to be re-loaded from JSON
 
     @staticmethod
     def generate_uuid(repo_name, name, version):
