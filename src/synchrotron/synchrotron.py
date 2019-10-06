@@ -175,26 +175,55 @@ def command_autosync(options):
                 sys.exit(2)
                 return
 
+            existing_sync_issues = {}
             for ssuite in sconf.source.suites:
-                session.query(SynchrotronIssue) \
-                    .filter(SynchrotronIssue.source_suite == ssuite.name,
-                            SynchrotronIssue.target_suite == incoming_suite.name,
-                            SynchrotronIssue.config_id == autosync.id) \
-                    .delete()
+                all_issues = session.query(SynchrotronIssue) \
+                                    .filter(SynchrotronIssue.source_suite == ssuite.name,
+                                            SynchrotronIssue.target_suite == incoming_suite.name,
+                                            SynchrotronIssue.config_id == autosync.id) \
+                                    .all()
+                for eissue in all_issues:
+                    eid = '{}-{}-{}:{}'.format(eissue.package_name, eissue.source_version, eissue.target_version, str(eissue.kind))
+                    existing_sync_issues[eid] = eissue
 
             for info in issue_data:
-                issue = SynchrotronIssue()
-                issue.config = autosync
-                issue.kind = SynchrotronIssueKind(info.kind)
-                issue.package_name = info.packageName
+                issue_kind = SynchrotronIssueKind(info.kind)
+                eid = '{}-{}-{}:{}'.format(info.packageName, info.sourceVersion, info.targetVersion, str(issue_kind))
+                issue = existing_sync_issues.pop(eid, None)
+                if issue:
+                    # the issue already exists, so we just update it
+                    new_issue = False
+                else:
+                    new_issue = True
+                    issue = SynchrotronIssue()
+                    issue.config = autosync
+                    issue.package_name = info.packageName
+                    issue.source_version = info.sourceVersion
+                    issue.target_version = info.targetVersion
+                    issue.kind = issue_kind
+
                 issue.source_suite = info.sourceSuite
                 issue.target_suite = info.targetSuite
-                issue.source_version = info.sourceVersion
-                issue.target_version = info.targetVersion
-                issue.details = info.details
-                session.add(issue)
 
-                data = {'name': issue.package_name,
+                issue.details = info.details
+
+                if new_issue:
+                    session.add(issue)
+
+                    data = {'name': issue.package_name,
+                            'src_os': autosync.source.os_name,
+                            'src_suite': issue.source_suite,
+                            'dest_suite': issue.target_suite,
+                            'src_version': issue.source_version,
+                            'dest_version': issue.target_version,
+                            'kind': str(issue.kind)}
+
+                    emitter.submit_event('new-autosync-issue', data)
+
+            for eissue in existing_sync_issues.values():
+                session.delete(eissue)
+
+                data = {'name': eissue.package_name,
                         'src_os': autosync.source.os_name,
                         'src_suite': issue.source_suite,
                         'dest_suite': issue.target_suite,
@@ -202,7 +231,7 @@ def command_autosync(options):
                         'dest_version': issue.target_version,
                         'kind': str(issue.kind)}
 
-                emitter.submit_event('autosync-issue', data)
+                emitter.submit_event('resolved-autosync-issue', data)
 
 
 def create_parser(formatter_class=None):
