@@ -48,15 +48,9 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
             session.expunge(bpkg)
             if suite.id in e_suites:
                 continue  # the binary package is already registered with this suite
-            be_q = session.query(BinaryPackage) \
-                          .options(joinedload(BinaryPackage.suites)) \
-                          .filter(BinaryPackage.uuid == bpkg.uuid) \
-                          .exists()
-            # sanity check
-            if session.query(be_q).scalar():
-                session.execute(sa.insert(binpkg_suite_assoc_table,
-                                          {'suite_id': suite.id, 'bin_package_uuid': bpkg.uuid}))
-                e_suites.append(suite.id)
+            session.execute(sa.insert(binpkg_suite_assoc_table,
+                                      {'suite_id': suite.id, 'bin_package_uuid': bpkg.uuid}))
+            e_suites.append(suite.id)
             continue
 
         session.add(bpkg)
