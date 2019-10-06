@@ -98,7 +98,7 @@
         <h4>Versions</h4>
         <div class="list-group">
         {% for vpkg in pkgs_all %}
-          <a class="list-group-item" href="{{ vpkg.pkg_file.make_url(config.ARCHIVE_URL) }}">{{vpkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{vpkg.architecture.name}}</span></a>
+          <a class="list-group-item" href="{{ vpkg.bin_file.make_url(config.ARCHIVE_URL) }}">{{vpkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{vpkg.architecture.name}}</span></a>
         {% endfor %}
         </div>
     </div>
