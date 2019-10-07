@@ -73,10 +73,10 @@ message_templates = {'_lk.job.package-build-success':
                      '_lk.isotope.build-job-added':
                      '''Created image build job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> on <code>{architecture}</code> for "{name}" ({os}/{suite} of flavor {flavor})''',
 
-                     '_lk.archive.new-source-package':
-                     '''Source package <b>{name}</b> {version} ({component}) is <font color="#27ae60">available</font> in the archive, published in suites <em>{suites_str}</em>.''',
+                     '_lk.archive.source-package-published':
+                     '''Source package <b>{name}</b> {version} ({component}) was <font color="#27ae60">published</font> in the archive, available in suites <em>{suites_str}</em>.''',
 
-                     '_lk.archive.source-package-suite-added':
+                     '_lk.archive.source-package-published-in-suite':
                      '''Source package <b>{name}</b> {version} was <font color="#27ae60">added</font> to suite <em>{new_suite} ({component})</em>.''',
 
                      '_lk.archive.source-package-suite-removed':
@@ -114,7 +114,7 @@ class MatrixPublisher:
             tag = tag + ':forced'
         if data.get('job_failed'):
             tag = tag + ':failed'
-        if tag == '_lk.archive.new-source-package':
+        if tag == '_lk.archive.source-package-published':
             data['suites_str'] = ', '.join(data['suites'])
         elif tag == '_lk.spears.new-excuse' or tag == '_lk.spears.excuse-removed':
             if data['version_new'] == '-':

@@ -226,11 +226,11 @@ def import_suite_packages(suite_name):
                 if suite in db_spkg.suites:
                     continue  # the source package is already registered with this suite
                 db_spkg.suites.append(suite)
-                _emit_package_event(emitter, 'source-package-suite-added', spkg, {'new_suite': suite.name})
+                _emit_package_event(emitter, 'source-package-published-in-suite', spkg, {'new_suite': suite.name})
                 continue
 
             session.add(spkg)
-            _emit_package_event(emitter, 'new-source-package', spkg)
+            _emit_package_event(emitter, 'source-package-published', spkg)
 
         for old_spkg in existing_spkgs.values():
             if suite in old_spkg.suites:
