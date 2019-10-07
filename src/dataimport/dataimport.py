@@ -235,12 +235,12 @@ def import_suite_packages(suite_name):
         for old_spkg in existing_spkgs.values():
             if suite in old_spkg.suites:
                 old_spkg.suites.remove(suite)
-                _emit_package_event(emitter, 'source-package-suite-removed', spkg, {'old_suite': suite.name})
+                _emit_package_event(emitter, 'source-package-suite-removed', old_spkg, {'old_suite': suite.name})
             if len(old_spkg.suites) <= 0:
                 for f in old_spkg.files:
                     session.delete(f)
                 session.delete(old_spkg)
-                _emit_package_event(emitter, 'removed-source-package', spkg)
+                _emit_package_event(emitter, 'removed-source-package', old_spkg)
 
         # commit the source package changes already
         session.commit()
