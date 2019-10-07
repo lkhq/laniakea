@@ -74,16 +74,16 @@ message_templates = {'_lk.job.package-build-success':
                      '''Created image build job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> on <code>{architecture}</code> for "{name}" ({os}/{suite} of flavor {flavor})''',
 
                      '_lk.archive.new-source-package':
-                     '''Source package <b>{name}</b> {version} <small>[{component}]</small> is <font color="#27ae60">available</font> in the archive, published in suites <em>{suites_str}</em>.''',
+                     '''Source package <b>{name}</b> {version} ({component}) is <font color="#27ae60">available</font> in the archive, published in suites <em>{suites_str}</em>.''',
 
                      '_lk.archive.source-package-suite-added':
-                     '''Source package <b>{name}</b> {version} was <font color="#27ae60">added</font> to suite <em>{new_suite}/{component}</em>.''',
+                     '''Source package <b>{name}</b> {version} was <font color="#27ae60">added</font> to suite <em>{new_suite} ({component})</em>.''',
 
                      '_lk.archive.source-package-suite-removed':
-                     '''Source package <b>{name}</b> {version} was <font color="#da4453">removed</font> from suite <em>{old_suite}/{component}</em>.''',
+                     '''Source package <b>{name}</b> {version} was <font color="#da4453">removed</font> from suite <em>{old_suite} ({component})</em>.''',
 
                      '_lk.archive.removed-source-package':
-                     '''Package <b>{name}</b> {version} <small>[{component}]</small> was <font color="#da4453">removed</font> from the archive.''',
+                     '''Package <b>{name}</b> {version} ({component}) was <font color="#da4453">removed</font> from the archive.''',
 
                      '_lk.spears.new-excuse':
                      '''Package <b>{source_package}</b> {version_new} was <font color="#da4453">blocked</font> from its <em>{suite_source}</em> → <em>{suite_target}</em> migration. Version in target is: {version_old}
