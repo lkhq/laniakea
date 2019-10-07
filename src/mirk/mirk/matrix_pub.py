@@ -90,8 +90,8 @@ message_templates = {'_lk.job.package-build-success':
                      <a href="{webview_url}/migrations/excuse/{uuid}">Details</a>''',
 
                      '_lk.spears.excuse-removed':
-                     '''Migration excuse for package <b>{source_package}</b> was <font color="#27ae60">invalidated</font>. The package can migrate now from <em>{suite_source}</em> → <em>{suite_target}</em>.
-                     New version is: <code>{version_new}</code> - Previous version in target was: <code>{version_old}</code>''',
+                     '''Migration excuse for package <b>{source_package}</b> {version_new} was <font color="#27ae60">invalidated</font>. The package can migrate now from <em>{suite_source}</em> → <em>{suite_target}</em>.
+                     Previous version in target was: <code>{version_old}</code>''',
 
                      }
 
@@ -116,6 +116,10 @@ class MatrixPublisher:
             tag = tag + ':failed'
         if tag == '_lk.archive.new-source-package':
             data['suites_str'] = ', '.join(data['suites'])
+        elif tag == '_lk.spears.new-excuse' or tag == '_lk.spears.excuse-removed':
+            if data['version_new'] == '-':
+                data['version_new'] = '(<font color="#da4453">removal</font>)'
+
         text = ''
         templ = message_templates.get(tag)
         if templ:
