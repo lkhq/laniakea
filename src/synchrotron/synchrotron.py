@@ -225,11 +225,11 @@ def command_autosync(options):
 
                 data = {'name': eissue.package_name,
                         'src_os': autosync.source.os_name,
-                        'src_suite': issue.source_suite,
-                        'dest_suite': issue.target_suite,
-                        'src_version': issue.source_version,
-                        'dest_version': issue.target_version,
-                        'kind': str(issue.kind)}
+                        'src_suite': eissue.source_suite,
+                        'dest_suite': eissue.target_suite,
+                        'src_version': eissue.source_version,
+                        'dest_version': eissue.target_version,
+                        'kind': str(eissue.kind)}
 
                 emitter.submit_event('resolved-autosync-issue', data)
 
