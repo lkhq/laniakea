@@ -34,17 +34,17 @@ message_templates = {'_lk.job.package-build-success':
                      'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> has <font color="#da4453">failed</font>.',
 
                      '_lk.synchrotron.src-package-imported':
-                     'Imported package <b>{name}</b> from {src_os} <em>{src_suite}</em> to <em>{dest_suite}</em>, new version is <code>{version}</code>.',
+                     'Imported package <b>{name}</b> from {src_os} <em>{src_suite}</em> → <em>{dest_suite}</em>, new version is <code>{version}</code>.',
 
                      '_lk.synchrotron.src-package-imported:forced':
-                     'Enforced import of package <b>{name}</b> from {src_os} <em>{src_suite}</em> to <em>{dest_suite}</em>, new version is <code>{version}</code>.',
+                     'Enforced import of package <b>{name}</b> from {src_os} <em>{src_suite}</em> → <em>{dest_suite}</em>, new version is <code>{version}</code>.',
 
                      '_lk.synchrotron.new-autosync-issue':
-                     '''New automatic synchronization issue for <font color="#da4453"><b>{name}</b></font> from {src_os} <em>{src_suite}</em> to <em>{dest_suite}</em>
+                     '''New automatic synchronization issue for <font color="#da4453"><b>{name}</b></font> from {src_os} <em>{src_suite}</em> → <em>{dest_suite}</em>
                      (source: <code>{src_version}</code>, destination: <code>{dest_version}</code>). Type: {kind}''',
 
                      '_lk.synchrotron.resolved-autosync-issue':
-                     '''The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{src_suite}</em> to <em>{dest_suite}</em> was <font color="#27ae60">resolved</font>.''',
+                     '''The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{src_suite}</em> → <em>{dest_suite}</em> was <font color="#27ae60">resolved</font>.''',
 
                      '_lk.jobs.job-assigned':
                      '''Assigned {job_kind} job <a href="{webview_url}/jobs/job/{job_id}">{job_id}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
