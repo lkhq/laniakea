@@ -149,10 +149,11 @@ class JobWorker:
             jdata['suite'] = suite_target_name
             jdata['dsc_url'] = None
 
-            # handle arch-indep builds
-            jdata['do_indep'] = False
-            if job.architecture == self._arch_indep_affinity or job.architecture == 'all':
-                jdata['do_indep'] = True
+            # determine if we should do arch-indep builds, if that's not already enforced
+            jdata['do_indep'] = job.data.get('do_indep', False)
+            if not jdata['do_indep']:
+                if job.architecture == self._arch_indep_affinity or job.architecture == 'all':
+                    jdata['do_indep'] = True
 
             # for arch:all jobs, we cheat and set the arch affinity as the actual architecture this job will be running on,
             # since nothing can be built on an arch:all chroot

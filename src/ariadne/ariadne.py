@@ -28,7 +28,7 @@ import logging as log
 from argparse import ArgumentParser
 from laniakea import LkModule
 from laniakea.utils import any_arch_matches
-from laniakea.db import session_factory, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
+from laniakea.db import session_factory, config_get_value, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
     DebcheckIssue, PackageType, Job, JobStatus, JobKind
 from sqlalchemy.orm import undefer
 
@@ -86,20 +86,24 @@ def debcheck_has_issues_for_package(session, suite, spkg, arch):
     return session.query(eq).scalar()
 
 
-def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=False):
+def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, *, enforce_indep=False, arch_all=None, simulate=False):
     '''
     Schedule a job for the given architecture, if the
     package can be built on it and no prior job was scheduled.
     '''
 
-    # check if we can build the package on the current architecture
-    if not any_arch_matches(arch.name, spkg.architectures):
-        return False
-
     # check if this package has binaries installed already, in that case we don't
     # need a rebuild.
     if binaries_exist_for_package(session, repo, spkg, arch):
         return False
+
+    if enforce_indep:
+        assert arch_all  # we need to know the entity of arch:all here, not supplying it is a bug
+        # we were requested to inforce arch-independent package built on a non-affinity architecture.
+        # we have to verify that and check if something hasn't already built arch:all packages in a
+        # previous run (or via a package sync) and revise that enforcement hint in such a case.
+        if binaries_exist_for_package(session, repo, spkg, arch_all):
+            enforce_indep = False
 
     # we have no binaries, looks like we might need to schedule a build job
     #
@@ -150,7 +154,12 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate=
         job.version = spkg.version
         job.architecture = arch.name
         job.trigger = spkg.source_uuid
-        job.data = {'suite': incoming_suite.name}
+
+        data = {'suite': incoming_suite.name}
+        if enforce_indep:
+            data['do_indep'] = True  # enforce arch:all build, no matter what Lighthouse thinks
+        job.data = data
+
         if has_dependency_issues:
             job.status = JobStatus.DEPWAIT
         session.add(job)
@@ -194,6 +203,9 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
 
     session = session_factory()
 
+    # where to build pure arch:all packages?
+    arch_indep_affinity = config_get_value(LkModule.ARIADNE, 'indep_arch_affinity')
+
     repo = session.query(ArchiveRepository) \
         .filter(ArchiveRepository.name == repo_name).one()
     incoming_suite = session.query(ArchiveSuite) \
@@ -228,7 +240,11 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
             if limit_architecture and limit_architecture != 'all':
                 continue  # Skip, we are not scheduling builds for arch:all
 
-            if schedule_build_for_arch(session, repo, spkg, arch_all, incoming_suite, simulate):
+            # check if we can build the package on the current architecture
+            if not any_arch_matches(arch_all.name, spkg.architectures):
+                continue
+
+            if schedule_build_for_arch(session, repo, spkg, arch_all, incoming_suite, simulate=simulate):
                 scheduled_count += 1
 
             if limit_count > 0 and scheduled_count >= limit_count:
@@ -237,6 +253,7 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
             continue
 
         # deal with all other architectures
+        build_for_archs = []
         for arch in incoming_suite.architectures:
             # The pseudo-architecture arch:all is treated specially
             if arch.name == 'all':
@@ -245,7 +262,31 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
             if limit_architecture and limit_architecture != arch.name:
                 continue  # Skip, we are not scheduling builds for this architecture
 
-            if schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, simulate):
+            # check if we can build the package on the current architecture
+            if any_arch_matches(arch.name, spkg.architectures):
+                build_for_archs.append(arch)
+
+        force_indep = False
+        if len(build_for_archs) == 1 and 'all' in spkg.architectures and build_for_archs[0].name != arch_indep_affinity:
+            # if we only build for one non-all architecture, and that is not already
+            # our arch-indep affinity (in which case the arch:all packages would be built regardless), then we
+            # need to add a marker to enforce a built of arch-independent packages on a non-affinity architecture
+            # The shedule function will take care to see if binaries for all already exist in that case
+            #
+            # NOTE: We intentionally ignore the case where a package has an architecture restriction like "all bar baz" where we only
+            # can build arch:foo - presumably building this package won't be useful, if we only can use the arch:all parts of a package
+            # that's not for us in every other regard.
+            force_indep = True
+
+        for arch in build_for_archs:
+            if schedule_build_for_arch(session,
+                                       repo,
+                                       spkg,
+                                       arch,
+                                       incoming_suite,
+                                       enforce_indep=force_indep,
+                                       arch_all=arch_all,
+                                       simulate=simulate):
                 scheduled_count += 1
 
             if limit_count > 0 and scheduled_count >= limit_count:
