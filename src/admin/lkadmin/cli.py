@@ -55,6 +55,9 @@ def create_parser(formatter_class=None):
     import lkadmin.core as core
     core.add_cli_parser(subparsers)
 
+    import lkadmin.job as job
+    job.add_cli_parser(subparsers)
+
     import lkadmin.synchrotron as synchrotron
     synchrotron.add_cli_parser(subparsers)
 
