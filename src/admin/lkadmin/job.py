@@ -54,6 +54,8 @@ def job_retry(options):
         job.time_finished = None
         job.latest_log_excerpt = None
 
+        print_note('Job {}/{}::{} was rescheduled.'.format(str(job.module), str(job.kind), str(job.uuid)))
+
 
 def module_job_init(options):
     ''' Modify Laniakea Jobs '''
