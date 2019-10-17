@@ -301,6 +301,7 @@ public:
     private void createFauxPackages (string miWorkspace, SuiteInfo[] sourceSuites, SuiteInfo targetSuite)
     {
         import std.stdio : File;
+        import lknative.repository : Repository;
 
         // we don't support more than one source suite for this feature at the moment
         if (sourceSuites.length > 1) {
@@ -316,9 +317,26 @@ public:
             return;
         }
 
+        bool[string] existingPackageMap;
+        logDebug ("Creating index of valid packages that do not need a faux package.");
+        // we need repository information to only generate faux packages if a package doesn't exist
+        // in our source suite(s) already
+        auto repo = new Repository (baseConf.archive.rootPath,
+                                    baseConf.cacheDir,
+                                    "master"); // FIXME: Use the correct repo vendor name here?
+        repo.setTrusted (true);
+
+        foreach (suite; sourceSuites) {
+            foreach (component; suite.components) {
+                foreach (spkg; repo.getSourcePackages (suite.name, component))
+                    existingPackageMap[spkg.name] = true;
+            }
+        }
+
         immutable archiveRootPath = baseConf.archive.rootPath;
         immutable fauxPkgFname = buildPath (miWorkspace, "input", "faux-packages");
 
+        logDebug ("Generating faux packages list");
         string[string] fauxPkgData;
         foreach (ref component; targetSuite.parent.components) {
             import std.path : dirName;
@@ -344,6 +362,8 @@ public:
                     immutable pkgarch = tf.readField ("Architecture");
                     immutable id = "%s-%s-%s".format (pkgname, pkgversion, pkgarch);
                     if (id in fauxPkgData)
+                        continue;
+                    if (pkgname in existingPackageMap)
                         continue;
                     immutable provides = tf.readField ("Provides", "");
 
