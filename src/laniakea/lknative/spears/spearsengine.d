@@ -317,7 +317,7 @@ public:
             return;
         }
 
-        bool[string] existingPackageMap;
+        bool[string] existingPackageSet;
         logDebug ("Creating index of valid packages that do not need a faux package.");
         // we need repository information to only generate faux packages if a package doesn't exist
         // in our source suite(s) already
@@ -328,8 +328,13 @@ public:
 
         foreach (suite; sourceSuites) {
             foreach (component; suite.components) {
-                foreach (spkg; repo.getSourcePackages (suite.name, component))
-                    existingPackageMap[spkg.name] = true;
+                foreach (arch; suite.architectures) {
+                    foreach (bpkg; repo.getBinaryPackages (suite.name, component, arch))
+                        existingPackageSet[bpkg.name] = true;
+
+                    foreach (bpkg; repo.getInstallerPackages (suite.name, component, arch))
+                        existingPackageSet[bpkg.name] = true;
+                }
             }
         }
 
@@ -342,41 +347,44 @@ public:
             import std.path : dirName;
             import std.file : mkdirRecurse, exists;
 
-            foreach (arch; parallel (array (targetSuite.parent.architectures))) {
-                immutable pfile = buildPath (archiveRootPath,
-                                             "dists",
-                                             targetSuite.parent.name,
-                                             component,
-                                             "binary-%s".format (arch), "Packages.xz");
+            foreach (ref installerDir; ["", "debian-installer"]) {
+                foreach (arch; parallel (array (targetSuite.parent.architectures))) {
+                    immutable pfile = buildPath (archiveRootPath,
+                                                "dists",
+                                                targetSuite.parent.name,
+                                                component,
+                                                installerDir,
+                                                "binary-%s".format (arch), "Packages.xz");
 
-                if (!pfile.exists)
-                    continue;
-
-                logDebug ("Reading data for faux packages list: %s", pfile);
-                auto tf = new TagFile;
-                tf.open (pfile);
-
-                do {
-                    immutable pkgname = tf.readField ("Package");
-                    immutable pkgversion = tf.readField ("Version");
-                    immutable pkgarch = tf.readField ("Architecture");
-                    immutable id = "%s-%s-%s".format (pkgname, pkgversion, pkgarch);
-                    if (id in fauxPkgData)
+                    if (!pfile.exists)
                         continue;
-                    if (pkgname in existingPackageMap)
-                        continue;
-                    immutable provides = tf.readField ("Provides", "");
 
-                    auto data = "Package: %s\nVersion: %s".format (pkgname, pkgversion);
-                    if ((!pkgarch.empty) && (pkgarch != "all"))
-                        data ~= "\nArchitecture: %s".format (pkgarch);
-                    if (!provides.empty)
-                        data ~= "\nProvides: %s".format (provides);
-                    if (component != "main")
-                        data ~= "\nComponent: %s".format (component);
+                    logDebug ("Reading data for faux packages list: %s", pfile);
+                    auto tf = new TagFile;
+                    tf.open (pfile);
 
-                    synchronized fauxPkgData[id] = data;
-                } while (tf.nextSection ());
+                    do {
+                        immutable pkgname = tf.readField ("Package");
+                        immutable pkgversion = tf.readField ("Version");
+                        immutable pkgarch = tf.readField ("Architecture");
+                        immutable id = "%s-%s-%s".format (pkgname, pkgversion, pkgarch);
+                        if (id in fauxPkgData)
+                            continue;
+                        if (pkgname in existingPackageSet)
+                            continue;
+                        immutable provides = tf.readField ("Provides", "");
+
+                        auto data = "Package: %s\nVersion: %s".format (pkgname, pkgversion);
+                        if ((!pkgarch.empty) && (pkgarch != "all"))
+                            data ~= "\nArchitecture: %s".format (pkgarch);
+                        if (!provides.empty)
+                            data ~= "\nProvides: %s".format (provides);
+                        if (component != "main")
+                            data ~= "\nComponent: %s".format (component);
+
+                        synchronized fauxPkgData[id] = data;
+                    } while (tf.nextSection ());
+                }
             }
         }
 
