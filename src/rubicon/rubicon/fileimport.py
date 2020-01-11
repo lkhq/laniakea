@@ -81,9 +81,14 @@ def accept_upload(conf, dud, event_emitter):
                 .filter(SourcePackage.version == job.version) \
                 .one_or_none()
             if spkg:
+                suite_target_name = '?'
+                if job.data:
+                    suite_target_name = job.data.get('suite', '?')
+
                 event_data = {'pkgname': spkg.name,
                               'version': job.version,
                               'architecture': job.architecture,
+                              'suite': suite_target_name,
                               'job_id': job_id}
                 if job_success:
                     event_emitter.submit_event_for_tag('_lk.job.package-build-success', event_data)

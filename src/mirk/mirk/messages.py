@@ -68,10 +68,12 @@ def pretty_excuse_change(tag, data):
 
 message_templates = \
     {'_lk.job.package-build-success':
-     'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> was ' + green('successful') + '.',
+     ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> was ' + green('successful') + '. '
+      '<a href="{url_webswview}/package/builds/job/{job_id}">Details</a>'),
 
      '_lk.job.package-build-failed':
-     'Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> has ' + red('failed') + '.',
+     ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> has ' + red('failed') + '. '
+      '<a href="{url_webswview}/package/builds/job/{job_id}">Details</a>'),
 
      '_lk.synchrotron.src-package-imported': pretty_package_imported,
 
