@@ -17,11 +17,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
 import zmq
 import json
 import logging as log
-from laniakea.msgstream import create_event_listen_socket
+from laniakea.msgstream import create_event_listen_socket, verify_event_message, event_message_is_valid_and_signed
 from matrix_client.client import MatrixClient
 from matrix_client.api import MatrixRequestError
 from .config import MirkConfig
@@ -34,10 +35,22 @@ class MatrixPublisher:
     '''
 
     def __init__(self):
+        from glob import glob
+        from laniakea.localconfig import LocalConfig
+        from laniakea.msgstream import keyfile_read_verify_key
+
         self._zctx = zmq.Context()
         self._lhsub_socket = create_event_listen_socket(self._zctx)
         self._mconf = MirkConfig()
         self._mconf.load()
+
+        # Read all the keys that we trust, to verify messages
+        # TODO: Implement auto-reloading of valid keys list if directory changes
+        self._trusted_keys = {}
+        for keyfname in glob(os.path.join(LocalConfig().trusted_curve_keys_dir, '*')):
+            signer_id, verify_key = keyfile_read_verify_key(keyfname)
+            if signer_id and verify_key:
+                self._trusted_keys[signer_id] = verify_key
 
     def _tag_data_to_html_message(self, tag, data):
         ''' Convert the JSON message into a nice HTML string for display. '''
@@ -63,7 +76,34 @@ class MatrixPublisher:
     def _on_event_received(self, event):
         tag = event['tag']
         data = event['data']
-        text = self._tag_data_to_html_message(tag, data)
+
+        signatures = event.get('signatures')
+        signature_trusted = False
+        for signer in signatures.keys():
+            key = self._trusted_keys.get(signer)
+            if not key:
+                continue
+            try:
+                verify_event_message(signer, event, key, assume_valid=True)
+            except Exception as e:
+                log.info('Invalid signature on event ({}): {}'.format(str(e), str(event)))
+                break
+
+            # if we are here, we verified a signature without issues, which means
+            # the message is legit and we can sign it ourselves and publish it
+            signature_trusted = True
+            break
+
+        if signature_trusted:
+            text = self._tag_data_to_html_message(tag, data)
+        else:
+            if self._mconf.allow_unsigned:
+                text = self._tag_data_to_html_message(tag, data)
+                text = '[<font color="#ed1515">VERIFY_FAILED</font>] ' + text
+            else:
+                log.info('Unable to verify signature on event: {}'.format(str(event)))
+                return
+
         self._rooms_publish_text(text)
 
     def _rooms_publish_text(self, text):
@@ -108,6 +148,19 @@ class MatrixPublisher:
 
         while True:
             topic, msg_b = self._lhsub_socket.recv_multipart()
-            # TODO: Validate signature here!
-            event = json.loads(str(msg_b, 'utf-8'))
+            msg_s = str(msg_b, 'utf-8', 'replace')
+
+            try:
+                event = json.loads(msg_s)
+            except json.JSONDecodeError as e:
+                # we ignore invalid requests
+                log.info('Received invalid JSON message: %s (%s)', msg_s if len(msg_s) > 1 else msg_b, str(e))
+                continue
+
+            # check if the message is actually valid and can be processed
+            if not event_message_is_valid_and_signed(event):
+                # we currently just silently ignore invalid submissions, no need to spam
+                # the logs in case some bad actor flood server with spam
+                continue
+
             self._on_event_received(event)

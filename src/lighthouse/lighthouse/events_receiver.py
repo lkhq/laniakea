@@ -65,7 +65,7 @@ class EventsReceiver:
             return
 
         signatures = event.get('signatures')
-        signature_checked = False
+        signature_trusted = False
         for signer in signatures.keys():
             key = self._trusted_keys.get(signer)
             if not key:
@@ -78,9 +78,10 @@ class EventsReceiver:
 
             # if we are here, we verified a signature without issues, which means
             # the message is legit and we can sign it ourselves and publish it
-            signature_checked = True
+            signature_trusted = True
+            break
 
-        if not signature_checked:
+        if not signature_trusted:
             log.info('Unable to verify signature on event: {}'.format(str(event)))
             return
 

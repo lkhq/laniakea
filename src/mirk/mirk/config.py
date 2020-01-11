@@ -62,6 +62,8 @@ class MirkConfig():
         if not self.rooms:
             raise Exception('No "Rooms" entry in mIrk configuration: We need at least one room to join.')
 
+        self.allow_unsigned = jdata.get('AllowUnsigned', False)
+
         self.webview_url = jdata.get('WebViewUrl', '#')
         self.webswview_url = jdata.get('WebSWViewUrl', '#')
 
