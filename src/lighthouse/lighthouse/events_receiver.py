@@ -21,8 +21,10 @@ import os
 import zmq
 import json
 import logging as log
+from laniakea.utils import json_compact_dump
 from zmq.eventloop import ioloop, zmqstream
 from laniakea.msgstream import verify_event_message, event_message_is_valid_and_signed
+from laniakea.msgstream.signedjson import sign_json
 
 
 class EventsReceiver:
@@ -33,8 +35,12 @@ class EventsReceiver:
 
     def __init__(self, endpoint, pub_queue):
         from glob import glob
-        from laniakea.localconfig import LocalConfig
+        from laniakea import LocalConfig, LkModule
         from laniakea.msgstream import keyfile_read_verify_key
+        from laniakea.msgstream.signing import NACL_ED25519, decode_signing_key_base64, \
+            keyfile_read_signing_key
+
+        lconf = LocalConfig()
 
         self._socket = None
         self._ctx = zmq.Context.instance()
@@ -42,13 +48,35 @@ class EventsReceiver:
         self._pub_queue = pub_queue
         self._endpoint = endpoint
 
-        self._trusted_keys = {}
+        # load our own signing key, so we can sign outgoing messages
+        keyfile = lconf.secret_curve_keyfile_for_module(LkModule.LIGHTHOUSE)
 
+        self._signer_id = None
+        self._signing_key = None
+        if os.path.isfile(keyfile):
+            self._signer_id, self._signing_key = keyfile_read_signing_key(keyfile)
+
+        if not self._signing_key:
+            log.warning('Can not sign outgoing messages: No valid signing key found for this module.')
+        else:
+            if type(self._signing_key) is str:
+                self._signing_key = decode_signing_key_base64(NACL_ED25519, self._signing_key)
+
+        # Load all the keys that we trust to receive messages from
         # TODO: Implement auto-reloading of valid keys list if directory changes
-        for keyfname in glob(os.path.join(LocalConfig().trusted_curve_keys_dir, '*')):
+        self._trusted_keys = {}
+        for keyfname in glob(os.path.join(lconf.trusted_curve_keys_dir, '*')):
             signer_id, verify_key = keyfile_read_verify_key(keyfname)
             if signer_id and verify_key:
                 self._trusted_keys[signer_id] = verify_key
+
+    def _sign_message(self, event):
+        ''' Sign an outgoing message, if possible '''
+
+        if not self._signing_key:
+            return event
+
+        return sign_json(event, self._signer_id, self._signing_key)
 
     def _event_message_received(self, socket, msg):
         data = str(msg[1], 'utf-8', 'replace')
@@ -85,9 +113,13 @@ class EventsReceiver:
             log.info('Unable to verify signature on event: {}'.format(str(event)))
             return
 
+        # sign outgoing event, trusted message with our key
+        event = self._sign_message(event)
+        new_data = json_compact_dump(event)
+
         # now publish the event to the world
         self._pub_queue.put([bytes(event['tag'], 'utf-8'),
-                             bytes(data, 'utf-8')])
+                             bytes(new_data, 'utf-8')])
 
     def run(self):
         if self._socket:
