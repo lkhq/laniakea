@@ -188,7 +188,15 @@ class LocalConfig:
             except:  # noqa: E722
                 pass
 
-            return os.path.join(secrets_dir, '{}-{}_private.sec'.format(platform.node(), module))
+            fname = os.path.join(secrets_dir, '{}-{}_private.sec'.format(platform.node(), module))
+
+            # if we don't have the specific key, try to fallback to the general key for this machine
+            if not os.path.isfile(fname):
+                general_key = os.path.join(secrets_dir, '{}-general_private.sec'.format(platform.node()))
+                if os.path.isfile(general_key):
+                    fname = general_key
+
+            return fname
 
         @property
         def trusted_curve_keys_dir(self) -> str:
