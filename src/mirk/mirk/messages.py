@@ -39,9 +39,9 @@ def pretty_package_imported(tag, data):
 
 def pretty_upload_accepted(tag, data):
     if data.get('job_failed'):
-        tmpl = 'Accepted upload for ' + red('failed') + 'job <a href="{url_webview}/jobs/job/{job_id}">{job_id}</a>.'
+        tmpl = 'Accepted upload for ' + red('failed') + 'job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
     else:
-        tmpl = 'Accepted upload for ' + green('successful') + 'job <a href="{url_webview}/jobs/job/{job_id}">{job_id}</a>.'
+        tmpl = 'Accepted upload for ' + green('successful') + 'job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
     return tmpl.format(**data)
 
 
@@ -85,16 +85,16 @@ message_templates = \
      '''The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> was <font color="#27ae60">resolved</font>.''',
 
      '_lk.jobs.job-assigned':
-     '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
+     '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
 
      '_lk.jobs.job-accepted':
-     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id}</a> was <font color="#27ae60">accepted</font> by <em>{client_name}</em>''',
+     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was <font color="#27ae60">accepted</font> by <em>{client_name}</em>''',
 
      '_lk.jobs.job-rejected':
-     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id}</a> was <font color="#da4453">rejected</font> by <em>{client_name}</em>''',
+     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was <font color="#da4453">rejected</font> by <em>{client_name}</em>''',
 
      '_lk.jobs.job-finished':
-     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id}</a> finished with result <em>{result}</em>''',
+     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> finished with result <em>{result}</em>''',
 
      '_lk.rubicon.upload-accepted': pretty_upload_accepted,
 
@@ -105,7 +105,7 @@ message_templates = \
      '''Created new <em>{kind}</em> image build recipe "{name}" for {os}/{suite} of flavor {flavor} on <code>{architectures}</code>''',
 
      '_lk.isotope.build-job-added':
-     '''Created image build job <a href="{url_webview}/jobs/job/{job_id}">{job_id}</a> on <code>{architecture}</code> for "{name}" ({os}/{suite} of flavor {flavor})''',
+     '''Created image build job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on <code>{architecture}</code> for "{name}" ({os}/{suite} of flavor {flavor})''',
 
      '_lk.archive.source-package-published': pretty_source_package_published,
 
