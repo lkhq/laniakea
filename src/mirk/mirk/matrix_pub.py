@@ -61,10 +61,13 @@ class MatrixPublisher:
         text = ''
         templ = message_templates.get(tag)
         if templ:
-            if callable(templ):
-                text = templ(tag, data)
-            else:
-                text = templ.format(**data)
+            try:
+                if callable(templ):
+                    text = templ(tag, data)
+                else:
+                    text = templ.format(**data)
+            except Exception as e:
+                text = '[<font color="#ed1515">FORMATTING_FAILED</font>] ' + str(e) + ' :: ' + str(data)
         else:
             text = 'Received event type <code>{}</code> with data <code>{}</code>'.format(tag, str(data))
 
