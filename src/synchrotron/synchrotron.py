@@ -88,8 +88,8 @@ def publish_synced_spkg_events(engine, src_os, src_suite, dest_suite, forced=Fal
         data = {'name': spkg.name,
                 'version': spkg.ver,
                 'src_os': src_os,
-                'src_suite': src_suite,
-                'dest_suite': dest_suite,
+                'suite_src': src_suite,
+                'suite_dest': dest_suite,
                 'forced': forced}
 
         emitter.submit_event('src-package-imported', data)
@@ -212,10 +212,10 @@ def command_autosync(options):
 
                     data = {'name': issue.package_name,
                             'src_os': autosync.source.os_name,
-                            'src_suite': issue.source_suite,
-                            'dest_suite': issue.target_suite,
-                            'src_version': issue.source_version,
-                            'dest_version': issue.target_version,
+                            'suite_src': issue.source_suite,
+                            'suite_dest': issue.target_suite,
+                            'version_src': issue.source_version,
+                            'version_dest': issue.target_version,
                             'kind': str(issue.kind)}
 
                     emitter.submit_event('new-autosync-issue', data)
@@ -225,10 +225,10 @@ def command_autosync(options):
 
                 data = {'name': eissue.package_name,
                         'src_os': autosync.source.os_name,
-                        'src_suite': eissue.source_suite,
-                        'dest_suite': eissue.target_suite,
-                        'src_version': eissue.source_version,
-                        'dest_version': eissue.target_version,
+                        'suite_src': eissue.source_suite,
+                        'suite_dest': eissue.target_suite,
+                        'version_src': eissue.source_version,
+                        'version_dest': eissue.target_version,
                         'kind': str(eissue.kind)}
 
                 emitter.submit_event('resolved-autosync-issue', data)

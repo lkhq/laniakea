@@ -226,7 +226,7 @@ def import_suite_packages(suite_name):
                 if suite in db_spkg.suites:
                     continue  # the source package is already registered with this suite
                 db_spkg.suites.append(suite)
-                _emit_package_event(emitter, 'source-package-published-in-suite', spkg, {'new_suite': suite.name})
+                _emit_package_event(emitter, 'source-package-published-in-suite', spkg, {'suite_new': suite.name})
                 continue
 
             session.add(spkg)
@@ -235,7 +235,7 @@ def import_suite_packages(suite_name):
         for old_spkg in existing_spkgs.values():
             if suite in old_spkg.suites:
                 old_spkg.suites.remove(suite)
-                _emit_package_event(emitter, 'source-package-suite-removed', old_spkg, {'old_suite': suite.name})
+                _emit_package_event(emitter, 'source-package-suite-removed', old_spkg, {'suite_old': suite.name})
             if len(old_spkg.suites) <= 0:
                 for f in old_spkg.files:
                     session.delete(f)

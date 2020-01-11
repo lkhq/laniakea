@@ -30,7 +30,7 @@ def red(m):
 
 
 def pretty_package_imported(tag, data):
-    info = 'package <b>{name}</b> from {src_os} <em>{src_suite}</em> → <em>{dest_suite}</em>, new version is <code>{version}</code>.'.format(**data)
+    info = 'package <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em>, new version is <code>{version}</code>.'.format(**data)
     if data.get('forced'):
         return 'Enforced import of ' + info
     else:
@@ -78,11 +78,11 @@ message_templates = \
      '_lk.synchrotron.src-package-imported': pretty_package_imported,
 
      '_lk.synchrotron.new-autosync-issue':
-     '''New automatic synchronization issue for <font color="#da4453"><b>{name}</b></font> from {src_os} <em>{src_suite}</em> → <em>{dest_suite}</em>
-     (source: <code>{src_version}</code>, destination: <code>{dest_version}</code>). Type: {kind}''',
+     '''New automatic synchronization issue for <font color="#da4453"><b>{name}</b></font> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em>
+     (source: <code>{version_src}</code>, destination: <code>{version_dest}</code>). Type: {kind}''',
 
      '_lk.synchrotron.resolved-autosync-issue':
-     '''The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{src_suite}</em> → <em>{dest_suite}</em> was <font color="#27ae60">resolved</font>.''',
+     '''The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> was <font color="#27ae60">resolved</font>.''',
 
      '_lk.jobs.job-assigned':
      '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
@@ -110,10 +110,10 @@ message_templates = \
      '_lk.archive.source-package-published': pretty_source_package_published,
 
      '_lk.archive.source-package-published-in-suite':
-     '''Source package <b>{name}</b> {version} was <font color="#27ae60">added</font> to suite <em>{new_suite} ({component})</em>.''',
+     '''Source package <b>{name}</b> {version} was <font color="#27ae60">added</font> to suite <em>{suite_new} ({component})</em>.''',
 
      '_lk.archive.source-package-suite-removed':
-     '''Source package <b>{name}</b> {version} was <font color="#da4453">removed</font> from suite <em>{old_suite} ({component})</em>.''',
+     '''Source package <b>{name}</b> {version} was <font color="#da4453">removed</font> from suite <em>{suite_old} ({component})</em>.''',
 
      '_lk.archive.removed-source-package':
      '''Package <b>{name}</b> {version} ({component}) was <font color="#da4453">removed</font> from the archive.''',
