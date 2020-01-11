@@ -31,7 +31,7 @@ if (get_option('test-flake8'))
     flake8_exe = find_program('flake8')
     test('flake8',
          flake8_exe,
-         args: ['--ignore', 'E501,E402',
+         args: ['--ignore', 'E402',
                 source_root]
     )
 endif

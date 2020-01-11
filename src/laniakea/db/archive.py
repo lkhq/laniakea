@@ -310,7 +310,9 @@ class SourcePackage(Base):
     __tablename__ = 'archive_src_packages'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
-    source_uuid = Column(UUID(as_uuid=True), default=None, nullable=False)  # The unique identifier for the whole source packaging project (stays the same even if the package version changes)
+
+    # The unique identifier for the whole source packaging project (stays the same even if the package version changes)
+    source_uuid = Column(UUID(as_uuid=True), default=None, nullable=False)
 
     name = Column(String(256))  # Source package name
     version = Column(DebVersion())  # Version of this package
