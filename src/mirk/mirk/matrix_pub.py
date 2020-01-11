@@ -22,11 +22,16 @@ import sys
 import zmq
 import json
 import logging as log
+from fnmatch import fnmatch
 from laniakea.msgstream import create_event_listen_socket, verify_event_message, event_message_is_valid_and_signed
 from matrix_client.client import MatrixClient
 from matrix_client.api import MatrixRequestError
 from .config import MirkConfig
 from .messages import message_templates
+
+
+class RoomSettings:
+    filter_rules = []
 
 
 class MatrixPublisher:
@@ -107,11 +112,44 @@ class MatrixPublisher:
                 log.info('Unable to verify signature on event: {}'.format(str(event)))
                 return
 
-        self._rooms_publish_text(text)
+        self._rooms_publish_text(event, text)
 
-    def _rooms_publish_text(self, text):
-        for room in self._rooms:
-            room.send_html(text)
+    def _rooms_publish_text(self, event, text):
+        for room, settings in self._rooms.items():
+            filter_rules = settings.filter_rules
+            if not filter_rules:
+                # no filter rules means we emit everything
+                room.send_html(text)
+                continue
+
+            # create a flatter data structure for easy matching
+            flat_data = event['data']
+            flat_data['tag'] = event['tag']
+
+            # we have filter rules
+            rule_matched = False
+            for rule in filter_rules:
+                match_okay = None
+                for key, filter_value in rule.items():
+                    event_value = flat_data.get(key)
+                    if not event_value:
+                        continue  # we can ignore this rule here
+                    if type(event_value) is str:
+                        match_okay = fnmatch(event_value, filter_value)
+                    elif type(event_value) is list:
+                        for evs in event_value:
+                            if not type(evs) is str:
+                                continue
+                            match_okay = fnmatch(evs, filter_value)
+                            if match_okay:
+                                break
+                if match_okay is True:
+                    rule_matched = True
+                    break
+
+            # we are allowed to send this message to the particular room
+            if rule_matched:
+                room.send_html(text)
 
     def run(self):
         client = MatrixClient(self._mconf.host)
@@ -131,8 +169,8 @@ class MatrixPublisher:
             sys.exit(2)
 
         log.debug('Joining rooms')
-        self._rooms = []
-        for room_id in self._mconf.rooms:
+        self._rooms = {}
+        for room_id, rsdata in self._mconf.rooms.items():
             try:
                 room = client.join_room(room_id)
             except MatrixRequestError as e:
@@ -144,7 +182,11 @@ class MatrixPublisher:
                     sys.exit(2)
 
             room.add_listener(self._on_room_message)
-            self._rooms.append(room)
+
+            settings = RoomSettings()
+            settings.filter_rules = rsdata.get('Filter', [])
+
+            self._rooms[room] = settings
 
         log.info('Logged into Matrix, ready to publish information')
         client.start_listener_thread()

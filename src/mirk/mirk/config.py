@@ -20,7 +20,6 @@
 import os
 import json
 from laniakea import get_config_file
-from laniakea.utils import listify
 
 
 class MirkConfig():
@@ -58,9 +57,11 @@ class MirkConfig():
         if not self.password:
             raise Exception('No "Password" entry in mIrk configuration: We need to know a password to log into Matrix.')
 
-        self.rooms = listify(jdata.get('Rooms', []))
+        self.rooms = jdata.get('Rooms', {})
         if not self.rooms:
             raise Exception('No "Rooms" entry in mIrk configuration: We need at least one room to join.')
+        if type(self.rooms) is not dict:
+            raise Exception('"Rooms" entry in mIrk configuration is no mapping: Needs to be a mapping of room names to settings.')
 
         self.allow_unsigned = jdata.get('AllowUnsigned', False)
 
