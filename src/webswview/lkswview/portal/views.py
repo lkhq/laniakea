@@ -72,7 +72,9 @@ def search_software():
 
     with session_scope() as session:
         q = session.query(SoftwareComponent) \
+            .join(SoftwareComponent.bin_packages) \
             .filter(SoftwareComponent.__ts_vector__.op('@@')(func.plainto_tsquery(term))) \
+            .order_by(SoftwareComponent.cid, BinaryPackage.version.desc()) \
             .distinct(SoftwareComponent.cid)
 
         results_count = q.count()
@@ -204,7 +206,9 @@ def category_view(cat_id, subcat_id, page):
                 dcats.append(parts[-1])
 
         sw_query = session.query(SoftwareComponent) \
+                          .join(SoftwareComponent.bin_packages) \
                           .filter(SoftwareComponent.categories.overlap(cast(dcats, ARRAY(String())))) \
+                          .order_by(SoftwareComponent.cid, BinaryPackage.version.desc()) \
                           .distinct(SoftwareComponent.cid)
         software = sw_query.slice((page - 1) * sw_per_page, page * sw_per_page).all()
 

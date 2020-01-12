@@ -38,25 +38,32 @@ def screenshot_get_orig_image_url(scr):
 
 
 @software.route('/<cid>')
-@cache.cached(timeout=120)
+@cache.cached(timeout=240)
 def details(cid):
     with session_scope() as session:
-        # FIXME: Fetch all components with the ID and display them by version
-        sw = session.query(SoftwareComponent) \
+        # NOTE: We display the newest component here. Maybe we want to actually
+        # display the different component data by-version?
+        sws = session.query(SoftwareComponent) \
             .options(joinedload(SoftwareComponent.bin_packages)
                      .joinedload(BinaryPackage.suites)) \
+            .join(SoftwareComponent.bin_packages) \
             .filter(SoftwareComponent.cid == cid) \
-            .first()
-        if not sw:
+            .order_by(BinaryPackage.version.desc()) \
+            .all()
+        if not sws:
             abort(404)
 
-        # FIXME: This loop is probably inefficient too...
+        # FIXME: This loop is probably inefficient...
         packages_map = dict()
-        for bpkg in sw.bin_packages:
-            for suite in bpkg.suites:
-                if suite.name not in packages_map:
-                    packages_map[suite.name] = list()
-                packages_map[suite.name].append(bpkg)
+        for sw in sws:
+            for bpkg in sw.bin_packages:
+                for suite in bpkg.suites:
+                    if suite.name not in packages_map:
+                        packages_map[suite.name] = list()
+                    packages_map[suite.name].append(bpkg)
+
+        # grab the most recent component
+        sw = sws[0]
 
         # parse AppStream metadata
         # FIXME: Parsing XML is expensive, we can cache this aggressively

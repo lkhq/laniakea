@@ -522,7 +522,10 @@ class SoftwareComponent(Base):
 
     categories = Column(ARRAY(String(256)))  # Categories this component is in
 
-    bin_packages = relationship('BinaryPackage', secondary=swcpt_binpkg_assoc_table, back_populates='sw_cpts')  # Packages this software component is contained in
+    bin_packages = relationship('BinaryPackage',
+                                secondary=swcpt_binpkg_assoc_table,
+                                order_by='desc(BinaryPackage.version)',
+                                back_populates='sw_cpts')  # Packages this software component is contained in
 
     xml = Column(Text())  # XML representation in AppStream collection XML for this component
 

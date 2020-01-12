@@ -59,7 +59,7 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
     return existing_bpkgs
 
 
-def import_appstream_data(session, local_repo, repo, suite, component, arch):
+def update_appstream_data(session, local_repo, repo, suite, component, arch):
     '''
     Import AppStream metadata about software components and associate it with the
     binary packages the data belongs to.
@@ -302,8 +302,8 @@ def import_suite_packages(suite_name):
                         .filter(BinaryPackage.uuid == old_bpkg_uuid).delete()
             session.commit()
 
-            # import new AppStream component metadata
-            import_appstream_data(session, local_repo, repo, suite, component, arch)
+            # import new AppStream component metadata / delete old components
+            update_appstream_data(session, local_repo, repo, suite, component, arch)
 
     # delete orphaned AppStream metadata
     for cpt in session.query(SoftwareComponent).filter(~SoftwareComponent.bin_packages.any()).all():
