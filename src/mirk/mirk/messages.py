@@ -25,6 +25,10 @@ def green(m):
     return '<font color="#27ae60">{}</font>'.format(m)
 
 
+def orange(m):
+    return '<font color="#f39c1f">{}</font>'.format(m)
+
+
 def red(m):
     return '<font color="#da4453">{}</font>'.format(m)
 
@@ -39,9 +43,9 @@ def pretty_package_imported(tag, data):
 
 def pretty_upload_accepted(tag, data):
     if data.get('job_failed'):
-        tmpl = 'Accepted upload for ' + red('failed') + 'job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
+        tmpl = 'Accepted upload for ' + red('failed') + ' job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
     else:
-        tmpl = 'Accepted upload for ' + green('successful') + 'job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
+        tmpl = 'Accepted upload for ' + green('successful') + ' job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
     return tmpl.format(**data)
 
 
@@ -53,7 +57,7 @@ def pretty_source_package_published(tag, data):
 
 def pretty_excuse_change(tag, data):
     if data.get('version_new') == '-':
-        data['version_new'] = '(<font color="#da4453">removal</font>)'
+        data['version_new'] = '(' + red('removal') + ')'
 
     if tag == '_lk.spears.new-excuse':
         tmpl = ('Package <b>{source_package}</b> {version_new} was ' + red('blocked') + ' from its <em>{suite_source}</em> → <em>{suite_target}</em> migration. '
@@ -78,20 +82,20 @@ message_templates = \
      '_lk.synchrotron.src-package-imported': pretty_package_imported,
 
      '_lk.synchrotron.new-autosync-issue':
-     '''New automatic synchronization issue for <font color="#da4453"><b>{name}</b></font> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em>
-     (source: <code>{version_src}</code>, destination: <code>{version_dest}</code>). Type: {kind}''',
+     ('New automatic synchronization issue for ' + red('<b>{name}</b>') + ' from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> '
+      '(source: <code>{version_src}</code>, destination: <code>{version_dest}</code>). Type: {kind}'),
 
      '_lk.synchrotron.resolved-autosync-issue':
-     '''The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> was <font color="#27ae60">resolved</font>.''',
+     'The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> was ' + green('resolved') + '.',
 
      '_lk.jobs.job-assigned':
      '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
 
      '_lk.jobs.job-accepted':
-     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was <font color="#27ae60">accepted</font> by <em>{client_name}</em>''',
+     'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was ' + green('accepted') + ' by <em>{client_name}</em>',
 
      '_lk.jobs.job-rejected':
-     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was <font color="#da4453">rejected</font> by <em>{client_name}</em>''',
+     'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was ' + red('rejected') + ' by <em>{client_name}</em>',
 
      '_lk.jobs.job-finished':
      '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> finished with result <em>{result}</em>''',
@@ -110,13 +114,13 @@ message_templates = \
      '_lk.archive.source-package-published': pretty_source_package_published,
 
      '_lk.archive.source-package-published-in-suite':
-     '''Source package <b>{name}</b> {version} was <font color="#27ae60">added</font> to suite <em>{suite_new} ({component})</em>.''',
+     'Source package <b>{name}</b> {version} was ' + green('added') + ' to suite <em>{suite_new} ({component})</em>.',
 
      '_lk.archive.source-package-suite-removed':
-     '''Source package <b>{name}</b> {version} was <font color="#da4453">removed</font> from suite <em>{suite_old} ({component})</em>.''',
+     'Source package <b>{name}</b> {version} was ' + red('removed') + ' from suite <em>{suite_old} ({component})</em>.',
 
      '_lk.archive.removed-source-package':
-     '''Package <b>{name}</b> {version} ({component}) was <font color="#da4453">removed</font> from the archive.''',
+     'Package <b>{name}</b> {version} ({component}) was ' + orange('removed') + ' from the archive.',
 
      '_lk.spears.new-excuse': pretty_excuse_change,
      '_lk.spears.excuse-removed': pretty_excuse_change,
