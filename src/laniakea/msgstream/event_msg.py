@@ -71,7 +71,7 @@ def event_message_is_valid_and_signed(event):
         return False
 
     signatures = event.get('signatures')
-    if len(signatures) < 1:
+    if not signatures or len(signatures) < 1:
         return False
     return True
 
