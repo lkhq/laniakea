@@ -60,7 +60,7 @@ class JobWorker:
                                    bytes(json_compact_dump(msg), 'utf-8')])
 
     def _error_reply(self, message):
-        return json.dumps({'error': message})
+        return json_compact_dump({'error': message})
 
     def _assign_suitable_job(self, session, job_kind, arch, client_id):
         qres = session.execute('''WITH cte AS (
@@ -262,7 +262,7 @@ class JobWorker:
             if job_assigned:
                 break
 
-        return json.dumps(job_data)
+        return json_compact_dump(job_data)
 
     def _process_job_accepted_request(self, session, request):
         '''
@@ -293,6 +293,8 @@ class JobWorker:
                       'client_name': client_name,
                       'client_id': client_id}
         self._emit_event('job-accepted', event_data)
+
+        return True
 
     def _process_job_rejected_request(self, session, request):
         '''
@@ -333,6 +335,8 @@ class JobWorker:
                       'client_name': client_name,
                       'client_id': client_id}
         self._emit_event('job-rejected', event_data)
+
+        return True
 
     def _process_job_status_request(self, session, request):
         '''
@@ -391,7 +395,7 @@ class JobWorker:
                       'result': str(job.result)}
         self._emit_event('job-finished', event_data)
 
-        return None
+        return True
 
     def process_client_message(self, request):
         '''
@@ -412,7 +416,7 @@ class JobWorker:
                     return self._process_job_rejected_request(session, request)
                 if req_kind == 'job-status':
                     self._process_job_status_request(session, request)
-                    return None
+                    return None  # we don't reply to this
                 if req_kind == 'job-success':
                     return self._process_job_finished_request(session, request, True)
                 if req_kind == 'job-failed':

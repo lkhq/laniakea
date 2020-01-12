@@ -22,6 +22,7 @@ import sys
 import json
 import logging as log
 from laniakea import LocalConfig, LkModule
+from laniakea.utils import json_compact_dump
 from lighthouse.jobs_worker import JobWorker
 
 import zmq
@@ -57,13 +58,20 @@ class JobsServer:
         try:
             reply = self._worker.process_client_message(request)
         except Exception as e:
-            reply = json.dumps({'error': 'Internal Error: {}'.format(e)})
+            reply = json_compact_dump({'error': 'Internal Error: {}'.format(e)}, as_bytes=True)
 
-        # an empty result is assumed to mean everything went fine
+        # an empty result means we shouldn't send a message back
         if not reply:
-            reply = json.dumps(None)
+            return
 
-        reply_msg = [msg[0], reply.encode('utf-8')]
+        # ensure we have the bytes of a JSON string
+        # (workers are permitted to return e.g. True or UTF-8 strings)
+        if type(reply) is str:
+            reply = reply.encode('utf-8')
+        elif type(reply) is not bytes:
+            reply = json_compact_dump(reply, as_bytes=True)
+
+        reply_msg = [msg[0], reply]
 
         log.debug('Sending %s', reply_msg)
         server.send_multipart(reply_msg)
