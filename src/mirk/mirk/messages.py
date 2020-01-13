@@ -51,7 +51,11 @@ def pretty_upload_accepted(tag, data):
 
 def pretty_source_package_published(tag, data):
     data['suites_str'] = ', '.join(data['suites'])
+
     tmpl = 'Source package <b>{name}</b> {version} ({component}) was ' + green('published') + ' in the archive, available in suites <em>{suites_str}</em>.'
+    if data['suites']:
+        tmpl = tmpl + ' <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">Changelog</a>'
+
     return tmpl.format(**data)
 
 
