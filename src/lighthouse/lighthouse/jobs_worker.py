@@ -55,8 +55,7 @@ class JobWorker:
                'format': '1.0',
                'time': datetime.now().isoformat(),
                'data': data}
-        self._event_pub_queue.put([bytes(tag, 'utf-8'),
-                                   bytes(json_compact_dump(msg), 'utf-8')])
+        self._event_pub_queue.put(msg)
 
     def _error_reply(self, message):
         return json_compact_dump({'error': message})
