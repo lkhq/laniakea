@@ -54,7 +54,7 @@ def pretty_source_package_published(tag, data):
 
     tmpl = 'Source package <b>{name}</b> {version} ({component}) was ' + green('published') + ' in the archive, available in suites <em>{suites_str}</em>.'
     if data['suites']:
-        tmpl = tmpl + ' <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>'
+        tmpl = tmpl + ' | <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>'
 
     return tmpl.format(**data)
 
@@ -64,12 +64,22 @@ def pretty_excuse_change(tag, data):
         data['version_new'] = '(' + red('removal') + ')'
 
     if tag == '_lk.spears.new-excuse':
-        tmpl = ('Package <b>{source_package}</b> {version_new} was ' + red('blocked') + ' from its <em>{suite_source}</em> → <em>{suite_target}</em> migration. '
-                'Version in target is: {version_old} <a href="{url_webview}/migrations/excuse/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>')
+        if data.get('version_old') == '-':
+            old_ver_info = 'Package is ' + green('new') + ' to target!'
+        else:
+            old_ver_info = 'Version in target is: {version_old}'
+
+        tmpl = ('Package <b>{source_package}</b> {version_new} was ' + red('blocked') + ' from its <em>{suite_source}</em> → <em>{suite_target}</em> '
+                'migration. ' + old_ver_info + ' | <a href="{url_webview}/migrations/excuse/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>')
+
     elif tag == '_lk.spears.excuse-removed':
+        if data.get('version_old') == '-':
+            old_ver_info = 'This package is ' + green('new') + ' in <em>{suite_target}</em>.'
+        else:
+            old_ver_info = 'Previous version in target was: <code>{version_old}</code>'
+
         tmpl = ('Migration excuse for package <b>{source_package}</b> {version_new} was ' + green('invalidated') + '. '
-                'The package migrated from <em>{suite_source}</em> → <em>{suite_target}</em>. '
-                'Previous version in target was: <code>{version_old}</code>')
+                'The package migrated from <em>{suite_source}</em> → <em>{suite_target}</em>. ' + old_ver_info)
 
     return tmpl.format(**data)
 
@@ -77,11 +87,11 @@ def pretty_excuse_change(tag, data):
 message_templates = \
     {'_lk.job.package-build-success':
      ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> was ' + green('successful') + '. '
-      '<a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
+      '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.job.package-build-failed':
      ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> has ' + red('failed') + '. '
-      '<a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
+      '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.synchrotron.src-package-imported': pretty_package_imported,
 
