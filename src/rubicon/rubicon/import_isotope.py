@@ -18,12 +18,13 @@
 import os
 import time
 import logging as log
+from laniakea import LkModule
 from laniakea.db import ImageBuildRecipe
 from email.utils import parsedate
 from .utils import safe_rename
 
 
-def handle_isotope_upload(session, conf, dud, job):
+def handle_isotope_upload(session, success, conf, dud, job, event_emitter):
     '''
     Handle an upload of disk images.
     '''
@@ -31,8 +32,22 @@ def handle_isotope_upload(session, conf, dud, job):
     result_move_to = ''
     recipe = session.query(ImageBuildRecipe) \
         .filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
-    if recipe:
-        result_move_to = recipe.result_move_to
+    if not recipe:
+        log.error('Could not find recipe for "{}". Can not process the file.'.format(dud.get_filename()))
+        return
+
+    result_move_to = recipe.result_move_to
+
+    event_data = {'kind': str(recipe.kind),
+                  'distribution': recipe.distribution,
+                  'suite': recipe.suite,
+                  'flavor': recipe.flavor,
+                  'architectures': recipe.architectures}
+
+    if not success:
+        # validation failed, we couldn't accept this upload
+        event_emitter.submit_event_for_mod(LkModule.ISOTOPE, 'image-build-failed', event_data)
+        return
 
     image_dir_tmpl = os.path.join(conf.isotope_root_dir, result_move_to).strip()
     if not image_dir_tmpl:
@@ -58,3 +73,6 @@ def handle_isotope_upload(session, conf, dud, job):
             continue  # logs are handled already by the generic tool
 
         safe_rename(fname, image_dir)
+
+    # if we're here, the build worked and we can announce the new image
+    event_emitter.submit_event_for_mod(LkModule.ISOTOPE, 'image-build-success', event_data)

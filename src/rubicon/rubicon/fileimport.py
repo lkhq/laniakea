@@ -67,15 +67,19 @@ def accept_upload(conf, dud, event_emitter):
                 fh_target_fname = os.path.join(firehose_target_dir, job_id + '.firehose.xml')
                 safe_rename(fname, fh_target_fname)
 
-        # some modules get special treatment
-        if job_success:
+        # handle different job data
+        if job.module == LkModule.ISOTOPE:
             from .import_isotope import handle_isotope_upload
+            handle_isotope_upload(session,
+                                  success=job_success,
+                                  conf=conf,
+                                  dud=dud,
+                                  job=job,
+                                  event_emitter=event_emitter)
 
-            if job.module == LkModule.ISOTOPE:
-                handle_isotope_upload(session, conf, dud, job)
-
-        # announce this event to the world
-        if job.kind == JobKind.PACKAGE_BUILD:
+        elif job.kind == JobKind.PACKAGE_BUILD:
+            # the package has been imported by Dak, so we just announce this
+            # event to the world
             spkg = session.query(SourcePackage) \
                 .filter(SourcePackage.source_uuid == job.trigger) \
                 .filter(SourcePackage.version == job.version) \
@@ -91,9 +95,9 @@ def accept_upload(conf, dud, event_emitter):
                               'suite': suite_target_name,
                               'job_id': job_id}
                 if job_success:
-                    event_emitter.submit_event_for_tag('_lk.job.package-build-success', event_data)
+                    event_emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-build-success', event_data)
                 else:
-                    event_emitter.submit_event_for_tag('_lk.job.package-build-failed', event_data)
+                    event_emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-build-failed', event_data)
         else:
             event_emitter.submit_event('upload-accepted', {'job_id': job_id, 'job_failed': not job_success})
 
