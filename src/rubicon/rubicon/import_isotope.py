@@ -42,7 +42,7 @@ def handle_isotope_upload(session, success, conf, dud, job, event_emitter):
                   'distribution': recipe.distribution,
                   'suite': recipe.suite,
                   'flavor': recipe.flavor,
-                  'architectures': recipe.architectures,
+                  'architecture': job.architecture,
                   'job_id': str(job.uuid)}
 
     if not success:

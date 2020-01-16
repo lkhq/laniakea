@@ -104,19 +104,19 @@ templates_rubicon = \
 
 templates_isotope = \
     {'_lk.isotope.recipe-created':
-     'Created new <code>{kind}</code> image build recipe "{name}" for {distribution}/<em>{suite}</em> of flavor {flavor} on <code>{architectures}</code>',
+     'Created new <code>{kind}</code> image build recipe <code>{name}</code> for {distribution}/<em>{suite}</em> of flavor {flavor} on <code>{architectures}</code>',
 
      '_lk.isotope.build-job-added':
      ('Created <code>{kind}</code> image build job on <code>{architecture}</code> for {distribution}/<em>{suite}</em> of flavor {flavor}. '
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-failed':
-     ('A <code>{kind}</code> image for {distribution} ' + red('failed') + ' to build for <em>{suite}</em>, flavor <em>{flavor}</em>. Architectures: {architectures} '
+     ('A <code>{kind}</code> image for {distribution} ' + red('failed') + ' to build for <em>{suite}</em>, flavor <em>{flavor}</em> on <code>{architecture}</code>. '
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-success':
-     ('A <code>{kind}</code> image for {distribution} was built ' + green('successfully') + ' for <em>{suite}</em>, flavor <em>{flavor}</em>. Architectures: {architectures}.'
-      'The image has been ' + green('published') + '. | <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>')
+     ('A <code>{kind}</code> image for {distribution} was built ' + green('successfully') + ' for <em>{suite}</em>, flavor <em>{flavor}</em> on <code>{architecture}</code>. '
+      'The image has been ' + green('published') + ' for download. | <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>')
 
      }
 
