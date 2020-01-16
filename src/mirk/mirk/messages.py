@@ -33,12 +33,52 @@ def red(m):
     return '<font color="#da4453">{}</font>'.format(m)
 
 
+#
+# Templates for jobs
+#
+
+templates_jobs = \
+    {'_lk.jobs.job-assigned':
+     '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
+
+     '_lk.jobs.job-accepted':
+     'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was ' + green('accepted') + ' by <em>{client_name}</em>',
+
+     '_lk.jobs.job-rejected':
+     'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was ' + red('rejected') + ' by <em>{client_name}</em>',
+
+     '_lk.jobs.job-finished':
+     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> finished with result <em>{result}</em>''',
+     }
+
+#
+# Templates for Synchrotron
+#
+
+
 def pretty_package_imported(tag, data):
     info = 'package <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em>, new version is <code>{version}</code>.'.format(**data)
     if data.get('forced'):
         return 'Enforced import of ' + info
     else:
         return 'Imported package ' + info
+
+
+templates_synchrotron = \
+    {'_lk.synchrotron.src-package-imported': pretty_package_imported,
+
+     '_lk.synchrotron.new-autosync-issue':
+     ('New automatic synchronization issue for ' + red('<b>{name}</b>') + ' from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> '
+      '(source: <code>{version_src}</code>, destination: <code>{version_dest}</code>). Type: {kind}'),
+
+     '_lk.synchrotron.resolved-autosync-issue':
+     'The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> was ' + green('resolved') + '.'
+     }
+
+
+#
+# Templates for Rubicon
+#
 
 
 def pretty_upload_accepted(tag, data):
@@ -49,6 +89,43 @@ def pretty_upload_accepted(tag, data):
     return tmpl.format(**data)
 
 
+templates_rubicon = \
+    {'_lk.rubicon.upload-accepted': pretty_upload_accepted,
+
+     '_lk.rubicon.upload-rejected':
+     '<b>Rejected</b> upload <code>{dud_filename}</code>. Reason: <code>{reason}</code>'
+     }
+
+
+#
+# Templates for Isotope
+#
+
+
+templates_isotope = \
+    {'_lk.isotope.recipe-created':
+     'Created new <code>{kind}</code> image build recipe "{name}" for {distribution}/<em>{suite}</em> of flavor {flavor} on <code>{architectures}</code>',
+
+     '_lk.isotope.build-job-added':
+     ('Created <code>{kind}</code> image build job on <code>{architecture}</code> for {distribution}/<em>{suite}</em> of flavor {flavor}. '
+      '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
+
+     '_lk.isotope.image-build-failed':
+     ('A <code>{kind}</code> image for {distribution} ' + red('failed') + ' to build for <em>{suite}</em>, flavor <em>{flavor}</em>. Architectures: {architectures} '
+      '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
+
+     '_lk.isotope.image-build-success':
+     ('A <code>{kind}</code> image for {distribution} was built ' + green('successfully') + ' for <em>{suite}</em>, flavor <em>{flavor}</em>. Architectures: {architectures}.'
+      'The image has been ' + green('published') + '. | <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>')
+
+     }
+
+
+#
+# Templates for the Archive
+#
+
+
 def pretty_source_package_published(tag, data):
     data['suites_str'] = ', '.join(data['suites'])
 
@@ -57,6 +134,33 @@ def pretty_source_package_published(tag, data):
         tmpl = tmpl + ' | <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>'
 
     return tmpl.format(**data)
+
+
+templates_archive = \
+    {'_lk.archive.package-build-success':
+     ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> was ' + green('successful') + '. '
+      '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
+
+     '_lk.archive.package-build-failed':
+     ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> has ' + red('failed') + '. '
+      '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
+
+     '_lk.archive.source-package-published': pretty_source_package_published,
+
+     '_lk.archive.source-package-published-in-suite':
+     'Source package <b>{name}</b> {version} was ' + green('added') + ' to suite <em>{suite_new} ({component})</em>.',
+
+     '_lk.archive.source-package-suite-removed':
+     'Source package <b>{name}</b> {version} was ' + red('removed') + ' from suite <em>{suite_old} ({component})</em>.',
+
+     '_lk.archive.removed-source-package':
+     'Package <b>{name}</b> {version} ({component}) was ' + orange('removed') + ' from the archive.'
+     }
+
+
+#
+# Templates for Spears
+#
 
 
 def pretty_excuse_change(tag, data):
@@ -84,59 +188,19 @@ def pretty_excuse_change(tag, data):
     return tmpl.format(**data)
 
 
-message_templates = \
-    {'_lk.job.package-build-success':
-     ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> was ' + green('successful') + '. '
-      '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
-
-     '_lk.job.package-build-failed':
-     ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> has ' + red('failed') + '. '
-      '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
-
-     '_lk.synchrotron.src-package-imported': pretty_package_imported,
-
-     '_lk.synchrotron.new-autosync-issue':
-     ('New automatic synchronization issue for ' + red('<b>{name}</b>') + ' from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> '
-      '(source: <code>{version_src}</code>, destination: <code>{version_dest}</code>). Type: {kind}'),
-
-     '_lk.synchrotron.resolved-autosync-issue':
-     'The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> was ' + green('resolved') + '.',
-
-     '_lk.jobs.job-assigned':
-     '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
-
-     '_lk.jobs.job-accepted':
-     'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was ' + green('accepted') + ' by <em>{client_name}</em>',
-
-     '_lk.jobs.job-rejected':
-     'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was ' + red('rejected') + ' by <em>{client_name}</em>',
-
-     '_lk.jobs.job-finished':
-     '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> finished with result <em>{result}</em>''',
-
-     '_lk.rubicon.upload-accepted': pretty_upload_accepted,
-
-     '_lk.rubicon.upload-rejected':
-     '''<b>Rejected</b> upload <code>{dud_filename}</code>. Reason: {reason}''',
-
-     '_lk.isotope.recipe-created':
-     '''Created new <em>{kind}</em> image build recipe "{name}" for {os}/{suite} of flavor {flavor} on <code>{architectures}</code>''',
-
-     '_lk.isotope.build-job-added':
-     '''Created image build job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on <code>{architecture}</code> for "{name}" ({os}/{suite} of flavor {flavor})''',
-
-     '_lk.archive.source-package-published': pretty_source_package_published,
-
-     '_lk.archive.source-package-published-in-suite':
-     'Source package <b>{name}</b> {version} was ' + green('added') + ' to suite <em>{suite_new} ({component})</em>.',
-
-     '_lk.archive.source-package-suite-removed':
-     'Source package <b>{name}</b> {version} was ' + red('removed') + ' from suite <em>{suite_old} ({component})</em>.',
-
-     '_lk.archive.removed-source-package':
-     'Package <b>{name}</b> {version} ({component}) was ' + orange('removed') + ' from the archive.',
-
-     '_lk.spears.new-excuse': pretty_excuse_change,
-     '_lk.spears.excuse-removed': pretty_excuse_change,
-
+templates_spears = \
+    {'_lk.spears.new-excuse': pretty_excuse_change,
+     '_lk.spears.excuse-removed': pretty_excuse_change
      }
+
+
+#
+# Assemble complete template set
+#
+message_templates = {}
+message_templates.update(templates_jobs)
+message_templates.update(templates_synchrotron)
+message_templates.update(templates_rubicon)
+message_templates.update(templates_isotope)
+message_templates.update(templates_archive)
+message_templates.update(templates_spears)

@@ -59,7 +59,7 @@ def add_image_recipe(options):
         ev_data = {'name': recipe.name,
                    'kind': kind_str,
                    'architectures': recipe.architectures,
-                   'os': recipe.distribution,
+                   'distribution': recipe.distribution,
                    'suite': recipe.suite,
                    'flavor': recipe.flavor}
         emitter.submit_event_for_mod(LkModule.ISOTOPE,
@@ -96,7 +96,8 @@ def trigger_image_build(options):
             # announce the event
             ev_data = {'name': recipe.name,
                        'architecture': arch,
-                       'os': recipe.distribution,
+                       'kind': recipe.kind,
+                       'distribution': recipe.distribution,
                        'suite': recipe.suite,
                        'flavor': recipe.flavor,
                        'job_id': str(job.uuid)}
