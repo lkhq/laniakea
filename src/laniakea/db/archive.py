@@ -195,9 +195,9 @@ class DebType(enum.IntEnum):
     UDEB = enum.auto()
 
     def __str__(self):
-        if self.value == DebType.DEB:
+        if self.value == self.DEB:
             return 'deb'
-        elif self.value == DebType.UDEB:
+        elif self.value == self.UDEB:
             return 'udeb'
         return 'unknown'
 
@@ -253,15 +253,15 @@ class VersionPriority(enum.IntEnum):
     EMERGENCY = 4
 
     def __str__(self):
-        if self.value == VersionPriority.LOW:
+        if self.value == self.LOW:
             return 'low'
-        elif self.value == VersionPriority.MEDIUM:
+        elif self.value == self.MEDIUM:
             return 'medium'
-        elif self.value == VersionPriority.HIGH:
+        elif self.value == self.HIGH:
             return 'high'
-        elif self.value == VersionPriority.CRITICAL:
+        elif self.value == self.CRITICAL:
             return 'critical'
-        elif self.value == VersionPriority.EMERGENCY:
+        elif self.value == self.EMERGENCY:
             return 'emergency'
         return 'unknown'
 

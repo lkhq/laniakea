@@ -31,13 +31,11 @@ class ImageKind(enum.IntEnum):
     IMG = enum.auto()
 
     def __str__(self):
-        v = self.value
-        if v == ImageKind.ISO:
+        if self.value == self.ISO:
             return 'iso'
-        elif v == ImageKind.IMG:
+        if self.value == self.IMG:
             return 'img'
-        else:
-            return 'unknown'
+        return 'ImageKind.' + str(self.name)
 
 
 class ImageBuildRecipe(Base):
