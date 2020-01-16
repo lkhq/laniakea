@@ -104,18 +104,18 @@ templates_rubicon = \
 
 templates_isotope = \
     {'_lk.isotope.recipe-created':
-     'Created new <code>{kind}</code> image build recipe <code>{name}</code> for {distribution}/<em>{suite}</em> of flavor {flavor} on <code>{architectures}</code>',
+     'Created new <code>{kind}</code> image build recipe <code>{name}</code> for {distribution} <b>{suite}</b> of flavor <b>{flavor}</b> on <code>{architectures}</code>',
 
      '_lk.isotope.build-job-added':
-     ('Created <code>{kind}</code> image build job on <code>{architecture}</code> for {distribution}/<em>{suite}</em> of flavor {flavor}. '
+     ('Created <code>{kind}</code> image build job on <code>{architecture}</code> for {distribution} <b>{suite}</b> of flavor <b>{flavor}</b>. '
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-failed':
-     ('A <code>{kind}</code> image for {distribution} ' + red('failed') + ' to build for <em>{suite}</em>, flavor <em>{flavor}</em> on <code>{architecture}</code>. '
+     ('A <code>{kind}</code> image for {distribution} ' + red('failed') + ' to build for <b>{suite}</b>, flavor <b>{flavor}</b> on <code>{architecture}</code>. '
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-success':
-     ('A <code>{kind}</code> image for {distribution} was built ' + green('successfully') + ' for <em>{suite}</em>, flavor <em>{flavor}</em> on <code>{architecture}</code>. '
+     ('A <code>{kind}</code> image for {distribution} was built ' + green('successfully') + ' for <b>{suite}</b>, flavor <b>{flavor}</b> on <code>{architecture}</code>. '
       'The image has been ' + green('published') + ' for download. | <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>')
 
      }
@@ -129,7 +129,7 @@ templates_isotope = \
 def pretty_source_package_published(tag, data):
     data['suites_str'] = ', '.join(data['suites'])
 
-    tmpl = 'Source package <b>{name}</b> {version} ({component}) was ' + green('published') + ' in the archive, available in suites <em>{suites_str}</em>.'
+    tmpl = 'Source package <b>{name}</b> <b><em>{version}</em></b> ({component}) was ' + green('published') + ' in the archive, available in suites <em>{suites_str}</em>.'
     if data['suites']:
         tmpl = tmpl + ' | <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>'
 
@@ -138,23 +138,23 @@ def pretty_source_package_published(tag, data):
 
 templates_archive = \
     {'_lk.archive.package-build-success':
-     ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> was ' + green('successful') + '. '
+     ('Package build for <b>{pkgname}</b> <b><em>{version}</em></b> on <code>{architecture}</code> in <em>{suite}</em> was ' + green('successful') + '. '
       '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.archive.package-build-failed':
-     ('Package build for <b>{pkgname} {version}</b> on <code>{architecture}</code> in <em>{suite}</em> has ' + red('failed') + '. '
+     ('Package build for <b>{pkgname}</b> <b><em>{version}</em></b> on <code>{architecture}</code> in <em>{suite}</em> has ' + red('failed') + '. '
       '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.archive.source-package-published': pretty_source_package_published,
 
      '_lk.archive.source-package-published-in-suite':
-     'Source package <b>{name}</b> {version} was ' + green('added') + ' to suite <em>{suite_new} ({component})</em>.',
+     'Source package <b>{name}</b> <b><em>{version}</b></em> was ' + green('added') + ' to suite <em>{suite_new} ({component})</em>.',
 
      '_lk.archive.source-package-suite-removed':
-     'Source package <b>{name}</b> {version} was ' + red('removed') + ' from suite <em>{suite_old} ({component})</em>.',
+     'Source package <b>{name}</b> <b><em>{version}</b></em> was ' + red('removed') + ' from suite <em>{suite_old} ({component})</em>.',
 
      '_lk.archive.removed-source-package':
-     'Package <b>{name}</b> {version} ({component}) was ' + orange('removed') + ' from the archive.'
+     'Package <b>{name}</b> <b><em>{version}</b></em> ({component}) was ' + orange('removed') + ' from the archive.'
      }
 
 
@@ -164,8 +164,10 @@ templates_archive = \
 
 
 def pretty_excuse_change(tag, data):
+    removal = False
     if data.get('version_new') == '-':
         data['version_new'] = '(' + red('removal') + ')'
+        removal = True
 
     if tag == '_lk.spears.new-excuse':
         if data.get('version_old') == '-':
@@ -177,13 +179,16 @@ def pretty_excuse_change(tag, data):
                 'migration. ' + old_ver_info + ' | <a href="{url_webview}/migrations/excuse/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>')
 
     elif tag == '_lk.spears.excuse-removed':
-        if data.get('version_old') == '-':
-            old_ver_info = 'This package is ' + green('new') + ' in <em>{suite_target}</em>.'
+        tmpl = 'Migration excuse for package <b>{source_package}</b> <b><em>{version_new}</em></b> was ' + green('invalidated') + '.'
+        if removal:
+            tmpl = tmpl + ' The package is now deleted from <em>{suite_target}</em>. Previous version was: <code>{version_old}</code>'
         else:
-            old_ver_info = 'Previous version in target was: <code>{version_old}</code>'
+            if data.get('version_old') == '-':
+                old_ver_info = 'This package is ' + green('new') + ' in <em>{suite_target}</em>.'
+            else:
+                old_ver_info = 'Previous version in target was: <code>{version_old}</code>'
 
-        tmpl = ('Migration excuse for package <b>{source_package}</b> {version_new} was ' + green('invalidated') + '. '
-                'The package migrated from <em>{suite_source}</em> → <em>{suite_target}</em>. ' + old_ver_info)
+            tmpl = tmpl + ' The package migrated from <em>{suite_source}</em> → <em>{suite_target}</em>. ' + old_ver_info
 
     return tmpl.format(**data)
 
