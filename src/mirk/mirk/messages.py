@@ -76,6 +76,10 @@ def message_prestyle_event_data(data):
     if 'architectures' in data:
         data['architectures'] = '\N{GEAR}' + ', \N{GEAR}'.join(dgrey(a) for a in data['architectures'])
 
+    # faintly color components
+    if 'component' in data:
+        data['component'] = bgrey(data['component'])
+
     return data
 
 
@@ -175,7 +179,7 @@ templates_isotope = \
 def pretty_source_package_published(tag, data):
     data['suites_str'] = ', '.join(data['suites'])
 
-    tmpl = 'Source package <b>{name}</b> {version} ({component}) was ' + green('published') + ' in the archive, available in suites <em>{suites_str}</em>.'
+    tmpl = 'Source package <b>{name}</b> {version} was ' + green('published') + ' in the archive, available in suites <em>{suites_str}</em> [<em>{component}</em>].'
     if data['suites']:
         tmpl = tmpl + ' | <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>'
 
@@ -185,8 +189,8 @@ def pretty_source_package_published(tag, data):
 def pretty_binary_package_published(tag, data):
     data['suites_str'] = '; '.join(data['suites'])
 
-    tmpl = ('Binary package <b>{name}</b> {version} from <b>' + bgrey('{source_name}') + '</b> ({component}) was ' + green('published') + ' in the archive '
-            'for {architecture} in suite <em>{suites_str}</em>.')
+    tmpl = ('Binary package <b>{name}</b> {version} from <b>' + bgrey('{source_name}') + '</b> was ' + green('published') + ' in the archive '
+            'for {architecture} in suite <em>{suites_str}</em> [<em>{component}</em>].')
     if data['suites']:
         first_suite = data['suites'][0]
         tmpl = tmpl + (' | <a href="{url_webswview}/package/bin/' + first_suite + '/{name}/' + '">\N{PACKAGE}</a>'
@@ -209,13 +213,13 @@ templates_archive = \
      '_lk.archive.source-package-published': pretty_source_package_published,
 
      '_lk.archive.source-package-published-in-suite':
-     'Source package <b>{name}</b> {version} was ' + green('added') + ' to suite <em>{suite_new} ({component})</em>.',
+     'Source package <b>{name}</b> {version} was ' + green('added') + ' to suite <em>{suite_new}</em> [<em>{component}</em>].',
 
      '_lk.archive.source-package-suite-removed':
-     'Source package <b>{name}</b> {version} was ' + red('removed') + ' from suite <em>{suite_old} ({component})</em>.',
+     'Source package <b>{name}</b> {version} was ' + red('removed') + ' from suite <em>{suite_old}</em> [<em>{component}</em>].',
 
      '_lk.archive.removed-source-package':
-     'Package <b>{name}</b> {version} ({component}) was ' + orange('removed') + ' from the archive.'
+     'Package <b>{name}</b> {version} [<em>{component}</em>] was ' + orange('removed') + ' from the archive.'
      }
 
 
