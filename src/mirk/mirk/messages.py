@@ -18,7 +18,8 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__all__ = ['message_templates']
+__all__ = ['message_templates',
+           'message_prestyle_event_data']
 
 
 def green(m):
@@ -33,13 +34,46 @@ def red(m):
     return '<font color="#da4453">{}</font>'.format(m)
 
 
+def purple(m):
+    return '<font color="#8e44ad">{}</font>'.format(m)
+
+
+def grey(m):
+    return '<font color="#2c3e50">{}</font>'.format(m)
+
+
+def message_prestyle_event_data(data):
+    '''
+    Invoked at the very start and allows styling some aspects
+    of the data already.
+    '''
+
+    # color all version numbers the same way
+    if 'version' in data:
+        data['version'] = purple(data['version'])
+    if 'version_new' in data:
+        data['version_new'] = purple(data['version_new'])
+    if 'version_old' in data:
+        data['version_old'] = purple(data['version_old'])
+
+    # prefix all architectures with a gear
+    if 'architecture' in data:
+        data['architecture'] = '\N{GEAR}' + grey(data['architecture'])
+    if 'job_architecture' in data:
+        data['job_architecture'] = '\N{GEAR}' + grey(data['job_architecture'])
+    if 'architectures' in data:
+        data['architectures'] = '\N{GEAR}' + ', \N{GEAR}'.join(grey(a) for a in data['architectures'])
+
+    return data
+
+
 #
 # Templates for jobs
 #
 
 templates_jobs = \
     {'_lk.jobs.job-assigned':
-     '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on architecture <code>{job_architecture}</code> to <em>{client_name}</em>''',
+     '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on architecture {job_architecture} to <em>{client_name}</em>''',
 
      '_lk.jobs.job-accepted':
      'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was ' + green('accepted') + ' by <em>{client_name}</em>',
@@ -57,7 +91,7 @@ templates_jobs = \
 
 
 def pretty_package_imported(tag, data):
-    info = 'package <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em>, new version is <code>{version}</code>.'.format(**data)
+    info = 'package <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em>, new version is {version}.'.format(**data)
     if data.get('forced'):
         return 'Enforced import of ' + info
     else:
@@ -69,7 +103,7 @@ templates_synchrotron = \
 
      '_lk.synchrotron.new-autosync-issue':
      ('New automatic synchronization issue for ' + red('<b>{name}</b>') + ' from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> '
-      '(source: <code>{version_src}</code>, destination: <code>{version_dest}</code>). Type: {kind}'),
+      '(source: {version_src}, destination: {version_dest}). Type: {kind}'),
 
      '_lk.synchrotron.resolved-autosync-issue':
      'The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> was ' + green('resolved') + '.'
@@ -104,18 +138,18 @@ templates_rubicon = \
 
 templates_isotope = \
     {'_lk.isotope.recipe-created':
-     'Created new <code>{kind}</code> image build recipe <code>{name}</code> for {distribution} <b>{suite}</b> of flavor <b>{flavor}</b> on <code>{architectures}</code>',
+     'Created new <code>{kind}</code> image build recipe <code>{name}</code> for {distribution} <b>{suite}</b> of flavor <b>{flavor}</b> on {architectures}',
 
      '_lk.isotope.build-job-added':
-     ('Created <code>{kind}</code> image build job on <code>{architecture}</code> for {distribution} <b>{suite}</b> of flavor <b>{flavor}</b>. '
+     ('Created <code>{kind}</code> image build job on {architecture} for {distribution} <b>{suite}</b> of flavor <b>{flavor}</b>. '
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-failed':
-     ('A <code>{kind}</code> image for {distribution} ' + red('failed') + ' to build for <b>{suite}</b>, flavor <b>{flavor}</b> on <code>{architecture}</code>. '
+     ('A <code>{kind}</code> image for {distribution} ' + red('failed') + ' to build for <b>{suite}</b>, flavor <b>{flavor}</b> on {architecture}. '
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-success':
-     ('A <code>{kind}</code> image for {distribution} was built ' + green('successfully') + ' for <b>{suite}</b>, flavor <b>{flavor}</b> on <code>{architecture}</code>. '
+     ('A <code>{kind}</code> image for {distribution} was built ' + green('successfully') + ' for <b>{suite}</b>, flavor <b>{flavor}</b> on {architecture}. '
       'The image has been ' + green('published') + ' for download. | <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>')
 
      }
@@ -129,7 +163,7 @@ templates_isotope = \
 def pretty_source_package_published(tag, data):
     data['suites_str'] = ', '.join(data['suites'])
 
-    tmpl = 'Source package <b>{name}</b> <b><em>{version}</em></b> ({component}) was ' + green('published') + ' in the archive, available in suites <em>{suites_str}</em>.'
+    tmpl = 'Source package <b>{name}</b> {version} ({component}) was ' + green('published') + ' in the archive, available in suites <em>{suites_str}</em>.'
     if data['suites']:
         tmpl = tmpl + ' | <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>'
 
@@ -138,23 +172,23 @@ def pretty_source_package_published(tag, data):
 
 templates_archive = \
     {'_lk.archive.package-build-success':
-     ('Package build for <b>{pkgname}</b> <b><em>{version}</em></b> on <code>{architecture}</code> in <em>{suite}</em> was ' + green('successful') + '. '
+     ('Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> was ' + green('successful') + '. '
       '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.archive.package-build-failed':
-     ('Package build for <b>{pkgname}</b> <b><em>{version}</em></b> on <code>{architecture}</code> in <em>{suite}</em> has ' + red('failed') + '. '
+     ('Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> has ' + red('failed') + '. '
       '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.archive.source-package-published': pretty_source_package_published,
 
      '_lk.archive.source-package-published-in-suite':
-     'Source package <b>{name}</b> <b><em>{version}</b></em> was ' + green('added') + ' to suite <em>{suite_new} ({component})</em>.',
+     'Source package <b>{name}</b> {version} was ' + green('added') + ' to suite <em>{suite_new} ({component})</em>.',
 
      '_lk.archive.source-package-suite-removed':
-     'Source package <b>{name}</b> <b><em>{version}</b></em> was ' + red('removed') + ' from suite <em>{suite_old} ({component})</em>.',
+     'Source package <b>{name}</b> {version} was ' + red('removed') + ' from suite <em>{suite_old} ({component})</em>.',
 
      '_lk.archive.removed-source-package':
-     'Package <b>{name}</b> <b><em>{version}</b></em> ({component}) was ' + orange('removed') + ' from the archive.'
+     'Package <b>{name}</b> {version} ({component}) was ' + orange('removed') + ' from the archive.'
      }
 
 
@@ -179,14 +213,14 @@ def pretty_excuse_change(tag, data):
                 'migration. ' + old_ver_info + ' | <a href="{url_webview}/migrations/excuse/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>')
 
     elif tag == '_lk.spears.excuse-removed':
-        tmpl = 'Migration excuse for package <b>{source_package}</b> <b><em>{version_new}</em></b> was ' + green('invalidated') + '.'
+        tmpl = 'Migration excuse for package <b>{source_package}</b> {version_new} was ' + green('invalidated') + '.'
         if removal:
-            tmpl = tmpl + ' The package is now deleted from <em>{suite_target}</em>. Previous version was: <code>{version_old}</code>'
+            tmpl = tmpl + ' The package is now deleted from <em>{suite_target}</em>. Previous version was: {version_old}'
         else:
             if data.get('version_old') == '-':
                 old_ver_info = 'This package is ' + green('new') + ' in <em>{suite_target}</em>.'
             else:
-                old_ver_info = 'Previous version in target was: <code>{version_old}</code>'
+                old_ver_info = 'Previous version in target was: {version_old}'
 
             tmpl = tmpl + ' The package migrated from <em>{suite_source}</em> → <em>{suite_target}</em>. ' + old_ver_info
 

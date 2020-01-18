@@ -27,7 +27,7 @@ from laniakea.msgstream import create_event_listen_socket, verify_event_message,
 from matrix_client.client import MatrixClient
 from matrix_client.api import MatrixRequestError
 from .config import MirkConfig
-from .messages import message_templates
+from .messages import message_templates, message_prestyle_event_data
 
 
 class RoomSettings:
@@ -62,6 +62,8 @@ class MatrixPublisher:
 
         data['url_webswview'] = self._mconf.webswview_url
         data['url_webview'] = self._mconf.webview_url
+
+        data = message_prestyle_event_data(data)
 
         text = ''
         templ = message_templates.get(tag)
