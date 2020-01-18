@@ -38,6 +38,10 @@ def purple(m):
     return '<font color="#8e44ad">{}</font>'.format(m)
 
 
+def lbgrey(m):
+    return '<font color="#34495e">{}</font>'.format(m)
+
+
 def bgrey(m):
     return '<font color="#2c3e50">{}</font>'.format(m)
 
@@ -54,15 +58,15 @@ def message_prestyle_event_data(data):
 
     # color all version numbers the same way
     if 'version' in data:
-        data['version'] = purple(data['version'])
+        data['version'] = lbgrey(data['version'])
     if 'version_new' in data:
-        data['version_new'] = purple(data['version_new'])
+        data['version_new'] = lbgrey(data['version_new'])
     if 'version_old' in data:
-        data['version_old'] = purple(data['version_old'])
+        data['version_old'] = lbgrey(data['version_old'])
     if 'version_src' in data:
-        data['version_src'] = purple(data['version_src'])
+        data['version_src'] = lbgrey(data['version_src'])
     if 'version_dest' in data:
-        data['version_dest'] = purple(data['version_dest'])
+        data['version_dest'] = lbgrey(data['version_dest'])
 
     # prefix all architectures with a gear
     if 'architecture' in data:
