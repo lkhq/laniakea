@@ -99,7 +99,7 @@ def pretty_package_imported(tag, data):
     if data.get('forced'):
         return 'Enforced import of ' + info
     else:
-        return 'Imported package ' + info
+        return 'Imported ' + info
 
 
 templates_synchrotron = \
