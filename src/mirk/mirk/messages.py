@@ -59,6 +59,10 @@ def message_prestyle_event_data(data):
         data['version_new'] = purple(data['version_new'])
     if 'version_old' in data:
         data['version_old'] = purple(data['version_old'])
+    if 'version_src' in data:
+        data['version_src'] = purple(data['version_src'])
+    if 'version_dest' in data:
+        data['version_dest'] = purple(data['version_dest'])
 
     # prefix all architectures with a gear
     if 'architecture' in data:
@@ -181,7 +185,7 @@ def pretty_binary_package_published(tag, data):
             'for {architecture} in suite <em>{suites_str}</em>.')
     if data['suites']:
         first_suite = data['suites'][0]
-        tmpl = tmpl + (' | <a href="{url_webswview}/package/bin/' + first_suite + '/{name}/' + + '_changelog">\N{PACKAGE}</a>'
+        tmpl = tmpl + (' | <a href="{url_webswview}/package/bin/' + first_suite + '/{name}/' + '">\N{PACKAGE}</a>'
                        ' <a href="{url_webview}/export/changelogs/{component}/{source_name:1.1}/{source_name}/' + first_suite + '_changelog">\N{DOCUMENT}</a>')
 
     return tmpl.format(**data)
