@@ -63,7 +63,7 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
             _emit_package_event(emitter,
                                 'binary-package-published',
                                 bpkg,
-                                {'architecture': bpkg.architecture,
+                                {'architecture': bpkg.architecture.name,
                                  'source_name': bpkg.source_name})
 
     return existing_bpkgs
