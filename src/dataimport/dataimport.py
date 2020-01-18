@@ -40,7 +40,7 @@ gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
 
 
-def _register_binary_packages(session, repo, suite, component, arch, existing_bpkgs, bpkgs):
+def _register_binary_packages(session, repo, suite, component, arch, existing_bpkgs, bpkgs, emitter=None):
     import sqlalchemy as sa
 
     for bpkg in bpkgs:
@@ -52,9 +52,19 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
             session.execute(sa.insert(binpkg_suite_assoc_table,
                                       {'suite_id': suite.id, 'bin_package_uuid': bpkg.uuid}))
             e_suites.append(suite.id)
-            continue
 
-        session.add(bpkg)
+            # NOTE: We do deliberately not emit messages for binary package suite changes, as they
+            # move with their source package for which we emit a message.
+
+            continue
+        else:
+            session.add(bpkg)
+
+            _emit_package_event(emitter,
+                                'binary-package-published',
+                                bpkg,
+                                {'architecture': bpkg.architecture,
+                                 'source_name': bpkg.source_name})
 
     return existing_bpkgs
 
@@ -175,6 +185,9 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
 def _emit_package_event(emitter, tag, pkg, extra={}):
     ''' Send a package event to Lighthouse '''
 
+    if not emitter:
+        return
+
     data = {'repo': pkg.repo.name,
             'name': pkg.name,
             'version': pkg.version,
@@ -271,7 +284,8 @@ def import_suite_packages(suite_name):
                                                        existing_bpkgs,
                                                        local_repo.binary_packages(suite,
                                                                                   component,
-                                                                                  arch))
+                                                                                  arch),
+                                                       emitter)
 
             # add information about debian-installer packages
             existing_bpkgs = _register_binary_packages(session,
@@ -282,7 +296,8 @@ def import_suite_packages(suite_name):
                                                        existing_bpkgs,
                                                        local_repo.installer_packages(suite,
                                                                                      component,
-                                                                                     arch))
+                                                                                     arch),
+                                                       emitter)
             session.commit()
 
             for old_bpkg_uuid, suites in existing_bpkgs.items():
@@ -300,6 +315,11 @@ def import_suite_packages(suite_name):
                         .filter(ArchiveFile.binpkg_id == old_bpkg_uuid).delete()
                     session.query(BinaryPackage) \
                         .filter(BinaryPackage.uuid == old_bpkg_uuid).delete()
+
+                    # NOTE: We do not emit messages for removed binary packages, as they are usually
+                    # deleted with their source package (unless we have an arch-specific removal) and we
+                    # don't want to spam messages which may be uninteresting to current Laniakea modules.
+
             session.commit()
 
             # import new AppStream component metadata / delete old components

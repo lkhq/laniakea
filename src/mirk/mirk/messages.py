@@ -38,8 +38,12 @@ def purple(m):
     return '<font color="#8e44ad">{}</font>'.format(m)
 
 
-def grey(m):
+def bgrey(m):
     return '<font color="#2c3e50">{}</font>'.format(m)
+
+
+def dgrey(m):
+    return '<font color="#31363b">{}</font>'.format(m)
 
 
 def message_prestyle_event_data(data):
@@ -58,11 +62,11 @@ def message_prestyle_event_data(data):
 
     # prefix all architectures with a gear
     if 'architecture' in data:
-        data['architecture'] = '\N{GEAR}' + grey(data['architecture'])
+        data['architecture'] = '\N{GEAR}' + dgrey(data['architecture'])
     if 'job_architecture' in data:
-        data['job_architecture'] = '\N{GEAR}' + grey(data['job_architecture'])
+        data['job_architecture'] = '\N{GEAR}' + dgrey(data['job_architecture'])
     if 'architectures' in data:
-        data['architectures'] = '\N{GEAR}' + ', \N{GEAR}'.join(grey(a) for a in data['architectures'])
+        data['architectures'] = '\N{GEAR}' + ', \N{GEAR}'.join(dgrey(a) for a in data['architectures'])
 
     return data
 
@@ -170,6 +174,19 @@ def pretty_source_package_published(tag, data):
     return tmpl.format(**data)
 
 
+def pretty_binary_package_published(tag, data):
+    data['suites_str'] = '; '.join(data['suites'])
+
+    tmpl = ('Binary package <b>{name}</b> {version} from <b>' + bgrey('{source_name}') + '</b> ({component}) was ' + green('published') + ' in the archive '
+            'for {architecture} in suite <em>{suites_str}</em>.')
+    if data['suites']:
+        first_suite = data['suites'][0]
+        tmpl = tmpl + (' | <a href="{url_webswview}/package/bin/' + first_suite + '/{name}/' + + '_changelog">\N{PACKAGE}</a>'
+                       ' <a href="{url_webview}/export/changelogs/{component}/{source_name:1.1}/{source_name}/' + first_suite + '_changelog">\N{DOCUMENT}</a>')
+
+    return tmpl.format(**data)
+
+
 templates_archive = \
     {'_lk.archive.package-build-success':
      ('Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> was ' + green('successful') + '. '
@@ -178,6 +195,8 @@ templates_archive = \
      '_lk.archive.package-build-failed':
      ('Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> has ' + red('failed') + '. '
       '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
+
+     '_lk.archive.binary-package-published': pretty_binary_package_published,
 
      '_lk.archive.source-package-published': pretty_source_package_published,
 
