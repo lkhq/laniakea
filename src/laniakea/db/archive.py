@@ -555,25 +555,29 @@ class SoftwareComponent(Base):
         self.uuid = uuid.uuid5(UUID_NS_SWCOMPONENT, self.gcid if self.gcid else self.xml)
         return self.uuid
 
-    def load(self, mdata=None):
+    def load(self, context=None):
         '''
         Load the actual AppStream component from stored XML data.
-        An existing Metadata instance can be reused.
+        An existing AppStream Context instance can be reused.
         '''
-        if not mdata:
+
+        # return the AppStream component if we already have it
+        if self.cpt:
+            return self.cpt
+
+        # set up the context
+        if not context:
             import gi
             gi.require_version('AppStream', '1.0')
             from gi.repository import AppStream
-            mdata = AppStream.Metadata()
-
-        mdata.clear_components()
-        mdata.set_format_style(AppStream.FormatStyle.COLLECTION)
+            context = AppStream.Context()
+        context.set_style(AppStream.FormatStyle.COLLECTION)
 
         if not self.xml:
             raise Exception('Can not load AppStream component from empty data.')
 
-        mdata.parse(self.xml, AppStream.FormatKind.XML)
-        self.cpt = mdata.get_component()
+        self.cpt = AppStream.Component()
+        self.cpt.load_from_xml_data(context, self.xml)
         self.cpt.set_active_locale('C')
 
         return self.cpt

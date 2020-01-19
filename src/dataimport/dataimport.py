@@ -108,9 +108,10 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
 
     log.debug('Found {} software components in {}/{}'.format(len(cpts), suite.name, component.name))
 
-    tmp_mdata = AppStream.Metadata()
-    tmp_mdata.set_locale('ALL')
-    tmp_mdata.set_format_style(AppStream.FormatStyle.COLLECTION)
+    # create context for direct serialization to collection XML chunk
+    context = AppStream.Context()
+    context.set_locale('ALL')
+    context.set_style(AppStream.FormatStyle.COLLECTION)
 
     for cpt in cpts:
         cpt.set_active_locale('C')
@@ -139,9 +140,7 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
         dcpt.kind = int(cpt.get_kind())
         dcpt.cid = cpt.get_id()
 
-        tmp_mdata.clear_components()
-        tmp_mdata.add_component(cpt)
-        dcpt.xml = tmp_mdata.components_to_collection(AppStream.FormatKind.XML)
+        dcpt.xml = cpt.to_xml_data(context)
 
         dcpt.gcid = cid_map.get(dcpt.cid)
         if not dcpt.gcid:
