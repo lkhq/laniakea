@@ -96,7 +96,7 @@ def trigger_image_build(options):
             # announce the event
             ev_data = {'name': recipe.name,
                        'architecture': arch,
-                       'kind': recipe.kind,
+                       'kind': str(recipe.kind),
                        'distribution': recipe.distribution,
                        'suite': recipe.suite,
                        'flavor': recipe.flavor,
