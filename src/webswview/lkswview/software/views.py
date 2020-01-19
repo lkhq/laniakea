@@ -74,6 +74,7 @@ def details(cid):
         return render_template('software/sw_details.html',
                                AppStream=AppStream,
                                screenshot_get_orig_image_url=screenshot_get_orig_image_url,
+                               ComponentKind=AppStream.ComponentKind,
                                sw=sw,
                                cpt=cpt,
                                component_id=cid,

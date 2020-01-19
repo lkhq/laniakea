@@ -69,7 +69,12 @@
         <b>Developer:</b> {{sw.developer_name}}
         <br/>
         {% endif %}
-        <b>License:</b> {{sw.project_license if sw.project_license else 'Unknown'}} ({{free software if sw.is_free else 'proprietary software'}})
+        <b>License:</b> {{sw.project_license if sw.project_license else 'Unknown'}}
+                {% if sw.is_free %}
+                <span class="badge badge-primary">free and open-source</span>
+                {% else %}
+                <span class="badge badge-danger">proprietary</span>
+                {% endif %}
         <br/>
 
         {% if cpt.get_url(AppStream.UrlKind.HOMEPAGE) %}
