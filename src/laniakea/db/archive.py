@@ -517,6 +517,7 @@ class SoftwareComponent(Base):
 
     icon_name = Column(String(256))  # Name of the primary cached icon of this component
 
+    is_free = Column(Boolean(), default=False)  # Whether this component is "free as in freedom" software
     project_license = Column(Text())  # License of this software
     developer_name = Column(Text())  # Name of the developer of this software
 

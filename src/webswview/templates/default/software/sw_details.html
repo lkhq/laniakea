@@ -69,7 +69,7 @@
         <b>Developer:</b> {{sw.developer_name}}
         <br/>
         {% endif %}
-        <b>License:</b> {{sw.project_license if sw.project_license else 'Unknown'}}
+        <b>License:</b> {{sw.project_license if sw.project_license else 'Unknown'}} ({{free software if sw.is_free else 'proprietary software'}})
         <br/>
 
         {% if cpt.get_url(AppStream.UrlKind.HOMEPAGE) %}

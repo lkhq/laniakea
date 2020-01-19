@@ -170,6 +170,18 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
         dcpt.project_license = cpt.get_project_license()
         dcpt.developer_name = cpt.get_developer_name()
 
+        # test for free software
+        dcpt.is_free = False
+        if not dcpt.project_license:
+            # We have no license set.
+            # If we are in the 'main' component, we
+            # assume we have free software
+            if bin_pkg.component.name == 'main':
+                dcpt.is_free = True
+        else:
+            # have AppStream test the SPDX license expression for free software
+            dcpt.is_free = AppStream.license_is_free_license(dcpt.project_license)
+
         dcpt.categories = []
         for cat in cpt.get_categories():
             dcpt.categories.append(cat)
