@@ -86,7 +86,7 @@ def localconfig(samplesdir):
     assert conf.cache_dir == '/var/tmp/laniakea'
     assert conf.workspace == '/tmp/test-lkws/'
 
-    assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_test'
+    assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_unittest'
     assert conf.lighthouse.endpoints_jobs == ['tcp://*:5570']
     assert conf.lighthouse.endpoints_submit == ['tcp://*:5571']
     assert conf.lighthouse.endpoints_publish == ['tcp://*:5572']
