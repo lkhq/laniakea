@@ -178,7 +178,9 @@ def pretty_source_package_published(tag, data):
     tmpl = ('Source package <b>{name}</b> {version} was ' + green('published') + ' in the archive, available in suites '
             '<em>{suites_str}</em> ' + bgrey('<em>[{component}]</em>') + '.')
     if data['suites']:
-        tmpl = tmpl + ' | <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>'
+        first_suite = data['suites'][0]
+        tmpl = tmpl + (' | <a href="{url_webswview}/package/src/' + first_suite + '/{name}' + '">\N{CIRCLED INFORMATION SOURCE}</a>'
+                       ' <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>')
 
     return tmpl.format(**data)
 
