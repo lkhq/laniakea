@@ -236,6 +236,7 @@ def builds_list(name, page):
 
         return render_template('packages/builds_list.html',
                                JobStatus=JobStatus,
+                               JobResult=JobResult,
                                humanized_timediff=humanized_timediff,
                                pkg=spkg,
                                jobs_arch=jobs_arch,
