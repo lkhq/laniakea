@@ -117,7 +117,7 @@ def configure_logging(app):
 
     # supress GET etc. messages from Werkzeug
     wlog = log.getLogger('werkzeug')
-    wlog.setLevel(logging.ERROR)
+    wlog.setLevel(log.ERROR)
 
     # Testing
     # app.logger.info("testing info.")
