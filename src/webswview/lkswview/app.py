@@ -98,12 +98,12 @@ def configure_logging(app):
     '''
 
     if app.debug or app.testing:
-        # Skip debug and test mode. Just check standard output.
+        # log everything
         return
 
-    # Set info level on logger, which might be overwritten by handers.
+    # Set warning level on logger, which might be overwritten by handers.
     # Suppress DEBUG messages.
-    app.logger.setLevel(log.INFO)
+    app.logger.setLevel(log.WARNING)
 
     os.makedirs(app.config['LOG_FOLDER'], exist_ok=True)
     info_log = os.path.join(app.config['LOG_FOLDER'], 'info.log')
@@ -114,6 +114,10 @@ def configure_logging(app):
         '[in %(pathname)s:%(lineno)d]')
     )
     app.logger.addHandler(info_file_handler)
+
+    # supress GET etc. messages from Werkzeug
+    wlog = log.getLogger('werkzeug')
+    wlog.setLevel(logging.ERROR)
 
     # Testing
     # app.logger.info("testing info.")

@@ -59,10 +59,12 @@ class BaseConfig:
 class DefaultConfig(BaseConfig):
 
     DEBUG = False
+    TESTING = False
     CACHE_TYPE = 'simple'
 
 
 class DebugConfig(BaseConfig):
 
     DEBUG = True
+    TESTING = True
     CACHE_TYPE = 'null'
