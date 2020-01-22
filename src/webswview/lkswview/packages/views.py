@@ -128,6 +128,8 @@ def bin_package_details(suite_name, name):
         suite = session.query(ArchiveSuite) \
                        .filter(ArchiveSuite.name == suite_name) \
                        .one_or_none()
+        if not suite:
+            abort(404)
 
         bpkgs = session.query(BinaryPackage) \
                        .options(joinedload(BinaryPackage.architecture)) \
@@ -176,6 +178,8 @@ def src_package_details(suite_name, name):
         suite = session.query(ArchiveSuite) \
                        .filter(ArchiveSuite.name == suite_name) \
                        .one_or_none()
+        if not suite:
+            abort(404)
 
         spkgs = session.query(SourcePackage) \
                        .options(undefer(SourcePackage.version)) \
