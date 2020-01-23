@@ -57,26 +57,27 @@ class MatrixPublisher:
             if signer_id and verify_key:
                 self._trusted_keys[signer_id] = verify_key
 
-    def _tag_data_to_html_message(self, tag, data):
+    def _tag_data_to_html_message(self, tag, event):
         ''' Convert the JSON message into a nice HTML string for display. '''
 
-        data['url_webswview'] = self._mconf.webswview_url
-        data['url_webview'] = self._mconf.webview_url
+        sdata = event.copy()
+        sdata['url_webswview'] = self._mconf.webswview_url
+        sdata['url_webview'] = self._mconf.webview_url
 
-        data = message_prestyle_event_data(data)
+        sdata = message_prestyle_event_data(sdata)
 
         text = ''
         templ = message_templates.get(tag)
         if templ:
             try:
                 if callable(templ):
-                    text = templ(tag, data)
+                    text = templ(tag, sdata)
                 else:
-                    text = templ.format(**data)
+                    text = templ.format(**sdata)
             except Exception as e:
-                text = '[<font color="#ed1515">FORMATTING_FAILED</font>] ' + str(e) + ' :: ' + str(data)
+                text = '[<font color="#ed1515">FORMATTING_FAILED</font>] ' + str(e) + ' :: ' + str(sdata)
         else:
-            text = 'Received event type <code>{}</code> with data <code>{}</code>'.format(tag, str(data))
+            text = 'Received event type <code>{}</code> with data <code>{}</code>'.format(tag, str(event))
 
         return text
 
