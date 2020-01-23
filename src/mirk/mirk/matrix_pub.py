@@ -131,21 +131,25 @@ class MatrixPublisher:
             # we have filter rules
             rule_matched = False
             for rule in filter_rules:
-                match_okay = None
+                match_okay = False
                 for key, filter_value in rule.items():
                     event_value = flat_data.get(key)
                     if not event_value:
                         continue  # we can ignore this rule here
                     if type(event_value) is str:
                         match_okay = fnmatch(event_value, filter_value)
+                        if not match_okay:
+                            break
                     elif type(event_value) is list:
                         for evs in event_value:
                             if not type(evs) is str:
                                 continue
                             match_okay = fnmatch(evs, filter_value)
-                            if match_okay:
+                            if not match_okay:
                                 break
-                if match_okay is True:
+                        if not match_okay:
+                            break
+                if match_okay:
                     rule_matched = True
                     break
 
