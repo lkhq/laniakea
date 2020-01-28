@@ -34,6 +34,54 @@ class RoomSettings:
     filter_rules = []
 
 
+def filter_entry_matches(fentry, data):
+    if type(fentry) is list:
+        for fe in fentry:
+            if fnmatch(data, fe):
+                return True
+        return False
+    else:
+        return fnmatch(data, fentry)
+
+
+def filter_rules_match_event(rules, event):
+    '''
+    Check if our filter rules :rules match the data present
+    in :event
+    '''
+
+    # create a flatter data structure for easy matching
+    flat_data = event['data']
+    flat_data['tag'] = event['tag']
+
+    # we have filter rules
+    rule_matched = False
+    for rule in rules:
+        match_okay = False
+        for key, filter_value in rule.items():
+            event_value = flat_data.get(key)
+            if not event_value:
+                continue  # we can ignore this rule here
+            if type(event_value) is str:
+                match_okay = filter_entry_matches(filter_value, event_value)
+                if not match_okay:
+                    break
+            elif type(event_value) is list:
+                for evs in event_value:
+                    if not type(evs) is str:
+                        continue
+                    match_okay = filter_entry_matches(filter_value, evs)
+                    if not match_okay:
+                        break
+                if not match_okay:
+                    break
+        if match_okay:
+            rule_matched = True
+            break
+
+    return rule_matched
+
+
 class MatrixPublisher:
     '''
     Publish messages from the Laniakea Message Stream in Matrix rooms.
@@ -117,6 +165,17 @@ class MatrixPublisher:
 
         self._rooms_publish_text(event, text)
 
+    def filter_entry_matches(fentry, data):
+        if type(fentry) is list:
+            for fe in fentry:
+                if fnmatch(data, fe):
+                    return True
+            return False
+        else:
+            if fnmatch(data, fentry):
+                return True
+            return False
+
     def _rooms_publish_text(self, event, text):
         for room, settings in self._rooms.items():
             filter_rules = settings.filter_rules
@@ -125,37 +184,9 @@ class MatrixPublisher:
                 room.send_html(text)
                 continue
 
-            # create a flatter data structure for easy matching
-            flat_data = event['data']
-            flat_data['tag'] = event['tag']
-
-            # we have filter rules
-            rule_matched = False
-            for rule in filter_rules:
-                match_okay = False
-                for key, filter_value in rule.items():
-                    event_value = flat_data.get(key)
-                    if not event_value:
-                        continue  # we can ignore this rule here
-                    if type(event_value) is str:
-                        match_okay = fnmatch(event_value, filter_value)
-                        if not match_okay:
-                            break
-                    elif type(event_value) is list:
-                        for evs in event_value:
-                            if not type(evs) is str:
-                                continue
-                            match_okay = fnmatch(evs, filter_value)
-                            if not match_okay:
-                                break
-                        if not match_okay:
-                            break
-                if match_okay:
-                    rule_matched = True
-                    break
-
-            # we are allowed to send this message to the particular room
-            if rule_matched:
+            # check if we are allowed to send this message to the particular room,
+            # and then send it
+            if filter_rules_match_event(filter_rules, event):
                 room.send_html(text)
 
     def run(self):
