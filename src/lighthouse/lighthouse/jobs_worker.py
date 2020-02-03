@@ -353,6 +353,8 @@ class JobWorker:
 
         # update log & status data
         if log_excerpt:
+            # sometimes nasty builders send NULL characters in the string, protect against that
+            log_excerpt = log_excerpt.replace('\x00', '')
             session.query(Job).filter(Job.uuid == job_id).update({'latest_log_excerpt': log_excerpt})
 
         # update last seen information
