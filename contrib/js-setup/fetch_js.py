@@ -51,8 +51,7 @@ node_modules = [{'name': 'bootstrap',
                 ]
 
 
-def fetch_node_modules():
-    yarn_cmd = '/usr/share/yarn/bin/yarn'
+def fetch_node_modules(yarn_cmd):
     if not os.path.isfile(yarn_cmd):
         print('WARNING: Using `yarn` from PATH which may not be yarnpkg.com\'s Yarn, but from cmdtest')
         yarn_cmd = 'yarn'
@@ -80,7 +79,7 @@ def install_node_modules():
 
 
 def run(args):
-    fetch_node_modules()
+    fetch_node_modules(args[0])
     install_node_modules()
     return 0
 
