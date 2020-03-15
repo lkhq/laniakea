@@ -136,6 +136,9 @@ class SpearsExcuse(Base):
 
     def set_old_binaries(self, obins):
         j = []
+        if not obins:
+            obins = []
+
         for obin in obins:
             d = {}
             d['pkg_version'] = obin.pkg_version

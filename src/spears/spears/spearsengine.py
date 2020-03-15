@@ -21,6 +21,7 @@ import shutil
 from typing import List
 from uuid import uuid4
 from apt_pkg import TagFile
+from sqlalchemy.orm import joinedload
 from laniakea.localconfig import LocalConfig
 from laniakea.repository import Repository
 from laniakea.db import session_scope, LkModule, SpearsMigrationEntry, SpearsExcuse, \
@@ -74,7 +75,7 @@ class SpearsEngine:
             maybe_suite = session.query(ArchiveSuite) \
                                  .filter(ArchiveSuite.name == suite_name).one_or_none()
             if not maybe_suite:
-                log.error('Migration source suite "{}" does not exist. Can not create configuration.', suite_name)
+                log.error('Migration source suite "{}" does not exist. Can not create configuration.'.format(suite_name))
                 res['error'] = True
                 return res
             res['from'].append(maybe_suite)
@@ -88,7 +89,7 @@ class SpearsEngine:
         res['to'] = maybe_suite
 
         if res['to'] in res['from']:
-            log.error('Migration target suite ({}) is contained in source suite list.', res['to'].name)
+            log.error('Migration target suite ({}) is contained in source suite list.'.format(res['to'].name))
             res['error'] = True
             return res
 
@@ -108,8 +109,7 @@ class SpearsEngine:
                       .filter(ArchiveRepository.name == repo_name).one()
         local_repo = Repository(self._lconf.archive_root_dir,
                                 repo.name,
-                                trusted_keyrings=[],
-                                entity=repo)
+                                trusted_keyrings=[])
 
         # we unconditionally trust the local repository - for now
         local_repo.set_trusted(True)
@@ -197,7 +197,7 @@ class SpearsEngine:
                                                         installer_dir,
                                                         'binary-{}'.format(arch.name),
                                                         'Packages.xz')
-                    log.debug('Generating combined new fake packages file: {}', target_packages_file)
+                    log.debug('Generating combined new fake packages file: {}'.format(target_packages_file))
                     os.makedirs(os.path.dirname(target_packages_file), exist_ok=True)
 
                     data = b''
@@ -246,7 +246,7 @@ class SpearsEngine:
                                     suites_source[0].name,
                                     'Release')
         target_release_file = os.path.join(fake_dists_dir, 'Release')
-        log.debug('Using Release file for fake suite: {}', target_release_file)
+        log.debug('Using Release file for fake suite: {}'.format(target_release_file))
         if os.path.join(target_release_file):
             os.remove(target_release_file)
         shutil.copyfile(release_file, target_release_file)
@@ -279,11 +279,16 @@ class SpearsEngine:
         repo = self._get_local_repo(session)
 
         for suite in suites_source:
-            for component in suite.components:
-                for arch in suite.architectures:
-                    for bpkg in repo.binary_packages(suite, component, arch):
+            esuite = session.query(ArchiveSuite) \
+                            .options(joinedload(ArchiveSuite.components)) \
+                            .options(joinedload(ArchiveSuite.architectures)) \
+                            .filter(ArchiveSuite.id == suite.id).one()
+            session.expunge(esuite)  # we don't want packages accidentally added to the database here
+            for component in esuite.components:
+                for arch in esuite.architectures:
+                    for bpkg in repo.binary_packages(esuite, component, arch):
                         existing_package_set.add(bpkg.name)
-                    for spkg in repo.source_packages(suite, component):
+                    for spkg in repo.source_packages(esuite, component):
                         existing_package_set.add(spkg.name)
 
         archive_root_dir = self._lconf.archive_root_dir
@@ -305,7 +310,7 @@ class SpearsEngine:
                     if not os.path.isfile(pfile):
                         continue
 
-                    log.debug('Reading data for faux packages list: {}', pfile)
+                    log.debug('Reading data for faux packages list: {}'.format(pfile))
 
                     with TagFile(pfile) as tf:
                         for e in tf:
@@ -406,13 +411,14 @@ class SpearsEngine:
             for line in f:
                 parts = line.strip().split(' ')
                 if len(parts) != 4:
-                    log.warning('Found invalid line in Britney result: {}', line.strip())
+                    log.warning('Found invalid line in Britney result: {}'.format(line.strip()))
                     continue
                 final_data.append('{} {} {}'.format(parts[0], parts[1], parts[2]))
 
         os.makedirs(os.path.dirname(processed_result), exist_ok=True)
         with open(processed_result, 'w') as f:
             f.write('\n'.join(final_data))
+            f.write('\n')
 
         return processed_result
 
@@ -443,9 +449,14 @@ class SpearsEngine:
             repo = self._get_local_repo(session)
 
             for suite in suites_from:
-                for component in suite.components:
-                    for spkg in repo.source_packages(suite, component):
-                        pkg_source_suite_map[spkg.name + '/' + spkg.version] = suite.name
+                esuite = session.query(ArchiveSuite) \
+                                .options(joinedload(ArchiveSuite.components)) \
+                                .options(joinedload(ArchiveSuite.architectures)) \
+                                .filter(ArchiveSuite.id == suite.id).one()
+                session.expunge(esuite)  # we don't want packages accidentally added to the database here
+                for component in esuite.components:
+                    for spkg in repo.source_packages(esuite, component):
+                        pkg_source_suite_map[spkg.name + '/' + spkg.version] = esuite.name
 
         excuses = []
         for _, excuse in efile.get_excuses().items():
@@ -485,7 +496,7 @@ class SpearsEngine:
         if not ret:
             return None
 
-        res = self._retrieve_excuses(mi_wspace, suites_from, suite_to)
+        res = self._retrieve_excuses(session, mi_wspace, suites_from, suite_to)
         return res
 
     def _run_migration_for_entries(self, session, migration_entries):
