@@ -132,6 +132,10 @@ class BritneyConfig:
         assert not self._delays_set
 
         # ensure all priorities have a value
+        for prio, days in delays.copy().items():
+            delays.pop(prio)
+            prio = int(prio)
+            delays[VersionPriority(prio)] = int(days)
         for prio in VersionPriority:
             if prio not in delays:
                 delays[prio] = 0

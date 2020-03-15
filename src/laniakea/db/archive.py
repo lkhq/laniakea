@@ -247,10 +247,10 @@ class VersionPriority(enum.IntEnum):
     Priority of a package upload.
     '''
     LOW = 0
-    MEDIUM = 1
-    HIGH = 2
-    CRITICAL = 3
-    EMERGENCY = 4
+    MEDIUM = enum.auto()
+    HIGH = enum.auto()
+    CRITICAL = enum.auto()
+    EMERGENCY = enum.auto()
 
     def __str__(self):
         if self.value == self.LOW:
