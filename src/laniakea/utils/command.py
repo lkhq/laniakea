@@ -98,8 +98,9 @@ def run_forwarded(command, cwd=None, print_output=False):
         if proc.poll() is not None:
             break
         line_str = str(line, 'utf-8', 'replace')
-        sys.stdout.write(line_str)
         output = output + line_str
+        if print_output:
+            sys.stdout.write(line_str)
 
     return (output, proc.returncode)
 
