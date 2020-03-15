@@ -128,11 +128,11 @@ class ExcusesFile:
 
             # other plaintext excuses
             if 'excuses' in entry:
-                excuse.other = ''
+                excuse.other = []
                 for n in entry['excuses']:
                     s = str(n)
                     if 'Cannot be tested by piuparts' not in s and 'but ignoring cruft, so nevermind' not in s:
-                        excuse.other = excuse.other + s
+                        excuse.other.append(s)
 
             # add log information
             excuse.log_excerpt = loginfo.get(excuse.source_package)
