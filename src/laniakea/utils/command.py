@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import shlex
 import subprocess
 
@@ -77,3 +78,39 @@ def safe_run(cmd, input=None, expected=0):
         raise SubprocessError(out, err, ret, cmd)
 
     return out, err, ret
+
+
+def run_forwarded(command, cwd=None, print_output=False):
+    '''
+    Run a command, optionally forwarding all output to the current stdout and return
+    the output as well.
+    '''
+    if not isinstance(command, list):
+        command = shlex.split(command)
+
+    output = ''
+    proc = subprocess.Popen(command,
+                            cwd=cwd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+    while True:
+        line = proc.stdout.readline()
+        if proc.poll() is not None:
+            break
+        line_str = str(line, 'utf-8', 'replace')
+        sys.stdout.write(line_str)
+        output = output + line_str
+
+    return (output, proc.returncode)
+
+
+def safe_run_forwarded(command, expected=0, cwd=None, print_output=False):
+    if not isinstance(expected, tuple):
+        expected = (expected, )
+
+    out, ret = run_forwarded(command, cwd=cwd, print_output=print_output)
+
+    if ret not in expected:
+        raise SubprocessError(out, '', ret, command)
+
+    return out, ret

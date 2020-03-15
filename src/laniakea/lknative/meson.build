@@ -21,23 +21,16 @@ lknative_src = [
 
     'config/core.d',
     'config/package.d',
-    'config/spears.d',
     'config/synchrotron.d',
     'py/pyhelper.d',
     'py/pywrap.d',
     'synchrotron/package.d',
-    'synchrotron/syncengine.d',
-    'spears/package.d',
-    'spears/spearsengine.d',
-    'spears/britneyconfig.d',
-    'spears/britney.d',
-    'spears/excuses.d',
+    'synchrotron/syncengine.d'
 ]
 
 lknative_deps = [pyd_dep,
                  archive_dep,
-                 curl_dep,
-                 dyaml_dep
+                 curl_dep
 ]
 
 lkdrcompat_lib = static_library('lkdrcompat', 'druntime.c')

@@ -225,7 +225,7 @@ def import_suite_packages(suite_name):
                             trusted_keyrings=[],
                             entity=repo)
 
-    # we unconditionally trsut the local repository - for now
+    # we unconditionally trust the local repository - for now
     local_repo.set_trusted(True)
 
     # event emitted for message passing

@@ -118,6 +118,8 @@ class LocalConfig:
             self._archive_url = jarchive.get('url', '#')
             self._archive_appstream_media_url = jarchive.get('appstream_media_url', 'https://appstream.debian.org/media/pool')
 
+            self._archive_urgencies_export_dir = jarchive.get('urgencies_export_dir', '/srv/dak/export/urgencies/')
+
             self._lighthouse = LocalConfig.LighthouseConfig()
             lhconf = jdata.get('Lighthouse', {})
             lhconf_endpoints = lhconf.get('endpoints', {})
@@ -170,6 +172,10 @@ class LocalConfig:
         @property
         def archive_appstream_media_url(self) -> str:
             return self._archive_appstream_media_url
+
+        @property
+        def archive_urgencies_export_dir(self) -> str:
+            return self._archive_urgencies_export_dir
 
         @property
         def lighthouse(self):

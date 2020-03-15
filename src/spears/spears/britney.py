@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018-2020 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -21,47 +19,39 @@ import os
 from laniakea.localconfig import LocalConfig, ExternalToolsUrls
 from laniakea.git import Git
 from laniakea.logging import get_verbose
-from laniakea.utils import listify
 
 
-class DakBridge:
+class Britney:
     '''
-    Call commands on the Debian Archive Kit (dak)
-    CLI utility.
+    Interface to Debian's Archive Migrator (Britney2)
     '''
 
     def __init__(self):
         lconf = LocalConfig()
 
-        self._dak_dist_dir = os.path.join(lconf.workspace, 'dist', 'dak')
-        self._dak_exe = os.path.join(self._dak_dist_dir, 'dak', 'dak.py')
+        self._britney_dir = os.path.join(lconf.workspace, 'dist', 'britney2')
+        self._britney_exe = os.path.join(self._britney_dir, 'britney.py')
 
-    def update_dak(self):
+    def update_dist(self):
         ext_urls = ExternalToolsUrls()
 
         git = Git()
-        git.location = self._dak_dist_dir
-        if os.path.isdir(os.path.join(self._dak_dist_dir, '.git')):
+        git.location = self._britney_dir
+        if os.path.isdir(os.path.join(self._britney_dir, '.git')):
             git.pull()
         else:
-            os.makedirs(self._dak_dist_dir, exist_ok=True)
-            git.clone(ext_urls.dak_git_repository)
+            os.makedirs(self._britney_dir, exist_ok=True)
+            git.clone(ext_urls.britney_git_repository)
 
-    def _run_dak(self, args):
-        from laniakea.utils import run_command
+    def run(self, wdir, config_fname, args=[]):
+        from laniakea.utils import run_forwarded
 
-        cmd = [self._dak_exe]
+        cmd = [self._britney_exe]
+        cmd.extend(['-c', config_fname])
         cmd.extend(args)
 
-        out, err, ret = run_command(cmd, capture_output=not get_verbose())
+        out, ret = run_forwarded(cmd, cwd=wdir, print_output=get_verbose())
         if ret != 0:
-            raise Exception('Failed to run dak: {}\n{}'.format(out if out else '', err if err else ''))
+            raise Exception('britney run failed: {}'.format(out))
+
         return out
-
-    def run(self, command):
-        '''
-        Run dak with the given commands.
-        '''
-        command = listify(command)
-
-        return self._run_dak(command)

@@ -142,3 +142,6 @@ class SpearsExcuse(Base):
             d['binaries'] = obin.binaries
             j.append(d)
         self.old_binaries = j
+
+    def make_idname(self):
+        return '{}-{}:{}-{}/{}'.format(self.suite_source, self.suite_target, self.source_package, self.version_new, self.version_old)

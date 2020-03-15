@@ -1,6 +1,5 @@
 project('Laniakea', 'c', 'd',
     meson_version: '>=0.48',
-    subproject_dir: 'contrib/subprojects',
     license: 'GPL-3.0+',
     version: '0.1'
 )
@@ -17,7 +16,6 @@ py = pymod.find_installation('python3')
 archive_dep = dependency('libarchive')
 curl_dep = dependency('libcurl')
 systemd_dep = dependency('systemd')
-dyaml_dep = dependency('dyaml', version: '>= 0.6', fallback: ['dyaml', 'dyaml_dep'])
 pyd_dep = dependency('pyd')
 
 # Python deps

@@ -98,6 +98,29 @@ def download_file(url, fname, check=False, headers={}, **kwargs):
     return r.status_code
 
 
+@contextmanager
+def open_compressed(fname, mode='rb'):
+    '''
+    Open a few compressed filetypes easily.
+    '''
+
+    lower_fname = fname.lower()
+    f = None
+    if lower_fname.endswith('.xz'):
+        import lzma
+        f = lzma.open(fname, mode=mode)
+    elif lower_fname.endswith('.gz'):
+        import gzip
+        f = gzip.open(fname, mode=mode)
+    else:
+        raise Exception('Can not decompress file (compression type not recognized): {}'.format(fname))
+
+    try:
+        yield f
+    finally:
+        f.close()
+
+
 def split_strip(s, sep):
     ''' Split a string, removing empty segments from the result and stripping the individual parts '''
     res = []

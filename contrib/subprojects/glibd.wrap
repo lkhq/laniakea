@@ -1,4 +1,0 @@
-[wrap-git]
-directory = glibd
-url       = https://github.com/gtkd-developers/GlibD.git
-revision  = head
