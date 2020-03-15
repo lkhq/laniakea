@@ -335,6 +335,17 @@ class SpearsEngine:
 
                             fauxpkg_data[pkid] = data
 
+                            # FIXME: We shouldn't have to special-case this :any case,
+                            # rather Britney should do the right thing and recognize this
+                            # notation for faux-packages. But until that is fixed
+                            # properly and since a dependency on python3:any is so common, we
+                            # will work around this issue
+                            if pkgname == 'python3':
+                                pkid = '{}-{}-{}'.format('python3:any', pkgversion, pkgarch)
+                                if pkid in fauxpkg_data:
+                                    continue
+                                fauxpkg_data[pkid] = data.replace('Package: python3\n', 'Package: python3:any\n')
+
         with open(fauxpkg_fname, 'w') as f:
             for segment in fauxpkg_data.values():
                 f.write(segment + '\n\n')
