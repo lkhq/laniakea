@@ -521,12 +521,17 @@ class SoftwareComponent(Base):
     project_license = Column(Text())  # License of this software
     developer_name = Column(Text())  # Name of the developer of this software
 
+    supports_touch = Column(Boolean(), default=False)  # Whether this component supports touch input
+
     categories = Column(ARRAY(String(256)))  # Categories this component is in
 
     bin_packages = relationship('BinaryPackage',
                                 secondary=swcpt_binpkg_assoc_table,
                                 order_by='desc(BinaryPackage.version)',
                                 back_populates='sw_cpts')  # Packages this software component is contained in
+
+    flatpakref_uuid = Column(UUID(as_uuid=True), ForeignKey('flatpak_refs.uuid'))
+    flatpakref = relationship('FlatpakRef')
 
     xml = Column(Text())  # XML representation in AppStream collection XML for this component
 

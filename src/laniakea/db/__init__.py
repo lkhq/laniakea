@@ -12,3 +12,4 @@ from .debcheck import *
 from .jobs import *
 from .workers import *
 from .isotope import *
+from .flatpak import *
