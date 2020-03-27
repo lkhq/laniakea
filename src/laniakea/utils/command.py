@@ -80,7 +80,7 @@ def safe_run(cmd, input=None, expected=0):
     return out, err, ret
 
 
-def run_forwarded(command, cwd=None, print_output=False):
+def run_forwarded(command, cwd=None, print_output=True):
     '''
     Run a command, optionally forwarding all output to the current stdout and return
     the output as well.
@@ -105,7 +105,7 @@ def run_forwarded(command, cwd=None, print_output=False):
     return (output, proc.returncode)
 
 
-def safe_run_forwarded(command, expected=0, cwd=None, print_output=False):
+def safe_run_forwarded(command, expected=0, cwd=None, print_output=True):
     if not isinstance(expected, tuple):
         expected = (expected, )
 

@@ -149,6 +149,9 @@ class LocalConfig:
             if self._trusted_gpg_keyring_dir:
                 self._trusted_gpg_keyrings = glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))
 
+            # Secret GPG Keyring dir
+            self._secret_gpg_home_dir = jdata.get('SecretGPGHome', '/etc/laniakea/keys/gpg/s3kr1t/')
+
         @property
         def workspace(self) -> str:
             return self._workspace
@@ -164,6 +167,10 @@ class LocalConfig:
         @property
         def archive_root_dir(self) -> str:
             return self._archive_root_dir
+
+        @property
+        def archive_flatpak_root_dir(self) -> str:
+            return os.path.join(self._archive_root_dir, 'flatpak')
 
         @property
         def archive_url(self) -> str:
@@ -223,6 +230,10 @@ class LocalConfig:
         @property
         def trusted_gpg_keyrings(self) -> list:
             return self._trusted_gpg_keyrings
+
+        @property
+        def secret_gpg_home_dir(self) -> str:
+            return self._secret_gpg_home_dir
 
     def __init__(self, fname=None):
         if not LocalConfig.instance:

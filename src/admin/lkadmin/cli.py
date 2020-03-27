@@ -73,6 +73,9 @@ def create_parser(formatter_class=None):
     import lkadmin.planter as planter
     planter.add_cli_parser(subparsers)
 
+    import lkadmin.flatpak as flatpak
+    flatpak.add_cli_parser(subparsers)
+
     return parser
 
 

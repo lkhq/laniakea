@@ -22,7 +22,10 @@ RUN apt-get install -yq --no-install-recommends \
     libpq-dev \
     postgresql \
     libappstream-dev \
-    gir1.2-appstream-1.0
+    gir1.2-appstream-1.0 \
+    ostree \
+    flatpak \
+    flatpak-builder
 
 RUN apt-get install -yq --no-install-recommends \
     python3-pip \

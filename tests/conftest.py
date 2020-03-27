@@ -83,6 +83,7 @@ def localconfig(samplesdir):
         json.dump(config_json, f)
 
     conf = LocalConfig(config_fname)
+    conf = LocalConfig.instance
     assert conf.cache_dir == '/var/tmp/laniakea'
     assert conf.workspace == '/tmp/test-lkws/'
 
@@ -99,9 +100,12 @@ def localconfig(samplesdir):
     os.makedirs(conf._curve_keys_basedir, exist_ok=True)
 
     # add the trusted keyring with test keys
-    conf.trusted_gpg_keyrings = []
-    conf.trusted_gpg_keyrings.append(os.path.join(samplesdir, 'gpg', 'keyrings', 'keyring.gpg'))
-    conf.trusted_gpg_keyrings.append(os.path.join(samplesdir, 'gpg', 'keyrings', 'other-keyring.gpg'))
+    conf._trusted_gpg_keyrings = []
+    conf._trusted_gpg_keyrings.append(os.path.join(samplesdir, 'gpg', 'keyrings', 'keyring.gpg'))
+    conf._trusted_gpg_keyrings.append(os.path.join(samplesdir, 'gpg', 'keyrings', 'other-keyring.gpg'))
+
+    # set our GPG secret keyring dir
+    conf._secret_gpg_home_dir = os.path.join(samplesdir, 'gpg', 'home')
 
     return conf
 

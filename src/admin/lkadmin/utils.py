@@ -80,6 +80,6 @@ def print_note(msg):
 
 
 def print_error_exit(msg):
-    from sys import exit
-    print(msg)
-    exit(1)
+    import sys
+    print(msg, file=sys.stderr)
+    sys.exit(1)
