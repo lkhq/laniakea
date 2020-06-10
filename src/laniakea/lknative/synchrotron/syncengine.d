@@ -469,7 +469,7 @@ public:
     /**
      * Synchronize all packages that are newer
      */
-    Tuple!(bool, SynchrotronIssue[]) autosync ()
+    Tuple!(bool, SynchrotronIssue[]) autosync (bool removeCruft = true)
     {
         syncedSourcePackages = [];
 
@@ -576,53 +576,55 @@ public:
         }
 
         // remove cruft packages
-        foreach (ref pkgname, ref dpkg; targetPkgIndex) {
-            // native packages are never removed
-            if (dpkg.ver.getDebianRev (false).empty)
-                continue;
+        if (removeCruft) {
+            foreach (ref pkgname, ref dpkg; targetPkgIndex) {
+                // native packages are never removed
+                if (dpkg.ver.getDebianRev (false).empty)
+                    continue;
 
-            // check if the package is intoduced as new in the distro, in which case we won't remove it
-            if (dpkg.ver.getDebianRev.startsWith ("0" ~ distroTag))
-                continue;
+                // check if the package is intoduced as new in the distro, in which case we won't remove it
+                if (dpkg.ver.getDebianRev.startsWith ("0" ~ distroTag))
+                    continue;
 
-            // if this package was modified in the target distro, we will also not remove it, but flag it as "potential cruft" for
-            // someone to look at.
-            if (dpkg.ver.getDebianRev.canFind (distroTag)) {
-                auto issue = newSyncIssue (sourceSuite);
-                issue.kind = SynchrotronIssueKind.MAYBE_CRUFT;
-                issue.packageName = dpkg.name;
-                issue.targetVersion = dpkg.ver;
-                issue.sourceVersion = null;
+                // if this package was modified in the target distro, we will also not remove it, but flag it as "potential cruft" for
+                // someone to look at.
+                if (dpkg.ver.getDebianRev.canFind (distroTag)) {
+                    auto issue = newSyncIssue (sourceSuite);
+                    issue.kind = SynchrotronIssueKind.MAYBE_CRUFT;
+                    issue.packageName = dpkg.name;
+                    issue.targetVersion = dpkg.ver;
+                    issue.sourceVersion = null;
 
-                res[1] ~= issue;
-                continue;
-            }
+                    res[1] ~= issue;
+                    continue;
+                }
 
-            // check if we can remove this package without breaking stuff
-            if (dak.packageIsRemovable (dpkg.name, targetSuite.name)) {
-                // try to remove the package
-                try {
-                    dak.removePackage (dpkg.name, targetSuite.name);
-                } catch (Exception e) {
+                // check if we can remove this package without breaking stuff
+                if (dak.packageIsRemovable (dpkg.name, targetSuite.name)) {
+                    // try to remove the package
+                    try {
+                        dak.removePackage (dpkg.name, targetSuite.name);
+                    } catch (Exception e) {
+                        auto issue = newSyncIssue (sourceSuite);
+                        issue.kind = SynchrotronIssueKind.REMOVAL_FAILED;
+                        issue.packageName = dpkg.name;
+                        issue.targetVersion = dpkg.ver;
+                        issue.sourceVersion = null;
+                        issue.details = "%s".format (e);
+
+                        res[1] ~= issue;
+                    }
+                } else {
+                    // looks like we can not remove this
                     auto issue = newSyncIssue (sourceSuite);
                     issue.kind = SynchrotronIssueKind.REMOVAL_FAILED;
                     issue.packageName = dpkg.name;
                     issue.targetVersion = dpkg.ver;
                     issue.sourceVersion = null;
-                    issue.details = "%s".format (e);
+                    issue.details = "This package can not be removed without breaking other packages. It needs manual removal.";
 
                     res[1] ~= issue;
                 }
-            } else {
-                // looks like we can not remove this
-                auto issue = newSyncIssue (sourceSuite);
-                issue.kind = SynchrotronIssueKind.REMOVAL_FAILED;
-                issue.packageName = dpkg.name;
-                issue.targetVersion = dpkg.ver;
-                issue.sourceVersion = null;
-                issue.details = "This package can not be removed without breaking other packages. It needs manual removal.";
-
-                res[1] ~= issue;
             }
         }
 

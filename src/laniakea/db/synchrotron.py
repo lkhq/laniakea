@@ -58,6 +58,7 @@ class SynchrotronConfig(Base):
     sync_enabled = Column(Boolean(), default=True)  # true if syncs should happen
     sync_auto_enabled = Column(Boolean(), default=False)  # true if syncs should happen automatically
     sync_binaries = Column(Boolean(), default=False)  # true if we should also sync binary packages
+    auto_cruft_remove = Column(Boolean(), default=True)  # true if we should automatically try to remove cruft in target
 
 
 class SyncBlacklistEntry(Base):

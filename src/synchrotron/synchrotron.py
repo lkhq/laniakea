@@ -165,7 +165,7 @@ def command_autosync(options):
             engine = SyncEngine(bconf, sconf, incoming_suite)
             engine.setBlacklist(blacklist_pkgnames)
 
-            ret, issue_data = engine.autosync()
+            ret, issue_data = engine.autosync(autosync.auto_cruft_remove)
             publish_synced_spkg_events(engine,
                                        autosync.source.os_name,
                                        autosync.source.suite_name,
