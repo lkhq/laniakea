@@ -112,6 +112,8 @@ def migration_excuse_info(spkg, suite_name):
             return []
         infos = []
         for e in qres:
+            if e[4] is None:
+                continue
             stuck = e[4] >= e[5]
             infos.append({'uuid': e[0],
                           'version_new': e[1],
