@@ -191,7 +191,7 @@ class BritneyConfig:
                 f.write(line + '\n')
 
         if self._hint_contents:
-            hints_fname = os.path.join(self._base_dir, 'laniakea')
+            hints_fname = os.path.join(self._base_dir, 'input', 'hints', 'laniakea')
             with open(hints_fname, 'wt') as f:
                 for line in self._hint_contents:
                     f.write(line + '\n')
