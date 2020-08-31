@@ -398,20 +398,23 @@ class SpearsEngine:
                 f.write('\n')
 
         # there is no support for Piuparts yet, but Britney crashes without these files
+        piupats_dummy_json = ('{"_id": "Piuparts Package Test Results Summary", '
+                              '"_version": "1.0", '
+                              '"packages": {}}\n')
         for suite in suites_source:
             piuparts_file_u = os.path.join(mi_wspace, 'state', 'piuparts-summary-{}.json'.format(suite.name))
             if not os.path.isfile(piuparts_file_u):
                 log.info('Writing Piuparts summary file (source).')
                 # just make an empty file for now
                 with open(piuparts_file_u, 'w') as f:
-                    f.write('\n')
+                    f.write(piupats_dummy_json)
 
         piuparts_file_t = os.path.join(mi_wspace, 'state', 'piuparts-summary-{}.json'.format(suite_target.name))
         if not os.path.isfile(piuparts_file_t):
             log.info('Writing Piuparts summary file (target).')
             # just make an empty file for now
             with open(piuparts_file_t, 'w') as f:
-                f.write('\n')
+                f.write(piupats_dummy_json)
 
     def _postprocess_heidi_file(self, mi_wspace: str):
         heidi_result = os.path.join(mi_wspace, 'output', 'target', 'HeidiResult')
