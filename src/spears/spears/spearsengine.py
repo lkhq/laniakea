@@ -388,14 +388,14 @@ class SpearsEngine:
                 log.info('Writing RC bugs policy file (source).')
                 # just make an empty file for now
                 with open(rcbugs_policy_file_u, 'w') as f:
-                    f.write('\n')
+                    f.write('')
 
         rcbugs_policy_file_t = os.path.join(mi_wspace, 'state', 'rc-bugs-{}'.format(suite_target.name))
         if not os.path.isfile(rcbugs_policy_file_t):
             log.info('Writing RC bugs policy file (target).')
             # just make an empty file for now
             with open(rcbugs_policy_file_t, 'w') as f:
-                f.write('\n')
+                f.write('')
 
         # there is no support for Piuparts yet, but Britney crashes without these files
         piupats_dummy_json = ('{"_id": "Piuparts Package Test Results Summary", '
