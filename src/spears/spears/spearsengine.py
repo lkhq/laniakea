@@ -271,7 +271,7 @@ class SpearsEngine:
             log.info('No auto-generating faux packages: No source and target suite parents, generation is unnecessary.')
             return
 
-        existing_package_set = set()
+        existing_pkg_arch_set = set()
         log.debug('Creating index of valid packages that do not need a faux package.')
 
         # we need repository information to only generate faux packages if a package doesn't exist
@@ -286,10 +286,11 @@ class SpearsEngine:
             session.expunge(esuite)  # we don't want packages accidentally added to the database here
             for component in esuite.components:
                 for arch in esuite.architectures:
+                    aname = arch.name
                     for bpkg in repo.binary_packages(esuite, component, arch):
-                        existing_package_set.add(bpkg.name)
+                        existing_pkg_arch_set.add(aname + ':' + bpkg.name)
                     for spkg in repo.source_packages(esuite, component):
-                        existing_package_set.add(spkg.name)
+                        existing_pkg_arch_set.add(aname + ':' + spkg.name)
 
         archive_root_dir = self._lconf.archive_root_dir
         fauxpkg_fname = os.path.join(mi_wspace, 'input', 'faux-packages')
@@ -321,7 +322,8 @@ class SpearsEngine:
                             pkid = '{}-{}-{}'.format(pkgname, pkgversion, pkgarch)
                             if pkid in fauxpkg_data:
                                 continue
-                            if pkgname in existing_package_set:
+                            pkgname_arch = pkgarch + ':' + pkgname
+                            if pkgname_arch in existing_pkg_arch_set:
                                 continue
                             provides = e.get('Provides', '')
 
