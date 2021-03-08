@@ -146,7 +146,7 @@ class Repository:
         if self._trusted:
             log.debug('Explicitly marked repository "{}" as trusted.'.format(self.location))
 
-    def _fetch_repo_file_internal(self, location):
+    def _fetch_repo_file_internal(self, location, check=False):
         '''
         Download a file and retrieve a filename.
 
@@ -158,7 +158,7 @@ class Repository:
             target_fname = os.path.join(self._root_dir, location)
             os.makedirs(os.path.dirname(target_fname), exist_ok=True)
 
-            download_file(source_url, target_fname)
+            download_file(source_url, target_fname, check=check)
             return target_fname
         else:
             fname = os.path.join(self._root_dir, location)
@@ -176,7 +176,7 @@ class Repository:
         '''
         assert type(afile) is ArchiveFile
 
-        fname = self._fetch_repo_file_internal(afile.fname)
+        fname = self._fetch_repo_file_internal(afile.fname, check=True)
         if check:
             with open(fname, 'rb') as f:
                 sha256h = sha256sum(f)

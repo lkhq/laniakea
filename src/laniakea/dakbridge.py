@@ -18,6 +18,7 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+from typing import List
 from laniakea.localconfig import LocalConfig, ExternalToolsUrls
 from laniakea.git import Git
 from laniakea.logging import log, get_verbose
@@ -56,16 +57,17 @@ class DakBridge:
         out, err, ret = run_command(cmd,
                                     input=input_data,
                                     capture_output=not get_verbose())
+        out = out if out else ''
+        err = err if err else ''
         if check and ret != 0:
-            raise Exception('Failed to run dak: {}\n{}'.format(out if out else '', err if err else ''))
-        return ret, out
+            raise Exception('Failed to run dak: {}\n{}'.format(out, err))
+        return ret, out + err
 
     def run(self, command):
         '''
         Run dak with the given commands.
         '''
         command = listify(command)
-
         return self._run_dak(command)
 
     def set_suite_to_britney_result(self, suite_name: str, heidi_file: str) -> bool:
@@ -102,7 +104,7 @@ class DakBridge:
         log.info('Updated packages in "{}" based on Britney result.'.format(suite_name))
         return True
 
-    def import_package_files(self, suite: str, component: str, fnames: list[str],
+    def import_package_files(self, suite: str, component: str, fnames: List[str],
                              ignore_signature: bool = False, add_overrides: bool = True) -> bool:
 
         # run dak import command.
@@ -142,7 +144,6 @@ class DakBridge:
 
         if ret != 0:
             raise Exception('Unable to check if package \'{}\' is removable from \'{}\': {}'.format(package_name, suite_name, out))
-
         return 'No dependency problem found.' in out
 
     def remove_package(self, package_name: str, suite_name: str) -> bool:

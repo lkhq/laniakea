@@ -55,17 +55,15 @@ def command_autosync(options):
             emitter = EventEmitter(LkModule.SYNCHROTRON)
 
             engine = SyncEngine(autosync.destination_suite.name, autosync.source.suite_name)
-
-            ret, issue_data = engine.autosync(session, autosync, autosync.auto_cruft_remove)
-
+            ret, issue_data = engine.autosync(session, autosync.auto_cruft_remove)
             if not ret:
                 sys.exit(2)
                 return
 
             existing_sync_issues = {}
-            for ssuite in sync_sources:
+            for ssource in sync_sources:
                 all_issues = session.query(SynchrotronIssue) \
-                                    .filter(SynchrotronIssue.source_suite == ssuite.name,
+                                    .filter(SynchrotronIssue.source_suite == ssource.suite_name,
                                             SynchrotronIssue.target_suite == autosync.destination_suite.name,
                                             SynchrotronIssue.config_id == autosync.id) \
                                     .all()
@@ -82,6 +80,7 @@ def command_autosync(options):
                 else:
                     new_issue = True
                     issue = info
+                    issue.config = autosync
 
                 if new_issue:
                     session.add(issue)
