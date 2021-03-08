@@ -1,6 +1,6 @@
-project('Laniakea', 'c', 'd',
+project('Laniakea', 'c',
     meson_version: '>=0.48',
-    license: 'GPL-3.0+',
+    license: 'LGPL-3.0+',
     version: '0.1'
 )
 
@@ -13,10 +13,7 @@ py = pymod.find_installation('python3')
 #
 # Dependencies
 #
-archive_dep = dependency('libarchive')
-curl_dep = dependency('libcurl')
 systemd_dep = dependency('systemd')
-pyd_dep = dependency('pyd')
 
 # Python deps
 r = run_command('./check_modules.py', 'base')
@@ -24,11 +21,6 @@ if r.returncode() != 0
     message(r.stdout().strip()+'\n'+r.stderr().strip())
     error('Unable to find required Python modules.')
 endif
-
-#
-# Common D Features
-#
-dc = meson.get_compiler('d')
 
 #
 # Lanikaea Modules

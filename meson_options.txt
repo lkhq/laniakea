@@ -8,11 +8,6 @@ option('test-flake8',
     value: true,
     description: 'Test Python code style with Flake8'
 )
-option('test-dscanner',
-    type: 'boolean',
-    value: false,
-    description: 'Test D coding style with DScanner'
-)
 
 #
 # Build config flags
