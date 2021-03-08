@@ -83,6 +83,17 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
     return res
 
 
+def version_revision(version: str, full_for_native: bool = True) -> str:
+    '''
+    Get the Debian revision string from a version number.
+    :param full_for_native: Return the full version if we have a native package.
+    '''
+    idx = version.rfind('-')
+    if idx < 0:
+        return version if full_for_native else ''
+    return version[idx + 1:]
+
+
 class Repository:
     '''
     Allows reading data from a Debian repository.
@@ -158,7 +169,7 @@ class Repository:
         log.error('Could not find repository file "{}"'.format(location))
         return None
 
-    def get_file(self, afile, check=True):
+    def get_file(self, afile, check=True) -> str:
         '''
         Get a file from the repository.
         Returns: An absolute path to the repository file.

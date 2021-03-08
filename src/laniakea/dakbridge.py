@@ -100,5 +100,66 @@ class DakBridge:
             raise Exception('Unable apply Britney result to "{}": {}'.format(suite_name, out))
 
         log.info('Updated packages in "{}" based on Britney result.'.format(suite_name))
+        return True
+
+    def import_package_files(self, suite: str, component: str, fnames: list[str],
+                             ignore_signature: bool = False, add_overrides: bool = True) -> bool:
+
+        # run dak import command.
+        args = ['import']
+        if ignore_signature:
+            args.append('-s')
+        if add_overrides:
+            args.append('-a')
+
+        args.append(suite)
+        args.append(component)
+        args.extend(fnames)
+
+        ret, out = self._run_dak(args, check=False)
+
+        if ret != 0:
+            raise Exception('Unable to import package files \'{}\': {}'.format(' '.join(fnames), out))
+
+        log.info('Imported \'{}\' to \'{}/{}\'.'.format(' '.join([os.path.basename(f) for f in fnames]), suite, component))
+        return True
+
+    def package_is_removable(self, package_name: str, suite_name: str) -> bool:
+        ''' Check if a package can be removed without breaking reverse dependencies. '''
+
+        log.debug('Testing package \'{}\' removal from \'{}\''.format(package_name, suite_name))
+
+        # simulate package removal
+        args = ['rm',
+                '-R',
+                '-m', 'RID: Removed from Debian',
+                '-C', 'janitor@dak',
+                '-n',
+                '-s', suite_name,
+                package_name]
+
+        ret, out = self._run_dak(args, check=False)
+
+        if ret != 0:
+            raise Exception('Unable to check if package \'{}\' is removable from \'{}\': {}'.format(package_name, suite_name, out))
+
+        return 'No dependency problem found.' in out
+
+    def remove_package(self, package_name: str, suite_name: str) -> bool:
+        ''' Remove a package from a specified suite. '''
+
+        log.info('Removing \'{}\' from \'{}\''.format(package_name, suite_name))
+
+        # actually remove a package
+        args = ['rm',
+                '-m', 'RID: Removed from Debian',
+                '-C', 'janitor@dak',
+                '-s', suite_name,
+                package_name]
+
+        ret, out = self._run_dak(args, 'y\n', check=False)
+
+        if ret != 0:
+            raise Exception('Unable to remove package \'{}\' from \'{}\': {}'.format(package_name, suite_name, out))
 
         return True
