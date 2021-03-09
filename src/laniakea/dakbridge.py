@@ -123,7 +123,7 @@ class DakBridge:
         if ret != 0:
             raise Exception('Unable to import package files \'{}\': {}'.format(' '.join(fnames), out))
 
-        log.info('Imported \'{}\' to \'{}/{}\'.'.format(' '.join([os.path.basename(f) for f in fnames]), suite, component))
+        log.info('Imported \'{}\' into \'{}/{}\'.'.format(' '.join([os.path.basename(f) for f in fnames]), suite, component))
         return True
 
     def package_is_removable(self, package_name: str, suite_name: str) -> bool:

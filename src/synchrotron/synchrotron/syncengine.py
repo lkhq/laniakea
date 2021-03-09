@@ -70,12 +70,11 @@ class SyncEngine:
         with session_scope() as session:
             self._sync_blacklist = set([value for value, in session.query(SyncBlacklistEntry.pkgname)])
 
-    @staticmethod
-    def publish_synced_spkg_events(engine, src_os, src_suite, dest_suite, forced=False, emitter=None):
+    def _publish_synced_spkg_events(self, src_os, src_suite, dest_suite, forced=False, emitter=None):
         ''' Submit events for the synced source packages to the message stream '''
         if not emitter:
             emitter = EventEmitter(LkModule.SYNCHROTRON)
-        for spkg in engine._synced_source_pkgs:
+        for spkg in self._synced_source_pkgs:
             data = {'name': spkg.name,
                     'version': spkg.version,
                     'src_os': src_os,
@@ -125,15 +124,7 @@ class SyncEngine:
                                                                component)
 
                 # merge the two arrays, keeping only the latest versions
-                all_pkgs = list(parent_map.values()) + list(suite_pkgmap.values())
-                suite_pkgmap = {}
-                for pkg in all_pkgs:
-                    epkg = suite_pkgmap.get(pkg.name)
-                    if epkg:
-                        if version_compare(pkg.version, epkg.version) > 0:
-                            suite_pkgmap[pkg.name] = pkg
-                    else:
-                        suite_pkgmap[pkg.name] = pkg
+                suite_pkgmap = make_newest_packages_dict(list(parent_map.values()) + list(suite_pkgmap.values()))
 
         return suite_pkgmap
 
@@ -187,6 +178,8 @@ class SyncEngine:
             dest_bpkg_arch_map[aname] = self._get_repo_binary_package_map(self._target_repo, self._target_suite_name, component, aname)
 
         for spkg in spkgs:
+            bin_files_synced = False
+            existing_packages = False
             for arch_name in target_archs:
                 if arch_name not in src_bpkg_arch_map:
                     continue
@@ -194,12 +187,14 @@ class SyncEngine:
                 src_bpkg_map = src_bpkg_arch_map[arch_name]
                 dest_bpkg_map = dest_bpkg_arch_map[arch_name]
 
-                existing_packages = False
                 bin_files = []
                 for bin_i in spkg.binaries:
                     if bin_i.name not in src_bpkg_map:
                         if bin_i.name in dest_bpkg_map:
                             existing_packages = True  # package only exists in target
+                        continue
+                    if arch_name != 'all' and bin_i.architectures == ['all']:
+                        # we handle arch:all explicitly
                         continue
                     bpkg = src_bpkg_map[bin_i.name]
                     if bin_i.version != bpkg.source_version:
@@ -237,13 +232,15 @@ class SyncEngine:
                     bin_files.append(fname)
 
                 # now import the binary packages, if there is anything to import
-                if not bin_files:
-                    if not existing_packages:
-                        log.warning('No binary packages synced for source {}/{}'.format(spkg.name, spkg.version))
-                else:
+                if bin_files:
+                    bin_files_synced = True
                     ret = self._import_package_files(self._target_suite_name, component, bin_files)
                     if not ret:
                         return False
+
+            if not bin_files_synced and not existing_packages:
+                log.warning('No binary packages synced for source {}/{}'.format(spkg.name, spkg.version))
+
         return True
 
     def sync_packages(self, component: str, pkgnames: List[str], force: bool = False):
@@ -310,14 +307,13 @@ class SyncEngine:
             # import them into the target in their correct order.
             # Then apply the correct, synced override from the source distro.
 
-            SyncEngine.publish_synced_spkg_events(self,
-                                                  sync_conf.source.os_name,
-                                                  sync_conf.source.suite_name,
-                                                  sync_conf.destination_suite.name,
-                                                  force)
+            self._publish_synced_spkg_events(sync_conf.source.os_name,
+                                             sync_conf.source.suite_name,
+                                             sync_conf.destination_suite.name,
+                                             force)
             return ret
 
-    def autosync(self, session, remove_cruft: bool = True):
+    def autosync(self, session, sync_conf, remove_cruft: bool = True):
         ''' Synchronize all packages that are newer '''
 
         self._synced_source_pkgs = []
@@ -366,7 +362,7 @@ class SyncEngine:
                     # check if we have a modified target package,
                     # indicated via its Debian revision, e.g. "1.0-0tanglu1"
                     if self._distro_tag in version_revision(dpkg.version):
-                        log.info('No syncing {}/{}: Destination has modifications (found {}).'
+                        log.info('Not syncing {}/{}: Destination has modifications (found {}).'
                                  .format(spkg.name, spkg.version, dpkg.version))
 
                         # add information that this package needs to be merged to the issue list
@@ -381,7 +377,7 @@ class SyncEngine:
 
                 # sync source package
                 # the source package must always be known to dak first
-                ret = self._import_source_package(spkg, component)
+                ret = self._import_source_package(spkg, component.name)
                 if not ret:
                     return False, []
 
@@ -474,5 +470,10 @@ class SyncEngine:
                     issue.details = 'This package can not be removed without breaking other packages. It needs manual removal.'
 
                     res_issues.append(issue)
+
+        self._publish_synced_spkg_events(sync_conf.source.os_name,
+                                         sync_conf.source.suite_name,
+                                         sync_conf.destination_suite.name,
+                                         False)
 
         return True, res_issues

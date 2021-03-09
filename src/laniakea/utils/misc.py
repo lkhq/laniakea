@@ -89,7 +89,7 @@ def download_file(url, fname, check=False, headers={}, **kwargs):
     r = requests.get(url, stream=True, headers=hdr, **kwargs)
     if r.status_code == 200:
         with open(fname, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=512):
+            for chunk in r.iter_content(chunk_size=1024):
                 f.write(chunk)
         return r.status_code
 
