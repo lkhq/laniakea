@@ -38,7 +38,7 @@ def get_newest_sources_index(session, repo, suite):
     Create an index of the most recent source packages, using
     the source-UUID of source packages.
     '''
-    from laniakea.utils import compare_versions
+    from apt_pkg import version_compare
 
     res_spkgs = {}
     spkgs = session.query(SourcePackage) \
@@ -51,7 +51,7 @@ def get_newest_sources_index(session, repo, suite):
 
     for pkg in spkgs:
         epkg = res_spkgs.get(pkg.uuid)
-        if epkg and compare_versions(pkg.version, epkg.version) <= 0:
+        if epkg and version_compare(pkg.version, epkg.version) <= 0:
             # don't override if the existing version is newer
             continue
         res_spkgs[pkg.uuid] = pkg

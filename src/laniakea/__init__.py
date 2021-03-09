@@ -23,11 +23,6 @@ __version__ = '0.1.0'
 thisfile = __file__
 if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
-
-# add lknative module path if we run from a development copy
-if not thisfile.startswith('/usr'):
-    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile),
-                                                  '..', '..', 'build', 'src', 'laniakea', 'lknative')))
 lk_py_directory = os.path.normpath(os.path.join(os.path.dirname(thisfile)))
 sys.path.append(lk_py_directory)
 
