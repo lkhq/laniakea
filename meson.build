@@ -16,7 +16,7 @@ py = pymod.find_installation('python3')
 systemd_dep = dependency('systemd')
 
 # Python dependencies
-pymod_check_exe = find_program(join_paths(source_root, 'pyproject-check.py'))
+pymod_check_exe = find_program(join_paths(source_root, 'pyreqcheck.py'))
 pymod_check_arg = ['--check-group']
 r = run_command(pymod_check_exe, [pymod_check_arg, 'base'])
 if r.returncode() != 0
