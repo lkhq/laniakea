@@ -3,10 +3,10 @@
 #
 # Test flags
 #
-option('test-flake8',
+option('linting',
     type: 'boolean',
     value: true,
-    description: 'Test Python code style with Flake8'
+    description: 'Enable code linters we want to run for static analysis.'
 )
 
 #

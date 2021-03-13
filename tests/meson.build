@@ -1,37 +1,24 @@
 # Meson definition for Laniakea System and Integration tests
 
-#tests_src_dir = include_directories('')
 #
-#lk_tests_src = [
-#    'runner.d',
-#    'testutils.d',
-#    'repotests.d',
-#    'gpgtests.d'
-#   # 'test_spears.d'
-#]
+# Code Linters
 #
-#lk_main_test_exe = executable ('lk-test_integration',
-#    [lk_tests_src],
-#    dependencies: [laniakea_shared_dep, fluentasserts_dep]
-#)
-#test('lk-test_integration',
-#    lk_main_test_exe,
-#    args: [join_paths(source_root, 'tests', 'test_data')]
-#)
+if get_option('linting')
+    flake8_exe = find_program('flake8')
+    test('flake8',
+        flake8_exe,
+        args: ['--show-source',
+               '--statistics',
+               source_root],
+        suite: 'linters'
+    )
+endif
 
 py_exe = find_program('python3')
 test('pytest',
     py_exe,
     args: ['-m', 'pytest'],
     workdir: source_root,
-    is_parallel: false
+    is_parallel: false,
+    suite: 'pytest'
 )
-
-if (get_option('test-flake8'))
-    flake8_exe = find_program('flake8')
-    test('flake8',
-         flake8_exe,
-         args: ['--ignore', 'E402',
-                source_root]
-    )
-endif
