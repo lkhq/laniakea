@@ -46,4 +46,12 @@ tests = [
   'pytest-flask',
   'flake8',
   'pylint',
+  'pylint-flask',
+  'pylint-sqlalchemy'
 ]
+
+[tool.pylint."messages control"]
+disable = "all"
+
+[tool.pylint.typecheck]
+ignored-modules = "alembic.op"

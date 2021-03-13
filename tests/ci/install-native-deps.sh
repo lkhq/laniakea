@@ -31,6 +31,7 @@ eatmydata apt-get install -yq --no-install-recommends \
 eatmydata apt-get install -yq --no-install-recommends \
     python3-pip \
     python3-setuptools \
+    python3-virtualenv \
     python3-pytest \
     python3-gi \
     python3-cairo-dev \
@@ -42,6 +43,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     python3-apt \
     python3-zmq \
     python3-yaml \
+    python3-systemd \
     python3-flask \
     python3-flask-script \
     python3-flask-restful \

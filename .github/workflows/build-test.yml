@@ -1,4 +1,4 @@
-name: QA
+name: Build Test
 
 on:
   push:
@@ -7,30 +7,48 @@ on:
     branches: [ master ]
 
 jobs:
-  linters:
-    name: Static Code Check
+  linters-deb-testing:
+    name: Static Checks (Debian Testing)
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ['3.9']
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
 
-    - name: Install native dependencies
-      run: sudo ./tests/ci/install-native-deps.sh
+    - name: Create Native Environment
+      run: cd tests/ci/ && podman build -t laniakea -f ./Dockerfile-debian-testing .
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip wheel pytest
-        python -m pip install -r requirements.txt
-        python -m pip install -r requirements.tests.txt
+    - name: Set up Python virtual environment
+      run: podman run -a stdout -a stderr -v `pwd`:/build laniakea
+          ./tests/ci/run-venv-prepare.sh lint-only
 
     - name: Check
-      run: |
-        mkdir build && cd build && meson ..
-        meson test -v --suite linters
+      run: podman run -a stdout -a stderr -v `pwd`:/build laniakea
+           ./tests/ci/run-lint.sh
+
+
+  test-deb-bullseye:
+    name: Testsuite (Debian 11)
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create PostgreSQL Container Image
+      run: cd tests/ci/ && podman build -t lk-pgsql-unittest -f pg/Dockerfile .
+
+    - name: Create Native Environment
+      run: cd tests/ci/ && podman build -t laniakea -f ./Dockerfile-debian-stable .
+
+    - name: Set up Python virtual environment
+      run: podman run -a stdout -a stderr -v `pwd`:/build laniakea
+          ./tests/ci/run-venv-prepare.sh
+
+    - name: Launch PostgreSQL Container
+      run: podman run -d -p 127.0.0.1:5432:5432 lk-pgsql-unittest
+
+    - name: Show running containers
+      run: podman ps
+
+    - name: Testsuite
+      run: podman run --net=host -a stdout -a stderr -v `pwd`:/build laniakea
+           ./tests/ci/run-tests.sh

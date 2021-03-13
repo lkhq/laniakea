@@ -7,7 +7,7 @@ firehose~=0.5
 humanize
 marshmallow~=3.10.0
 psycopg2~=2.8.6
-python-apt~=0.7.8
+python-apt~=2.1.7
 python-debian~=0.1.39
 pyzmq~=20.0.0
 requests~=2.25.1
