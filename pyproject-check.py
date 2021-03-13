@@ -100,7 +100,7 @@ def write_requirements(all_dependencies):
                 req = Requirement(req_str)
                 versions = installed_mods.get(req.name)
                 if versions[0] and not is_tests:
-                    f.write('{}=={}\n'.format(req.name, versions[0]))
+                    f.write('{}~={}\n'.format(req.name, versions[0]))
                 else:
                     f.write('{}\n'.format(req.name))
 
