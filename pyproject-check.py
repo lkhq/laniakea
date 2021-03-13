@@ -7,10 +7,16 @@ import os
 import sys
 import subprocess
 import argparse
-from packaging.requirements import Requirement
 
 if sys.version_info[0] < 3 or sys.version_info[1] < 9:
     print('Laniakea requires at least Python 3.9 to run!', file=sys.stderr)
+    sys.exit(2)
+
+try:
+    from packaging.requirements import Requirement
+except ModuleNotFoundError:
+    print(('Unable to find "packaging" Python module. Please install it via '
+           '`apt install python3-packaging` or `pip install packaging`'), file=sys.stderr)
     sys.exit(2)
 
 try:
@@ -99,8 +105,16 @@ def write_requirements(all_dependencies):
                     continue  # GIR dependencies don't go into requirements files
                 req = Requirement(req_str)
                 versions = installed_mods.get(req.name)
-                if versions[0] and not is_tests:
-                    f.write('{}~={}\n'.format(req.name, versions[0]))
+                version = versions[0]
+                if version:
+                    # sanitize versions to work with pip
+                    # and the compatible release operator
+                    if '.' not in version:
+                        version += '.0'
+                    if version == '0.0.0':
+                        version = None
+                if version and not is_tests:
+                    f.write('{}~={}\n'.format(req.name, version))
                 else:
                     f.write('{}\n'.format(req.name))
 
