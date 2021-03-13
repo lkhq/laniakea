@@ -15,12 +15,18 @@ py = pymod.find_installation('python3')
 #
 systemd_dep = dependency('systemd')
 
-# Python deps
-r = run_command('./check_modules.py', 'base')
+# Python dependencies
+pymod_check_exe = find_program(join_paths(source_root, 'pyproject-check.py'))
+pymod_check_arg = ['--check-group']
+r = run_command(pymod_check_exe, [pymod_check_arg, 'base'])
 if r.returncode() != 0
-    message(r.stdout().strip()+'\n'+r.stderr().strip())
-    error('Unable to find required Python modules.')
+    error(r.stderr().strip())
 endif
+
+# maintainer target to update requirements files
+run_target ('update-requirements',
+    command: [pymod_check_exe, ['--write-requirements']]
+)
 
 #
 # Lanikaea Modules

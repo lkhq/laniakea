@@ -1,10 +1,9 @@
 # Meson definition for Laniakea - mIrk
 
 # Additional Python deps
-r = run_command('../../check_modules.py', 'matrix')
+r = run_command(pymod_check_exe, [pymod_check_arg, 'matrix'])
 if r.returncode() != 0
-    message(r.stdout().strip()+'\n'+r.stderr().strip())
-    error('Unable to find required Python modules.')
+    error(r.stderr().strip())
 endif
 
 install_subdir('.', install_dir: 'lib/laniakea/mirk/',

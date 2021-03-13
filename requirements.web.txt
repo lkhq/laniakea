@@ -1,5 +1,4 @@
-Flask
-Flask-Script
-Flask-RESTful
-Flask-Caching
-pytest-flask
+Flask==1.1.2
+Flask-Caching==1.10.0
+Flask-RESTful==0.3.8
+Flask-Script==2.0.6

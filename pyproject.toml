@@ -1,0 +1,49 @@
+[project]
+name = "laniakea"
+description = "Suite of tools to manage a Debian-based Linux distribution."
+authors = [
+    "Matthias Klumpp <matthias@tenstral.net>"
+]
+license = "LGPL-3.0-or-later"
+readme = "README.md"
+python = "^3.6"
+homepage = "https://github.com/lkorigin/laniakea"
+repository = "https://github.com/lkorigin/laniakea"
+
+[build-system]
+requires = ["meson"]
+
+[tool.laniakea.dependencies]
+base = [
+    'SQLAlchemy',
+    'alembic',
+    'psycopg2',
+    'python-debian',
+    'python-apt',
+    'pyzmq',
+    'requests',
+    'PyYAML',
+    'firehose',
+    'humanize',
+    'marshmallow',
+    'tornado',
+    'PyGObject',
+    'PyNaCl',
+    'systemd-python',
+    'gir:AppStream~=1.0',
+]
+web = [
+    'Flask',
+    'Flask-Script',
+    'Flask-RESTful',
+    'Flask-Caching',
+]
+matrix = [
+    'matrix-client',
+]
+tests = [
+  'pytest',
+  'pytest-flask',
+  'flake8',
+  'pylint',
+]

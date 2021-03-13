@@ -77,10 +77,9 @@ endif
 # web frontends
 if (get_option('webgui'))
     # Additional Python deps
-    r = run_command('python3', '../check_modules.py', 'web')
+    r = run_command(pymod_check_exe, [pymod_check_arg, 'web'])
     if r.returncode() != 0
-        message(r.stdout().strip()+'\n'+r.stderr().strip())
-        error('Unable to find required Python modules.')
+        error(r.stderr().strip())
     endif
 
     # JS/CSS/etc frontend 3rd-party downloaded code
