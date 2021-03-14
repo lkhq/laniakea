@@ -16,7 +16,7 @@ release = '0.1'
 thisfile = __file__
 if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
-sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', 'src')))
 
 html_theme = 'sphinxawesome_theme'
 html_theme_options = {"show_prev_next": True}

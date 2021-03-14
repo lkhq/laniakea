@@ -68,6 +68,7 @@ are a work in progress.
    general/index.rst
    modules/index.rst
    web/index.rst
+   api/index.rst
 
 Indices and tables
 ==================
