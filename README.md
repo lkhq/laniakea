@@ -35,7 +35,8 @@ Laniakea uses a lot of tools already common in the workflow of a derivative's ar
 
 ##  Development
 
-[![Build Status](https://travis-ci.org/lkorigin/laniakea.svg?branch=master)](https://travis-ci.org/lkorigin/laniakea)
+[![Build Test](https://github.com/lkhq/laniakea/actions/workflows/build-test.yml/badge.svg)](https://github.com/lkhq/laniakea/actions/workflows/build-test.yml)
+[![Documentation Status](https://readthedocs.org/projects/laniakea-hq/badge/?version=latest)](https://laniakea-hq.readthedocs.io/en/latest/?badge=latest)
 
 Laniakea is split into multiple parts which can act independently (but all speak the same protocols and share data).
 That way, more security-sensitive bits can also be isolated out and run on different machines.
