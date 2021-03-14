@@ -135,8 +135,6 @@ def write_requirements_readthedocs(all_dependencies):
     ''' Write requirements.txt file, just for Readthedocs '''
 
     ignore_reqs = set(['systemd-python', 'python-apt', 'PyGObject'])
-
-    installed_mods = get_installed_modules()
     with open(os.path.join('docs', 'readthedocs-reqs.txt'), 'w') as f:
         for group, req_list in all_dependencies.items():
             if group == 'tests':

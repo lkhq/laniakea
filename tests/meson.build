@@ -16,7 +16,7 @@ if get_option('linting')
         flake8_exe,
         args: ['--show-source',
                '--statistics',
-               pylint_paths],
+               source_root],
         workdir: source_root,
         suite: 'linters'
     )
