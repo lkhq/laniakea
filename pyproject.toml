@@ -42,12 +42,18 @@ matrix = [
     'matrix-client',
 ]
 tests = [
-  'pytest',
-  'pytest-flask',
-  'flake8',
-  'pylint',
-  'pylint-flask',
-  'pylint-sqlalchemy'
+    'pytest',
+    'pytest-flask',
+    'flake8',
+    'pylint',
+    'pylint-flask',
+    'pylint-sqlalchemy',
+]
+docs = [
+    'Sphinx>=3.4',
+    'Pygments>=2.6',
+    'sphinx-autodoc-typehints',
+    'sphinxawesome-theme',
 ]
 
 [tool.pylint."messages control"]

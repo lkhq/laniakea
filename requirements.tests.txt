@@ -1,4 +1,6 @@
 flake8
 pylint
+pylint-flask
+pylint-sqlalchemy
 pytest
 pytest-flask

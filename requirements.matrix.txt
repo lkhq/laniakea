@@ -1,1 +1,1 @@
-matrix-client
+matrix-client~=0.3.2

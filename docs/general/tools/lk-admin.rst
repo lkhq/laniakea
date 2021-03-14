@@ -1,5 +1,7 @@
-# The lk-admin tool
+The lk-admin tool
+=================
 
 Administer your Laniakea instance from the command line.
 
-## TODO
+TODO
+----

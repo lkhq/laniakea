@@ -31,7 +31,7 @@ Its tasks include, but are not limited to:
 
 Laniakea uses a lot of tools already common in the workflow of a derivative's archive maintainer, but integrates them in a nice way.
 
-![Laniakea Overview](docs/src/graphics/laniakea-overview.svg "Laniakea Overview")
+![Laniakea Overview](docs/_graphics/laniakea-overview.svg "Laniakea Overview")
 
 ##  Development
 

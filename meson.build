@@ -42,3 +42,10 @@ subdir('data')
 # Tests
 #
 subdir('tests')
+
+#
+# Documentation
+#
+if get_option('docs')
+    subdir('docs')
+endif

@@ -21,6 +21,11 @@ option('download-js',
 #
 # Feature flags
 #
+option('docs',
+    type: 'boolean',
+    value: false,
+    description: 'Enable target to build HTML documentation.'
+)
 option('clitools',
     type: 'boolean',
     value: true,

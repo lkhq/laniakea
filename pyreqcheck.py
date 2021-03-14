@@ -99,7 +99,10 @@ def write_requirements(all_dependencies):
     for group, req_list in all_dependencies.items():
         is_tests = group == 'tests'
         ensure_dependencies(req_list, installed_mods)
-        with open('requirements.{}.txt'.format(group), 'w') as f:
+        req_fname = 'requirements.{}.txt'.format(group)
+        if group == 'docs':
+            req_fname = os.path.join('docs', 'requirements.txt')
+        with open(req_fname, 'w') as f:
             for req_str in sorted(req_list):
                 if req_str.startswith('gir:'):
                     continue  # GIR dependencies don't go into requirements files
@@ -120,8 +123,8 @@ def write_requirements(all_dependencies):
 
     with open('requirements.txt', 'w') as f:
         for group in all_dependencies.keys():
-            if group == 'tests':
-                continue  # we don't want test dependencies installed by default
+            if group == 'tests' or group == 'docs':
+                continue  # we don't want test and doc dependencies installed by default
             f.write('-r requirements.{}.txt\n'.format(group))
 
 
