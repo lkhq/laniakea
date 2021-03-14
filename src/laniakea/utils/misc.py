@@ -82,7 +82,11 @@ def is_remote_url(uri):
     return uriregex.match(uri) is not None
 
 
-def download_file(url, fname, check=False, headers={}, **kwargs):
+def download_file(url, fname, check=False, headers: dict = None, **kwargs):
+
+    if not headers:
+        headers = {}
+
     hdr = {'user-agent': 'laniakea/0.0.1'}
     hdr.update(headers)
 

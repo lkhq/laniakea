@@ -193,11 +193,13 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
     session.commit()
 
 
-def _emit_package_event(emitter, tag, pkg, extra={}):
+def _emit_package_event(emitter, tag, pkg, extra: dict = None):
     ''' Send a package event to Lighthouse '''
 
     if not emitter:
         return
+    if not extra:
+        extra = {}
 
     data = {'repo': pkg.repo.name,
             'name': pkg.name,

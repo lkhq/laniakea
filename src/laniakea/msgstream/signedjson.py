@@ -71,7 +71,7 @@ def sign_json(json_object, signature_name, signing_key):
 
 
 def signature_ids(json_object, signature_name,
-                  supported_algorithms=SUPPORTED_ALGORITHMS):
+                  supported_algorithms: list[str] = None):
     '''
     Does the JSON object have a signature for the given name?
     Args:
@@ -82,6 +82,8 @@ def signature_ids(json_object, signature_name,
     Returns:
         list of key identifier strings.
     '''
+    if not supported_algorithms:
+        supported_algorithms = SUPPORTED_ALGORITHMS
     key_ids = json_object.get('signatures', {}).get(signature_name, {}).keys()
     return list(
         key_id for key_id in key_ids

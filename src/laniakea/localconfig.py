@@ -198,7 +198,7 @@ class LocalConfig:
             secrets_dir = os.path.join(self._curve_keys_basedir, 'secret')
             try:
                 os.makedirs(secrets_dir, exist_ok=True)
-            except:  # noqa: E722
+            except:  # noqa: E722 pylint: disable=W0702
                 pass
 
             fname = os.path.join(secrets_dir, '{}-{}_private.sec'.format(platform.node(), module))
@@ -218,7 +218,7 @@ class LocalConfig:
             trusted_dir = os.path.join(self._curve_keys_basedir, 'trusted')
             try:
                 os.makedirs(trusted_dir, exist_ok=True)
-            except:  # noqa: E722
+            except:  # noqa: E722 pylint: disable=W0702
                 pass
 
             return trusted_dir

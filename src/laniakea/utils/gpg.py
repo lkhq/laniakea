@@ -294,7 +294,11 @@ class SignedFile:
         return apt_pkg.sha1sum(self.contents)
 
 
-def sign(infile, outfile, keyids=[], inline=False, pubring=None, secring=None, homedir=None, passphrase_file=None):
+def sign(infile, outfile, keyids: list[str] = None, inline=False, pubring=None, secring=None, homedir=None, passphrase_file=None):
+
+    if not keyids:
+        keyids = []
+
     args = [
         '/usr/bin/gpg',
         '--no-options', '--no-tty', '--batch', '--armour',

@@ -120,11 +120,14 @@ def submit_event_message(socket, sender, tag, data, key):
     socket.send_string(json_compact_dump(msg))
 
 
-def create_event_listen_socket(zmq_context, subscribed_tags=[]):
+def create_event_listen_socket(zmq_context, subscribed_tags: list[str] = None):
     '''
     Create a ZeroMQ socket that is listening to events published on a
     Lighthouse event publisher socket.
     '''
+
+    if not subscribed_tags:
+        subscribed_tags = []
 
     lconf = LocalConfig()
     publish_server = random.choice(lconf.lighthouse.servers_publish)

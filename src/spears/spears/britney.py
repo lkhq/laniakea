@@ -43,8 +43,11 @@ class Britney:
             os.makedirs(self._britney_dir, exist_ok=True)
             git.clone(ext_urls.britney_git_repository)
 
-    def run(self, wdir, config_fname, args=[]):
+    def run(self, wdir, config_fname, args: list[str] = None):
         from laniakea.utils import run_forwarded
+
+        if not args:
+            args = []
 
         cmd = [self._britney_exe]
         cmd.extend(['-c', config_fname])
@@ -52,6 +55,6 @@ class Britney:
 
         out, ret = run_forwarded(cmd, cwd=wdir, print_output=get_verbose())
         if ret != 0:
-            raise Exception('britney run failed: {}'.format(out))
+            raise Exception('Britney run failed: {}'.format(out))
 
         return out

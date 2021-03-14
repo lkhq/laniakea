@@ -102,7 +102,11 @@ class Repository:
     class InReleaseData:
         files = []
 
-    def __init__(self, location, repo_name=None, trusted_keyrings=[], entity=None):
+    def __init__(self, location, repo_name=None, trusted_keyrings: list[str] = None, entity=None):
+
+        if not trusted_keyrings:
+            trusted_keyrings = []
+
         lconf = LocalConfig()
         if not repo_name:
             repo_name = 'unknown'
@@ -266,7 +270,6 @@ class Repository:
                 pkgversion = e['Version']
                 if not pkgname or not pkgversion:
                     raise Exception('Found invalid block (no Package and Version fields) in Sources file "{}".'.format(index_fname))
-                    break
 
                 pkg = SourcePackage()
                 pkg.repo = self._repo_entity
@@ -325,7 +328,6 @@ class Repository:
             pkgversion = e['Version']
             if not pkgname or not pkgversion:
                 raise Exception('Found invalid block (no Package and Version fields) in Packages file "{}".'.format(tf_fname))
-                break
 
             arch_name = e['Architecture']
 

@@ -53,7 +53,10 @@ class ConfigEntry(Base):
     id = Column(String, primary_key=True)
     value = Column(JSON)
 
-    def __init__(self, mod, identifier, value={}):
+    def __init__(self, mod, identifier, value: dict = None):
+        if not value:
+            value = {}
+
         self.id = '{}.{}'.format(mod, identifier)
         self.value = value
 

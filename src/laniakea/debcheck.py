@@ -38,7 +38,10 @@ class Debcheck:
         self._repo_entity = repo_entity
         self._repo.set_trusted(True)
 
-    def _execute_dose(self, dose_exe, args, files=[]):
+    def _execute_dose(self, dose_exe, args, files: list[str] = None):
+
+        if not files:
+            files = []
 
         yaml_data = ''
         cmd = [dose_exe]
