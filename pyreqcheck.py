@@ -98,11 +98,14 @@ def write_requirements(all_dependencies):
     installed_mods = get_installed_modules()
     for group, req_list in all_dependencies.items():
         is_tests = group == 'tests'
+        is_docs = group == 'docs'
         ensure_dependencies(req_list, installed_mods)
         req_fname = 'requirements.{}.txt'.format(group)
-        if group == 'docs':
+        if is_docs:
             req_fname = os.path.join('docs', 'requirements.txt')
         with open(req_fname, 'w') as f:
+            if is_docs:
+                f.write('-r ../requirements.txt\n')
             for req_str in sorted(req_list):
                 if req_str.startswith('gir:'):
                     continue  # GIR dependencies don't go into requirements files
@@ -128,6 +131,25 @@ def write_requirements(all_dependencies):
             f.write('-r requirements.{}.txt\n'.format(group))
 
 
+def write_requirements_readthedocs(all_dependencies):
+    ''' Write requirements.txt file, just for Readthedocs '''
+
+    ignore_reqs = set(['systemd-python', 'python-apt', 'PyGObject'])
+
+    installed_mods = get_installed_modules()
+    with open(os.path.join('docs', 'readthedocs-reqs.txt'), 'w') as f:
+        for group, req_list in all_dependencies.items():
+            if group == 'tests':
+                continue
+            for req_str in sorted(req_list):
+                if req_str.startswith('gir:'):
+                    continue  # GIR dependencies don't go into requirements files
+                req = Requirement(req_str)
+                if req.name in ignore_reqs:
+                    continue
+                f.write('{}\n'.format(req.name))
+
+
 def run(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--check-group', type=str,
@@ -147,6 +169,7 @@ def run(args):
         ensure_dependencies(pyproject['tool']['laniakea']['dependencies'].get(args.check_group))
     if args.write_requirements:
         write_requirements(pyproject['tool']['laniakea']['dependencies'])
+        write_requirements_readthedocs(pyproject['tool']['laniakea']['dependencies'])
 
     return 0
 
