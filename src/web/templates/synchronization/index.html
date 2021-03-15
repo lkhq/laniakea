@@ -53,8 +53,8 @@
     <tr>
       <td>{{issue.package_name}}</td>
       <td>{{issue.source_suite}} <i class="fas fa-arrow-right"></i> {{issue.target_suite}}</td>
-      <td>{{issue.source_version}}</td>
       <td>{{issue.target_version}}</td>
+      <td>{{issue.source_version}}</td>
       <td>
         {%if issue.kind == SyncIssueKind.MERGE_REQUIRED %}
           <i class="fas fa-code-branch"></i> Requires manual merge of downstream changes with source.
