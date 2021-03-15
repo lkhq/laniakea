@@ -189,18 +189,17 @@ class Dud(object):
                 checksums = self.get('Files')
                 field_name = 'md5sum'
 
-            for changed_files in checksums:
-                if changed_files['name'] == os.path.basename(filename):
+            changed_files = None
+            for cf in checksums:
+                if cf['name'] == os.path.basename(filename):
+                    changed_files = cf
                     break
-            else:
-                assert(
-                    'get_files() returns different files than Files: knows?!')
+            if not changed_files:
+                raise Exception('get_files() returns different files than Files: knows?!')
 
             with open(filename, 'rb') as fc:
-                for chunk in iter(
-                    (lambda: fc.read(128 * hash_type.block_size)),
-                    b''
-                ):
+                for chunk in iter((lambda fc=fc, hash_type=hash_type:
+                                   fc.read(128 * hash_type.block_size)), b''):
                     hash_type.update(chunk)
 
             if not hash_type.hexdigest() == changed_files[field_name]:

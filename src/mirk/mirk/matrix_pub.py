@@ -165,17 +165,6 @@ class MatrixPublisher:
 
         self._rooms_publish_text(event, text)
 
-    def filter_entry_matches(fentry, data):
-        if type(fentry) is list:
-            for fe in fentry:
-                if fnmatch(data, fe):
-                    return True
-            return False
-        else:
-            if fnmatch(data, fentry):
-                return True
-            return False
-
     def _rooms_publish_text(self, event, text):
         for room, settings in self._rooms.items():
             filter_rules = settings.filter_rules
@@ -230,7 +219,10 @@ class MatrixPublisher:
         client.start_listener_thread()
 
         while True:
-            topic, msg_b = self._lhsub_socket.recv_multipart()
+            mparts = self._lhsub_socket.recv_multipart()
+            if len(mparts) != 2:
+                log.info('Received message with odd length: %s', len(mparts))
+            msg_b = mparts[1]
             msg_s = str(msg_b, 'utf-8', 'replace')
 
             try:

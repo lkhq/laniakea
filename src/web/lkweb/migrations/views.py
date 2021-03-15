@@ -31,13 +31,13 @@ migrations = Blueprint('migrations',
 def index():
     with session_scope() as session:
         entries = session.query(SpearsMigrationEntry).all()
-        migrations = []
+        disp_entries = []
         for e in entries:
-            migrations.append({'id': e.idname,
-                               'from': ', '.join(e.source_suites),
-                               'to': e.target_suite})
+            disp_entries.append({'id': e.idname,
+                                 'from': ', '.join(e.source_suites),
+                                 'to': e.target_suite})
 
-        return render_template('migrations/index.html', migrations=migrations)
+        return render_template('migrations/index.html', migrations=disp_entries)
 
 
 @migrations.route('/excuses/<migration_id>/<int:page>')

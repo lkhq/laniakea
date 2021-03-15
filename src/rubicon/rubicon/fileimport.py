@@ -104,7 +104,7 @@ def accept_upload(conf, dud, event_emitter):
     # remove the upload description file from incoming
     os.remove(dud.get_dud_file())
 
-    log.info("Upload {} accepted.", dud.get_filename())
+    log.info('Upload {} accepted.'.format(dud.get_filename()))
 
 
 def reject_upload(conf, dud, reason='Unknown', event_emitter=None):
@@ -134,7 +134,7 @@ def reject_upload(conf, dud, reason='Unknown', event_emitter=None):
     with open(target_fname + '.reason', 'w') as f:
         f.write(reason + '\n')
 
-    log.info('Upload {} rejected.', dud.get_filename())
+    log.info('Upload {} rejected.'.format(dud.get_filename()))
     if event_emitter:
         event_emitter.submit_event('upload-rejected', {'dud_filename': dud.get_filename(), 'reason': reason})
 

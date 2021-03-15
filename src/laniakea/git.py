@@ -55,7 +55,7 @@ class Git:
         if ret == 0:
             return True
         elif throw_error:
-            raise Exception('Failed to run Git ({}): {}\n{}', ' '.join(git_cmd), out, err)
+            raise Exception('Failed to run Git ({}): {}\n{}'.format(' '.join(git_cmd), out, err))
 
     def clone(self, repo_url):
         if not self._location:

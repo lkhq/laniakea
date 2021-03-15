@@ -53,7 +53,7 @@ class Changes(Changes_):
 
             m = hashlib.new(algo)
             with open(fp, 'rb') as fd:
-                for chunk in iter((lambda: fd.read(128 * m.block_size)), b''):
+                for chunk in iter((lambda fd=fd, m=m: fd.read(128 * m.block_size)), b''):
                     m.update(chunk)
 
             if key != 'Files':

@@ -180,7 +180,7 @@ class BritneyConfig:
         if not self._new_archs_set:
             self.set_new_architectures([])
         if not self._delays_set:
-            self._set_delays([])
+            self.set_delays([])
 
         # save configuration
         conf_fname = os.path.join(self._base_dir, 'britney.conf')

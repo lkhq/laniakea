@@ -93,7 +93,7 @@ def signature_ids(json_object, signature_name,
 
 class SignatureVerifyException(Exception):
     '''A signature could not be verified'''
-    pass
+    pass  # pylint: disable=unnecessary-pass
 
 
 def verify_signed_json(json_object, signature_name, verify_key):

@@ -223,7 +223,8 @@ class SpearsEngine:
 
             if not sources_files:
                 raise Exception('No source packages found in "{}" sources for migration "{}": Can not continue.'.format(
-                                component.name, self._get_migrarion_id(suites_source, suite_target)))
+                                component.name,
+                                self._get_migration_id(suites_source, suite_target)))
 
             # Create new merged Sources file
             target_sources_file = os.path.join(fake_dists_dir,

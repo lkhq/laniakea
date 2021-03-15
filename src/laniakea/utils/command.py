@@ -25,6 +25,7 @@ import subprocess
 
 class SubprocessError(Exception):
     def __init__(self, out, err, ret, cmd):
+        super().__init__()
         self.out = out
         self.err = err
         self.ret = ret

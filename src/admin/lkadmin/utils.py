@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-import readline  # noqa: F401
+import readline  # noqa: F401 pylint: disable=unused-import
 
 
 def input_str(prompt, allow_empty=False):

@@ -88,7 +88,10 @@ class TestLighthouseMsgStream:
                              {'hello': 'world'},
                              self._sender_signing_key)
 
-        topic, msg_b = sub_socket.recv_multipart()
+        mparts = sub_socket.recv_multipart()
+        assert len(mparts) == 2
+        topic = mparts[0]
+        msg_b = mparts[1]
         assert topic == b'_lk.testsuite.my-event'
 
         msg = json.loads(msg_b)

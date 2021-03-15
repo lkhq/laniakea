@@ -18,7 +18,7 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-from .dakbridge import DakBridge
+from laniakea.dakbridge import DakBridge
 
 
 def run_dak_command(options):
@@ -31,6 +31,7 @@ def run_dak_command(options):
 def run_add_suite(options):
     dak = DakBridge()
 
+    # pylint: disable=pointless-string-statement
     '''
     dak admin s add-all-arches amber 8 origin=PureOS archive=repo
     dak admin s-c add amber main

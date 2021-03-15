@@ -56,29 +56,45 @@ docs = [
     'sphinxawesome-theme',
 ]
 
+[tool.pylint.master]
+init-hook='''import os
+import sys
+from glob import glob
+for p in glob("./src/*"):
+    if p == 'laniakea':
+        continue
+    if os.path.isdir(p):
+        sys.path.append(p)'''
+extension-pkg-whitelist = ['apt_pkg']
+
+[tool.pylint.format]
+max-line-length = 100
+
 [tool.pylint."messages control"]
-disable = 'all' # 'singleton-comparison'
-enable= [
-    'abstract-class-instantiated',
-    'assert-on-tuple',
-    'bad-indentation',
-    'compare-to-zero',
-    'dangerous-default-value',
-    'deprecated-lambda',
-    'len-as-condition',
-    'literal-comparison',
-    'missing-kwoa',
-    'mixed-indentation',
-    'no-value-for-parameter',
-    'redundant-keyword-arg',
-    'too-many-function-args',
-    'unexpected-keyword-arg',
-    'unreachable',
-    'bare-except'
+disable = [
+    'C', 'R',
+    'fixme',
+    'unused-argument',
+    'global-statement',
+    'logging-format-interpolation',
+    'attribute-defined-outside-init',
+    'protected-access',
+    'comparison-with-callable', # https://github.com/PyCQA/pylint/issues/2757
+    'broad-except',
+    'redefined-builtin',
+
+    # Fix these:
+    'raise-missing-from',
+    'redefined-outer-name',
+    'unused-variable',
 ]
 
 [tool.pylint.reports]
 score = 'no'
 
 [tool.pylint.typecheck]
-ignored-modules = "alembic.op"
+ignored-modules = [
+    'alembic.op',
+    'alembic.context',
+    'zmq'
+]

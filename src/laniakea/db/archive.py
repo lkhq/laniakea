@@ -596,7 +596,6 @@ def get_archive_sections():
     This function does read a local data file, instead of information
     from the database.
     '''
-    import json
     from laniakea.localconfig import get_data_file
 
     with open(get_data_file('archive-sections.json'), 'r') as f:

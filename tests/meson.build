@@ -7,8 +7,7 @@ if get_option('linting')
     pylint_paths = [
         join_paths(source_root, 'src'),
         join_paths(source_root, 'tests'),
-        join_paths(source_root, 'docs'),
-        join_paths(source_root, 'contrib')
+       # join_paths(source_root, 'contrib')
     ]
 
     flake8_exe = find_program('flake8')
@@ -18,16 +17,19 @@ if get_option('linting')
                '--statistics',
                source_root],
         workdir: source_root,
-        suite: 'linters'
+        suite: 'linters',
+        timeout: 180,
     )
 
     pylint_exe = find_program('pylint')
     test('pylint',
-        pylint_exe,
-        args: ['-f', 'colorized',
+        py,
+        args: [pylint_exe.path(),
+               '-f', 'colorized',
                pylint_paths],
         workdir: source_root,
-        suite: 'linters'
+        suite: 'linters',
+        timeout: 180,
     )
 endif
 
@@ -37,5 +39,6 @@ test('pytest',
     args: ['-m', 'pytest'],
     workdir: source_root,
     is_parallel: false,
-    suite: 'integration'
+    suite: 'integration',
+    timeout: 420,
 )

@@ -156,7 +156,7 @@ def install_service_keyfile(options):
         print('Private key file "{}" was not found.'.format(source_keyfile))
         sys.exit(1)
 
-    pub_key, sec_key = zmq.auth.load_certificate(source_keyfile)
+    _, sec_key = zmq.auth.load_certificate(source_keyfile)
     if not sec_key:
         print('The given keyfile does not contain a secret ZCurve key!')
 
