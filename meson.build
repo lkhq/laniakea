@@ -13,7 +13,12 @@ py = pymod.find_installation('python3')
 #
 # Dependencies
 #
+python_min_version = '3.9'
 systemd_dep = dependency('systemd')
+
+if not py.language_version().version_compare('>=' + python_min_version)
+    error('Python version is too low. We require at least ' + python_min_version + ' to run.')
+endif
 
 # Python dependencies
 pymod_check_exe = find_program(join_paths(source_root, 'pyreqcheck.py'))
