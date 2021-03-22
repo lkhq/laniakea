@@ -367,10 +367,12 @@ class SyncEngine:
 
                         # add information that this package needs to be merged to the issue list
                         issue = SynchrotronIssue()
+                        issue.kind = SynchrotronIssueKind.MERGE_REQUIRED
                         issue.package_name = spkg.name
                         issue.source_version = spkg.version
                         issue.target_version = dpkg.version
-                        issue.kind = SynchrotronIssueKind.MERGE_REQUIRED
+                        issue.source_suite = self._source_suite_name
+                        issue.target_suite = self._target_suite_name
 
                         res_issues.append(issue)
                         continue
