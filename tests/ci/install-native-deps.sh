@@ -26,7 +26,8 @@ eatmydata apt-get install -yq --no-install-recommends \
     gir1.2-appstream-1.0 \
     ostree \
     flatpak \
-    flatpak-builder
+    flatpak-builder \
+    npm
 
 eatmydata apt-get install -yq --no-install-recommends \
     python3-pip \

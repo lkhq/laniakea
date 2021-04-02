@@ -84,12 +84,12 @@ if (get_option('webgui'))
 
     # JS/CSS/etc frontend 3rd-party downloaded code
     if get_option('download-js')
-        yarnpkg = find_program('/usr/share/yarn/bin/yarn', 'yarnpkg') # check for the yarn executable
+        npm_exe = find_program('npm')
         if run_command('[', '-d', 'web/static/bootstrap', ']').returncode() != 0
             message('Downloading JavaScript libraries...')
-            getjs_cmd = run_command('python3', source_root + '/contrib/js-setup/fetch_js.py', yarnpkg)
+            getjs_cmd = run_command(py, source_root + '/contrib/js-setup/fetch_js.py', npm_exe)
             if getjs_cmd.returncode() != 0
-                error('Unable to install JavaScript files with Yarn:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
+                error('Unable to install JavaScript files with NPM:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
             endif
         endif
     endif

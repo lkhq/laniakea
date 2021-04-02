@@ -30,6 +30,5 @@ if [ "$1" = "lint-only" ]; then
 else
     meson \
         --prefix=/tmp/lk-install-root \
-        -Ddownload-js=false \
         ..
 fi;
