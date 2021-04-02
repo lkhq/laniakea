@@ -40,7 +40,7 @@ web = [
     'Flask-Login',
 ]
 matrix = [
-    'matrix-client',
+    'mautrix>=0.8.18',
 ]
 tests = [
     'pytest',

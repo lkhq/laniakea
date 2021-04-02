@@ -15,7 +15,7 @@ Flask-Caching
 Flask-Login
 Flask-RESTful
 Flask-Script
-matrix-client
+mautrix
 Pygments
 Sphinx
 sphinx-autodoc-typehints
