@@ -85,8 +85,8 @@ if (get_option('webgui'))
     # JS/CSS/etc frontend 3rd-party downloaded code
     if get_option('download-npm')
         npm_exe = find_program('npm')
-        if run_command('[', '-d', 'web/static/css/bulma.min.css', ']').returncode() != 0
-            message('Downloading NPM packages for web frontend...')
+        if run_command('[', '-f', 'web/templates/default/static/css/bulma.min.css', ']').returncode() != 0
+            message('Downloading NPM packages for web frontends...')
             getjs_cmd = run_command(py, source_root + '/contrib/npmdeps/fetch_npm.py', npm_exe)
             if getjs_cmd.returncode() != 0
                 error('Unable to install NPM packages:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())

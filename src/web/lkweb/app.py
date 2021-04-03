@@ -19,6 +19,7 @@
 
 import os
 import logging as log
+import jinja2
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template
 from .extensions import cache
@@ -27,6 +28,12 @@ from .config import DefaultConfig, INSTANCE_FOLDER_PATH
 
 # For import *
 __all__ = ['create_app']
+
+
+thisfile = __file__
+if not os.path.isabs(thisfile):
+    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+app_root_dir = os.path.normpath(os.path.join(os.path.dirname(thisfile), '..'))
 
 
 def create_app(config=None, app_name=None):
@@ -59,6 +66,17 @@ def configure_app(app, config=None):
 
     if config:
         app.config.from_object(config)
+
+    template_theme_dir = os.path.join(INSTANCE_FOLDER_PATH, 'templates', app.config['THEME'])
+    if not os.path.isdir(template_theme_dir):
+        template_theme_dir = os.path.join(app_root_dir, 'templates', app.config['THEME'])
+    template_default_dir = os.path.join(app_root_dir, 'templates', 'default')
+
+    app.jinja_loader = jinja2.ChoiceLoader([
+        jinja2.FileSystemLoader(template_theme_dir),
+        jinja2.FileSystemLoader(template_default_dir)
+    ])
+    app.static_folder = os.path.join(template_theme_dir, 'static')
 
 
 def configure_blueprints(app):

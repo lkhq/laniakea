@@ -48,6 +48,8 @@ class BaseConfig:
 
     LOG_FOLDER = os.path.join(INSTANCE_FOLDER_PATH, 'logs')
 
+    THEME = 'default'
+
 
 class DefaultConfig(BaseConfig):
 

@@ -19,6 +19,7 @@
 
 import os
 import logging as log
+import jinja2
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template
 from .extensions import cache
@@ -58,8 +59,6 @@ def configure_app(app, config=None):
     Load app configuration - local production config takes
     precedence over others.
     '''
-
-    import jinja2
 
     app.config.from_object(DefaultConfig)
     app.config.from_pyfile('config.cfg', silent=True)
