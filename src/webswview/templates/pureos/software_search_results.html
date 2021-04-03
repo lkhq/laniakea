@@ -1,0 +1,57 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Software search results for "' + term + '"' %}
+
+{% block body_header %}
+
+
+{% endblock %}
+
+{% block body %}
+
+<div class="container">
+
+    <h2>Software search results for {{term}}</h2>
+
+    <p>{{ results_count }} results found.</p>
+
+
+    <div class="columns is-multiline is-mobile grid">
+        
+        {% for sw in software %}
+        <div class="column is-one-fifth-desktop is-half-mobile">
+            <a class="list-group-item" href="{{ url_for('software.details', cid=sw.cid) }}">
+            <div class="box app-item is-horizontal-center">
+                
+                <p>
+                    <figure class="image has-image-centered is-64x64">
+                    {% if sw.icon_name %}
+                        <img src="{{ config.APPSTREAM_MEDIA_URL + '/' + sw.gcid + '/icons/64x64/' + sw.icon_name }}" alt="Icon">
+                    {% else %}
+                        <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PGRlZnMvPjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjEzLjQ2MDkzNzUiIHk9IjMyIiBzdHlsZT0iZmlsbDojQUFBQUFBO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1mYW1pbHk6QXJpYWwsIEhlbHZldGljYSwgT3BlbiBTYW5zLCBzYW5zLXNlcmlmLCBtb25vc3BhY2U7Zm9udC1zaXplOjEwcHQ7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+NjR4NjQ8L3RleHQ+PC9nPjwvc3ZnPg==" alt="Icon">
+                    {% endif %}
+                    </figure>
+                <p>
+
+                <p class="has-text-centered is-size-6 is-size-7-mobile app-name">
+                    {{sw.name}}
+                <p>
+                <p class="has-text-centered is-size-6 is-size-7-mobile badges">
+                    {% if sw.is_free %}
+                    <i class="fas fa-heart badge" title="Respects Freedom"></i>&nbsp;
+                    {% endif %}
+                    <!--
+                    <i class="fas fa-shield-alt badge" title="Verifiable"></i>&nbsp;
+                    <i class="fas fa-mobile badge" title="Mobile friendly"></i>&nbsp;
+                    -->
+                </p>
+            </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+
+{% endblock %}

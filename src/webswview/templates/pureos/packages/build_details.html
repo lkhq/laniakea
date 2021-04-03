@@ -1,0 +1,195 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Build ' + spkg.name + ' ' + job.version + ' on ' + job.architecture %}
+
+{% block body_header %}
+<h2>Build {{spkg.name}} {{job.version}} on {{job.architecture}}</h2>
+{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.suites_index') }}">Packages</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('packages.src_package_details', suite_name=suite_name, name=spkg.name) }}">{{spkg.name}}</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('packages.builds_list', name=spkg.name, page=1) }}">Builds</a>
+        </li>
+        <li class="breadcrumb-item">
+            {{suite_name}}
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            {{spkg.name}} {{job.version}} on {{job.architecture}}
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block body %}
+
+<b>ID:</b> {{job.uuid}}<br/>
+<br/>
+<b>Created:</b> {{humanized_timediff(job.time_created)}}<br/>
+<b>Assigned:</b> {{humanized_timediff(job.time_assigned)}}<br/>
+{% if job.time_finished %}<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>{% endif %}
+{% if worker %}
+<b>Worker:</b> {{worker.name}}<br/>
+{% endif %}
+
+<b>Status:</b>
+{% if job.status == JobStatus.WAITING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-hourglass-start" aria-hidden="true"></i>
+  </span> Waiting
+{% elif job.status == JobStatus.DEPWAIT %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-puzzle-piece" aria-hidden="true"></i>
+  </span> Waiting for dependency
+{% elif job.status == JobStatus.SCHEDULED %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-circle-notch fa-spin" aria-hidden="true"></i>
+  </span> Scheduled
+{% elif job.status == JobStatus.RUNNING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
+  </span> Running
+{% elif job.status == JobStatus.DONE %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-check" aria-hidden="true"></i>
+  </span> Done
+{% elif job.status == JobStatus.STARVING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-clock-o" aria-hidden="true"></i>
+  </span> Starving
+{% elif job.status == JobStatus.TERMINATED %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <i class="fa fa-skull" aria-hidden="true"></i>
+  </span> Terminated
+{% endif %}
+<br/>
+
+{% if job.result != JobResult.UNKNOWN %}
+&nbsp;<br/>
+<h3>Result</h3>
+<p>
+{% if job.result == JobResult.SUCCESS_PENDING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <font class="fa fa-check-circle" aria-hidden="true" color="green"></font>
+    <i class="fa fa-clock" aria-hidden="true"></i>
+  </span> Successful (pending)
+{% elif job.result == JobResult.FAILURE_PENDING %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
+    <i class="fa fa-clock" aria-hidden="true"></i>
+  </span> Failed (pending)
+{% elif job.result == JobResult.SUCCESS %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <font class="fa fa-check-circle" aria-hidden="true" color="green"></font>
+  </span> Success
+{% elif job.result == JobResult.FAILURE %}
+  <span style="font-size: 20px; line-height: 1.5em;">
+    <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
+  </span> Failed
+{% endif %}
+</p>
+{% endif %}
+
+&nbsp;<br/>
+<h3>Details</h3>
+<p>
+<b>Repository:</b> {{spkg.repo.name}}<br/>
+<b>Suite:</b> {{suite_name}}<br/>
+<b>Maintainer:</b> {{spkg.maintainer.replace('@', '[at]')}}<br/>
+{% if spkg.uploaders %}<b>Uploaders:</b> {{'; '.join(spkg.uploaders).replace('@', '[at]')}}<br/>{% endif %}
+<b>Version:</b> {{job.version}}<br/>
+<b>Architecture:</b> <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{job.architecture}}</span><br/>
+</p>
+
+{% if dep_issues %}
+&nbsp;<br/>
+<h3>Dependency Issues</h3>
+
+{% for issue in dep_issues %}
+    {% if issue.missing %}
+    <h5>Missing dependencies ({{issue.package_name}} {{issue.package_version}})</h5>
+
+    <div class="columns">
+        <div class="column">
+            {% for m in issue.missing %}
+            <div class="content border-box is-small">
+                <h5>{{ link_for_bin_package_id(suite_name, m.unsat_dependency)|safe }}
+                  <small><i class="fas fa-microchip"></i> {{m.architecture}}</small>
+                </h5>
+                <b>Required by:</b> {{m.package_name}}<br/>
+                {% if m.package_version %}<b>Version:</b> {{m.package_version}}<br/>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if issue.conflicts %}
+    <h5>Conflicts in the dependency chain ({{issue.package_name}} {{issue.package_version}})</h5>
+    {% for c in issue.conflicts %}
+        <h5>{{c.pkg1.package_name}} vs. {{c.pkg2.package_name}}</h5>
+        <div class="container">
+            <div class="content">
+
+                <!-- Package 1-->
+                <h5>Package 1: {{c.pkg1.package_name}} {{c.pkg1.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg1.architecture}}</h5>
+                {% if c.pkg1.unsat_conflict %}
+                <p><b>Conflict:</b> {{c.pkg1.unsat_conflict}}</p>
+                {% endif %}
+
+                <ul>
+                {% for d in c.depchain1 %}
+                    <li>
+                      <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
+                      <p ><b>Depends:</b> {{d.depends}}</p>
+                   </li>
+                {% endfor %}
+                </ul>
+
+                <br/>
+                <!-- Package 2-->
+                <h5>Package 2: {{c.pkg2.package_name}} {{c.pkg2.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg2.architecture}}</h5>
+                {% if c.pkg2.unsat_conflict %}
+                <p><b>Conflict:</b> {{c.pkg2.unsat_conflict}}</p>
+                {% endif %}
+
+                <ul>
+                {% for d in c.depchain2 %}
+                    <li>
+                      <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
+                      <p><b>Depends:</b> {{d.depends}}</p>
+                   </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endfor %}
+    {% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if log_url %}
+&nbsp;<br/>
+<p><a class="button is-info" href="{{log_url}}" role="button">View Full Log</a></p>
+{% else %}
+
+&nbsp;<br/>
+<h3>Log Excerpt</h3>
+<div class="columns">
+  <div class="column is-half">
+    <div class="container">
+      <pre><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
+    </div>
+  </div>
+</div>
+{%endif %}
+
+{% endblock %}

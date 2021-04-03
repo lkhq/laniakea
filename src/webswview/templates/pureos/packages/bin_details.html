@@ -1,0 +1,126 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Binary package ' + pkg.name + '/' + pkg.version + ' in ' + pkg_suite_name %}
+
+{% block body_header %}
+{% endblock %}
+
+{% block body %}
+{% if pkg.component.is_primary() %}
+    {% set component_badge_style = 'badge-primary' %}
+{% elif pkg.component.is_nonfree() %}
+    {% set component_badge_style = 'badge-danger' %}
+{% else %}
+    {% set component_badge_style = 'badge-secondary' %}
+{% endif %}
+<div class="columns">
+    <div class="column is-one-quarter">
+        <aside class="menu">
+            <p class="menu-label">
+                Suites
+            </p>
+            <ul class="menu-list">
+            {% for suite_name in suites %}
+                <li><a class="{{ 'is-active' if suite_name == pkg_suite_name }}" href="{{ url_for('packages.bin_package_details', suite_name=suite_name, name=pkg.name) }}">{{suite_name}}</a></li>
+            {% endfor %}
+            </ul>
+        </aside>
+    </div>
+    <div class="column">
+        <div class="columns">
+            <div class="column">
+                <h2>
+                {{pkg.name}} - {{pkg.version}}
+                <small>
+                    <span class="badge {{component_badge_style}}">{{pkg.component.name}}</span>
+                </small>
+            </h2>
+        <p>{{pkg.description}}</p>
+            </div>
+            <div class="column is-one-quarter-desktop search">
+                <form class="form-inline" action="/search_pkg" method="GET">
+                    <p class="control has-icons-left">
+                        <input id="term" name="term" class="input is-rounded" type="text" placeholder="Find another package...">
+                        <span class="icon is-left">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    
+                    </p>
+                </form>
+            </div>
+        </div>
+        <b>Section:</b> {{pkg.section}}
+        <br/>
+        <b>Suites:</b> {% for s in suites %}<span class="badge badge-pill badge-info">{{s}}</span>&nbsp;{% endfor %}
+        <br/>
+        <b>Maintainer:</b> {{pkg.maintainer}}
+        <br/>&nbsp;<br/>
+        {% if pkg.homepage %}
+        <a class="button" href="{{pkg.homepage}}" role="button">Homepage</a>
+        {% endif %}
+        <a class="button" href="{{ url_for('packages.src_package_details', suite_name=pkg_suite_name, name=pkg.source_name) }}" role="button">Source Package</a>
+        <br/>&nbsp;<br/>
+
+        {% if dep_issues %}
+        <div class="alert alert-danger" role="alert">
+        <h5>This package is currently <strong>not installable</strong>!</h5>
+
+        {% for issue in dep_issues %}
+            {% if issue.missing %}
+            <h6 class="pl-2"><small class="fas fa-question-circle"></small> Missing <small class="text-muted"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</small></h6>
+            <div class="content">
+                <ul class="mb-0">
+                {% for m in issue.missing %}
+                  <li>{{ link_for_bin_package_id(pkg_suite_name, m.unsat_dependency)|safe }}</li>
+                {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if issue.conflicts %}
+            <h6 class="mt-2 pl-2"><small class="fas fa-fist-raised"></small> Conflicts <small class="text-muted"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</small></h6>
+            {% for c in issue.conflicts %}
+              <h7 class="pl-3">{{ link_for_bin_package_id(pkg_suite_name, c.pkg1.package_name)|safe }} vs. {{ link_for_bin_package_id(pkg_suite_name, c.pkg2.package_name)|safe }}</h7>
+            {% endfor %}
+            {% endif %}
+        {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if pkg.pre_depends %}
+        <h3>Pre-Dependencies</h3>
+        <div class="content">
+            <ul>
+            {% for dep in pkg.pre_depends %}
+                <li>{{ make_linked_dependency(pkg_suite_name, dep)|safe }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if pkg.depends %}
+        <h3>Dependencies</h3>
+        <div class="content">
+            <ul>
+            {% for dep in pkg.depends %}
+                <li>{{ make_linked_dependency(pkg_suite_name, dep)|safe }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+
+        <p>
+            <b>Installed Size</b>: {{naturalsize(pkg.size_installed * 1024)}}
+            <br/>
+            <b>Architectures</b>: {% for a in architectures %}<span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{a.name}}</span>&nbsp;{% endfor %}
+        </p>
+        &nbsp;<br/>
+        <h3>Versions</h3>
+        {% for vpkg in pkgs_all %}
+        <a class="border-box" href="{{ vpkg.bin_file.make_url(config.ARCHIVE_URL) }}">{{vpkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{vpkg.architecture.name}}</span></a>
+        {% endfor %}
+        
+    </div>
+</div>
+{% endblock %}

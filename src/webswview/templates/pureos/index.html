@@ -1,0 +1,31 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Overview' %}
+
+{% block body_header %}
+<!-- Hero section -->
+<div class="hero">
+    <div class="columns is-desktop">
+        <div class="column-inner">
+            <h1>PureOS <span>Store</span></h1>
+            <img src="{{ url_for('static', filename='img/apps-on-device.png') }}" alt="">
+        </div>
+    </div>
+</div>
+
+<!-- Browse section -->
+<section class="section">
+    <div class="container search">
+        <div class="columns is-centered is-vcentered is-mobile">
+            <div class="column is-narrow has-text-centered">
+                <a class="button is-primary" href="{{ url_for('portal.categories_index') }}">Browse the catalog</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block body %}
+
+
+{% endblock %}

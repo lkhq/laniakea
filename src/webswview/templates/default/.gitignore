@@ -1,5 +1,5 @@
-static/bootstrap/
 static/css/fontawesome/
 static/css/webfonts/
+static/css/bulma*.css
 static/js/jquery/
-static/js/popper/
+static/fonts/

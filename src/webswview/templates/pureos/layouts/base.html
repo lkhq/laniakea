@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Find and install hundreds of free and respectful apps and games.">
+        <title>{% block title %}{{ page_title }}{% endblock %} - {{ config.PROJECT }}</title>
+        
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/fa.css') }}"/>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bulma.css') }}"/>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/pureos.css') }}"/>
+        {% block css %}{% endblock %}
+
+    </head>
+    <body>
+
+        <!-- Header Bar -->
+        <nav class="navbar navbar-home" role="navigation" aria-label="main navigation">
+            <div class="navbar-brand">
+                <a class="navbar-item" href="{{ url_for('portal.index') }}">
+                    <img src="{{ url_for('static', filename='img/app-icon.svg') }}">
+                </a>
+
+                <a role="button" class="navbar-burger burger" aria-label="menu" aria-expanded="false" data-target="topNavbar">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <!-- Top Navigation -->
+            <div id="topNavbar" class="navbar-menu">
+                <div class="navbar-start">
+                    <div class="navbar-item">
+                        <a class="navbar-item" href="{{ url_for('portal.categories_index') }}">Software</a>
+                        <a class="navbar-item" href="{{ url_for('portal.suites_index') }}">Packages</a>
+
+                    </div>
+                    <!-- left menu items would be here -->
+                </div>
+                <div class="navbar-end">
+                    <div class="navbar-item field">
+                        <form class="form-inline" action="/search_sw" method="GET">
+                            <p class="control has-icons-left">
+                                <input id="term" name="term" class="input is-rounded" type="text" placeholder="Find an app...">
+                                <span class="icon is-left">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            
+                            </p>
+                        </form>
+                    </div>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+    {% block container %}
+
+    <div class="container">
+
+      {% block breadcrumbs %}{% endblock %}
+
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+            {% block body_header %}{% endblock %}
+      </div>
+      {% block flash_message %}
+        {% with messages = get_flashed_messages(with_categories=True) %}
+            {% if messages %}
+            {% for category, msg in messages %}
+                <div class="alert alert-{{ category }}">
+                {{ msg|safe }}
+                </div>
+            {% endfor %}
+            {% endif %}
+      {% endwith %}
+      {% endblock %}
+
+      {% block body %}{% endblock %}
+    </div>
+    {% endblock %}
+
+        <!-- Footer section -->
+        <footer class="footer">
+            <div class="section-legal has-text-centered">
+                <a href="https://puri.sm/" class="brand">
+                    <img src="{{ url_for('static', filename='img/brand.svg') }}" alt="Purism">
+                </a>
+                <p>
+                    3D renders are artist renderings, for illustration purposes. Images and specifications are subject to change depending on manufacturing requirements.
+                </p>
+                <p>
+                    Unless otherwise noted, contents created by the Purism team on this website are copyleft with a CC-by-SA 4.0 license.
+                </p>
+            </div>
+        </footer>
+
+        <!-- Menu script -->
+        <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', () => {
+
+                // Get all "navbar-burger" elements
+                const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+                // Check if there are any navbar burgers
+                if ($navbarBurgers.length > 0) {
+
+                    // Add a click event on each of them
+                    $navbarBurgers.forEach(el => {
+                        el.addEventListener('click', () => {
+
+                            // Get the target from the "data-target" attribute
+                            const target = el.dataset.target;
+                            const $target = document.getElementById(target);
+
+                            // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                            el.classList.toggle('is-active');
+                            $target.classList.toggle('is-active');
+
+                        });
+                    });
+                }
+
+            });
+        </script>
+
+<script src="{{ url_for('static', filename='js/jquery/jquery.slim.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/popper/popper.min.js') }}"></script>
+<script src="{{ url_for('static', filename='bootstrap/bootstrap.min.js') }}"></script>
+{% block js %}{% endblock %}
+
+    </body>
+</html>

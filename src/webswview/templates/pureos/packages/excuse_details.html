@@ -1,0 +1,130 @@
+{% extends 'layouts/base.html' %}
+
+{% set page_title = 'Migration excuses for ' + excuse.source_package + ' ' + excuse.version_new %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.suites_index') }}">Packages</a>
+        </li>
+        <li class="breadcrumb-item">
+            {{excuse.suite_source}}
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('packages.src_package_details', suite_name=excuse.suite_source, name=excuse.source_package) }}">{{excuse.source_package}}</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            Migration Excuses
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block body_header %}
+<h1 class="h2">Migration excuse for: {{excuse.source_package}} {{excuse.version_new}}</h1>
+{% endblock %}
+
+{% block body %}
+
+
+<p>
+    <b>Is candidate:
+    {% if excuse.is_candidate %}
+        <font class="fa fa-check-circle" color="green"></font>
+    {% else %}
+        <font class="fa fa-times-circle" color="red"></font>
+    {% endif %}
+    </b>
+</p>
+
+<p>
+<b>Maintainer</b>: {{excuse.maintainer}}<br/>
+<b>Source:</b> {{excuse.suite_source}} <i>(version: {{excuse.version_new}})</i><br/>
+<b>Destination:</b> {{excuse.suite_target}} <i>(old version: {{excuse.version_old}})</i><br/>
+</p>
+
+<h4>Age</h4>
+<p>Package is {{excuse.age_current}} days old (needed {{excuse.age_required}})</p>
+
+{% if excuse.missing_archs_primary or excuse.missing_archs_secondary %}
+<h4>Architectures</h4>
+
+{% if excuse.missing_archs_primary %}
+<h5>Primary</h5>
+<ul>
+    {% for arch in excuse.missing_archs_primary %}
+    <li>{{arch}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.missing_archs_secondary %}
+<h5>Secondary</h5>
+<ul>
+    {% for arch in excuse.missing_archs_secondary %}
+    <li>{{arch}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% endif %}
+
+
+{% if excuse.old_binaries %}
+<h4>Old Binaries</h4>
+<ul>
+    {% for obin in excuse.old_binaries %}
+    <li><b>{{obin.pkg_version}}</b>: {{obin.binaries|join(', ')}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.blocked_by %}
+<h4>Blocked By</h4>
+<ul>
+    {% for block in excuse.blocked_by %}
+    <li><a href="{{ url_for('packages.src_package_details', suite_name=excuse.suite_source, name=block) }}">{{block}}</a></li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.migrate_after %}
+<h4>Migrates After</h4>
+<ul>
+    {% for wait_entry in excuse.migrate_after %}
+    <li><a href="{{ url_for('packages.src_package_details', suite_name=excuse.suite_source, name=wait_entry) }}">{{wait_entry}}</a></li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.manual_block %}
+<h4>Manually Blocked</h4>
+<ul>
+    {% for block in excuse.manual_block %}
+    <li>{{block}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.other %}
+<h4>Other Reasons</h4>
+<ul>
+    {% for reason in excuse.other %}
+    <li>{{reason}}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if excuse.log_excerpt %}
+<h4>Log Excerpt</h4>
+<div class="row">
+    <div class="col-md-4">
+        <div class="card card-body bg-light">
+            <pre><code>{{excuse.log_excerpt}}</code></pre>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
