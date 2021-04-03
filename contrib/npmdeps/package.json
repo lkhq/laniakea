@@ -1,9 +1,9 @@
 {
   "flat": true,
   "dependencies": {
+    "@fontsource/cantarell": ">=4.2.2",
     "@fortawesome/fontawesome-free": ">=5.8",
-    "bootstrap": ">=4.1.0",
-    "jquery": ">=3.3.1",
-    "popper.js": ">=1.14"
+    "bulma": ">=0.9.2",
+    "jquery": ">=3.3.1"
   }
 }

@@ -24,7 +24,7 @@ pip install -r ../requirements.tests.txt
 if [ "$1" = "lint-only" ]; then
     meson \
         --prefix=/tmp/lk-install-root \
-        -Ddownload-js=false \
+        -Ddownload-npm=false \
         -Dlinting=true \
         ..
 else

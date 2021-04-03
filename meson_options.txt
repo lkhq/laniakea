@@ -12,10 +12,10 @@ option('linting',
 #
 # Build config flags
 #
-option('download-js',
+option('download-npm',
     type: 'boolean',
     value: true,
-    description: 'Download JavaScript dependencies with Yarn when configuring the build'
+    description: 'Download web dependencies with NPM when configuring the build'
 )
 
 #

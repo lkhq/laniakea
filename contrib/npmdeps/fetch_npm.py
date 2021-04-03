@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Retrieve web packages via Yarn and move them to the right locations.
+# Retrieve web packages via NPM and move them to the right locations.
 #
 
 import os
@@ -17,23 +17,32 @@ os.chdir(thisdir)
 
 
 src_dir = '../../src/'
-node_modules = [{'name': 'bootstrap',
-                 'files': ['dist/css/bootstrap.min.css', 'dist/css/bootstrap.min.css.map',
-                           'dist/js/bootstrap.min.js', 'dist/js/bootstrap.min.js.map'],
-                 'copy_to': [os.path.join(src_dir, 'web/static/bootstrap/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/bootstrap/')]
+node_modules = [{'name': 'bulma',
+                 'files': ['css/bulma.min.css'],
+                 'copy_to': [os.path.join(src_dir, 'web/static/css/'),
+                             os.path.join(src_dir, 'webswview/templates/default/static/css/'),
+                             os.path.join(src_dir, 'webswview/templates/pureos/static/css/')]
                  },
 
                 {'name': '@fortawesome/fontawesome-free',
                  'files': ['css/fontawesome.min.css', 'css/all.min.css'],
                  'copy_to': [os.path.join(src_dir, 'web/static/css/fontawesome/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/css/fontawesome/')]
+                             os.path.join(src_dir, 'webswview/templates/default/static/css/fontawesome/'),
+                             os.path.join(src_dir, 'webswview/templates/pureos/static/css/fontawesome/')]
                  },
 
                 {'name': '@fortawesome/fontawesome-free',
                  'files': ['webfonts/*'],
                  'copy_to': [os.path.join(src_dir, 'web/static/css/webfonts/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/css/webfonts/')]
+                             os.path.join(src_dir, 'webswview/templates/default/static/css/webfonts/'),
+                             os.path.join(src_dir, 'webswview/templates/pureos/static/css/webfonts/')]
+                 },
+
+                {'name': '@fontsource/cantarell',
+                 'files': ['files/*'],
+                 'copy_to': [os.path.join(src_dir, 'web/static/fonts/'),
+                             os.path.join(src_dir, 'webswview/templates/default/static/fonts/'),
+                             os.path.join(src_dir, 'webswview/templates/pureos/static/fonts/')]
                  },
 
                 {'name': 'jquery',
@@ -41,13 +50,6 @@ node_modules = [{'name': 'bootstrap',
                  'copy_to': [os.path.join(src_dir, 'web/static/js/jquery/'),
                              os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/')]
                  },
-
-                {'name': 'popper.js',
-                 'files': ['dist/umd/*.min.js'],
-                 'copy_to': [os.path.join(src_dir, 'web/static/js/popper/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/js/popper/')]
-                 }
-
                 ]
 
 

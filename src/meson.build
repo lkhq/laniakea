@@ -83,13 +83,13 @@ if (get_option('webgui'))
     endif
 
     # JS/CSS/etc frontend 3rd-party downloaded code
-    if get_option('download-js')
+    if get_option('download-npm')
         npm_exe = find_program('npm')
-        if run_command('[', '-d', 'web/static/bootstrap', ']').returncode() != 0
-            message('Downloading JavaScript libraries...')
-            getjs_cmd = run_command(py, source_root + '/contrib/js-setup/fetch_js.py', npm_exe)
+        if run_command('[', '-d', 'web/static/css/bulma.min.css', ']').returncode() != 0
+            message('Downloading NPM packages for web frontend...')
+            getjs_cmd = run_command(py, source_root + '/contrib/npmdeps/fetch_npm.py', npm_exe)
             if getjs_cmd.returncode() != 0
-                error('Unable to install JavaScript files with NPM:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
+                error('Unable to install NPM packages:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
             endif
         endif
     endif
