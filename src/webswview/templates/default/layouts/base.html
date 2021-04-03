@@ -1,38 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}{{ page_title }}{% endblock %} - {{ config.PROJECT }}</title>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Find and install hundreds of free and respectful apps and games.">
+        <title>{% block title %}{{ page_title }}{% endblock %} - {{ config.PROJECT }}</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}"/>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome/fontawesome.min.css') }}"/>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome/all.min.css') }}"/>
-    <link href="{{ url_for('static', filename='css/laniakea-swview.css') }}" rel="stylesheet">
-    {% block css %}{% endblock %}
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome/all.min.css') }}"/>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bulma.min.css') }}"/>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/laniakea.css') }}"/>
+        {% block css %}{% endblock %}
 
-</head>
-<body>
-    <nav class="navbar navbar-dark bg-dark navbar-static-top navbar-expand-md" role="navigation">
-        <div class="container">
-        <!-- Brand and toggle get grouped for better mobile display-->
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
-            <span class="sr-only">Toggle navigation</span>☰
-        </button>
-        <a class="navbar-brand" href="{{ url_for('portal.index') }}">{{ config.PROJECT }}</a>
-        <div id="bs-example-navbar-collapse-1" class="collapse navbar-collapse">
-            <ul class="nav navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('portal.suites_index') }}">Packages</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('portal.categories_index') }}">Software</a>
-            </li>
-            </ul>
-        </div>
-        </div>
-    </nav>
+    </head>
+    <body>
+
+        <!-- Header Bar -->
+        <nav class="navbar navbar-home" role="navigation" aria-label="main navigation">
+            <div class="navbar-brand">
+                <a class="navbar-item" href="{{ url_for('portal.index') }}">
+                    <img src="{{ url_for('static', filename='img/app-icon.svg') }}">
+                </a>
+
+                <a role="button" class="navbar-burger burger" aria-label="menu" aria-expanded="false" data-target="topNavbar">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <!-- Top Navigation -->
+            <div id="topNavbar" class="navbar-menu">
+                <div class="navbar-start">
+                    <div class="navbar-item">
+                        <a class="navbar-item" href="{{ url_for('portal.categories_index') }}">Software</a>
+                        <a class="navbar-item" href="{{ url_for('portal.suites_index') }}">Packages</a>
+
+                    </div>
+                    <!-- left menu items would be here -->
+                </div>
+                <div class="navbar-end">
+                    <div class="navbar-item field">
+                        <form class="form-inline" action="/search_sw" method="GET">
+                            <p class="control has-icons-left">
+                                <input id="term" name="term" class="input is-rounded" type="text" placeholder="Find an app...">
+                                <span class="icon is-left">
+                                    <i class="fas fa-search"></i>
+                                </span>
+
+                            </p>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </nav>
+
 
     {% block container %}
 
@@ -59,28 +81,49 @@
     </div>
     {% endblock %}
 
-    <footer class="text-muted">
-        <div class="container">
-        <br/>
-        <br/>
-        <p class="float-right">
-            <small>
-            <a href="#">Back to top</a>
-            </small>
-        </p>
-        <p>
-            <small>
-            Powered by
-            <a href="https://github.com/lkorigin/laniakea">laniakea-swview</a>.
-            </small>
-        </p>
-        </div>
-    </footer>
+        <!-- Footer section -->
+        <footer class="footer">
+            <div class="section-legal has-text-centered">
+                <a href="#" class="brand">
+                    <img style="width: 50px" src="{{ url_for('static', filename='img/brand.svg') }}" alt="Logo">
+                </a>
+                <p>
+                    Contents on this page a subjected to the licenses of the respective upstream projects or packagers.
+                </p>
+            </div>
+        </footer>
+
+        <!-- Menu script -->
+        <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', () => {
+
+                // Get all "navbar-burger" elements
+                const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+                // Check if there are any navbar burgers
+                if ($navbarBurgers.length > 0) {
+
+                    // Add a click event on each of them
+                    $navbarBurgers.forEach(el => {
+                        el.addEventListener('click', () => {
+
+                            // Get the target from the "data-target" attribute
+                            const target = el.dataset.target;
+                            const $target = document.getElementById(target);
+
+                            // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                            el.classList.toggle('is-active');
+                            $target.classList.toggle('is-active');
+
+                        });
+                    });
+                }
+
+            });
+        </script>
 
 <script src="{{ url_for('static', filename='js/jquery/jquery.slim.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/popper/popper.min.js') }}"></script>
-<script src="{{ url_for('static', filename='bootstrap/bootstrap.min.js') }}"></script>
 {% block js %}{% endblock %}
 
-</body>
+    </body>
 </html>

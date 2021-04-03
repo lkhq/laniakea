@@ -27,7 +27,7 @@ INSTANCE_FOLDER_PATH = '/var/lib/laniakea-webswview/'
 
 class BaseConfig:
 
-    PROJECT = 'Laniakea Software View'
+    PROJECT = 'Laniakea SWV'
     BUG_REPORT_URL = 'https://github.com/lkorigin/laniakea/issues'
 
     OS_NAME = config_get_project_name()

@@ -59,18 +59,24 @@ def configure_app(app, config=None):
     precedence over others.
     '''
 
+    import jinja2
+
     app.config.from_object(DefaultConfig)
     app.config.from_pyfile('config.cfg', silent=True)
 
     if config:
         app.config.from_object(config)
 
-    template_root = os.path.join(INSTANCE_FOLDER_PATH, 'templates', app.config['THEME'])
-    if not os.path.isdir(template_root):
-        template_root = os.path.join(app_root_dir, 'templates', app.config['THEME'])
+    template_theme_dir = os.path.join(INSTANCE_FOLDER_PATH, 'templates', app.config['THEME'])
+    if not os.path.isdir(template_theme_dir):
+        template_theme_dir = os.path.join(app_root_dir, 'templates', app.config['THEME'])
+    template_default_dir = os.path.join(app_root_dir, 'templates', 'default')
 
-    app.template_folder = template_root
-    app.static_folder = os.path.join(template_root, 'static')
+    app.jinja_loader = jinja2.ChoiceLoader([
+        jinja2.FileSystemLoader(template_theme_dir),
+        jinja2.FileSystemLoader(template_default_dir)
+    ])
+    app.static_folder = os.path.join(template_theme_dir, 'static')
 
 
 def configure_blueprints(app):

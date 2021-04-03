@@ -7,11 +7,9 @@
 {% endif %}
 
 {% block breadcrumbs %}
+<!--
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.index') }}">Portal</a>
-        </li>
         <li class="breadcrumb-item">
             <a href="{{ url_for('portal.categories_index') }}">Software</a>
         </li>
@@ -25,73 +23,108 @@
         </li>
     </ol>
 </nav>
+-->
 {% endblock %}
 
 {% block body %}
-<div class="row">
-    <div class="col-md-3">
-        {% if category.has_children() %}
+<div class="container">
 
-        <p class="lead">Categories</p>
-        <div class="list-group">
-        {% for sc in category.get_children() %}
-            <a class="list-group-item" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=sc.get_id(), page=1) }}">{{sc.get_name()}}</a>
-        {% endfor %}
-        </div>
-
-        {% endif %}
-    </div>
-    <div class="col-md-9">
         <h1>{{category.get_name()}}</h1>
 
-        <div class="row">
-            <div class="col-md-8">
-                {% if current_page == 1 and not software %}
-                <div class="alert alert-dark" role="alert">
-                  No software was found in this section!
-                </div>
-                {% endif %}
 
-                <div class="list-group">
-                    {% for sw in software %}
-                    <a class="list-group-item" href="{{ url_for('software.details', cid=sw.cid) }}">
-                        {% if sw.icon_name %}
-                        <img class="rounded float-left mx-auto d-block pr-1" src="{{ config.APPSTREAM_MEDIA_URL + '/' + sw.gcid + '/icons/64x64/' + sw.icon_name }}" alt="Icon">
-                        {% else %}
-                        <img class="rounded float-left mx-auto d-block pr-1" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PGRlZnMvPjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjEzLjQ2MDkzNzUiIHk9IjMyIiBzdHlsZT0iZmlsbDojQUFBQUFBO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1mYW1pbHk6QXJpYWwsIEhlbHZldGljYSwgT3BlbiBTYW5zLCBzYW5zLXNlcmlmLCBtb25vc3BhY2U7Zm9udC1zaXplOjEwcHQ7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+NjR4NjQ8L3RleHQ+PC9nPjwvc3ZnPg==" alt="Icon">
-                        {% endif %}
+        {% if category.has_children() %}
+        <div class="columns is-multiline is-mobile grid">
+            {% for sc in category.get_children() %}
+            <div class="column is-narrow">
 
-                        <h4 class="list-group-item-heading">{{sw.name}}</h4>
-                        {{sw.summary}}
-                    </a>
-                    {% endfor %}
-                </div>
+                <a class="button" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=sc.get_id(), page=1) }}">{{sc.get_name()}}</a>
             </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+
+
+        {% if current_page == 1 and not software %}
+        <h2>
+          No software was found in this section!
+        </h2>
+        {% endif %}
+
+        <div class="columns is-multiline is-mobile grid">
+
+            {% for sw in software %}
+            <div class="column is-one-fifth-desktop is-half-mobile">
+                <a class="list-group-item" href="{{ url_for('software.details', cid=sw.cid) }}">
+                <div class="box app-item is-horizontal-center">
+
+                    <p>
+                        <figure class="image has-image-centered is-64x64">
+                        {% if sw.icon_name %}
+                            <img src="{{ config.APPSTREAM_MEDIA_URL + '/' + sw.gcid + '/icons/64x64/' + sw.icon_name }}" alt="Icon">
+                        {% else %}
+                            <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PGRlZnMvPjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjEzLjQ2MDkzNzUiIHk9IjMyIiBzdHlsZT0iZmlsbDojQUFBQUFBO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1mYW1pbHk6QXJpYWwsIEhlbHZldGljYSwgT3BlbiBTYW5zLCBzYW5zLXNlcmlmLCBtb25vc3BhY2U7Zm9udC1zaXplOjEwcHQ7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+NjR4NjQ8L3RleHQ+PC9nPjwvc3ZnPg==" alt="Icon">
+                        {% endif %}
+                        </figure>
+                    <p>
+
+                    <p class="has-text-centered is-size-6 is-size-7-mobile app-name">
+                        {{sw.name}}
+                    </p>
+                    <p class="has-text-centered is-size-6 is-size-7-mobile badges">
+                        {% if sw.is_free %}
+                        <i class="fas fa-heart badge" title="Respects Freedom"></i>&nbsp;
+                        {% endif %}
+                        <!--
+                        <i class="fas fa-shield-alt badge" title="Verifiable"></i>&nbsp;
+                        <i class="fas fa-mobile badge" title="Mobile friendly"></i>&nbsp;
+                        -->
+                    </p>
+                </div>
+                </a>
+            </div>
+            {% endfor %}
         </div>
 
-        <br/>
-        <nav aria-label="Page navigation">
-            <ul class="pagination pagination-sm flex-wrap">
-                <li class="page-item {{'disabled' if current_page <= 1 }}">
-                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=current_page-1) if current_page > 1 else '#'}}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-                {% for i in range(1, page_count + 1) %}
-                <li class="page-item {{'active' if i == current_page }}">
-                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=i) }}">{{i}}</a>
+    {% if page_count > 1 %}
+    <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+        <a class="pagination-previous" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=current_page-1) if current_page > 1 else '#'}}">Previous</a>
+        <a class="pagination-next" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=current_page+1) if current_page < page_count else '#'}}">Next page</a>
+
+        <ul class="pagination-list">
+
+            <li>
+                <a class="pagination-link {{'is-current' if 1 == current_page }}" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=1) }}">1</a>
             </li>
-                {% endfor %}
 
-                <li class="page-item {{'disabled' if current_page >= page_count }}">
-                    <a class="page-link" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=current_page+1) if current_page < page_count else '#'}}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
+            {% if page_count > 7 and current_page > 3 %}
+            <li><span class="pagination-ellipsis">&hellip;</span></li>
+            {% endif %}
+
+            {% for i in range(2, page_count) %}
+                {% if page_count < 8 or i < current_page + 2 and i > current_page - 2 or current_page < 4 and i < 6 or current_page > page_count - 3 and i > page_count - 5 %}
+
+                <li>
+                    <a class="pagination-link {{'is-current' if i == current_page }}" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=i) }}">{{i}}</a>
                 </li>
-            </ul>
-        </nav>
 
-    </div>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_count > 7 and current_page < page_count - 2 %}
+            <li><span class="pagination-ellipsis">&hellip;</span></li>
+            {% endif %}
+
+
+            <li>
+                <a class="pagination-link {{'is-current' if page_count == current_page }}" href="{{ url_for('portal.category_view', cat_id=parent_category.get_id(), subcat_id=subcat_id, page=page_count) }}">{{page_count}}</a>
+            </li>
+
+        </ul>
+    </nav>
+    {% endif %}
+
 </div>
+
 
 {% endblock %}

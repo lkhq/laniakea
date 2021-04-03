@@ -3,45 +3,30 @@
 {% set page_title = 'Overview' %}
 
 {% block body_header %}
-<section class="jumbotron text-center">
-    <div class="container">
-        <h1 class="jumbotron-heading">{{ config.PROJECT }}</h1>
-        <p class="lead text-muted">
-        Want to find out which software is available in {{ config.OS_NAME }}? Use the search function to find particular software, or
-        browser the software catalog to find out which applications, software components and packages are available!
-        </p>
-        <p>
-        <a class="btn btn-primary my-2" href="{{ url_for('portal.categories_index') }}">Browse Software</a>
-        <a class="btn btn-secondary my-2" href="{{ url_for('portal.suites_index') }}">Browse Packages</a>
-        </p>
+<!-- Hero section -->
+<div class="hero">
+    <div class="columns is-desktop">
+        <div class="column-inner" style="height: 300px">
+            <h1>{{ config.PROJECT }} <span>Software</span></h1>
+
+            <p>Welcome to {{ config.PROJECT }} software search!</p>
+        </div>
+    </div>
+</div>
+
+<!-- Browse section -->
+<section class="section">
+    <div class="container search">
+        <div class="columns is-centered is-vcentered is-mobile">
+            <div class="column is-narrow has-text-centered">
+                <a class="button is-primary" href="{{ url_for('portal.categories_index') }}">Browse the catalog</a>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
 
 {% block body %}
 
-<!-- Page Content-->
-<h2 class="lead">Software Search</h2>
-<form class="form-inline" action="/search_sw" method="GET">
-<div class="form-group w-75">
-    <input class="form-control w-75" id="term" type="text" autofocus="" name="term" placeholder="Search software components...">
-    <div class="input-group-append">
-    <button class="btn btn-outline-secondary" type="submit">
-        <span class="fa fa-search fa-lg" aria-hidden="true"></span>
-    </button>
-    </div>
-</div>
-</form>
-<h2 class="lead mt-md-5">Package Search</h2>
-<form class="form-inline" action="/search_pkg" method="GET">
-<div class="form-group w-75">
-    <input class="form-control w-75" id="term" type="text" name="term" placeholder="Search packages...">
-    <div class="input-group-append">
-    <button class="btn btn-outline-secondary" type="submit">
-        <span class="fa fa-search fa-lg" aria-hidden="true"></span>
-    </button>
-    </div>
-</div>
-</form>
 
 {% endblock %}

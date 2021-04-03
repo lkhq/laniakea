@@ -6,10 +6,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="Find and install hundreds of free and respectful apps and games.">
         <title>{% block title %}{{ page_title }}{% endblock %} - {{ config.PROJECT }}</title>
-        
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/fa.css') }}"/>
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/bulma.css') }}"/>
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/pureos.css') }}"/>
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome/all.min.css') }}"/>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bulma.min.css') }}"/>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/laniakea.css') }}"/>
         {% block css %}{% endblock %}
 
     </head>
@@ -46,11 +46,11 @@
                                 <span class="icon is-left">
                                     <i class="fas fa-search"></i>
                                 </span>
-                            
+
                             </p>
                         </form>
                     </div>
-                    
+
                 </div>
             </div>
         </nav>
@@ -126,8 +126,6 @@
         </script>
 
 <script src="{{ url_for('static', filename='js/jquery/jquery.slim.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/popper/popper.min.js') }}"></script>
-<script src="{{ url_for('static', filename='bootstrap/bootstrap.min.js') }}"></script>
 {% block js %}{% endblock %}
 
     </body>

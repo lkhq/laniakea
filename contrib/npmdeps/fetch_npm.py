@@ -48,7 +48,9 @@ node_modules = [{'name': 'bulma',
                 {'name': 'jquery',
                  'files': ['dist/jquery.slim.min.js'],
                  'copy_to': [os.path.join(src_dir, 'web/static/js/jquery/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/')]
+                             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
+                             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
+                             os.path.join(src_dir, 'webswview/templates/pureos/static/js/jquery/')]
                  },
                 ]
 

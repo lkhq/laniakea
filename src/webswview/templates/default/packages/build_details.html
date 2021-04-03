@@ -10,10 +10,7 @@
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.index') }}">Portal</a>
-        </li>
-        <li class="breadcrumb-item">
-            Packages
+            <a href="{{ url_for('portal.suites_index') }}">Packages</a>
         </li>
         <li class="breadcrumb-item">
             <a href="{{ url_for('packages.src_package_details', suite_name=suite_name, name=spkg.name) }}">{{spkg.name}}</a>
@@ -42,7 +39,7 @@
 <b>Worker:</b> {{worker.name}}<br/>
 {% endif %}
 
-<b class="mt-2 mb-2">Status:</b>
+<b>Status:</b>
 {% if job.status == JobStatus.WAITING %}
   <span style="font-size: 20px; line-height: 1.5em;">
     <i class="fa fa-hourglass-start" aria-hidden="true"></i>
@@ -75,7 +72,8 @@
 <br/>
 
 {% if job.result != JobResult.UNKNOWN %}
-<h4 class="mt-2">Result</h4>
+&nbsp;<br/>
+<h3>Result</h3>
 <p>
 {% if job.result == JobResult.SUCCESS_PENDING %}
   <span style="font-size: 20px; line-height: 1.5em;">
@@ -99,8 +97,8 @@
 </p>
 {% endif %}
 
-
-<h4 class="mt-2">Details</h4>
+&nbsp;<br/>
+<h3>Details</h3>
 <p>
 <b>Repository:</b> {{spkg.repo.name}}<br/>
 <b>Suite:</b> {{suite_name}}<br/>
@@ -111,80 +109,83 @@
 </p>
 
 {% if dep_issues %}
-<h4 class="mt-2">Dependency Issues</h4>
+&nbsp;<br/>
+<h3>Dependency Issues</h3>
 
 {% for issue in dep_issues %}
     {% if issue.missing %}
-    <h5 class="mt-2">Missing dependencies ({{issue.package_name}} {{issue.package_version}})</h5>
-    <ul class="list-group list-group-flush">
-        {% for m in issue.missing %}
-          <li class="list-group-item pl-2">
-          <h5 class="list-group-item-heading">{{ link_for_bin_package_id(suite_name, m.unsat_dependency)|safe }}
-              <small class="text-muted"><i class="fas fa-microchip"></i> {{m.architecture}}</small>
-          </h5>
-          <span class="text-muted">
-          <p class="mb-1"><b>Required by:</b> {{m.package_name}}<br/>
-          {% if m.package_version %}<b>Version:</b> {{m.package_version}}<br/>{% endif %}
-          </span>
-        </li>
-        {% endfor %}
-    </ul>
+    <h5>Missing dependencies ({{issue.package_name}} {{issue.package_version}})</h5>
+
+    <div class="columns">
+        <div class="column">
+            {% for m in issue.missing %}
+            <div class="content border-box is-small">
+                <h5>{{ link_for_bin_package_id(suite_name, m.unsat_dependency)|safe }}
+                  <small><i class="fas fa-microchip"></i> {{m.architecture}}</small>
+                </h5>
+                <b>Required by:</b> {{m.package_name}}<br/>
+                {% if m.package_version %}<b>Version:</b> {{m.package_version}}<br/>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
 
     {% if issue.conflicts %}
-    <h5 class="mt-2">Conflicts in the dependency chain ({{issue.package_name}} {{issue.package_version}})</h5>
+    <h5>Conflicts in the dependency chain ({{issue.package_name}} {{issue.package_version}})</h5>
     {% for c in issue.conflicts %}
         <h5>{{c.pkg1.package_name}} vs. {{c.pkg2.package_name}}</h5>
-        <div class="card">
-        <div class="card-body">
+        <div class="container">
+            <div class="content">
 
-        <!-- Package 1-->
-        <h5>Package 1: {{c.pkg1.package_name}} {{c.pkg1.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg1.architecture}}</h5>
-        {% if c.pkg1.unsat_conflict %}
-        <p><b>Conflict:</b> {{c.pkg1.unsat_conflict}}</p>
-        {% endif %}
+                <!-- Package 1-->
+                <h5>Package 1: {{c.pkg1.package_name}} {{c.pkg1.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg1.architecture}}</h5>
+                {% if c.pkg1.unsat_conflict %}
+                <p><b>Conflict:</b> {{c.pkg1.unsat_conflict}}</p>
+                {% endif %}
 
-        <ul class="list-group list-group-flush">
-        {% for d in c.depchain1 %}
-            <li class="list-group-item pl-2">
-              <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
-              <p class="mb-1 text-secondary"><b>Depends:</b> {{d.depends}}</p>
-           </li>
-        {% endfor %}
-        </ul>
+                <ul>
+                {% for d in c.depchain1 %}
+                    <li>
+                      <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
+                      <p ><b>Depends:</b> {{d.depends}}</p>
+                   </li>
+                {% endfor %}
+                </ul>
 
-        <br/>
-        <!-- Package 2-->
-        <h5>Package 2: {{c.pkg2.package_name}} {{c.pkg2.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg2.architecture}}</h5>
-        {% if c.pkg2.unsat_conflict %}
-        <p><b>Conflict:</b> {{c.pkg2.unsat_conflict}}</p>
-        {% endif %}
+                <br/>
+                <!-- Package 2-->
+                <h5>Package 2: {{c.pkg2.package_name}} {{c.pkg2.package_version}} on <i class="fas fa-microchip"></i>{{c.pkg2.architecture}}</h5>
+                {% if c.pkg2.unsat_conflict %}
+                <p><b>Conflict:</b> {{c.pkg2.unsat_conflict}}</p>
+                {% endif %}
 
-        <ul class="list-group list-group-flush">
-        {% for d in c.depchain2 %}
-            <li class="list-group-item pl-2">
-              <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
-              <p class="mb-1 text-secondary"><b>Depends:</b> {{d.depends}}</p>
-           </li>
-        {% endfor %}
-        </ul>
-        </div>
+                <ul>
+                {% for d in c.depchain2 %}
+                    <li>
+                      <b>{{d.package_name}} {{d.package_version}}</b> <small><i class="fas fa-microchip"></i>{{d.architecture}}</small><br/>
+                      <p><b>Depends:</b> {{d.depends}}</p>
+                   </li>
+                {% endfor %}
+                </ul>
+            </div>
         </div>
     {% endfor %}
     {% endif %}
-    <div class="mt-2 mb-2 border-top"></div>
 
 {% endfor %}
 {% endif %}
 
 {% if log_url %}
-<p><a class="btn btn-info" href="{{log_url}}" role="button">View Full Log</a></p>
+&nbsp;<br/>
+<p><a class="button is-info" href="{{log_url}}" role="button">View Full Log</a></p>
 {% else %}
 
-<h4 class="mt-2">Log Excerpt</h4>
-<div class="row">
-  <div class="col-md-8">
-    <div class="card card-body bg-light">
+&nbsp;<br/>
+<h3>Log Excerpt</h3>
+<div class="columns">
+  <div class="column is-half">
+    <div class="container">
       <pre><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
     </div>
   </div>

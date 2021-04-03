@@ -3,20 +3,14 @@
 {% set page_title = 'Sections in ' + suite.name %}
 
 {% block body_header %}
-<h1 class="h2">Sections in {{suite.name}}</h1>
+
 {% endblock %}
 
 {% block breadcrumbs %}
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.index') }}">Portal</a>
-        </li>
-        <li class="breadcrumb-item">
-            Packages
-        </li>
-        <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.suites_index') }}">Suites</a>
+            <a href="{{ url_for('portal.suites_index') }}">Packages</a>
         </li>
         <li class="breadcrumb-item active" aria-current="page">
             {{suite.name}}
@@ -26,22 +20,36 @@
 {% endblock %}
 
 {% block body %}
-<div class="col-md-auto">
 
-    <div class="card-columns">
-    {% for section in sections %}
-
-        <div class="card">
-            <div class="card-body">
-              <a href="{{ url_for('portal.section_view', suite_name=suite.name, section_name=section.name, page=1) }}" class="card-link">
-                <h5 class="card-title">{{section.name}}</h5>
-                <h6 class="card-subtitle mb-2 text-muted">{{section.summary}}</h6>
-              </a>
-            </div>
-        </div>
-
-    {% endfor %}
+<div class="columns">
+    <div class="column">
+        <h1 class="h2">Sections in {{suite.name}}</h1>
     </div>
+    <div class="column is-one-quarter-desktop search">
+        <form class="form-inline" action="/search_pkg" method="GET">
+            <p class="control has-icons-left">
+                <input id="term" name="term" class="input is-rounded" type="text" placeholder="Find a package...">
+                <span class="icon is-left">
+                    <i class="fas fa-search"></i>
+                </span>
+
+            </p>
+        </form>
+    </div>
+
+</div>
+<div class="columns is-multiline grid">
+
+    {% for section in sections %}
+    <div class="column is-one-third">
+        <a href="{{ url_for('portal.section_view', suite_name=suite.name, section_name=section.name, page=1) }}" class="card-link">
+        <div class="container category-item">
+            <strong>{{section.name}}</strong><br/>
+            <span>{{section.summary}}</span>
+        </div>
+        </a>
+    </div>
+    {% endfor %}
 
 </div>
 
