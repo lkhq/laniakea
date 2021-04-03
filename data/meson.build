@@ -2,17 +2,19 @@
 current_build_dir = meson.current_build_dir()
 lk_data_dir = join_paths(get_option('datadir'), 'laniakea')
 
-lhsd_data = configuration_data()
-lhsd_data.set('LIGHTHOUSE_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/lighthouse/lighthouse.py')
+if get_option('lighthouse')
+    lhsd_data = configuration_data()
+    lhsd_data.set('LIGHTHOUSE_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/lighthouse/lighthouse.py')
 
-configure_file(input: 'laniakea-lighthouse.service.in',
-               output: 'laniakea-lighthouse.service',
-               configuration: lhsd_data)
+    configure_file(input: 'laniakea-lighthouse.service.in',
+                output: 'laniakea-lighthouse.service',
+                configuration: lhsd_data)
 
-install_data(current_build_dir + '/laniakea-lighthouse.service',
-             install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+    install_data(current_build_dir + '/laniakea-lighthouse.service',
+                install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+endif
 
-if (get_option('webgui'))
+if get_option('webgui')
     sd_data = configuration_data()
     sd_data.set('LKWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/web/')
     sd_data.set('LKSWWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/webswview/')
@@ -32,7 +34,7 @@ if (get_option('webgui'))
                  install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 endif
 
-if (get_option('mirk'))
+if get_option('mirk')
     mirk_data = configuration_data()
     mirk_data.set('MIRK_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/mirk/mirk.py')
 
