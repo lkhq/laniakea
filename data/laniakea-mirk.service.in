@@ -1,7 +1,7 @@
 [Unit]
 Description=Laniakea Matrix Bot
 After=syslog.target network.target
-ConditionPathExists=/etc/laniakea/mirk.json
+ConditionPathExists=/etc/laniakea/mirk.toml
 
 [Service]
 Restart=on-failure

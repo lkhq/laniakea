@@ -22,7 +22,8 @@ base = [
     'python-apt',
     'pyzmq',
     'requests',
-    'PyYAML',
+    'PyYAML>=5.3.1',
+    'toml',
     'firehose',
     'humanize',
     'marshmallow',
@@ -97,5 +98,6 @@ score = 'no'
 ignored-modules = [
     'alembic.op',
     'alembic.context',
-    'zmq'
+    'zmq',
+    'mautrix.types'
 ]

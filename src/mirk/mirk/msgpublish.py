@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2019-2020 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2019-2021 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -18,15 +18,15 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
-import zmq
 import json
+import zmq
+import zmq.asyncio
 import logging as log
 from fnmatch import fnmatch
 from laniakea.msgstream import create_event_listen_socket, verify_event_message, event_message_is_valid_and_signed
-from matrix_client.client import MatrixClient
-from matrix_client.api import MatrixRequestError
+
 from .config import MirkConfig
+from .matrix_client import MirkMatrixClient
 from .messages import message_templates, message_prestyle_event_data
 
 
@@ -92,7 +92,7 @@ class MatrixPublisher:
         from laniakea.localconfig import LocalConfig
         from laniakea.msgstream import keyfile_read_verify_key
 
-        self._zctx = zmq.Context()
+        self._zctx = zmq.asyncio.Context()
         self._lhsub_socket = create_event_listen_socket(self._zctx)
         self._mconf = MirkConfig()
         self._mconf.load()
@@ -104,6 +104,8 @@ class MatrixPublisher:
             signer_id, verify_key = keyfile_read_verify_key(keyfname)
             if signer_id and verify_key:
                 self._trusted_keys[signer_id] = verify_key
+
+        self._mclient = MirkMatrixClient(self._mconf)
 
     def _tag_data_to_html_message(self, tag, event):
         ''' Convert the JSON message into a nice HTML string for display. '''
@@ -129,10 +131,7 @@ class MatrixPublisher:
 
         return text
 
-    def _on_room_message(self, room, event):
-        pass
-
-    def _on_event_received(self, event):
+    async def _on_event_received(self, event):
         tag = event['tag']
         data = event['data']
 
@@ -163,63 +162,43 @@ class MatrixPublisher:
                 log.info('Unable to verify signature on event: {}'.format(str(event)))
                 return
 
-        self._rooms_publish_text(event, text)
+        await self._rooms_publish_text(event, text)
 
-    def _rooms_publish_text(self, event, text):
-        for room, settings in self._rooms.items():
+    async def _rooms_publish_text(self, event, text):
+        for room_id, settings in self._rooms.items():
             filter_rules = settings.filter_rules
             if not filter_rules:
                 # no filter rules means we emit everything
-                room.send_html(text)
+                await self._mclient.send_simple_html(room_id, text)
                 continue
 
             # check if we are allowed to send this message to the particular room,
             # and then send it
             if filter_rules_match_event(filter_rules, event):
-                room.send_html(text)
+                await self._mclient.send_simple_html(room_id, text)
 
-    def run(self):
-        client = MatrixClient(self._mconf.host)
+    def stop(self):
+        self._running = False
+        self._mclient.stop()
 
-        try:
-            log.debug('Logging into Matrix')
-            client.login_with_password(self._mconf.username, self._mconf.password)
-        except MatrixRequestError as e:
-            if e.code == 403:
-                log.error('Bad username or password: {}'.format(str(e)))
-                sys.exit(2)
-            else:
-                log.error('Could not log in - check the server details are correct: {}'.format(str(e)))
-                sys.exit(2)
-        except Exception as e:
-            log.error('Error while logging in: {}'.format(str(e)))
-            sys.exit(2)
+    async def run(self):
+        ''' Run Matrix Bot operations, forever. '''
 
-        log.debug('Joining rooms')
+        # log into matrix
+        await self._mclient.login()
+
+        # prepare room settings
         self._rooms = {}
         for room_id, rsdata in self._mconf.rooms.items():
-            try:
-                room = client.join_room(room_id)
-            except MatrixRequestError as e:
-                if e.code == 400:
-                    log.error('Room ID/Alias ("{}") in the wrong format. Can not join room: {}'.format(room_id, str(e)))
-                    sys.exit(2)
-                else:
-                    log.error('Could not find room "{}"'.format(room_id))
-                    sys.exit(2)
-
-            room.add_listener(self._on_room_message)
-
             settings = RoomSettings()
             settings.filter_rules = rsdata.get('Filter', [])
+            self._rooms[room_id] = settings
 
-            self._rooms[room] = settings
+        log.info('Ready to publish information')
+        self._running = True
 
-        log.info('Logged into Matrix, ready to publish information')
-        client.start_listener_thread()
-
-        while True:
-            mparts = self._lhsub_socket.recv_multipart()
+        while self._running:
+            mparts = await self._lhsub_socket.recv_multipart()
             if len(mparts) != 2:
                 log.info('Received message with odd length: %s', len(mparts))
             msg_b = mparts[1]
@@ -236,6 +215,7 @@ class MatrixPublisher:
             if not event_message_is_valid_and_signed(event):
                 # we currently just silently ignore invalid submissions, no need to spam
                 # the logs in case some bad actor flood server with spam
+                log.debug('Invalid message ignored.')
                 continue
 
-            self._on_event_received(event)
+            await self._on_event_received(event)

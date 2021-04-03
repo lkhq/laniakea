@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2019 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2019-2021 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -18,8 +18,9 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import asyncio
 from argparse import ArgumentParser
-from .matrix_pub import MatrixPublisher
+from .msgpublish import MatrixPublisher
 
 
 def run_matrix_bot(options):
@@ -27,8 +28,16 @@ def run_matrix_bot(options):
         from laniakea.logging import set_verbose
         set_verbose(True)
 
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     bot_pub = MatrixPublisher()
-    bot_pub.run()
+    try:
+        loop.run_until_complete(bot_pub.run())
+    finally:
+        bot_pub.stop()
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
 
 
 def check_print_version(options):
