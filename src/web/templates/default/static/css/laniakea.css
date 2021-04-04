@@ -94,10 +94,9 @@ nav.navbar {
 
 .card {
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.18);
-  margin-bottom: 2rem;
 }
 
-.card-header-title {
+.card-header-title-soft {
   color: #8F99A3;
   font-weight: 400;
 }
@@ -145,5 +144,5 @@ nav.navbar {
 
 .footer {
     background-color: whitesmoke;
-    padding: 3rem 1.5rem 6rem;
+    margin: 3rem 1.5rem 6rem;
 }

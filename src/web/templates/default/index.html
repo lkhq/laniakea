@@ -3,18 +3,98 @@
 {% set active_menu = 'overview' %}
 {% set page_title = 'Overview' %}
 
-{% block body_header %}
-<h1 class="h2">{{ config.PROJECT }}</h1>
-<div class="btn-toolbar mb-2 mb-md-0">
-    <div class="btn-group mr-2"></div>
-    <a href="{{ config.BUG_REPORT_URL }}" class="btn btn-sm btn-outline-secondary" role="button" aria-pressed="true">Report Bug</a>
-    <button class="btn btn-sm btn-outline-secondary">Software</button>
-</div>
-{% endblock %}
-
 {% block body %}
 
-<h3>Latest changes</h3>
-<p>Not implemented.</p>
+<div class="column is-10">
 
+<section class="is-info welcome is-small">
+    <div class="container">
+      <h1 class="title">Welcome!</h1>
+      <h2 class="subtitle">
+        These pages contain resources to help with development of {{ config.PROJECT }}.
+      </h2>
+    </div>
+</section>
+
+
+<section class="info-tiles">
+    <div class="tile is-ancestor has-text-centered">
+        <div class="tile is-parent">
+	    <article class="tile is-child box">
+                <p class="title">???</p>
+		<p class="subtitle">Packages</p>
+            </article>
+        </div>
+        <div class="tile is-parent">
+	    <article class="tile is-child box">
+              <p class="title">unknown</p>
+              <p class="subtitle">Development Suite</p>
+            </article>
+        </div>
+        <div class="tile is-parent">
+            <article class="tile is-child box">
+              <p class="title">unknown</p>
+              <p class="subtitle">Stable Suite</p>
+            </article>
+        </div>
+        <div class="tile is-parent">
+            <article class="tile is-child box">
+              <p class="title">??</p>
+              <p class="subtitle">Pending Jobs</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+
+<div class="columns">
+    <div class="column is-6">
+    <div class="card events-card">
+        <header class="card-header">
+            <p class="card-header-title-soft">
+                Last Events
+            </p>
+        </header>
+        <div class="card-table">
+            <div class="content">
+                <table class="table is-fullwidth is-striped">
+                    <tbody>
+                        <tr>
+                            <td width="5%"><i class="far fa-bell"></i></td>
+                            <td>Not yet implemented</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    </div>
+
+
+    <div class="column is-6">
+    <div class="card events-card">
+        <header class="card-header">
+            <p class="card-header-title">
+                Help Actions
+            </p>
+        </header>
+        <div class="card-table">
+            <div class="content">
+                <table class="table is-fullwidth is-striped">
+                    <tbody>
+                        <tr>
+                            <td width="5%"><i class="fas fa-external-link-alt"></i></td>
+                            <td>Report Bug</td>
+                            <td class="level-right"><a class="button is-small is-primary" href="{{ config.BUG_REPORT_URL }}">Go</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    </div>
+
+</div>
+
+</div>
 {% endblock %}
