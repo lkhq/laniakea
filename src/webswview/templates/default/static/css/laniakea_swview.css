@@ -51,7 +51,7 @@ img {
 
 h1 {
   font-size: 1.75rem;
-  font-weight: 500; }
+  font-weight: 700; }
   @media screen and (min-width: 860px) {
     h1 {
       font-size: 2.5rem; } }
@@ -74,7 +74,7 @@ h2 {
 
 h3 {
   font-size: 1.25rem;
-  font-weight: 500; }
+  font-weight: 700; }
 
 code {
   background-color: #e4e3e3;
@@ -128,7 +128,7 @@ code {
 
 .navbar-item-logotype {
   width: 180px;
-  font-weight: 800; }
+  font-weight: 700; }
   .navbar-item-logotype span {
     font-weight: 100; }
 
@@ -240,7 +240,7 @@ code {
     color: #3d6274;
     height: 48px;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 700;
     text-decoration: none;
     box-shadow: 1px 2px 6px rgba(0,0,0,.2),0 -2px 12px rgba(61,98,116,.1);
 }
@@ -266,7 +266,7 @@ code {
     background: radial-gradient(to top, #484e7e, #3d6274);
     padding: 10px 25px;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 700;
     text-decoration: none;
     -webkit-box-shadow: 1px 2px 6px rgba(0,0,0,0.2),0 -2px 12px rgba(61,98,116,0.1);
     box-shadow: 1px 2px 6px rgba(0,0,0,0.2),0 -2px 12px rgba(61,98,116,0.1);
