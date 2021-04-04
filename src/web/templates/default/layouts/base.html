@@ -1,165 +1,148 @@
-<!doctype html>
-<html lang="en">
-  <head>
+<!DOCTYPE html>
+<html>
+
+<head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ page_title }}{% endblock %} - {{ config.PROJECT }}</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bulma.min.css') }}"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome/fontawesome.min.css') }}"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome/all.min.css') }}"/>
-    <link href="{{ url_for('static', filename='css/laniakea.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/laniakea.css') }}"/>
     {% block css %}{% endblock %}
+</head>
 
-  </head>
-  <body>
-    <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
-  <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="{{ url_for('overview.index') }}">{{ config.PROJECT }}</a>
-  <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
-  <ul class="navbar-nav px-3">
-    <li class="nav-item text-nowrap">
-      <a class="nav-link" href="#">Sign out</a>
-    </li>
-  </ul>
-</nav>
+<body>
 
-<div class="container-fluid">
-  <div class="row">
-    <nav class="col-md-1 d-none d-md-block bg-light sidebar">
-    {% set active_menu = active_menu|default('overview') -%}
+    <nav class="navbar is-white">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item brand-text" href="{{ url_for('overview.index') }}">
+                {{ config.PROJECT }}
+                </a>
+                <div class="navbar-burger burger" data-target="navMenu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+            <div id="navMenu" class="navbar-menu">
+                <div class="navbar-start">
+                 <!-- top navbar not used at the moment -->
+                </div>
 
-      <div class="sidebar-sticky">
-        <ul class="nav flex-column">
-          <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == "overview" }}" href="{{ url_for('overview.index') }}">
-              <i class="fas fa-solar-panel"></i>
-              Overview
-            </a>
-          </li>
-        </ul>
-
-        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-muted">
-          <span>Package Archive</span>
-          <a class="d-flex align-items-center text-muted" href="#">
-            <i class="fas fa-pallet"></i>
-          </a>
-        </h6>
-        <ul class="nav flex-column mb-2">
-          <li class="nav-item">
-            <a class="nav-link">
-              <i class="fas fa-snowplow"></i>
-              Transitions
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == 'migrations' }}" href="{{ url_for('migrations.index') }}">
-              <i class="fas fa-route"></i>
-              Migrations
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == 'synchronization' }}" href="{{ url_for('synchronization.index') }}">
-              <i class="fas fa-exchange-alt"></i>
-              Synchronization
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == 'depcheck' }}" href="{{ url_for('depcheck.index') }}">
-              <i class="fas fa-puzzle-piece"></i>
-              Dependency Check
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link">
-              <i class="fas fa-seedling"></i>
-              Package Seeds
-            </a>
-          </li>
-        </ul>
-
-        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-muted">
-          <span>Building &amp; Deployment</span>
-          <a class="d-flex align-items-center text-muted" href="#">
-            <i class="fas fa-hard-hat"></i>
-          </a>
-        </h6>
-        <ul class="nav flex-column mb-2">
-          <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == 'osimages' }}" href="{{ url_for('osimages.index') }}">
-              <i class="fas fa-sd-card"></i>
-              Image Build
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == 'jobqueue' }}" href="{{ url_for('jobs.queue', page=1) }}">
-              <i class="fas fa-tasks"></i>
-              Job Queue
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {{'active' if active_menu == 'workers' }}" href="{{ url_for('jobs.workers') }}">
-              <i class="fas fa-server"></i>
-              Workers
-            </a>
-          </li>
-        </ul>
-
-      </div>
+            </div>
+        </div>
     </nav>
 
     {% block container %}
+    <div class="container">
+        <div class="columns">
+            <div class="column is-2">
+                <aside class="menu">
+                {% set active_menu = active_menu|default('overview') -%}
 
-    <main role="main" class="col-md-9 ml-sm-auto col-lg-11 px-4">
-
-      {% block breadcrumbs %}{% endblock %}
-      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-
-           {% block flash_message %}
-               {% with messages = get_flashed_messages(with_categories=True) %}
-                   {% if messages %}
-                       {% for category, msg in messages %}
-                           <div class="alert alert-{{ category }}">
-                               {{ msg|safe }}
-                           </div>
-                       {% endfor %}
-                    {% endif %}
-                {% endwith %}
-            {% endblock %}
-
-            {% block body_header %}{% endblock %}
-      </div>
-
-
-
-      {% block body %}{% endblock %}
-    </main>
-    {% endblock %}
-
-  </div>
-</div>
-
-<footer class="text-muted">
-            <div class="container">
-                <br/>
-                <br/>
-                <p class="float-right">
-                    <small>
-                        <a href="#">Back to top</a>
-                    </small>
+                <p class="menu-label">
+                    General
                 </p>
-                <p>
-                    <small>
-                        Powered by
-                        <a href="https://github.com/lkorigin/laniakea">laniakea-web</a>.
-                    </small>
+                <ul class="menu-list">
+                    <li><a class="{{'is-active' if active_menu == "overview" }}" href="{{ url_for('overview.index') }}">
+                       <i class="fas fa-solar-panel"></i>
+                       Overview
+                    </a></li>
+                </ul>
+
+                <p class="menu-label">
+                   Package Archive
                 </p>
+                <ul class="menu-list">
+                    <li><a><i class="fas fa-snowplow"></i> Transitions</a></li>
+
+                    <li><a class="{{'is-active' if active_menu == 'migrations' }}" href="{{ url_for('migrations.index') }}">
+                        <i class="fas fa-route"></i>
+                        Migrations
+                    </a></li>
+
+                    <li><a class="{{'is-active' if active_menu == 'synchronization' }}" href="{{ url_for('synchronization.index') }}">
+                        <i class="fas fa-exchange-alt"></i>
+                        Synchronization
+                    </a></li>
+
+                    <li><a class="{{'is-active' if active_menu == 'depcheck' }}" href="{{ url_for('depcheck.index') }}">
+                        <i class="fas fa-puzzle-piece"></i>
+                        Dependency Check
+                    </a></li>
+
+                    <li><a><i class="fas fa-seedling"></i> Package Seeds</a></li>
+                </ul>
+
+		<p class="menu-label">
+                   Building &amp; Delivery
+                </p>
+                <ul class="menu-list">
+                    <li><a class="{{'is-active' if active_menu == 'osimages' }}" href="{{ url_for('osimages.index') }}">
+                        <i class="fas fa-sd-card"></i>
+                        Disk Images
+                    </a></li>
+
+                    <li><a class="{{'is-active' if active_menu == 'jobqueue' }}" href="{{ url_for('jobs.queue', page=1) }}">
+                        <i class="fas fa-tasks"></i>
+                        Job Queue
+                    </a></li>
+
+                    <li><a class="{{'is-active' if active_menu == 'workers' }}" href="{{ url_for('jobs.workers') }}">
+                        <i class="fas fa-server"></i>
+                        Workers
+                    </a></li>
+                </ul>
+
+                </aside>
             </div>
+            <div class="column is-10">
+                <nav class="breadcrumb" aria-label="breadcrumbs">
+                    {% block breadcrumbs %}{% endblock %}
+                </nav>
+
+                {% block flash_message %}
+                   {% with messages = get_flashed_messages(with_categories=True) %}
+                       {% if messages %}
+                           {% for category, msg in messages %}
+                               <div class="alert alert-{{ category }}">
+                                   {{ msg|safe }}
+                               </div>
+                           {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                {% endblock %}
+
+                {% block body_header %}{% endblock %}
+
+                {% block body %}{% endblock %}
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="section-legal has-text-centered">
+            <p>
+                <small>
+                    <a href="#">Back to top</a>
+                </small>
+	    </p>
+            <p>
+                <small>
+                    Powered by
+                    <a href="https://github.com/lkhq/laniakea">laniakea-web</a>.
+                </small>
+            </p>
+        </div>
     </footer>
 
-<script src="{{ url_for('static', filename='js/jquery/jquery.slim.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/popper/popper.min.js') }}"></script>
-<script src="{{ url_for('static', filename='bootstrap/bootstrap.min.js') }}"></script>
-{% block js %}{% endblock %}
+    <script src="{{ url_for('static', filename='js/jquery/jquery.slim.min.js') }}"></script>
+    {% block js %}{% endblock %}
+</body>
 
- </body>
 </html>
