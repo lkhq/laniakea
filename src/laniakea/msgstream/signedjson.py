@@ -34,10 +34,10 @@
 
 from laniakea.utils import json_compact_dump, encode_base64, decode_base64
 from laniakea.msgstream.signing import SUPPORTED_ALGORITHMS
-from laniakea.logging import log
+from laniakea.logging import log as logging
 
 
-log = log.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 def sign_json(json_object, signature_name, signing_key):

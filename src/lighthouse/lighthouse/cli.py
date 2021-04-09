@@ -24,7 +24,7 @@ from argparse import ArgumentParser
 from multiprocessing import Process, Queue
 
 __mainfile = None
-server_processes = []
+server_processes: list[Process] = []
 
 
 def run_jobs_server(endpoint, pub_queue):

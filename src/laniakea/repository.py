@@ -18,7 +18,7 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from apt_pkg import TagFile, TagSection, sha256sum, version_compare
+from apt_pkg import TagFile, TagSection, sha256sum, version_compare  # type: ignore[attr-defined]
 from laniakea.utils import is_remote_url, download_file, split_strip
 from laniakea.utils.gpg import SignedFile
 from laniakea.localconfig import LocalConfig
@@ -100,7 +100,7 @@ class Repository:
     '''
 
     class InReleaseData:
-        files = []
+        files: list[ArchiveFile] = []
 
     def __init__(self, location, repo_name=None, trusted_keyrings: list[str] = None, entity=None):
 
@@ -127,7 +127,7 @@ class Repository:
         else:
             self._repo_entity = ArchiveRepository(self._name)
 
-        self._inrelease = {}  # dict of str->InReleaseData
+        self._inrelease: dict[str, Repository.InReleaseData] = {}
 
     @property
     def base_dir(self) -> str:

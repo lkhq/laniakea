@@ -20,7 +20,7 @@ from __future__ import annotations
 import os
 import lzma
 import shutil
-from typing import List
+from typing import Any
 from uuid import uuid4
 from apt_pkg import TagFile
 from sqlalchemy.orm import joinedload
@@ -49,7 +49,7 @@ class SpearsEngine:
         self._workspace = os.path.join(self._lconf.workspace, 'spears')
         os.makedirs(self._workspace, exist_ok=True)
 
-    def _get_source_suite_dists_dir(self, mi_workspace: str, source_suites: List[ArchiveSuite]):
+    def _get_source_suite_dists_dir(self, mi_workspace: str, source_suites: list[ArchiveSuite]):
         '''
         If our source suite is a single suite, we can just use the archive's vanilla dists/
         directory as source of package information for Britney.
@@ -71,7 +71,7 @@ class SpearsEngine:
 
     def _suites_from_migration_entry(self, session, mentry: SpearsMigrationEntry):
 
-        res = {'error': False, 'from': [], 'to': None}
+        res: dict[str, Any] = {'error': False, 'from': [], 'to': None}
 
         for suite_name in mentry.source_suites:
             maybe_suite = session.query(ArchiveSuite) \
@@ -97,13 +97,13 @@ class SpearsEngine:
 
         return res
 
-    def _get_migration_id(self, suites_from: List[ArchiveSuite], suite_to: ArchiveSuite) -> str:
+    def _get_migration_id(self, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite) -> str:
         return '{}-to-{}'.format('+'.join(sorted([s.name for s in suites_from])), suite_to.name)
 
-    def _get_migration_name(self, suites_from: List[ArchiveSuite], suite_to: ArchiveSuite) -> str:
+    def _get_migration_name(self, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite) -> str:
         return '{} -> {}'.format('+'.join(sorted([s.name for s in suites_from])), suite_to.name)
 
-    def _get_migrate_workspace(self, suites_from: List[ArchiveSuite], suite_to: ArchiveSuite) -> str:
+    def _get_migrate_workspace(self, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite) -> str:
         return os.path.join(self._workspace, self._get_migration_id(suites_from, suite_to))
 
     def _get_local_repo(self, session, repo_name='master'):
@@ -154,7 +154,7 @@ class SpearsEngine:
 
         return True
 
-    def _prepare_source_data(self, session, mi_wspace: str, suites_source: List[ArchiveSuite], suite_target: ArchiveSuite):
+    def _prepare_source_data(self, session, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite):
         '''
         If there is more than one source suite, we need to give Britney an amalgamation
         of the data of the two source suites.
@@ -254,7 +254,7 @@ class SpearsEngine:
             os.remove(target_release_file)
         shutil.copyfile(release_file, target_release_file)
 
-    def _create_faux_packages(self, session, mi_wspace: str, suites_source: List[ArchiveSuite], suite_target: ArchiveSuite):
+    def _create_faux_packages(self, session, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite):
         '''
         If we have a partial source and target suite, we need to let Britney know about the
         parent packages somehow.
@@ -316,7 +316,7 @@ class SpearsEngine:
 
                     log.debug('Reading data for faux packages list: {}'.format(pfile))
 
-                    with TagFile(pfile) as tf:
+                    with TagFile(pfile) as tf:  # type: ignore[attr-defined]
                         for e in tf:
                             pkgname = e['Package']
                             pkgversion = e['Version']
@@ -385,7 +385,7 @@ class SpearsEngine:
         with open(dates_policy_file, 'w') as f:
             f.write('\n')
 
-    def _setup_various(self, mi_wspace: str, suites_source: List[ArchiveSuite], suite_target: ArchiveSuite):
+    def _setup_various(self, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite):
         # set up some random files which we do not use at all currently
         for suite in suites_source:
             rcbugs_policy_file_u = os.path.join(mi_wspace, 'state', 'rc-bugs-{}'.format(suite.name))
@@ -441,7 +441,7 @@ class SpearsEngine:
 
         return processed_result
 
-    def _retrieve_excuses(self, session, mi_wspace: str, suites_from: List[ArchiveSuite], suite_to: ArchiveSuite):
+    def _retrieve_excuses(self, session, mi_wspace: str, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite):
 
         excuses_yaml = os.path.join(mi_wspace, 'output', 'target', 'excuses.yaml')
         log_file = os.path.join(mi_wspace, 'output', 'target', 'output.txt')
@@ -488,7 +488,7 @@ class SpearsEngine:
 
         return excuses
 
-    def _run_migration_internal(self, session, suites_from: List[ArchiveSuite], suite_to: ArchiveSuite):
+    def _run_migration_internal(self, session, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite):
 
         mi_wspace = self._get_migrate_workspace(suites_from, suite_to)
         britney_conf = os.path.join(mi_wspace, 'britney.conf')

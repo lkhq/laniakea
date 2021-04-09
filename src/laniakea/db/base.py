@@ -23,6 +23,7 @@ from sqlalchemy.types import UserDefinedType
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from contextlib import contextmanager
+from typing import Any
 from ..localconfig import LocalConfig
 from ..utils import cd
 
@@ -36,7 +37,7 @@ __all__ = ['Base',
            'print_query']
 
 
-Base = declarative_base()
+Base: Any = declarative_base()
 
 
 # Patch in support for the debversion field type so that it works during

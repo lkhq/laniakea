@@ -19,6 +19,7 @@ from sqlalchemy import Column, Text, String, Integer, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 from uuid import uuid4
 from datetime import datetime
+from typing import Any
 from .base import Base, UUID, DebVersion
 
 
@@ -70,8 +71,8 @@ class SpearsOldBinaries:
     List of old binaries of a specific version that a package has left behind.
     '''
 
-    pkg_version = ''
-    binaries = []
+    pkg_version: str = ''
+    binaries: list[Any] = []
 
 
 class SpearsExcuse(Base):

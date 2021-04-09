@@ -22,6 +22,7 @@ import json
 import zmq
 import zmq.asyncio
 import logging as log
+from typing import Any
 from fnmatch import fnmatch
 from laniakea.msgstream import create_event_listen_socket, verify_event_message, event_message_is_valid_and_signed
 
@@ -31,7 +32,7 @@ from .messages import message_templates, message_prestyle_event_data
 
 
 class RoomSettings:
-    filter_rules = []
+    filter_rules: list[dict[str, Any]] = []
 
 
 def filter_entry_matches(fentry, data):

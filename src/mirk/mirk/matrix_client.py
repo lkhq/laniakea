@@ -35,7 +35,7 @@ class MirkMatrixClient:
             self._mconf = MirkConfig()
             self._mconf.load()
 
-        self._joined_rooms = []
+        self._joined_rooms: list[str] = []
         self._client = MatrixClient(mxid=self._mconf.username,
                                     base_url=self._mconf.host)
         self._client.add_event_handler(EventType.ROOM_MEMBER, self._handle_invite)

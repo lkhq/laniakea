@@ -28,8 +28,8 @@ class BritneyConfig:
 
     def __init__(self, britney_dir: str):
 
-        self._contents = list()
-        self._hint_contents = list()
+        self._contents: list[str] = []
+        self._hint_contents: list[str] = []
 
         self._paths_set = False
         self._components_set = False
@@ -134,8 +134,8 @@ class BritneyConfig:
         # ensure all priorities have a value
         for prio, days in delays.copy().items():
             delays.pop(prio)
-            prio = int(prio)
-            delays[VersionPriority(prio)] = int(days)
+            prio_i = int(prio)
+            delays[VersionPriority(prio_i)] = int(days)
         for prio in VersionPriority:
             if prio not in delays:
                 delays[prio] = 0

@@ -19,6 +19,7 @@
 
 import os
 import toml
+from typing import Any
 from laniakea import get_config_file
 
 
@@ -30,7 +31,7 @@ class MirkConfig():
     host = None
     username = None
     password = None
-    rooms = []
+    rooms: dict[str, dict[str, Any]] = {}
 
     def __init__(self):
         self._loaded = False

@@ -48,7 +48,7 @@ class SyncEngine:
         self._target_suite_name = target_suite_name
         self._source_suite_name = source_suite_name
         self._distro_tag = config_get_distro_tag()
-        self._synced_source_pkgs = []
+        self._synced_source_pkgs: list[SourcePackage] = []
 
         with session_scope() as session:
             sync_source = session.query(SynchrotronSource) \

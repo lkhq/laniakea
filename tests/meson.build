@@ -31,6 +31,18 @@ if get_option('linting')
         suite: 'linters',
         timeout: 180,
     )
+
+    mypy_exe = find_program('mypy')
+    test('mypy',
+        py,
+        args: [mypy_exe.path(),
+               join_paths(source_root, 'src'),
+               '--exclude', 'src\/(web|webswview)\/(manage|wsgi)\.py$'
+               ],
+        workdir: source_root,
+        suite: 'linters',
+        timeout: 180,
+    )
 endif
 
 py_exe = find_program('python3')

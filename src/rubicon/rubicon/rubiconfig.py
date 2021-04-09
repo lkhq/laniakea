@@ -31,7 +31,7 @@ class RubiConfig():
 
     isotope_root_dir = None
 
-    trusted_gpg_keyrings = []
+    trusted_gpg_keyrings: list[str] = []
 
     def __init__(self, local_config=None):
         if not local_config:

@@ -67,13 +67,13 @@ class LocalConfig:
         Configuration for a Lighthouse server and/or client.
         The configuration is loaded from a :LocalConfig.
         '''
-        endpoints_jobs = []
-        endpoints_submit = []
-        endpoints_publish = []
+        endpoints_jobs: list[str] = []
+        endpoints_submit: list[str] = []
+        endpoints_publish: list[str] = []
 
-        servers_jobs = []
-        servers_submit = []
-        servers_publish = []
+        servers_jobs: list[str] = []
+        servers_submit: list[str] = []
+        servers_publish: list[str] = []
 
     instance = None
 
