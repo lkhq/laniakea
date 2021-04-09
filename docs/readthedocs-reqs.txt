@@ -9,6 +9,7 @@ psycopg2
 python-debian
 pyzmq
 requests
+toml
 tornado
 Flask
 Flask-Caching

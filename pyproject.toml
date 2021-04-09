@@ -46,6 +46,7 @@ matrix = [
 tests = [
     'pytest',
     'pytest-flask',
+    'mypy',
     'flake8',
     'pylint',
     'pylint-flask',

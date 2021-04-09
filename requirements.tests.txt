@@ -1,4 +1,5 @@
 flake8
+mypy
 pylint
 pylint-flask
 pylint-sqlalchemy
