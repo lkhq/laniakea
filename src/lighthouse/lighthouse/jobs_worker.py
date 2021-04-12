@@ -191,7 +191,7 @@ class JobWorker:
             jdata['suite'] = recipe.suite
             jdata['environment'] = recipe.environment
             jdata['style'] = recipe.style
-            jdata['architecture'] = job.data.get('architecture', job.architecture)
+            jdata['architecture'] = job.data.get('architecture', job.architecture) if job.data else job.architecture
 
         info['data'] = jdata
         return info
