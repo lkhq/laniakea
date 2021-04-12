@@ -38,10 +38,11 @@ def handle_isotope_upload(session, success, conf, dud, job, event_emitter):
 
     result_move_to = recipe.result_move_to
 
-    event_data = {'kind': str(recipe.kind),
+    event_data = {'format': str(recipe.format),
                   'distribution': recipe.distribution,
                   'suite': recipe.suite,
-                  'flavor': recipe.flavor,
+                  'environment': recipe.environment,
+                  'style': recipe.style,
                   'architecture': job.architecture,
                   'job_id': str(job.uuid)}
 

@@ -159,11 +159,13 @@ templates_isotope = \
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-failed':
-     ('A <code>{kind}</code> image for {distribution} ' + red('failed') + ' to build for <b>{suite}</b>, flavor <b>{flavor}</b> on {architecture}. '
+     ('A <code>{format}</code> image for {distribution} ' + red('failed') + ' to build for <b>{suite}</b>, environment '
+      '<b>{environment}</b>/{style} on {architecture}. '
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-success':
-     ('A <code>{kind}</code> image for {distribution} was built ' + green('successfully') + ' for <b>{suite}</b>, flavor <b>{flavor}</b> on {architecture}. '
+     ('A <code>{format}</code> image for {distribution} was built ' + green('successfully') + ' for <b>{suite}</b>, '
+      'environment <b>{environment}</b>/{style} on {architecture}. '
       'The image has been ' + green('published') + ' for download. | <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>')
 
      }
