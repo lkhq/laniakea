@@ -51,6 +51,9 @@ def add_image_recipe(options):
         recipe.git_url = input_str('Git repository URL containing the image build configuration')
         recipe.result_move_to = input_str('Place to move the build result to (placeholders like %{DATE} are allowed)')
 
+        # type-prefix recipe name
+        recipe.name = '{}:{}'.format(format_str, recipe.name)
+
         # add recipe to the database
         session.add(recipe)
         session.commit()

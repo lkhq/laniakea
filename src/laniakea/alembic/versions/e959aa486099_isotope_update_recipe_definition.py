@@ -19,6 +19,8 @@ depends_on = None
 
 
 def upgrade():
+    postgresql.ENUM('UNKNOWN', 'ISO', 'IMG', name='imageformat', create_type=True).create(op.get_bind())
+
     op.add_column('image_build_recipes', sa.Column('create_latest_symlink', sa.Boolean(), nullable=True))
     op.add_column('image_build_recipes', sa.Column('environment', sa.Text(), nullable=False))
     op.add_column('image_build_recipes', sa.Column('format', sa.Enum('UNKNOWN', 'ISO', 'IMG', name='imageformat'), nullable=True))
