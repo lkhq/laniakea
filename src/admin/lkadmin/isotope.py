@@ -16,7 +16,8 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-from laniakea.db import session_scope, ImageBuildRecipe, ImageKind, LkModule, Job, JobKind
+from typing import Optional
+from laniakea.db import session_scope, ImageBuildRecipe, ImageFormat, LkModule, Job, JobKind
 from .utils import print_header, print_done, print_note, input_str, input_list
 from laniakea.msgstream import EventEmitter
 
@@ -30,25 +31,25 @@ def add_image_recipe(options):
 
         recipe.distribution = input_str('Name of the distribution to build the image for')
         recipe.suite = input_str('Name of the suite to build the image for')
-        recipe.flavor = input_str('Flavor to build')
+        recipe.environment = input_str('Environment of the image (e.g. GNOME, Plasma, server, ...)')
+        recipe.style = input_str('Style of this OS image (e.g. "oem", "live", ...)')
         recipe.architectures = input_list('List of architectures to build for')
+        recipe.host_architecture = input_str(('Architecture of the host that is allowed to build images '
+                                              '(put "any" to allow any host)'))
 
         while True:
-            kind_str = input_str('Type of image that we are building (iso/img)').lower()
-            if kind_str == 'iso':
-                recipe.kind = ImageKind.ISO
+            format_str = input_str('Type of image that we are building (iso/img)').lower()
+            if format_str == 'iso':
+                recipe.format = ImageFormat.ISO
                 break
-            if kind_str == 'img':
-                recipe.kind = ImageKind.IMG
+            if format_str == 'img':
+                recipe.format = ImageFormat.IMG
                 break
-            print_note('The selected image kind is unknown.')
+            print_note('The selected image format is unknown.')
 
+        recipe.name = input_str('Unique name for this recipe (format will be automatically prefixed)').lower()
         recipe.git_url = input_str('Git repository URL containing the image build configuration')
-
         recipe.result_move_to = input_str('Place to move the build result to (placeholders like %{DATE} are allowed)')
-
-        # ensure we have a name
-        recipe.regenerate_name()
 
         # add recipe to the database
         session.add(recipe)
@@ -57,11 +58,12 @@ def add_image_recipe(options):
         # announce the event
         emitter = EventEmitter(LkModule.ADMINCLI)
         ev_data = {'name': recipe.name,
-                   'kind': kind_str,
+                   'format': format_str,
                    'architectures': recipe.architectures,
                    'distribution': recipe.distribution,
                    'suite': recipe.suite,
-                   'flavor': recipe.flavor}
+                   'environment': recipe.environment,
+                   'style': recipe.style}
         emitter.submit_event_for_mod(LkModule.ISOTOPE,
                                      'recipe-created',
                                      ev_data)
@@ -73,7 +75,8 @@ def trigger_image_build(options):
     recipe_name = options.trigger_build
 
     with session_scope() as session:
-        recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.name == recipe_name).one_or_none()
+        recipe: Optional[ImageBuildRecipe] = session.query(ImageBuildRecipe) \
+                                                    .filter(ImageBuildRecipe.name == recipe_name).one_or_none()
 
         if not recipe:
             print_note('Recipe with name "{}" was not found!'.format(recipe_name))
@@ -87,7 +90,10 @@ def trigger_image_build(options):
             job.module = LkModule.ISOTOPE
             job.kind = JobKind.OS_IMAGE_BUILD
             job.trigger = recipe.uuid
-            job.architecture = arch
+            job.architecture = recipe.host_architecture
+            if job.architecture != arch:
+                job.data = {'architecture': arch}
+
             session.add(job)
             session.commit()  # to generate an uuid for this job to announce
 
@@ -96,10 +102,11 @@ def trigger_image_build(options):
             # announce the event
             ev_data = {'name': recipe.name,
                        'architecture': arch,
-                       'kind': str(recipe.kind),
+                       'format': str(recipe.format),
                        'distribution': recipe.distribution,
                        'suite': recipe.suite,
-                       'flavor': recipe.flavor,
+                       'environment': recipe.environment,
+                       'style': recipe.style,
                        'job_id': str(job.uuid)}
             emitter.submit_event_for_mod(LkModule.ISOTOPE,
                                          'build-job-added',

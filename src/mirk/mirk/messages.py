@@ -150,10 +150,12 @@ templates_rubicon = \
 
 templates_isotope = \
     {'_lk.isotope.recipe-created':
-     'Created new <code>{kind}</code> image build recipe <code>{name}</code> for {distribution} <b>{suite}</b> of flavor <b>{flavor}</b> on {architectures}',
+     ('Created new <code>{format}</code> image build recipe <code>{name}</code> for {distribution} <b>{suite}</b>, '
+      '<b>{environment}</b> environment and style <b>{style}</b> on {architectures}'),
 
      '_lk.isotope.build-job-added':
-     ('Created <code>{kind}</code> image build job on {architecture} for {distribution} <b>{suite}</b> of flavor <b>{flavor}</b>. '
+     ('Created <code>{format}</code> image build job on {architecture} for {distribution} <b>{suite}</b> using the '
+      '<b>{environment}</b> environment and style <b>{style}</b>. '
       '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'),
 
      '_lk.isotope.image-build-failed':

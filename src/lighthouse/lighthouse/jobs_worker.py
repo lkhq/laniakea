@@ -20,6 +20,7 @@
 import uuid
 import logging as log
 from datetime import datetime
+from typing import Optional
 from laniakea import LocalConfig, LkModule
 from laniakea.db import session_scope, config_get_value, Job, JobStatus, JobKind, JobResult, \
     SparkWorker, SourcePackage, ArchiveSuite, ImageBuildRecipe
@@ -174,7 +175,8 @@ class JobWorker:
                 # This not an error the client needs to know about
                 return None
         elif job_kind == JobKind.OS_IMAGE_BUILD:
-            recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid == trigger_uuid).one_or_none()
+            recipe: Optional[ImageBuildRecipe] = session.query(ImageBuildRecipe) \
+                                                        .filter(ImageBuildRecipe.uuid == trigger_uuid).one_or_none()
             if not recipe:
                 job.status = JobStatus.TERMINATED
                 job.latest_log_excerpt = 'We were unable to find the image build recipe for this job. The job has been terminated.'
@@ -183,11 +185,13 @@ class JobWorker:
                 # This not an error the client needs to know about
                 return None
 
-            jdata['image_kind'] = str(recipe.kind)
+            jdata['image_format'] = str(recipe.format)
             jdata['git_url'] = recipe.git_url
             jdata['distribution'] = recipe.distribution
             jdata['suite'] = recipe.suite
-            jdata['flavor'] = recipe.flavor
+            jdata['environment'] = recipe.environment
+            jdata['style'] = recipe.style
+            jdata['architecture'] = job.data.get('architecture', job.architecture)
 
         info['data'] = jdata
         return info

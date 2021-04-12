@@ -18,7 +18,7 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 from flask import Blueprint, render_template
-from laniakea.db import session_scope, ImageBuildRecipe, ImageKind, Job, JobResult
+from laniakea.db import session_scope, ImageBuildRecipe, ImageFormat, Job, JobResult
 from ..utils import humanized_timediff
 
 osimages = Blueprint('osimages',
@@ -43,6 +43,6 @@ def index():
                                session=session,
                                last_jobs_for_recipe=last_jobs_for_recipe,
                                humanized_timediff=humanized_timediff,
-                               ImageKind=ImageKind,
+                               ImageFormat=ImageFormat,
                                JobResult=JobResult,
                                recipes=recipes)
