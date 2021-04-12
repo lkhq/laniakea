@@ -64,12 +64,12 @@ class MirkMatrixClient:
     async def send_simple_text(self, room_id: str, text: str):
         ''' Publish a simple text message in the selected room. '''
         await self._client.send_message(room_id=room_id,
-                                        content=TextMessageEventContent(MessageType.TEXT, text))
+                                        content=TextMessageEventContent(msgtype=MessageType.TEXT, body=text))
 
     async def send_simple_html(self, room_id: str, html: str):
         ''' Publish a simple HTML message in the selected room. '''
         from mautrix.types import Format
-        content = TextMessageEventContent(MessageType.TEXT)
+        content = TextMessageEventContent(msgtype=MessageType.TEXT)
         content.format = Format.HTML
         content.formatted_body = html
         await self._client.send_message(room_id=room_id, content=content)
