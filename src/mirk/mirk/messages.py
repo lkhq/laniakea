@@ -184,7 +184,7 @@ def pretty_source_package_published(tag, data):
     if data['suites']:
         first_suite = data['suites'][0]
         tmpl = tmpl + (' | <a href="{url_webswview}/package/src/' + first_suite + '/{name}' + '">\N{CIRCLED INFORMATION SOURCE}</a>'
-                       ' <a href="{url_webview}/export/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>')
+                       ' <a href="{url_webview}/raw/changelogs/{component}/{name:1.1}/{name}/' + data['suites'][0] + '_changelog">\N{DOCUMENT}</a>')
 
     return tmpl.format(**data)
 
@@ -197,7 +197,7 @@ def pretty_binary_package_published(tag, data):
     if data['suites']:
         first_suite = data['suites'][0]
         tmpl = tmpl + (' | <a href="{url_webswview}/package/bin/' + first_suite + '/{name}' + '">\N{CIRCLED INFORMATION SOURCE}</a>'
-                       ' <a href="{url_webview}/export/changelogs/{component}/{source_name:1.1}/{source_name}/' + first_suite + '_changelog">\N{DOCUMENT}</a>')
+                       ' <a href="{url_webview}/raw/changelogs/{component}/{source_name:1.1}/{source_name}/' + first_suite + '_changelog">\N{DOCUMENT}</a>')
 
     return tmpl.format(**data)
 
