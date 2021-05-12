@@ -1,12 +1,15 @@
 Initial Setup
 =============
 
+If you're interested in running Laniakea in Docker, see (this
+document)[https://github.com/lkorigin/laniakea/blob/master/tests/ci/Dockerfile]
+
 Requirements
 ------------
 
-Laniakea requires a postgresql database, a D compiler, and the meson
-build tool to get up and running. If you don’t already have those
-packages installed, install them now;
+Laniakea requires a postgresql database, and the meson build tool to
+get up and running. If you don’t already have those packages
+installed, install them now;
 
 $ sudo apt install postgresql-11 postgresql-11-debversion meson ldc
 libarchive libcurl

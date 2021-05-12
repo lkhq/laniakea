@@ -34,7 +34,7 @@
 
     "Lighthouse": {
       # Endpoints at which a Lighthouse server should listen for job requests,
-      # event submissions and where it shoukd publish events.
+      # event submissions and where it should publish events.
       "endpoints": {
         "jobs": ["tcp://*:5570"],
         "submit": ["tcp://*:5571"],
