@@ -10,17 +10,21 @@
 <h1 class="h2">Dependency issues for {{'source' if ptype == 'source' else 'binary'}} packages in {{suite.name}} [{{arch_name}}]</h1>
 {% endblock %}
 
+{% block breadcrumbs %}
+
+{% endblock %}
+
 {% block body %}
 
-<ul class="nav nav-tabs">
-    <li class="nav-item">
-      <a class="nav-link {{'active' if ptype != 'source'}}" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='binary', arch_name=suite.primary_architecture.name, page=1) if ptype == 'source' else '#'}}">Binary Packages</a>
+<ul>
+    <li>
+      <a class="{{'is-active' if ptype != 'source'}}" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='binary', arch_name=suite.primary_architecture.name, page=1) if ptype == 'source' else '#'}}">Binary Packages</a>
     </li>
-    <li class="nav-item">
-      <a class="nav-link {{'active' if ptype == 'source'}}" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='source', arch_name=suite.primary_architecture.name, page=1) if ptype != 'source' else '#'}}">Source Packages</a>
+    <li>
+      <a class="{{'is-active' if ptype == 'source'}}" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='source', arch_name=suite.primary_architecture.name, page=1) if ptype != 'source' else '#'}}">Source Packages</a>
     </li>
 </ul>
-<br/>
+
 
 <div class="row">
     <div class="col-md-8">

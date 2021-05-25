@@ -5,62 +5,64 @@
 
 {% block body %}
 
-<div class="row">
-    <div class="col-md-8">
+<div class="columns is-mobile">
+    <div class="column is-8">
 
         {% if jobs_total == 0 %}
-        <div class="alert alert-success" role="alert">
-            <span class="fa fa-check" aria-hidden="true"></span> There are no pending jobs!
-        </div>
+        <article class="message is-success">
+            <div class="message-header">
+                <p><span class="fa fa-check" aria-hidden="true"></span> There are no pending jobs!</p>
+            </div>
+        </article>
         {% else %}
+
         <div class="list-group">
             {% for j in jobs %}
 
             {% if j.status == JobStatus.SCHEDULED %}
-              {% set item_style = 'list-group-item-info' %}
+              {% set item_style = 'has-background-info-light' %}
             {% elif j.status == JobStatus.RUNNING %}
-              {% set item_style = 'list-group-item-success' %}
+              {% set item_style = 'has-background-success-light' %}
             {% elif j.status == JobStatus.DEPWAIT %}
-              {% set item_style = 'list-group-item-dark' %}
+              {% set item_style = 'has-background-warning-light' %}
             {% elif j.status == JobStatus.STARVING %}
-              {% set item_style = 'list-group-item-danger' %}
+              {% set item_style = 'has-background-danger-light' %}
             {% endif %}
 
-            <a class="list-group-item {{item_style}}" href="{{ url_for('jobs.job', uuid=j.uuid) }}">
-                <h4 class="list-group-item-heading">{{title_for_job(session, j)}}</h4>
-                <p class="mb-1">
-                    <i class="fas fa-star-of-life"></i> {{humanized_timediff(j.time_created)}}
-                </p>
-                <p class="mb-1">
-                    <i class="fas fa-microchip"></i> {{j.architecture}}
-                </p>
-            </a>
+            <div class="card {{item_style}}">
+            <header class="card-header">
+                <div class="card-header-title has-text-weight-semibold">
+                    <a class="has-text-black" href="{{ url_for('jobs.job', uuid=j.uuid) }}">{{title_for_job(session, j)}}</a>
+
+                    <span class="tag is-rounded is-light"><i class="fas fa-microchip"></i>&nbsp;{{j.architecture}}</span>
+                    <span class="tag is-rounded is-light is-link"><i class="fas fa-star-of-life"></i>&nbsp;{{humanized_timediff(j.time_created)}}</span>
+                </div>
+            </header>
+            </div>
+
             {% endfor %}
         </div>
+
         {% endif %}
     </div>
 </div>
 
-<br/>
-<nav aria-label="Page navigation">
-    <ul class="pagination pagination-sm flex-wrap">
-        <li class="page-item {{'disabled' if current_page <= 1 }}">
-            <a class="page-link" href="{{ url_for('jobs.queue', page=current_page-1) if current_page > 1 else '#'}}" aria-label="Previous">
-                <span aria-hidden="true">&laquo;</span>
-            </a>
-        </li>
-        {% for i in range(1, page_count + 1) %}
-        <li class="page-item {{'active' if i == current_page }}">
-            <a class="page-link" href="{{ url_for('jobs.queue', page=i) }}">{{i}}</a>
-       </li>
-        {% endfor %}
+<nav class="pagination" role="navigation" aria-label="pagination">
+  <a class="pagination-previous" {{'disabled' if current_page <= 1 }}>
+    Previous
+  </a>
+  <a class="pagination-next" href="{{ url_for('jobs.queue', page=current_page+1) if current_page < page_count else '#'}}" {{'disabled' if current_page >= page_count }}>
+    Next page
+  </a>
 
-        <li class="page-item {{'disabled' if current_page >= page_count }}">
-            <a class="page-link" href="{{ url_for('jobs.queue', page=current_page+1) if current_page < page_count else '#'}}" aria-label="Next">
-                <span aria-hidden="true">&raquo;</span>
-            </a>
-        </li>
-    </ul>
+  <ul class="pagination-list">
+
+  {% for i in range(1, page_count + 1) %}
+    <li>
+      <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}" href="{{ url_for('jobs.queue', page=i) }}">{{i}}</a>
+    </li>
+  {% endfor %}
+  </ul>
 </nav>
 
 {% endblock %}
