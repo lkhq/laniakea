@@ -144,7 +144,9 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
 
         dcpt.gcid = cid_map.get(dcpt.cid)
         if not dcpt.gcid:
-            log.info('Found DEP-11 component without GCID in {}/{}: {}'.format(suite.name, component.name, cpt.get_id()))
+            log.warning('Found DEP-11 component without GCID in {}/{}: {}'.format(
+                suite.name, component.name, cpt.get_id()))
+            continue
 
         # create UUID for this component (based on GCID or XML data)
         dcpt.update_uuid()
