@@ -9,13 +9,13 @@
 
 {% block body %}
 <div class="columns is-multiline is-mobile">
-    <div class="column is-7">
+    <div class="column is-8">
 
     {% for recipe in recipes %}
     <div class="card">
         <header class="card-header">
             <p class="card-header-title">
-                <i class="fas {{ 'fa-compact-disc' if recipe.kind == ImageFormat.ISO else 'fa-sd-card' }}"></i>
+                <i class="fas {{ 'fa-compact-disc' if recipe.format == ImageFormat.ISO else 'fa-sd-card' }}"></i>
                 &nbsp;&nbsp;{{recipe.distribution}} {{recipe.suite}} {{recipe.environment}} ({{recipe.style}})
             </p>
         </header>
