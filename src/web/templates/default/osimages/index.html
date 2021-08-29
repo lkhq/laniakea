@@ -4,43 +4,49 @@
 {% set page_title = 'OS Image Recipes' %}
 
 {% block body_header %}
-<h1 class="h2">OS Image Recipes</h1>
+<h1 class="title">OS Image Recipes</h1>
 {% endblock %}
 
 {% block body %}
-<div class="row">
-    <div class="col-md-8">
+<div class="columns is-multiline is-mobile">
+    <div class="column is-7">
 
-{% for recipe in recipes %}
-<div class="card">
-    <div class="card-body">
-        <h3 class="card-title">
-          <i class="fas {{ 'fa-compact-disc' if recipe.kind == ImageFormat.ISO else 'fa-sd-card' }}" aria-hidden="true"></i>
-          {{recipe.distribution}} {{recipe.suite}} {{recipe.environment}} ({{recipe.style}})
-        </h3>
-        <p class="card-text">
-            <b>ID:</b> {{recipe.name}}<br/>
-            <b>Architectures:</b> {{' ,'.join(recipe.architectures)}}<br/>
-            <b>Host Architecture:</b> {{recipe.host_architecture}}<br/>
-            <b>Source:</b> {{recipe.git_url}}<br/>
-            <b>Last Jobs:</b><br/>
-            <div class="list-group">
-                {% for job in last_jobs_for_recipe(session, recipe) %}
-                {% if job.result == JobResult.SUCCESS %}
-                  {% set item_style = 'list-group-item-success' %}
-                {% elif job.result == JobResult.FAILED %}
-                  {% set item_style = 'list-group-item-danger' %}
-                {% endif %}
-                <a class="list-group-item {{item_style}}" href="{{ url_for('jobs.job', uuid=job.uuid) }}">
-	        [{{job.architecture}}] - {{humanized_timediff(job.time_created)}}
-                </a>
-                {% endfor %}
+    {% for recipe in recipes %}
+    <div class="card">
+        <header class="card-header">
+            <p class="card-header-title">
+                <i class="fas {{ 'fa-compact-disc' if recipe.kind == ImageFormat.ISO else 'fa-sd-card' }}"></i>
+                &nbsp;&nbsp;{{recipe.distribution}} {{recipe.suite}} {{recipe.environment}} ({{recipe.style}})
+            </p>
+        </header>
+        <div class="card-content">
+            <div class="content">
+                <b>ID:</b> {{recipe.name}}<br/>
+                <b>Architectures:</b> {{' ,'.join(recipe.architectures)}}<br/>
+                <b>Host Architecture:</b> {{recipe.host_architecture}}<br/>
+                <b>Source:</b> {{recipe.git_url}}<br/>
+                <b>Last Jobs:</b><br/>
+                <div class="list-group">
+                    {% for job in last_jobs_for_recipe(session, recipe) %}
+                    {% if job.result == JobResult.SUCCESS %}
+                      {% set item_style = 'has-background-success-light' %}
+                    {% elif job.result == JobResult.FAILURE %}
+                      {% set item_style = 'has-background-danger-light' %}
+                    {% endif %}
+                    <div class="card {{item_style}}">
+                    <header class="card-header">
+                        <div class="card-header-title has-text-weight-light">
+                            <a class="has-text-black" href="{{ url_for('jobs.job', uuid=job.uuid) }}">
+                            [{{job.architecture}}] - {{humanized_timediff(job.time_created)}}</a>
+                        </div>
+                    </header>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
-        </p>
+        </div>
     </div>
-</div>
-{% endfor %}
-
+    {% endfor %}
 
     </div>
 </div>
