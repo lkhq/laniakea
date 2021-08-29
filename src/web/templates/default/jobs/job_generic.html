@@ -4,95 +4,91 @@
 {% set page_title = 'Job: ' + job_title %}
 
 {% block body_header %}
-<h1 class="h2">{{job_title}}</h1>
+<h1 class="title">{{job_title}}</h1>
 {% endblock %}
 
 {% block body %}
+<div class="columns is-multiline is-mobile">
+    <div class="column is-12">
 
-<b>ID:</b> {{job.uuid}}<br/>
-<br/>
-<b>Created:</b> {{humanized_timediff(job.time_created)}}<br/>
-<b>Assigned:</b> {{humanized_timediff(job.time_assigned)}}<br/>
-{% if job.time_finished %}<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>{% endif %}
-{% if worker %}
-<b>Worker:</b> <a href="{{ url_for('jobs.workers') }}">{{worker.name}}</a><br/>
-{% endif %}
+    <b>ID:</b> {{job.uuid}}<br/>
+    <br/>
+    <b>Created:</b> {{humanized_timediff(job.time_created)}}<br/>
+    <b>Assigned:</b> {{humanized_timediff(job.time_assigned)}}<br/>
+    {% if job.time_finished %}<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>{% endif %}
+    {% if worker %}
+    <b>Worker:</b> <a href="{{ url_for('jobs.workers') }}">{{worker.name}}</a><br/>
+    {% endif %}
 
-<b class="mt-2 mb-2">Status:</b>
-{% if job.status == JobStatus.WAITING %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <i class="fa fa-hourglass-start" aria-hidden="true"></i>
-  </span> Waiting
-{% elif job.status == JobStatus.DEPWAIT %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <i class="fa fa-puzzle-piece" aria-hidden="true"></i>
-  </span> Waiting for dependency
-{% elif job.status == JobStatus.SCHEDULED %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <i class="fa fa-circle-notch fa-spin" aria-hidden="true"></i>
-  </span> Scheduled
-{% elif job.status == JobStatus.RUNNING %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
-  </span> Running
-{% elif job.status == JobStatus.DONE %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <i class="fa fa-check" aria-hidden="true"></i>
-  </span> Done
-{% elif job.status == JobStatus.STARVING %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <i class="fa fa-clock-o" aria-hidden="true"></i>
-  </span> Starving
-{% elif job.status == JobStatus.TERMINATED %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <i class="fa fa-skull" aria-hidden="true"></i>
-  </span> Terminated
-{% endif %}
-<br/>
+    <b class="mt-2 mb-2">Status:</b>
+    {% if job.status == JobStatus.WAITING %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <i class="fa fa-hourglass-start" aria-hidden="true"></i>
+    </span> Waiting
+    {% elif job.status == JobStatus.DEPWAIT %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <i class="fa fa-puzzle-piece" aria-hidden="true"></i>
+    </span> Waiting for dependency
+    {% elif job.status == JobStatus.SCHEDULED %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <i class="fa fa-circle-notch fa-spin" aria-hidden="true"></i>
+    </span> Scheduled
+    {% elif job.status == JobStatus.RUNNING %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
+    </span> Running
+    {% elif job.status == JobStatus.DONE %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <i class="fa fa-check" aria-hidden="true"></i>
+    </span> Done
+    {% elif job.status == JobStatus.STARVING %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <i class="fa fa-clock-o" aria-hidden="true"></i>
+    </span> Starving
+    {% elif job.status == JobStatus.TERMINATED %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <i class="fa fa-skull" aria-hidden="true"></i>
+    </span> Terminated
+    {% endif %}
 
-
-<br/>
-{% if job.result != JobResult.UNKNOWN %}
-<h4 class="mt-2">Result</h4>
-<p>
-{% if job.result == JobResult.SUCCESS_PENDING %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <font class="fa fa-check-circle" aria-hidden="true" color="green"></font>
-    <i class="fa fa-clock" aria-hidden="true"></i>
-  </span> Successful (pending)
-{% elif job.result == JobResult.FAILURE_PENDING %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
-    <i class="fa fa-clock" aria-hidden="true"></i>
-  </span> Failed (pending)
-{% elif job.result == JobResult.SUCCESS %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <font class="fa fa-check-circle" aria-hidden="true" color="green"></font>
-  </span> Success
-{% elif job.result == JobResult.FAILURE %}
-  <span style="font-size: 20px; line-height: 1.5em;">
-    <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
-  </span> Failed
-{% endif %}
-</p>
-{% endif %}
+    {% if job.result != JobResult.UNKNOWN %}
+    <h4 class="subtitle is-4" style="margin-bottom: 0.5rem;margin-top: 1.5rem;">Result</h4>
+    <p>
+    {% if job.result == JobResult.SUCCESS_PENDING %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <font class="fa fa-check-circle" aria-hidden="true" color="green"></font>
+        <i class="fa fa-clock" aria-hidden="true"></i>
+    </span> Successful (pending)
+    {% elif job.result == JobResult.FAILURE_PENDING %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
+        <i class="fa fa-clock" aria-hidden="true"></i>
+    </span> Failed (pending)
+    {% elif job.result == JobResult.SUCCESS %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <font class="fa fa-check-circle" aria-hidden="true" color="green"></font>
+    </span> Success
+    {% elif job.result == JobResult.FAILURE %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
+    </span> Failed
+    {% endif %}
+    </p>
+    {% endif %}
 
 
-{% block job_details %}{% endblock %}
+    {% block job_details %}{% endblock %}
 
-{% if log_url %}
-<p><a class="btn btn-info" href="{{log_url}}" role="button">View Full Log</a></p>
-
-{% else %}
-
-<h4 class="mt-2">Log Excerpt</h4>
-<div class="row">
-  <div class="col-md-8">
-    <div class="card card-body bg-light">
-      <pre><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
+    {% if log_url %}
+    <br/>
+    <p><a class="button is-info" href="{{log_url}}">View Full Log</a></p>
+    {% else %}
+    <h4 class="subtitle is-4" style="margin-bottom: 0.5rem;margin-top: 1.5rem;">Log Excerpt</h4>
+    <div class="box">
+      <pre style="padding: 0; background-color: initial;"><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
     </div>
-  </div>
-</div>
-{% endif %}
+    {% endif %}
 
+    </div>
+</div>
 {% endblock %}

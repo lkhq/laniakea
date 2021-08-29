@@ -2,13 +2,13 @@
 
 {% block job_details %}
 {% if not recipe %}
-<div class="alert alert-danger" role="alert">
+<div class="notification is-danger">
   Unable to find an image recipe for this job!
   The recipe might have been removed and is no longer available.
 </div>
 {% else %}
 
-<h4 class="mt-2">Details</h4>
+<h4 class="subtitle is-4" style="margin-bottom: 0.5rem;margin-top: 1.5rem;">Details</h4>
 <p>
 <b>Distribution:</b> {{recipe.distribution}}<br/>
 <b>Suite:</b> {{recipe.suite}}<br/>
