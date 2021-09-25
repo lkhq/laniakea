@@ -7,77 +7,95 @@
 {% endif %}
 
 {% block body_header %}
-<h1 class="h2">Dependency issues for {{'source' if ptype == 'source' else 'binary'}} packages in {{suite.name}} [{{arch_name}}]</h1>
+<h1 class="title">Dependency issues for {{'source' if ptype == 'source' else 'binary'}} packages in {{suite.name}} [{{arch_name}}]</h1>
 {% endblock %}
 
-{% block breadcrumbs %}
-
-{% endblock %}
 
 {% block body %}
 
-<ul>
-    <li>
-      <a class="{{'is-active' if ptype != 'source'}}" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='binary', arch_name=suite.primary_architecture.name, page=1) if ptype == 'source' else '#'}}">Binary Packages</a>
+<div class="tabs is-toggle">
+  <ul>
+    <li class="{{'is-active' if ptype != 'source'}}">
+        <a href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='binary', arch_name=suite.primary_architecture.name, page=1) if ptype == 'source' else '#'}}">
+            <span class="icon is-small"><i class="fas fa-cube" aria-hidden="true"></i></span>
+            <span>Binary Packages</span>
+        </a>
     </li>
-    <li>
-      <a class="{{'is-active' if ptype == 'source'}}" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='source', arch_name=suite.primary_architecture.name, page=1) if ptype != 'source' else '#'}}">Source Packages</a>
+    <li class="{{'is-active' if ptype == 'source'}}">
+        <a href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='source', arch_name=suite.primary_architecture.name, page=1) if ptype != 'source' else '#'}}">
+            <span class="icon is-small"><i class="fas fa-drafting-compass" aria-hidden="true"></i></span>
+            <span>Source Packages</span>
+        </a>
     </li>
-</ul>
-
-
-<div class="row">
-    <div class="col-md-8">
-        <div class="dropdown">
-            <button id="archSelectButton" class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Architecture
-            </button>
-            <div class="dropdown-menu" aria-labelledby="archSelectButton">
-                {% for arch in suite.architectures %}
-                <a class="dropdown-item" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch.name, page=1) }}">{{arch.name}}</a>
-                {% endfor %}
-            </div>
-        </div>
-        <br/>
-
-        <div class="list-group">
-        {% for issue in issues %}
-            <a class="list-group-item" href="{{ url_for('depcheck.issue_details', suite_name=suite.name, uuid=issue.uuid) }}">
-              <h4 class="list-group-item-heading">{{issue.package_name}} {{issue.package_version}}</h4>
-              <p class="mb-1 text-secondary"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</p>
-              {% for missing in issue.missing %}
-              <p class="mb-1"><i class="far fa-question-circle"></i> {{missing.package_name}} {{missing.package_version}}</p>
-              {% endfor %}
-              {% for conflict in issue.conflicts %}
-              <p class="mb-1"><i class="fas fa-fist-raised"></i></i> {{conflict.pkg1.package_name}} vs. {{conflict.pkg2.package_name}}</p>
-              {% endfor %}
-            </a>
-        {% endfor %}
-        </div>
-
-    </div>
+  </ul>
 </div>
 
-<br/>
-<nav aria-label="Page navigation">
-    <ul class="pagination pagination-sm flex-wrap">
-        <li class="page-item {{'disabled' if current_page <= 1 }}">
-            <a class="page-link" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch_name, page=current_page-1) if current_page > 1 else '#'}}" aria-label="Previous">
-                <span aria-hidden="true">&laquo;</span>
-            </a>
-        </li>
-        {% for i in range(1, page_count + 1) %}
-        <li class="page-item {{'active' if i == current_page }}">
-            <a class="page-link" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch_name, page=i) }}">{{i}}</a>
-       </li>
+
+<div class="columns is-mobile">
+    <div class="column is-8">
+
+        <div class="dropdown mb-3 is-hoverable">
+            <div class="dropdown-trigger">
+                <button class="button" aria-haspopup="true" aria-controls="archs-menu">
+                <span>Architecture</span>
+                <span class="icon is-small">
+                    <i class="fas fa-angle-down" aria-hidden="true"></i>
+                </span>
+                </button>
+            </div>
+            <div class="dropdown-menu" id="archs-menu" role="menu">
+                <div class="dropdown-content">
+                    {% for arch in suite.architectures %}
+                    <a class="dropdown-item" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch.name, page=1) }}">
+                        <i class="fas fa-microchip"></i> {{arch.name}}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% for issue in issues %}
+            <div class="card">
+            <header class="card-header">
+                <div class="card-header-title has-text-weight-semibold">
+                    <a href="{{ url_for('depcheck.issue_details', suite_name=suite.name, uuid=issue.uuid) }}">
+                        <span class="has-text-black">{{issue.package_name}} {{issue.package_version}}</span>&nbsp;
+                        <p class="mb-1 text-secondary"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</p>
+                        {% for missing in issue.missing %}
+                        <p class="mb-1"><i class="far fa-question-circle"></i> {{missing.package_name}} {{missing.package_version}}</p>
+                        {% endfor %}
+                        {% for conflict in issue.conflicts %}
+                        <p class="mb-1"><i class="fas fa-fist-raised"></i></i> {{conflict.pkg1.package_name}} vs. {{conflict.pkg2.package_name}}</p>
+                        {% endfor %}
+                    </a>
+                </div>
+            </header>
+            </div>
         {% endfor %}
 
-        <li class="page-item {{'disabled' if current_page >= page_count }}">
-            <a class="page-link" href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch_name, page=current_page+1) if current_page < page_count else '#'}}" aria-label="Next">
-                <span aria-hidden="true">&raquo;</span>
+        <br/>
+        <nav class="pagination" role="navigation" aria-label="pagination">
+            <a class="pagination-previous"
+               href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch_name, page=current_page-1) if current_page > 1 else '#'}}"
+               {{'disabled' if current_page <= 1 }}>
+                Previous
             </a>
-        </li>
-    </ul>
-</nav>
+            <a class="pagination-next"
+               href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch_name, page=current_page+1) if current_page < page_count else '#'}}"
+               {{'disabled' if current_page >= page_count }}>
+                Next
+            </a>
 
+            <ul class="pagination-list">
+
+            {% for i in range(1, page_count + 1) %}
+                <li>
+                    <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
+                       href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch_name, page=i) }}">{{i}}</a>
+                </li>
+            {% endfor %}
+            </ul>
+        </nav>
+    </div>
+</div>
 {% endblock %}
