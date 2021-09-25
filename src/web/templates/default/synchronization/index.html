@@ -75,9 +75,9 @@
         {%if issue.kind == SyncIssueKind.MERGE_REQUIRED %}
           <i class="fas fa-code-branch"></i> Requires manual merge of downstream changes with source.
         {% elif issue.kind == SyncIssueKind.MAYBE_CRUFT  %}
-          <i class="fas fa-trash-alt"></i> This package is likely cruft and could be removed after manual review. {{issue.details}}
+          <i class="fas fa-trash-alt"></i> This package is likely cruft and could be removed after manual review. {%if issue.details %}{{issue.details}}{% endif %}
         {% elif issue.kind == SyncIssueKind.SYNC_FAILED  %}
-          <i class="fas fa-exclamation-triangle"></i> This package failed to synchronize. {{issue.details}}
+          <i class="fas fa-exclamation-triangle"></i> This package failed to synchronize. {%if issue.details %}{{issue.details}}{% endif %}
         {% elif issue.kind == SyncIssueKind.REMOVAL_FAILED  %}
           <i class="fas fa-bomb"></i> Unable to remove this package. {{issue.details}}
         {% else %}
