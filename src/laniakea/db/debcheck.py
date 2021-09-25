@@ -33,7 +33,7 @@ class PackageIssue(Schema):
     package_type = fields.Int()  # PackageType enum
     package_name = fields.Str()
     package_version = fields.Str()
-    architecture = fields.Str()
+    architectures = fields.List(fields.Str())
 
     depends = fields.Str()
     unsat_dependency = fields.Str()
