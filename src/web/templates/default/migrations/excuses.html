@@ -21,49 +21,47 @@
 </div>
 {% endif %}
 
-<div class="columns is-mobile">
-    <div class="column is-8">
+<div class="column is-8">
 
 
-        {% for e in excuses %}
+    {% for e in excuses %}
 
-            <div class="card {{'has-background-warning-light' if not e.is_candidate }}">
-            <header class="card-header">
-                <div class="card-header-title has-text-weight-semibold">
-                    <a href="{{ url_for('migrations.view_excuse', uuid=e.uuid) }}">
-                    <span class="has-text-black">{{e.source_package}}</span>&nbsp;
-                    <span class="tag is-light is-rounded">{{e.version_old}}&nbsp;<i class="fas fa-long-arrow-alt-right"></i>&nbsp;{{e.version_new}}</span>
-                    </a>
-                </div>
-            </header>
+        <div class="card {{'has-background-warning-light' if not e.is_candidate }}">
+        <header class="card-header">
+            <div class="card-header-title has-text-weight-semibold">
+                <a href="{{ url_for('migrations.view_excuse', uuid=e.uuid) }}">
+                <span class="has-text-black">{{e.source_package}}</span>&nbsp;
+                <span class="tag is-light is-rounded">{{e.version_old}}&nbsp;<i class="fas fa-long-arrow-alt-right"></i>&nbsp;{{e.version_new}}</span>
+                </a>
             </div>
+        </header>
+        </div>
 
+    {% endfor %}
+
+    <br/>
+    <nav class="pagination" role="navigation" aria-label="pagination">
+        <a class="pagination-previous"
+            href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=current_page-1) if current_page > 1 else '#'}}"
+            {{'disabled' if current_page <= 1 }}>
+            Previous
+        </a>
+        <a class="pagination-next"
+            href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=current_page+1) if current_page < page_count else '#'}}"
+            {{'disabled' if current_page >= page_count }}>
+            Next
+        </a>
+
+        <ul class="pagination-list">
+
+        {% for i in range(1, page_count + 1) %}
+            <li>
+                <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
+                    href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=i) }}">{{i}}</a>
+            </li>
         {% endfor %}
+        </ul>
+    </nav>
 
-        <br/>
-        <nav class="pagination" role="navigation" aria-label="pagination">
-            <a class="pagination-previous"
-               href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=current_page-1) if current_page > 1 else '#'}}"
-               {{'disabled' if current_page <= 1 }}>
-                Previous
-            </a>
-            <a class="pagination-next"
-               href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=current_page+1) if current_page < page_count else '#'}}"
-               {{'disabled' if current_page >= page_count }}>
-                Next
-            </a>
-
-            <ul class="pagination-list">
-
-            {% for i in range(1, page_count + 1) %}
-                <li>
-                    <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
-                       href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=i) }}">{{i}}</a>
-                </li>
-            {% endfor %}
-            </ul>
-        </nav>
-
-    </div>
 </div>
 {% endblock %}
