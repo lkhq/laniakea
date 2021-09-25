@@ -3,6 +3,10 @@
 {% set active_menu = 'jobqueue' %}
 {% set page_title = 'Job Queue' %}
 
+{% block body_header %}
+<h1 class="title">Global Job Queue</h1>
+{% endblock %}
+
 {% block body %}
 
 <div class="columns is-mobile">
@@ -16,8 +20,7 @@
         </article>
         {% else %}
 
-        <div class="list-group">
-            {% for j in jobs %}
+        {% for j in jobs %}
 
             {% if j.status == JobStatus.SCHEDULED %}
               {% set item_style = 'has-background-info-light' %}
@@ -40,29 +43,29 @@
             </header>
             </div>
 
-            {% endfor %}
-        </div>
+        {% endfor %}
 
         {% endif %}
+
+        <br/>
+        <nav class="pagination" role="navigation" aria-label="pagination">
+        <a class="pagination-previous" href="{{ url_for('jobs.queue', page=current_page-1) if current_page > 1 else '#'}}" {{'disabled' if current_page <= 1 }}>
+            Previous
+        </a>
+        <a class="pagination-next" href="{{ url_for('jobs.queue', page=current_page+1) if current_page < page_count else '#'}}" {{'disabled' if current_page >= page_count }}>
+            Next
+        </a>
+
+        <ul class="pagination-list">
+
+        {% for i in range(1, page_count + 1) %}
+            <li>
+            <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}" href="{{ url_for('jobs.queue', page=i) }}">{{i}}</a>
+            </li>
+        {% endfor %}
+        </ul>
+        </nav>
+
     </div>
 </div>
-
-<nav class="pagination" role="navigation" aria-label="pagination">
-  <a class="pagination-previous" {{'disabled' if current_page <= 1 }}>
-    Previous
-  </a>
-  <a class="pagination-next" href="{{ url_for('jobs.queue', page=current_page+1) if current_page < page_count else '#'}}" {{'disabled' if current_page >= page_count }}>
-    Next page
-  </a>
-
-  <ul class="pagination-list">
-
-  {% for i in range(1, page_count + 1) %}
-    <li>
-      <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}" href="{{ url_for('jobs.queue', page=i) }}">{{i}}</a>
-    </li>
-  {% endfor %}
-  </ul>
-</nav>
-
 {% endblock %}

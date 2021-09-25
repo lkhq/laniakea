@@ -3,20 +3,21 @@
 {% set page_title = 'Package Migrations' %}
 
 {% block body_header %}
-<h1 class="h2">Package Migration Excuses</h1>
+<h1 class="title">Package Migration Excuses</h1>
 {% endblock %}
 
 {% block body %}
+<div class="columns is-multiline is-mobile">
+<div class="column is-5">
 
 
-<div class="col-md-8">
-    <div class="btn-group-vertical">
     {% for m in migrations %}
-        <a class="btn btn-secondary btn-lg btn-block" href="{{ url_for('migrations.excuses_list', migration_id=m.id, page=1) }}" role="button">
-        {{m.from}} <i class="fas fa-long-arrow-alt-right"></i> {{m.to}}
+        <a class="button is-medium is-fullwidth is-info is-outlined" href="{{ url_for('migrations.excuses_list', migration_id=m.id, page=1) }}" role="button">
+        {{m.from}}&nbsp;<i class="fas fa-long-arrow-alt-right"></i>&nbsp;{{m.to}}
         </a>
+        <br/>
     {% endfor %}
-    </div>
-</div>
 
+</div>
+</div>
 {% endblock %}
