@@ -29,7 +29,7 @@
                 <ul>
                     {% for m in missing %}
                     <li>
-                    <h5 class="subtitle mb-0">{{m.unsat_dependency}}</h5>
+                    <h5 class="subtitle mb-1">{{m.unsat_dependency}}</h5>
                     <p class="mb-1"><b>Required by:</b> {{m.package_name}}<br/>
                     {% if m.package_version %}<b>Version:</b> {{m.package_version}}<br/>{% endif %}
 
@@ -62,25 +62,25 @@
             <div class="content">
                 {% for c in conflicts %}
                     <h4 class="subtitle mb-3">{{c.pkg1.package_name}} <span class="has-text-weight-light">vs.</span> {{c.pkg2.package_name}}</h4>
-                    <div class="card">
+                    <div class="card has-background-white-ter">
                         <div class="card-content">
 
                         {% set pkg1_type_html = '' %}
                         {% if c.pkg1.package_type == PackageType.SOURCE %}
-                        {% set pkg1_type_html = '(<i class="fas fa-drafting-compass"></i>)' %}
+                        {% set pkg1_type_html = '<i class="fas fa-drafting-compass"></i>' %}
                         {% elif c.pkg1.package_type == PackageType.BINARY %}
-                        {% set pkg1_type_html = '(<i class="fas fa-cube"></i>)' %}
+                        {% set pkg1_type_html = '<i class="fas fa-cube"></i>' %}
                         {% endif %}
 
                         {% set pkg2_type_html = '' %}
                         {% if c.pkg2.package_type == PackageType.SOURCE %}
-                        {% set pkg2_type_html = '(<i class="fas fa-drafting-compass"></i>)' %}
+                        {% set pkg2_type_html = '<i class="fas fa-drafting-compass"></i>' %}
                         {% elif c.pkg2.package_type == PackageType.BINARY %}
-                        {% set pkg2_type_html = '(<i class="fas fa-cube"></i>)' %}
+                        {% set pkg2_type_html = '<i class="fas fa-cube"></i>' %}
                         {% endif %}
 
                         <!-- Package 1-->
-                        <h5 class="subtitle mb-2">Package 1: {{c.pkg1.package_name}} {{c.pkg1.package_version}} {{ pkg1_type_html | safe }}</h5>
+                        <h5 class="subtitle mb-2">Package 1: {{c.pkg1.package_name}} {{c.pkg1.package_version}}&nbsp;&nbsp;{{ pkg1_type_html | safe }}</h5>
                         {% if c.pkg1.unsat_conflict %}
                         <span><b>Conflict:</b> {{c.pkg1.unsat_conflict}}</span>
                         {% endif %}
@@ -88,14 +88,14 @@
                         <ul class="mt-1">
                         {% for d in c.depchain1 %}
                             <li>
-                                <b>{{d.package_name}} {{d.package_version}}</b> {% if d.package_type == PackageType.SOURCE %}<small>(<i class="fas fa-drafting-compass"></i>)</small>{% endif %}<br/>
+                                <b>{{d.package_name}} {{d.package_version}}</b> {% if d.package_type == PackageType.SOURCE %}<small><i class="fas fa-drafting-compass"></i></small>{% endif %}<br/>
                                 <p class="mb-1 text-secondary"><b>Depends:</b> {{d.depends}}</p>
                             </li>
                         {% endfor %}
                         </ul>
 
                         <!-- Package 2-->
-                        <h5 class="subtitle mb-2">Package 2: {{c.pkg2.package_name}} {{c.pkg2.package_version}} {{ pkg2_type_html | safe }}</h5>
+                        <h5 class="subtitle mb-2">Package 2: {{c.pkg2.package_name}} {{c.pkg2.package_version}}&nbsp;&nbsp;{{ pkg2_type_html | safe }}</h5>
                         {% if c.pkg2.unsat_conflict %}
                         <span><b>Conflict:</b> {{c.pkg2.unsat_conflict}}</span>
                         {% endif %}
@@ -103,7 +103,7 @@
                         <ul class="mt-1">
                         {% for d in c.depchain2 %}
                             <li>
-                                <b>{{d.package_name}} {{d.package_version}}</b> {% if d.package_type == PackageType.SOURCE %}<small>(<i class="fas fa-drafting-compass"></i>)</small>{% endif %}<br/>
+                                <b>{{d.package_name}} {{d.package_version}}</b> {% if d.package_type == PackageType.SOURCE %}<small><i class="fas fa-drafting-compass"></i></small>{% endif %}<br/>
                                 <p class="mb-1 text-secondary"><b>Depends:</b> {{d.depends}}</p>
                             </li>
                         {% endfor %}
