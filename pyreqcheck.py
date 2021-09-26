@@ -84,6 +84,8 @@ def ensure_dependencies(dependencies, installed_mods=None):
         if not versions:
             print('Python module "{}" was not found (need: {})'.format(req.name, req_str), file=sys.stderr)
             sys.exit(2)
+        if len(versions) == 1 and versions[0] is None:
+            continue
 
         candidates = list(req.specifier.filter(versions))
         if not candidates:

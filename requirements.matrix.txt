@@ -1,1 +1,1 @@
-mautrix~=0.8.18
+mautrix~=0.10.8

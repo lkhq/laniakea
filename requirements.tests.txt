@@ -1,6 +1,6 @@
-podman-compose
 flake8
 mypy
+podman-compose
 pylint
 pylint-flask
 pylint-sqlalchemy
