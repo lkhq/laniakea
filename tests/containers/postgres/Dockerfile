@@ -24,4 +24,4 @@ RUN echo "listen_addresses = '*'" >> /etc/postgresql/13/main/postgresql.conf
 RUN echo "log_destination = 'stderr'" >> /etc/postgresql/13/main/postgresql.conf
 
 EXPOSE 5434
-CMD ["/usr/lib/postgresql/13/bin/postgres", "-D", "/var/lib/postgresql/13/main", "-c", "config_file=/etc/postgresql/13/main/postgresql.conf"]
+CMD ["/usr/lib/postgresql/13/bin/postgres", "-D", "/var/lib/postgresql/13/main", "-c", "config_file=/etc/postgresql/13/main/postgresql.conf", "-p", "5432"]

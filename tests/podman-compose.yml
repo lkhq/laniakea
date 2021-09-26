@@ -4,4 +4,4 @@ services:
   postgres:
     build: "./containers/postgres"
     ports:
-      - "5434"
+      - "5432"

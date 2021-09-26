@@ -132,7 +132,7 @@ def database(localconfig, podman_ip, podman_services):
     from laniakea.db.core import config_set_project_name, config_set_distro_tag
 
     # get IP of our database container
-    port = podman_services.port_for('postgres', 5434)
+    port = podman_services.port_for('postgres', 5432)
 
     # update database URL to use scratch database in our container
     pgdb_url = 'postgresql://lkdbuser_test:notReallySecret@{}:{}/laniakea_unittest'.format(
@@ -144,7 +144,7 @@ def database(localconfig, podman_ip, podman_services):
 
     # wait for the database to become available
     podman_services.wait_until_responsive(
-        timeout=30.0, pause=0.1, check=lambda: pgsql_test_available(session_scope)
+        timeout=60.0, pause=0.5, check=lambda: pgsql_test_available(session_scope)
     )
 
     # clear database tables so test function has a pristine database to work with
