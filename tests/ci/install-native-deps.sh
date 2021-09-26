@@ -28,6 +28,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     flatpak \
     flatpak-builder \
     podman \
+    git \
     npm
 
 eatmydata apt-get install -yq --no-install-recommends \
