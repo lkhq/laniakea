@@ -33,9 +33,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Create PostgreSQL Container Image
-      run: cd tests/ci/ && podman build -t lk-pgsql-unittest -f pg/Dockerfile .
-
     - name: Create Native Environment
       run: cd tests/ci/ && podman build -t laniakea -f ./Dockerfile-debian-stable .
 
@@ -43,12 +40,6 @@ jobs:
       run: podman run -a stdout -a stderr -v `pwd`:/build laniakea
           ./tests/ci/run-venv-prepare.sh
 
-    - name: Launch PostgreSQL Container
-      run: podman run -d -p 127.0.0.1:5432:5432 lk-pgsql-unittest
-
-    - name: Show running containers
-      run: podman ps
-
     - name: Testsuite
-      run: podman run --net=host -a stdout -a stderr -v `pwd`:/build laniakea
+      run: sudo podman run --privileged -a stdout -a stderr -v `pwd`:/build laniakea
            ./tests/ci/run-tests.sh

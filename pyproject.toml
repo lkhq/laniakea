@@ -44,6 +44,7 @@ matrix = [
     'mautrix>=0.8.18',
 ]
 tests = [
+    'podman-compose',
     'pytest',
     'pytest-flask',
     'mypy',

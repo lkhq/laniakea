@@ -27,6 +27,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     ostree \
     flatpak \
     flatpak-builder \
+    podman \
     npm
 
 eatmydata apt-get install -yq --no-install-recommends \

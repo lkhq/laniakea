@@ -110,8 +110,18 @@ def localconfig(samplesdir):
     return conf
 
 
+def pgsql_test_available(session_scope):
+    ''' test if PostgreSQL is available with the current configuration '''
+    try:
+        with session_scope() as session:
+            session.execute('SELECT CURRENT_TIME;')
+    except:  # noqa: E722
+        return False
+    return True
+
+
 @pytest.fixture(scope='class')
-def database(localconfig):
+def database(localconfig, podman_ip, podman_services):
     '''
     Retrieve a pristine, empty Laniakea database connection.
     This will wipe the global database, so tests using this can
@@ -120,7 +130,22 @@ def database(localconfig):
     from laniakea.db import Database, session_scope, ArchiveRepository, ArchiveSuite, \
         ArchiveComponent, ArchiveArchitecture
     from laniakea.db.core import config_set_project_name, config_set_distro_tag
+
+    # get IP of our database container
+    port = podman_services.port_for('postgres', 5434)
+
+    # update database URL to use scratch database in our container
+    pgdb_url = 'postgresql://lkdbuser_test:notReallySecret@{}:{}/laniakea_unittest'.format(
+        podman_ip, port)
+    LocalConfig.instance._database_url = pgdb_url
+    assert localconfig.database_url == pgdb_url
+
     db = Database(localconfig)  # create singleton, if it didn't exist yet
+
+    # wait for the database to become available
+    podman_services.wait_until_responsive(
+        timeout=30.0, pause=0.1, check=lambda: pgsql_test_available(session_scope)
+    )
 
     # clear database tables so test function has a pristine database to work with
     with session_scope() as session:
