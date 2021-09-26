@@ -127,20 +127,30 @@ def database(localconfig, podman_ip, podman_services):
     This will wipe the global database, so tests using this can
     never run in parallel.
     '''
+    import json
     from laniakea.db import Database, session_scope, ArchiveRepository, ArchiveSuite, \
         ArchiveComponent, ArchiveArchitecture
     from laniakea.db.core import config_set_project_name, config_set_distro_tag
 
     # get IP of our database container
-    port = podman_services.port_for('postgres', 5432)
+    db_port = podman_services.port_for('postgres', 5432)
 
     # update database URL to use scratch database in our container
     pgdb_url = 'postgresql://lkdbuser_test:notReallySecret@{}:{}/laniakea_unittest'.format(
-        podman_ip, port)
+        podman_ip, db_port)
     LocalConfig.instance._database_url = pgdb_url
     assert localconfig.database_url == pgdb_url
 
-    db = Database(localconfig)  # create singleton, if it didn't exist yet
+    # update the on-disk configuration, we may pass that on to independent modules
+    with open(localconfig.fname, 'r') as f:
+        config_json = json.load(f)
+    config_json['Database']['host'] = podman_ip
+    config_json['Database']['port'] = db_port
+    with open(localconfig.fname, 'w') as f:
+        json.dump(config_json, f)
+
+    # create database factory singleton, if it didn't exist yet
+    db = Database(localconfig)
 
     # wait for the database to become available
     podman_services.wait_until_responsive(
