@@ -91,6 +91,7 @@ disable = [
     'raise-missing-from',
     'redefined-outer-name',
     'unused-variable',
+    'unspecified-encoding',
 ]
 
 [tool.pylint.reports]

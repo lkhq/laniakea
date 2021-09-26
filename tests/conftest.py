@@ -115,7 +115,7 @@ def pgsql_test_available(session_scope):
     try:
         with session_scope() as session:
             session.execute('SELECT CURRENT_TIME;')
-    except:  # noqa: E722
+    except Exception:  # noqa: E722
         return False
     return True
 
