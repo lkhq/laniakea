@@ -41,5 +41,5 @@ jobs:
           ./tests/ci/run-venv-prepare.sh
 
     - name: Testsuite
-      run: sudo podman run --privileged -a stdout -a stderr -v `pwd`:/build laniakea
+      run: podman run --privileged -a stdout -a stderr -v `pwd`:/build laniakea
            ./tests/ci/run-tests.sh
