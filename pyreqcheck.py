@@ -122,7 +122,10 @@ def write_requirements(all_dependencies):
                     if version == '0.0.0':
                         version = None
                 if version and not is_tests:
-                    f.write('{}~={}\n'.format(req.name, version))
+                    if req.name == 'PyGObject':
+                        f.write('{}\n'.format(req.name))
+                    else:
+                        f.write('{}~={}\n'.format(req.name, version))
                 else:
                     f.write('{}\n'.format(req.name))
 

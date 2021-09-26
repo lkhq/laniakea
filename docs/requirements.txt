@@ -1,5 +1,5 @@
 -r ../requirements.txt
 Pygments~=2.7.1
-Sphinx~=3.5.2
+Sphinx~=4.2.0
 sphinx-autodoc-typehints~=1.9.0
-sphinxawesome-theme~=1.19.2
+sphinxawesome-theme~=3.0.0
