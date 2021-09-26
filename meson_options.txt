@@ -8,6 +8,11 @@ option('linting',
     value: true,
     description: 'Enable code linters we want to run for static analysis.'
 )
+option('mypy-install-types',
+    type: 'boolean',
+    value: true,
+    description: 'Make MyPy automatically install missing type stubs.'
+)
 
 #
 # Build config flags

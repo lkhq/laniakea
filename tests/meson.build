@@ -33,9 +33,14 @@ if get_option('linting')
     )
 
     mypy_exe = find_program('mypy')
+    mypy_typeinst_args = []
+    if get_option('mypy-install-types')
+        mypy_typeinst_args = ['--install-types', '--non-interactive']
+    endif
     test('mypy',
         py,
         args: [mypy_exe.path(),
+               mypy_typeinst_args,
                join_paths(source_root, 'src'),
                '--exclude', 'src\/(web|webswview)\/(manage|wsgi)\.py$'
                ],
