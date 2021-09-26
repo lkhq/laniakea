@@ -27,6 +27,7 @@ if [ "$1" = "lint-only" ]; then
         -Ddownload-npm=false \
         -Dlinting=true \
         ..
+    mypy --install-types
 else
     meson \
         --prefix=/tmp/lk-install-root \
