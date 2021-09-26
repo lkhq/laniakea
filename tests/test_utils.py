@@ -24,26 +24,26 @@ def test_base64():
     from laniakea.utils import encode_base64, decode_base64
 
     # test encode
-    assert encode_base64(b'') == u''
-    assert encode_base64(b'\x00') == u'AA'
-    assert encode_base64(b'\x00\x00') == u'AAA'
-    assert encode_base64(b'\x00\x00\x00') == u'AAAA'
+    assert encode_base64(b'') == ''
+    assert encode_base64(b'\x00') == 'AA'
+    assert encode_base64(b'\x00\x00') == 'AAA'
+    assert encode_base64(b'\x00\x00\x00') == 'AAAA'
 
     # test decode
-    assert decode_base64(u'') == b''
-    assert decode_base64(u'AA') == b'\x00'
-    assert decode_base64(u'AAA') == b'\x00\x00'
-    assert decode_base64(u'AAAA') == b'\x00\x00\x00'
+    assert decode_base64('') == b''
+    assert decode_base64('AA') == b'\x00'
+    assert decode_base64('AAA') == b'\x00\x00'
+    assert decode_base64('AAAA') == b'\x00\x00\x00'
     with pytest.raises(Exception):
-        decode_base64(u'A')
+        decode_base64('A')
 
     # test encoding of urlunsafe chars
-    assert encode_base64(b'\xff\xe6\x9a') == u'/+aa'
-    assert encode_base64(b'\xff\xe6\x9a', True) == u'_-aa'
+    assert encode_base64(b'\xff\xe6\x9a') == '/+aa'
+    assert encode_base64(b'\xff\xe6\x9a', True) == '_-aa'
 
     # test decoding of urlunsafe chars
-    assert decode_base64(u'/+aa') == b'\xff\xe6\x9a'
-    assert decode_base64(u'_-aa') == b'\xff\xe6\x9a'
+    assert decode_base64('/+aa') == b'\xff\xe6\x9a'
+    assert decode_base64('_-aa') == b'\xff\xe6\x9a'
 
 
 def test_loadsections(localconfig):
