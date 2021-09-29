@@ -48,8 +48,8 @@ for an example. Also don’t forget to create the db and user. The
 configuration will need “ProjectName” and “Database” to be set, the
 other values can be ignored.
 
-$ ./src/admin/lk-admin.py core –init-db $ ./src/admin/lk-admin.py core
-–config
+$ lk-admin core –-init-db
+$ lk-admin core -–config
 
 Answer all the questions it asks.
 
