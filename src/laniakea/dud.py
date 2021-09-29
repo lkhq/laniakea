@@ -1,28 +1,12 @@
 # -*- coding: utf-8 -*-
 #
-#   This file was originally part of debexpo
-#    https://alioth.debian.org/projects/debexpo/
+# Copyright (C) 2008 Jonny Lamb <jonny@debian.org>
+# Copyright (C) 2010 Jan Dittberner <jandd@debian.org>
+# Copyright (C) 2012 Arno Töll <arno@debian.org>
+# Copyright (C) 2012 Paul Tagliamonte <paultag@debian.org>
+# Copyright (C) 2014 Matthias Klumpp <mak@debian.org>
 #
-#   Copyright © 2008 Jonny Lamb <jonny@debian.org>
-#   Copyright © 2010 Jan Dittberner <jandd@debian.org>
-#   Copyright © 2012 Arno Töll <arno@debian.org>
-#   Copyright © 2012 Paul Tagliamonte <paultag@debian.org>
-#   Copyright © 2014 Matthias Klumpp <mak@debian.org>
-#
-# Licensed under the GNU Lesser General Public License Version 3
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the license, or
-# (at your option) any later version.
-#
-# This software is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this software.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-License-Identifier: LGPL-3.0+
 
 import os
 from laniakea.utils import run_command, deb822
