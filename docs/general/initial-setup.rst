@@ -2,7 +2,7 @@ Initial Setup
 =============
 
 If you're interested in running Laniakea in a container, see `the
-Dockerfiles found here; <https://github.com/lkhq/laniakea/tree/master/tests/ci/>'_
+Dockerfiles found here <https://github.com/lkhq/laniakea/tree/master/tests/ci/>`__
 Please note that we only use those for testing and do not recommend using them in production!
 
 Requirements
@@ -12,12 +12,9 @@ Laniakea requires a postgresql database, and the meson build tool to
 get up and running. If you don’t already have those packages
 installed, install them now;
 
-$ sudo apt install postgresql-11 postgresql-11-debversion meson ldc
-libarchive libcurl
+.. code-block:: bash
 
-$ git clone https://github.com/lkorigin/pyd.git $ mkdir build && cd
-build $ meson –prefix=/usr –buildtype=debugoptimized $ ninja $ sudo
-ninja install
+    sudo apt install pkg-config meson postgresql libappstream-dev gir1.2-appstream-1.0 ostree flatpak flatpak-builder podman npm
 
 | Install the necessary Python modules and compilers/libraries
   python3-pytest python3-sqlalchemy python3-alembic
@@ -44,7 +41,7 @@ Configure
 
 Then edit /etc/laniakea/base-config.json and add the database settings
 you care about. See
-https://github.com/lkorigin/laniakea/blob/master/tests/test_data/config/base-config.json
+https://github.com/lkhq/laniakea/blob/master/tests/test_data/config/base-config.json
 for an example. Also don’t forget to create the db and user. The
 configuration will need “ProjectName” and “Database” to be set, the
 other values can be ignored.
