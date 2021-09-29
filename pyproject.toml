@@ -44,6 +44,7 @@ matrix = [
     'mautrix>=0.8.18',
 ]
 tests = [
+    'podman-compose',
     'pytest',
     'pytest-flask',
     'mypy',
@@ -90,6 +91,7 @@ disable = [
     'raise-missing-from',
     'redefined-outer-name',
     'unused-variable',
+    'unspecified-encoding',
 ]
 
 [tool.pylint.reports]

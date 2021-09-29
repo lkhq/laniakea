@@ -21,12 +21,15 @@ eatmydata apt-get install -yq --no-install-recommends \
     pkg-config \
     meson \
     systemd \
-    postgresql \
+    postgresql-client \
     libappstream-dev \
     gir1.2-appstream-1.0 \
     ostree \
     flatpak \
     flatpak-builder \
+    podman \
+    fuse-overlayfs \
+    git \
     npm
 
 eatmydata apt-get install -yq --no-install-recommends \

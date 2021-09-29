@@ -1,5 +1,6 @@
 flake8
 mypy
+git+https://github.com/containers/podman-compose.git
 pylint
 pylint-flask
 pylint-sqlalchemy

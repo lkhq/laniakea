@@ -17,28 +17,44 @@
 {% endblock %}
 
 {% block body_header %}
-<h1 class="h2">Package Synchronization Issue Overview</h1>
-
-<div class="btn-group dropleft" style="float: right;">
-    <button class="btn btn-light dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <i class="fa fa-cogs" aria-hidden="true"></i><span class="caret"></span>
-    </button>
-    <div class="dropdown-menu">
-        <a class="dropdown-item" href="{{ url_for('synchronization.blacklist') }}">Ignored packages</a>
-    </div>
-</div>
+<h1 class="title">Package Synchronization Issue Overview</h1>
 {% endblock %}
 
 {% block body %}
+<div class="columns is-multiline is-mobile">
+<div class="column is-12">
 
-<div class="input-group mb-3">
-    <div class="input-group-prepend">
-        <span id="filter-desc" class="input-group-text">Filter</span>
+<div class="field is-horizontal">
+  <div class="field-label is-normal has-text-left" style="flex-grow: 0;">
+    <label class="label" id="filter-desc">Filter</label>
+  </div>
+  <div class="field-body">
+    <div class="field is-expanded">
+      <div class="control">
+        <input id="filter" class="input" type="text" placeholder="e.g. a package name" aria-label="Filter" aria-describedby="filter-desc" />
+      </div>
     </div>
-    <input id="filter" class="form-control" type="text" placeholder="Type here..." aria-label="Filter" aria-describedby="filter-desc"/>
+
+    <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+            <button class="button" aria-haspopup="true" aria-controls="settings-menu">
+            <i class="fa fa-cogs" aria-hidden="true"></i>
+            <span class="icon is-small">
+                <i class="fas fa-angle-down" aria-hidden="true"></i>
+            </span>
+            </button>
+        </div>
+        <div class="dropdown-menu" id="settings-menu" role="menu">
+            <div class="dropdown-content">
+                <a class="dropdown-item" href="{{ url_for('synchronization.blacklist') }}">Ignored packages</a>
+            </div>
+        </div>
+    </div>
+
+  </div>
 </div>
-<br/>
-<table class="table">
+
+<table class="table is-striped is-hoverable is-narrow">
     <thead>
       <tr>
         <th>Affected Package</th>
@@ -59,9 +75,9 @@
         {%if issue.kind == SyncIssueKind.MERGE_REQUIRED %}
           <i class="fas fa-code-branch"></i> Requires manual merge of downstream changes with source.
         {% elif issue.kind == SyncIssueKind.MAYBE_CRUFT  %}
-          <i class="fas fa-trash-alt"></i> This package is likely cruft and could be removed after manual review. {{issue.details}}
+          <i class="fas fa-trash-alt"></i> This package is likely cruft and could be removed after manual review. {%if issue.details %}{{issue.details}}{% endif %}
         {% elif issue.kind == SyncIssueKind.SYNC_FAILED  %}
-          <i class="fas fa-exclamation-triangle"></i> This package failed to synchronize. {{issue.details}}
+          <i class="fas fa-exclamation-triangle"></i> This package failed to synchronize. {%if issue.details %}{{issue.details}}{% endif %}
         {% elif issue.kind == SyncIssueKind.REMOVAL_FAILED  %}
           <i class="fas fa-bomb"></i> Unable to remove this package. {{issue.details}}
         {% else %}
@@ -73,6 +89,8 @@
     </tbody>
 </table>
 
+</div>
+</div>
 {% endblock %}
 
 {% block js %}

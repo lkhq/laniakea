@@ -20,7 +20,7 @@
 import logging as log
 from typing import Optional
 from mautrix.client import Client as MatrixClient
-from mautrix.types import EventType, StrippedStateEvent, MessageEvent, MessageType, Membership, \
+from mautrix.types import RoomID, EventType, MessageEvent, MessageType, Membership, \
     TextMessageEventContent
 
 from .config import MirkConfig
@@ -41,9 +41,9 @@ class MirkMatrixClient:
         self._client.add_event_handler(EventType.ROOM_MEMBER, self._handle_invite)
         self._client.add_event_handler(EventType.ROOM_MESSAGE, self._handle_message)
 
-    async def _handle_invite(self, evt: StrippedStateEvent) -> None:
-        if evt.content.membership == Membership.INVITE:
-            await self._client.join_room(evt.room_id)
+    async def _handle_invite(self, event) -> None:
+        if event.content.membership == Membership.INVITE:
+            await self._client.join_room(event.room_id)
 
     async def _handle_message(self, event: MessageEvent) -> None:
         if event.sender != self._client.mxid:
@@ -61,14 +61,16 @@ class MirkMatrixClient:
     def stop(self):
         self._client.stop()
 
-    async def send_simple_text(self, room_id: str, text: str):
+    async def send_simple_text(self, room_id: RoomID, text: str):
         ''' Publish a simple text message in the selected room. '''
+        # pylint: disable=unexpected-keyword-arg
         await self._client.send_message(room_id=room_id,
                                         content=TextMessageEventContent(msgtype=MessageType.TEXT, body=text))
 
-    async def send_simple_html(self, room_id: str, html: str):
+    async def send_simple_html(self, room_id: RoomID, html: str):
         ''' Publish a simple HTML message in the selected room. '''
         from mautrix.types import Format
+        # pylint: disable=unexpected-keyword-arg
         content = TextMessageEventContent(msgtype=MessageType.TEXT)
         content.format = Format.HTML
         content.formatted_body = html

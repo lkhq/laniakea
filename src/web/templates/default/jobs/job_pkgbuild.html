@@ -2,13 +2,13 @@
 
 {% block job_details %}
 {% if not spkg %}
-<div class="alert alert-danger" role="alert">
+<div class="notification is-danger">
   Unable to find a source package for this build job!
   It might have been removed entirely from the archive.
 </div>
 {% else %}
 
-<h4 class="mt-2">Details</h4>
+<h4 class="subtitle is-4" style="margin-bottom: 0.5rem;margin-top: 1.5rem;">Details</h4>
 <p>
 <b>Repository:</b> {{spkg.repo.name}}<br/>
 <b>Suite:</b> {{suite_name}}<br/>

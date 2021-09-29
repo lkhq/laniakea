@@ -110,17 +110,52 @@ def localconfig(samplesdir):
     return conf
 
 
+def pgsql_test_available(session_scope):
+    ''' test if PostgreSQL is available with the current configuration '''
+    try:
+        with session_scope() as session:
+            session.execute('SELECT CURRENT_TIME;')
+    except Exception:  # noqa: E722
+        return False
+    return True
+
+
 @pytest.fixture(scope='class')
-def database(localconfig):
+def database(localconfig, podman_ip, podman_services):
     '''
     Retrieve a pristine, empty Laniakea database connection.
     This will wipe the global database, so tests using this can
     never run in parallel.
     '''
+    import json
     from laniakea.db import Database, session_scope, ArchiveRepository, ArchiveSuite, \
         ArchiveComponent, ArchiveArchitecture
     from laniakea.db.core import config_set_project_name, config_set_distro_tag
-    db = Database(localconfig)  # create singleton, if it didn't exist yet
+
+    # get IP of our database container
+    db_port = podman_services.port_for('postgres', 5432)
+
+    # update database URL to use scratch database in our container
+    pgdb_url = 'postgresql://lkdbuser_test:notReallySecret@{}:{}/laniakea_unittest'.format(
+        podman_ip, db_port)
+    LocalConfig.instance._database_url = pgdb_url
+    assert localconfig.database_url == pgdb_url
+
+    # update the on-disk configuration, we may pass that on to independent modules
+    with open(localconfig.fname, 'r') as f:
+        config_json = json.load(f)
+    config_json['Database']['host'] = podman_ip
+    config_json['Database']['port'] = db_port
+    with open(localconfig.fname, 'w') as f:
+        json.dump(config_json, f)
+
+    # create database factory singleton, if it didn't exist yet
+    db = Database(localconfig)
+
+    # wait for the database to become available
+    podman_services.wait_until_responsive(
+        timeout=60.0, pause=0.5, check=lambda: pgsql_test_available(session_scope)
+    )
 
     # clear database tables so test function has a pristine database to work with
     with session_scope() as session:

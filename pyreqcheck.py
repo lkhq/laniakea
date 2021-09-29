@@ -84,6 +84,8 @@ def ensure_dependencies(dependencies, installed_mods=None):
         if not versions:
             print('Python module "{}" was not found (need: {})'.format(req.name, req_str), file=sys.stderr)
             sys.exit(2)
+        if len(versions) == 1 and versions[0] is None:
+            continue
 
         candidates = list(req.specifier.filter(versions))
         if not candidates:
@@ -120,7 +122,10 @@ def write_requirements(all_dependencies):
                     if version == '0.0.0':
                         version = None
                 if version and not is_tests:
-                    f.write('{}~={}\n'.format(req.name, version))
+                    if req.name == 'PyGObject':
+                        f.write('{}\n'.format(req.name))
+                    else:
+                        f.write('{}~={}\n'.format(req.name, version))
                 else:
                     f.write('{}\n'.format(req.name))
 

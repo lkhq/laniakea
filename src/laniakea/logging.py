@@ -44,5 +44,4 @@ def set_verbose(enabled):
 
 
 def get_verbose():
-    global __verbose_logging
     return __verbose_logging

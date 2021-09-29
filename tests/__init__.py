@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2019 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2019-2021 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -27,4 +27,8 @@ source_root = os.path.normpath(os.path.join(os.path.dirname(thisfile), '..'))
 sys.path.append(os.path.normpath(os.path.join(source_root, 'src')))
 
 
-__all__ = ['source_root']
+pytest_plugins = ("tests.plugins.pytest_podman",)
+
+
+__all__ = ['source_root',
+           'pytest_plugins']
