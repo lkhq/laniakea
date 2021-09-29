@@ -1,8 +1,9 @@
 Initial Setup
 =============
 
-If you're interested in running Laniakea in Docker, see (this
-document)[https://github.com/lkorigin/laniakea/blob/master/tests/ci/Dockerfile]
+If you're interested in running Laniakea in a container, see `the
+Dockerfiles found here; <https://github.com/lkhq/laniakea/tree/master/tests/ci/>'_
+Please note that we only use those for testing and do not recommend using them in production!
 
 Requirements
 ------------
