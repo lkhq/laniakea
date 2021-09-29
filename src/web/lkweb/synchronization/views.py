@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018-2019 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018-2021 Matthias Klumpp <matthias@tenstral.net>
 #
 # Licensed under the GNU Lesser General Public License Version 3
 #
@@ -18,19 +18,35 @@
 # along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 from flask import Blueprint, render_template
-from laniakea.db import session_scope, SynchrotronIssue, SynchrotronIssueKind, SyncBlacklistEntry
+from laniakea.db import session_scope, ArchiveSuite, SynchrotronConfig, SynchrotronIssue, \
+    SynchrotronIssueKind, SyncBlacklistEntry
 
 synchronization = Blueprint('synchronization',
                             __name__,
-                            url_prefix='/synchrotron')
+                            url_prefix='/sync')
 
 
 @synchronization.route('/')
 def index():
     with session_scope() as session:
-        issues = session.query(SynchrotronIssue).all()
+        sync_configs = session.query(SynchrotronConfig) \
+            .join(SynchrotronConfig.destination_suite) \
+            .order_by(ArchiveSuite.name).all()
 
-        return render_template('synchronization/index.html', issues=issues, SyncIssueKind=SynchrotronIssueKind)
+        return render_template('synchronization/index.html', sync_configs=sync_configs)
+
+
+@synchronization.route('/<suite_name>')
+def issues_table(suite_name):
+    with session_scope() as session:
+        issues = session.query(SynchrotronIssue) \
+            .filter(SynchrotronIssue.target_suite == suite_name) \
+            .all()
+
+        return render_template('synchronization/sync_issue_table.html',
+                               issues=issues,
+                               SyncIssueKind=SynchrotronIssueKind,
+                               target_suite_name=suite_name)
 
 
 @synchronization.route('/blacklist')

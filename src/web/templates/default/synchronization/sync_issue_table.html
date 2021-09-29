@@ -1,0 +1,112 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'synchronization' %}
+{% set page_title = 'Synchronization Issue Overview / ' + target_suite_name %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('overview.index') }}">Home</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('synchronization.index') }}">Sync</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            {{target_suite_name}}
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block body_header %}
+<h1 class="title">Package Synchronization Issue Overview</h1>
+<h2 class="subtitle is-4">for target {{target_suite_name}}</h2>
+{% endblock %}
+
+{% block body %}
+<div class="columns is-multiline is-mobile">
+<div class="column is-12">
+
+<div class="field is-horizontal">
+  <div class="field-label is-normal has-text-left" style="flex-grow: 0;">
+    <label class="label" id="filter-desc">Filter</label>
+  </div>
+  <div class="field-body">
+    <div class="field is-expanded">
+      <div class="control">
+        <input id="filter" class="input" type="text" placeholder="e.g. a package name" aria-label="Filter" aria-describedby="filter-desc" />
+      </div>
+    </div>
+
+    <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+            <button class="button" aria-haspopup="true" aria-controls="settings-menu">
+            <i class="fa fa-cogs" aria-hidden="true"></i>
+            <span class="icon is-small">
+                <i class="fas fa-angle-down" aria-hidden="true"></i>
+            </span>
+            </button>
+        </div>
+        <div class="dropdown-menu" id="settings-menu" role="menu">
+            <div class="dropdown-content">
+                <a class="dropdown-item" href="{{ url_for('synchronization.blacklist') }}">Ignored packages</a>
+            </div>
+        </div>
+    </div>
+
+  </div>
+</div>
+
+<table class="table is-striped is-hoverable is-narrow">
+    <thead>
+      <tr>
+        <th>Affected Package</th>
+        <th>Direction</th>
+        <th>Version in Target</th>
+        <th>Version in Source</th>
+        <th>Issue</th>
+      </tr>
+    </thead>
+    <tbody class="searchable">
+    {% for issue in issues %}
+    <tr>
+      <td>{{issue.package_name}}</td>
+      <td>{{issue.source_suite}} <i class="fas fa-arrow-right"></i> {{issue.target_suite}}</td>
+      <td>{{issue.target_version}}</td>
+      <td>{{issue.source_version}}</td>
+      <td>
+        {%if issue.kind == SyncIssueKind.MERGE_REQUIRED %}
+          <i class="fas fa-code-branch"></i> Requires manual merge of downstream changes with source.
+        {% elif issue.kind == SyncIssueKind.MAYBE_CRUFT  %}
+          <i class="fas fa-trash-alt"></i> This package is likely cruft and could be removed after manual review. {%if issue.details %}{{issue.details}}{% endif %}
+        {% elif issue.kind == SyncIssueKind.SYNC_FAILED  %}
+          <i class="fas fa-exclamation-triangle"></i> This package failed to synchronize. {%if issue.details %}{{issue.details}}{% endif %}
+        {% elif issue.kind == SyncIssueKind.REMOVAL_FAILED  %}
+          <i class="fas fa-bomb"></i> Unable to remove this package. {{issue.details}}
+        {% else %}
+          Error: {{issue.details}}
+        {% endif %}
+     </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+</div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script type="text/javascript">
+$(document).ready(function () {
+    $('#filter').keyup(function () {
+        var rex = new RegExp($(this).val(), 'i');
+        $('.searchable tr').hide();
+        $('.searchable tr').filter(function () {
+            return rex.test($(this).text());
+        }).show();
+    });
+});
+</script>
+{% endblock %}
