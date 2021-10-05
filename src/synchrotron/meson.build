@@ -2,6 +2,6 @@
 
 install_subdir('.', install_dir: 'lib/laniakea/synchrotron/',
     exclude_directories: ['__pycache__'],
-    exclude_files: ['meson.build'],
+    exclude_files: ['meson.build', 'synchrotron'],
 )
-install_data('synchrotron.py', install_dir: 'bin', rename: 'synchrotron')
+install_data('synchrotron', install_dir: 'bin', rename: 'synchrotron')

@@ -290,7 +290,7 @@ class LighthouseServer:
             # create new secret key for Lighthouse
             generate_curve_keys_for_module(self._sources_dir, self._lconf, LkModule.LIGHTHOUSE)
 
-            lh_exe = os.path.join(self._sources_dir, 'lighthouse', 'lighthouse.py')
+            lh_exe = os.path.join(self._sources_dir, 'lighthouse', 'lighthouse-server')
             self._pipe = subprocess.Popen([lh_exe,
                                            '--verbose',
                                            '--config', self._lconf.fname],

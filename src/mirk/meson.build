@@ -7,6 +7,6 @@ if r.returncode() != 0
 endif
 
 install_subdir('.', install_dir: 'lib/laniakea/mirk/',
-    exclude_directories: ['__pycache__', 'mirk/__pycache__'],
+    exclude_directories: ['__pycache__'],
     exclude_files: ['meson.build'],
 )

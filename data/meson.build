@@ -4,7 +4,7 @@ lk_data_dir = join_paths(get_option('datadir'), 'laniakea')
 
 if get_option('lighthouse')
     lhsd_data = configuration_data()
-    lhsd_data.set('LIGHTHOUSE_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/lighthouse/lighthouse.py')
+    lhsd_data.set('LIGHTHOUSE_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/lighthouse/lighthouse-server')
 
     configure_file(input: 'laniakea-lighthouse.service.in',
                 output: 'laniakea-lighthouse.service',
@@ -36,7 +36,7 @@ endif
 
 if get_option('mirk')
     mirk_data = configuration_data()
-    mirk_data.set('MIRK_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/mirk/mirk.py')
+    mirk_data.set('MIRK_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/mirk/mirk')
 
     configure_file(input: 'laniakea-mirk.service.in',
                    output: 'laniakea-mirk.service',

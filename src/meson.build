@@ -16,7 +16,7 @@ subdir('laniakea')
 
 # Admin cli tool
 if (get_option('clitools'))
-    subdir('admin')
+    subdir('lkadmin')
 endif
 
 # Key management cli tool

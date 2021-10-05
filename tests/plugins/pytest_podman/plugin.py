@@ -83,6 +83,7 @@ class Services:
 
         output = self._podman_compose.execute("ps -q")
         host_port = ''
+        data = None
         for line in output.decode('utf-8').split('\n'):
             # sanity check to ignore any debug output
             if not line or len(line) > 16 or len(line) < 6:
@@ -99,6 +100,8 @@ class Services:
             break
 
         if not host_port:
+            print('podman ps output:', output.decode('utf-8'))
+            print('podman inspect output:', data)
             raise ValueError(
                 'Could not detect port for "%s:%d".' % (service, container_port)
             )

@@ -42,7 +42,7 @@ if get_option('linting')
         args: [mypy_exe.path(),
                mypy_typeinst_args,
                join_paths(source_root, 'src'),
-               '--exclude', 'src\/(web|webswview)\/(manage|wsgi)\.py$'
+               '--exclude', 'src/(web|webswview)/(manage|wsgi)\\.py$|src/laniakea/alembic/env\\.py$',
                ],
         workdir: source_root,
         suite: 'linters',
@@ -57,5 +57,5 @@ test('pytest',
     workdir: source_root,
     is_parallel: false,
     suite: 'integration',
-    timeout: 420,
+    timeout: 6720, # set to -1 once we can bump minimum Meson version to 0.58
 )
