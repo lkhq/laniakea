@@ -100,7 +100,7 @@ class Services:
             break
 
         if not host_port:
-            print('podman ps output:', output.decode('utf-8'))
+            print('podman-compose ps output:', output.decode('utf-8'))
             print('podman inspect output:', data)
             raise ValueError(
                 'Could not detect port for "%s:%d".' % (service, container_port)
