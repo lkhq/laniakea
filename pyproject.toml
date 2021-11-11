@@ -17,7 +17,7 @@ requires = ["meson"]
 base = [
     'SQLAlchemy',
     'alembic',
-    'psycopg2',
+    'psycopg2>=2.7.7',
     'python-debian',
     'python-apt',
     'pyzmq',

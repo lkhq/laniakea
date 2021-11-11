@@ -124,8 +124,10 @@ def write_requirements(all_dependencies):
                 if version and not is_tests:
                     if req.name == 'PyGObject':
                         f.write('{}\n'.format(req.name))
+                    elif req.specifier:
+                        f.write('{}{}\n'.format(req.name, str(req.specifier)))
                     else:
-                        f.write('{}>={}\n'.format(req.name, version))
+                        f.write('{}~={}\n'.format(req.name, version))
                 else:
                     f.write('{}\n'.format(req.name))
 
