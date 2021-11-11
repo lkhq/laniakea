@@ -33,6 +33,9 @@ Base: Any = declarative_base()
 # reflection
 # pylint: disable=abstract-method
 class DebVersion(UserDefinedType):
+    def __init__(self):
+        UserDefinedType.__init__(self)
+
     def get_col_spec(self):
         return 'DEBVERSION'
 
