@@ -1,0 +1,26 @@
+ProjectName = "Test"
+Workspace = "/tmp/test-lkws/"
+
+[Archive]
+path = "???"
+develSuite = "dasyatis"
+incomingSuite = "staging"
+distroTag = "test"
+
+[Database]
+db = "laniakea_unittest"
+user = "lkdbuser_test"
+password = "notReallySecret"
+
+[Synchrotron]
+SourceKeyringDir = "/etc/apt/trusted.gpg.d/"
+
+[Lighthouse.endpoints]
+jobs = [ "tcp://*:5570",]
+submit = [ "tcp://*:5571",]
+publish = [ "tcp://*:5572",]
+
+[Lighthouse.servers]
+jobs = [ "tcp://localhost:5570",]
+submit = [ "tcp://localhost:5571",]
+publish = [ "tcp://localhost:5572",]

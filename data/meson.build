@@ -46,5 +46,5 @@ if get_option('mirk')
                  install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 endif
 
-install_data('3rd-party.json', install_dir: lk_data_dir)
+install_data('3rd-party.toml', install_dir: lk_data_dir)
 install_data('archive-sections.json', install_dir: lk_data_dir)

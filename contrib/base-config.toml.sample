@@ -1,0 +1,40 @@
+# A workspace directory where Laniakea modules will store all
+# their state. Should be on persistent storage.
+Workspace = "/tmp/test-lkws/"
+
+
+# Archive details, only "path" is essential
+[Archive]
+# Directory where the distribution's repository is located locally,
+# e.g. /srv/repo/pureos/
+path = "???"
+
+
+# Database details
+[Database]
+db = "laniakea"
+user = "lkdbuser_master"
+password = "notReallySecret"
+
+
+[Synchrotron]
+# Keys of other distributions that Synchrotron will trust
+# when fetching packages from them.
+SourceKeyringDir = "/etc/apt/trusted.gpg.d/"
+
+
+# Endpoints at which a Lighthouse server should listen for job requests,
+# event submissions and where it should publish events.
+[Lighthouse.endpoints]
+jobs = [ "tcp://*:5570",]
+submit = [ "tcp://*:5571",]
+publish = [ "tcp://*:5572",]
+
+
+# Lighthouse servers that Laniakea modules should connect to in order to
+# submit events, request jobs, or listen to the event stream published by
+# a Lighthouse server.
+[Lighthouse.servers]
+jobs = [ "tcp://localhost:5570",]
+submit = [ "tcp://localhost:5571",]
+publish = [ "tcp://localhost:5572",]

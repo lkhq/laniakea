@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import json
+import toml
 import platform
 from glob import glob
 from laniakea.utils import listify
@@ -68,27 +68,27 @@ class LocalConfig:
 
         def __init__(self, fname=None):
             if not fname:
-                fname = get_config_file('base-config.json')
+                fname = get_config_file('base-config.toml')
             self.fname = fname
             if not self.fname:
-                raise Exception('Unable to find base configuration (usually in `/etc/laniakea/base-config.json`')
+                raise Exception('Unable to find base configuration (usually in `/etc/laniakea/base-config.toml`')
 
-            jdata = {}
+            cdata = {}
             if os.path.isfile(fname):
-                with open(fname) as json_file:
-                    jdata = json.load(json_file)
+                with open(fname) as toml_file:
+                    cdata = toml.load(toml_file)
 
-            jarchive = jdata.get('Archive')
+            jarchive = cdata.get('Archive')
             if not jarchive:
                 raise Exception('No "Archive" configuration found in local config file. Please specify archive details!')
 
-            self._workspace = jdata.get('Workspace')
+            self._workspace = cdata.get('Workspace')
             if not self._workspace:
                 raise Exception('No "Workspace" directory set in local config file. Please specify a persistent workspace location!')
 
-            self._cache_dir = jdata.get('CacheLocation', '/var/tmp/laniakea')
+            self._cache_dir = cdata.get('CacheLocation', '/var/tmp/laniakea')
 
-            jdb = jdata.get('Database', {})
+            jdb = cdata.get('Database', {})
             db_host = jdb.get('host', 'localhost')
             db_port = int(jdb.get('port', 5432))
             db_name = jdb.get('db', 'laniakea')
@@ -108,7 +108,7 @@ class LocalConfig:
             self._archive_urgencies_export_dir = jarchive.get('urgencies_export_dir', '/srv/dak/export/urgencies/')
 
             self._lighthouse = LocalConfig.LighthouseConfig()
-            lhconf = jdata.get('Lighthouse', {})
+            lhconf = cdata.get('Lighthouse', {})
             lhconf_endpoints = lhconf.get('endpoints', {})
             lhconf_servers = lhconf.get('servers', {})
 
@@ -122,22 +122,22 @@ class LocalConfig:
 
             # Synchrotron-specific configuration
             self._synchrotron_sourcekeyrings = []
-            syncconf = jdata.get('Synchrotron')
+            syncconf = cdata.get('Synchrotron')
             if syncconf:
                 if 'SourceKeyringDir' in syncconf:
                     self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
 
             # ZCurve / Message signing
-            self._curve_keys_basedir = jdata.get('CurveKeysDir', '/etc/laniakea/keys/curve/')
+            self._curve_keys_basedir = cdata.get('CurveKeysDir', '/etc/laniakea/keys/curve/')
 
             # Trusted GPG keyrings
             self._trusted_gpg_keyrings = []
-            self._trusted_gpg_keyring_dir = jdata.get('TrustedGpgKeyringDir')
+            self._trusted_gpg_keyring_dir = cdata.get('TrustedGpgKeyringDir')
             if self._trusted_gpg_keyring_dir:
                 self._trusted_gpg_keyrings = glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))
 
             # Secret GPG Keyring dir
-            self._secret_gpg_home_dir = jdata.get('SecretGPGHome', '/etc/laniakea/keys/gpg/s3kr1t/')
+            self._secret_gpg_home_dir = cdata.get('SecretGPGHome', '/etc/laniakea/keys/gpg/s3kr1t/')
 
         @property
         def workspace(self) -> str:
@@ -237,15 +237,15 @@ class ExternalToolsUrls:
 
     def __init__(self, fname=None):
         if not fname:
-            fname = '/usr/share/laniakea/3rd-party.json'
+            fname = '/usr/share/laniakea/3rd-party.toml'
 
-        jdata = {}
+        cdata = {}
         if os.path.isfile(fname):
-            with open(fname) as json_file:
-                jdata = json.load(json_file)
+            with open(fname) as toml_file:
+                cdata = toml.load(toml_file)
 
-        jspears = jdata.get('Spears', {})
-        self.britney_git_repository = jspears.get('britneyGitRepository', 'https://salsa.debian.org/release-team/britney2.git')
+        cspears = cdata.get('Spears', {})
+        self.britney_git_repository = cspears.get('britneyGitRepository', 'https://salsa.debian.org/release-team/britney2.git')
 
-        jdaktape = jdata.get('DakTape', {})
-        self.dak_git_repository = jdaktape.get('dakGitRepository', 'https://salsa.debian.org/ftp-team/dak.git')
+        cdaktape = cdata.get('DakTape', {})
+        self.dak_git_repository = cdaktape.get('dakGitRepository', 'https://salsa.debian.org/ftp-team/dak.git')

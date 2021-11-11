@@ -50,7 +50,7 @@ def localconfig(samplesdir):
     Retrieve a Laniakea LocalConfig object which is set
     up for testing.
     '''
-    import json
+    import toml
 
     test_aux_data_dir = os.path.join('/tmp', 'test-lkaux')
     if os.path.isdir(test_aux_data_dir):
@@ -58,16 +58,16 @@ def localconfig(samplesdir):
         rmtree(test_aux_data_dir)
     os.makedirs(test_aux_data_dir)
 
-    config_tmpl_fname = os.path.join(samplesdir, 'config', 'base-config.json')
+    config_tmpl_fname = os.path.join(samplesdir, 'config', 'base-config.toml')
     with open(config_tmpl_fname, 'r') as f:
-        config_json = json.load(f)
+        config_toml = toml.load(f)
 
-    config_json['CurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
-    config_json['Archive']['path'] = os.path.join(samplesdir, 'samplerepo', 'dummy')
+    config_toml['CurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
+    config_toml['Archive']['path'] = os.path.join(samplesdir, 'samplerepo', 'dummy')
 
-    config_fname = os.path.join(test_aux_data_dir, 'base-config.json')
+    config_fname = os.path.join(test_aux_data_dir, 'base-config.toml')
     with open(config_fname, 'w') as f:
-        json.dump(config_json, f)
+        toml.dump(config_toml, f)
 
     conf = LocalConfig(config_fname)
     conf = LocalConfig.instance
@@ -114,7 +114,7 @@ def database(localconfig, podman_ip, podman_services):
     This will wipe the global database, so tests using this can
     never run in parallel.
     '''
-    import json
+    import toml
     from laniakea.db import Database, session_scope, ArchiveRepository, ArchiveSuite, \
         ArchiveComponent, ArchiveArchitecture
     from laniakea.db.core import config_set_project_name, config_set_distro_tag
@@ -130,11 +130,11 @@ def database(localconfig, podman_ip, podman_services):
 
     # update the on-disk configuration, we may pass that on to independent modules
     with open(localconfig.fname, 'r') as f:
-        config_json = json.load(f)
-    config_json['Database']['host'] = podman_ip
-    config_json['Database']['port'] = db_port
+        config_toml = toml.load(f)
+    config_toml['Database']['host'] = podman_ip
+    config_toml['Database']['port'] = db_port
     with open(localconfig.fname, 'w') as f:
-        json.dump(config_json, f)
+        toml.dump(config_toml, f)
 
     # create database factory singleton, if it didn't exist yet
     db = Database(localconfig)
