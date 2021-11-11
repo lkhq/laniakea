@@ -125,7 +125,7 @@ def write_requirements(all_dependencies):
                     if req.name == 'PyGObject':
                         f.write('{}\n'.format(req.name))
                     else:
-                        f.write('{}~={}\n'.format(req.name, version))
+                        f.write('{}>={}\n'.format(req.name, version))
                 else:
                     f.write('{}\n'.format(req.name))
 

@@ -1,1 +1,1 @@
-mautrix~=0.10.8
+mautrix>=0.10.8
