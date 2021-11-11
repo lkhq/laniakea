@@ -1,7 +1,7 @@
 [Unit]
 Description=Laniakea Job Server
 After=syslog.target network.target
-ConditionPathExists=/etc/laniakea/base-config.json
+ConditionPathExists=/etc/laniakea/base-config.toml
 
 [Service]
 Type=notify

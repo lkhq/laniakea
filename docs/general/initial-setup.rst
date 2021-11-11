@@ -39,9 +39,9 @@ meson.build file and call meson from it;
 Configure
 ---------
 
-Then edit /etc/laniakea/base-config.json and add the database settings
-you care about. See
-https://github.com/lkhq/laniakea/blob/master/tests/test_data/config/base-config.json
+Then edit /etc/laniakea/base-config.toml and add the database settings
+you care about.
+See `base-config.toml.sample <https://github.com/lkhq/laniakea/blob/master/contrib/base-config.toml.sample>`__
 for an example. Also don’t forget to create the db and user. The
 configuration will need “ProjectName” and “Database” to be set, the
 other values can be ignored.
