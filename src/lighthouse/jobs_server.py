@@ -35,8 +35,15 @@ class JobsServer:
         self._worker = JobWorker(pub_queue)
 
     def _client_request_received(self, server, msg):
+        ''' Called when we receive a request from a client. '''
+
+        if len(msg) != 3:
+            log.info('Received request of invalid length %s: %s', str(len(msg)), msg)
+            return
+        address, _, data = msg
+
         try:
-            request = json.loads(msg[1])
+            request = json.loads(data)
         except json.JSONDecodeError as e:
             # we ignore invalid requests
             log.info('Received invalid JSON request from client: %s (%s)', msg, str(e))
@@ -58,7 +65,7 @@ class JobsServer:
         elif type(reply) is not bytes:
             reply = json_compact_dump(reply, as_bytes=True)
 
-        reply_msg = [msg[0], reply]
+        reply_msg = [address, b'', reply]
 
         log.debug('Sending %s', reply_msg)
         server.send_multipart(reply_msg)

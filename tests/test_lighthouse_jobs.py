@@ -79,7 +79,7 @@ class TestLighthouseJobRequests:
         return reply
 
     def test_request_job(self, new_zmq_curve_socket, localconfig, database):
-        sock = new_zmq_curve_socket(zmq.DEALER,
+        sock = new_zmq_curve_socket(zmq.REQ,
                                     localconfig.lighthouse.servers_jobs[0],
                                     self._server_key,
                                     self._client_key)
