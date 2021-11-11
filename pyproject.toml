@@ -19,7 +19,7 @@ base = [
     'alembic',
     'psycopg2>=2.7.7',
     'python-debian',
-    'python-apt',
+    'python-apt>=2.2.1',
     'pyzmq',
     'requests',
     'PyYAML>=5.3.1',
