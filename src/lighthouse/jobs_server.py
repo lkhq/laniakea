@@ -54,9 +54,9 @@ class JobsServer:
         except Exception as e:
             reply = json_compact_dump({'error': 'Internal Error: {}'.format(e)}, as_bytes=True)
 
-        # an empty result means we shouldn't send a message back
+        # an empty result means we will send an empty message back, as ACK for the REQ connection
         if not reply:
-            return
+            reply = b''
 
         # ensure we have the bytes of a JSON string
         # (workers are permitted to return e.g. True or UTF-8 strings)
