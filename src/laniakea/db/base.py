@@ -31,11 +31,8 @@ Base: Any = declarative_base()
 
 # Patch in support for the debversion field type so that it works during
 # reflection
-# pylint: disable=abstract-method
+# pylint: disable=abstract-method,no-init
 class DebVersion(UserDefinedType):
-    def __init__(self):
-        UserDefinedType.__init__(self)
-
     def get_col_spec(self):
         return 'DEBVERSION'
 
