@@ -131,7 +131,7 @@ def bin_package_details(suite_name, name):
             abort(404)
 
         suites = [s[0] for s in session.query(ArchiveSuite.name.distinct())
-                                       .filter(ArchiveSuite.bin_packages.any(BinaryPackage.name == name))
+                                       .filter(ArchiveSuite.pkgs_binary.any(BinaryPackage.name == name))
                                        .all()]
 
         architectures = set()
@@ -180,7 +180,7 @@ def src_package_details(suite_name, name):
             abort(404)
 
         suites = [s[0] for s in session.query(ArchiveSuite.name.distinct())
-                                       .filter(ArchiveSuite.src_packages.any(SourcePackage.name == name))
+                                       .filter(ArchiveSuite.pkgs_source.any(SourcePackage.name == name))
                                        .all()]
         spkg_rep = spkgs[0]  # the first package is always the most recent one
 

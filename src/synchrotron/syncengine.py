@@ -177,7 +177,7 @@ class SyncEngine:
                 dest_bpkg_map = dest_bpkg_arch_map[arch_name]
 
                 bin_files = []
-                for bin_i in spkg.binaries:
+                for bin_i in spkg.expected_binaries:
                     if bin_i.name not in src_bpkg_map:
                         if bin_i.name in dest_bpkg_map:
                             existing_packages = True  # package only exists in target

@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from typing import Any
 from ..localconfig import LocalConfig
 from ..utils import cd
+from ..logging import log
 
 
 __all__ = ['Base',
@@ -61,8 +62,15 @@ class Database:
 
         def create_tables(self):
             ''' Initialize the database and create all tables '''
+            from alembic import command
+            from alembic.config import Config
+            from .. import lk_py_directory
+
+            with cd(lk_py_directory):
+                Base.metadata.create_all(self._engine)
+                alembic_cfg = Config(os.path.join(lk_py_directory, 'alembic.ini'))
+                command.stamp(alembic_cfg, "head")
             self.upgrade()
-            Base.metadata.create_all(self._engine)
 
         def upgrade(self):
             ''' Upgrade database schema to the newest revision '''
@@ -75,6 +83,33 @@ class Database:
                     'upgrade', 'head',
                 ]
                 alembic.config.main(argv=alembicArgs)
+            self._update_static_data()
+            log.info('Database upgrade done.')
+
+        def _update_static_data(selfself):
+            import json
+            from .archive import ArchiveSection
+            from ..localconfig import get_data_file
+
+            log.info('Updating static database data.')
+            with open(get_data_file('archive-sections.json'), 'r') as f:
+                sections_seed = json.load(f)
+
+            # update data
+            with session_scope() as session:
+                for jsec in sections_seed:
+                    if 'name' not in jsec:
+                        raise Exception('Invalid section contained in archive sections file (name missing).')
+                    if 'summary' not in jsec:
+                        jsec['summary'] = 'The {} section'.format(jsec['name'])
+
+                    section = session.query(ArchiveSection) \
+                                     .filter(ArchiveSection.name == jsec['name']).one_or_none()
+                    if section:
+                        section.summary = jsec['summary']
+                    else:
+                        section = ArchiveSection(jsec['name'], jsec['summary'])
+                        session.add(section)
 
         def downgrade(self, revision):
             ''' Upgrade database schema to the newest revision '''

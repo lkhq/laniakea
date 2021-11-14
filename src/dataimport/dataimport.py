@@ -141,9 +141,9 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
         existing_dcpt = session.query(SoftwareComponent) \
             .filter(SoftwareComponent.uuid == dcpt.uuid).one_or_none()
         if existing_dcpt:
-            if bin_pkg in existing_dcpt.bin_packages:
+            if bin_pkg in existing_dcpt.pkgs_binary:
                 continue  # the binary package is already registered with this component
-            existing_dcpt.bin_packages.append(bin_pkg)
+            existing_dcpt.pkgs_binary.append(bin_pkg)
             continue  # we already have this component, no need to add it again
 
         # add new software component to database
@@ -175,7 +175,7 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
         for cat in cpt.get_categories():
             dcpt.categories.append(cat)
 
-        dcpt.bin_packages = [bin_pkg]
+        dcpt.pkgs_binary = [bin_pkg]
 
         session.add(dcpt)
         log.debug('Added new software component \'{}\' to database'.format(dcpt.cid))
@@ -328,7 +328,7 @@ def import_suite_packages(suite_name):
             update_appstream_data(session, local_repo, repo, suite, component, arch)
 
     # delete orphaned AppStream metadata
-    for cpt in session.query(SoftwareComponent).filter(~SoftwareComponent.bin_packages.any()).all():
+    for cpt in session.query(SoftwareComponent).filter(~SoftwareComponent.pkgs_binary.any()).all():
         session.delete(cpt)
     session.commit()
 

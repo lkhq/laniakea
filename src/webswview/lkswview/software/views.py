@@ -31,9 +31,9 @@ def details(cid):
         # NOTE: We display the newest component here. Maybe we want to actually
         # display the different component data by-version?
         sws = session.query(SoftwareComponent) \
-            .options(joinedload(SoftwareComponent.bin_packages)
+            .options(joinedload(SoftwareComponent.pkgs_binary)
                      .joinedload(BinaryPackage.suites)) \
-            .join(SoftwareComponent.bin_packages) \
+            .join(SoftwareComponent.pkgs_binary) \
             .filter(SoftwareComponent.cid == cid) \
             .order_by(BinaryPackage.version.desc()) \
             .all()
@@ -43,7 +43,7 @@ def details(cid):
         # FIXME: This loop is probably inefficient...
         packages_map = dict()
         for sw in sws:
-            for bpkg in sw.bin_packages:
+            for bpkg in sw.pkgs_binary:
                 for suite in bpkg.suites:
                     if suite.name not in packages_map:
                         packages_map[suite.name] = list()
