@@ -26,6 +26,11 @@ repo_suite_assoc_table = Table('archive_repo_suite_association', Base.metadata,
                                Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
                                )
 
+uploader_repo_assoc_table = Table('archive_uploader_repo_association', Base.metadata,
+                               Column('uploader_id', Integer, ForeignKey('archive_uploaders.id', ondelete='cascade')),
+                               Column('repo_id', Integer, ForeignKey('archive_repositories.id'))
+                               )
+
 
 class ArchiveConfig(Base):
     '''
@@ -59,6 +64,10 @@ class ArchiveRepository(Base):
 
     name = Column(String(128), unique=True)  # Name of the repository
     origin_name = Column(String(200))  # Name of the origin of this repository (e.g. "Purism")
+
+    uploaders = relationship('ArchiveUploader',
+                          secondary=uploader_repo_assoc_table,
+                          back_populates='repos')
 
     suites = relationship('ArchiveSuite',
                           secondary=repo_suite_assoc_table,
@@ -123,6 +132,31 @@ swcpt_binpkg_assoc_table = Table('archive_swcpt_binpkg_association', Base.metada
                                         ForeignKey('archive_pkgs_binary.uuid', ondelete='cascade'),
                                         primary_key=True)
                                  )
+
+
+class ArchiveUploader(Base):
+    '''
+    Entities who are permitted to upload data to archive repositories.
+    '''
+    __tablename__ = 'archive_uploaders'
+
+    id = Column(Integer, primary_key=True)
+
+    email = Column(Text(), unique=True)  # E-Mail address of this entity used for signing
+    pgp_fingerprints = Column(ARRAY(Text()))  # Fingerprints of the GnuPG keys associated with this entity
+    is_human = Column(Boolean(), default=True)  # Whether this entry applies to a human person or a machine
+
+    allow_source_uploads = Column(Boolean(), default=True)  # Whether source uploads are permitted
+    allow_binary_uploads = Column(Boolean(), default=True)  # Whether binary package uploads are permitted
+    always_review = Column(Boolean(), default=False)  # Whether uploads of this entity should always end up in the NEW queue
+    allowed_packages = Column(ARRAY(Text()))  # Names of source packages that this entity is allowed to touch, empty to allow all
+
+    repos = relationship('ArchiveRepository',
+                         secondary=uploader_repo_assoc_table,
+                         back_populates='uploaders')
+
+    def __init__(self, name):
+        self.name = name
 
 
 class ArchiveSuite(Base):
