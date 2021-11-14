@@ -1,0 +1,11 @@
+main-contrib-with-debug (0.2-1) unstable; urgency=medium
+
+  * new version
+
+ -- Snowman ☃ <snowman@example.com>  Wed, 17 Apr 2019 12:33:48 +0000
+
+main-contrib-with-debug (0.1-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- A Maintainer <maint@example.com>  Tue, 16 Apr 2019 18:22:12 +0000

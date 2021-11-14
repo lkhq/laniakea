@@ -1,0 +1,3 @@
+(define-emacs-module
+  '((description . "I am an example emacs-kernel module")
+    (author . "Ansgar Burchardt <ansgar@debian.org")))

@@ -1,0 +1,19 @@
+Source: main-contrib-with-debug
+Section: misc
+Priority: extra
+Maintainer: A Maintainer <maint@example.com>
+Build-Depends: debhelper-compat (= 12)
+Rules-Requires-Root: no
+
+Package: main-package
+Architecture: all
+Depends: ${misc:Depends}
+Description: a package
+ a package
+
+Package: contrib-with-debug
+Architecture: any
+Section: contrib/misc
+Depends: ${misc:Depends}
+Description: a package
+ a package

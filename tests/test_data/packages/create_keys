@@ -1,0 +1,24 @@
+#! /bin/bash
+
+export GNUPGHOME=$PWD/gpg
+
+create_key() {
+	KEYUID="$1"
+	EPOCH="$2"
+	echo creating key for "$KEYUID"
+	EPOCH_OPT=""
+	if [ "$EPOCH" != "" ]
+	then
+		EPOCH_OPT=" --faked-system-time $EPOCH "
+	fi
+	gpg $EPOCH_OPT --batch --passphrase "" --quick-generate-key "$KEYUID" default default never
+
+
+}
+
+# create keys with date in the past, to be able to manually expire them at some
+# later time in the past for testing
+create_key "Développeur <developpeur@example.com>" 20200202T200000
+create_key "Snowman ☃ <snowman@example.com>" 20200202T200000
+
+

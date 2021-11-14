@@ -1,0 +1,11 @@
+binnmupkg (0.1-1+b1) testing-proposed-updates; urgency=medium, binary-only=yes
+
+  * Binary-only non-maintainer upload for amd64; no source changes.
+
+ -- A Maintainer <maint@example.com>  Sat, 13 Jul 2019 16:29:19 +0000
+
+binnmupkg (0.1-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- A Maintainer <maint@example.com>  Fri, 08 Jun 2012 18:10:01 +0200

@@ -1,0 +1,21 @@
+Source: linux
+Section: kernel
+Priority: optional
+Maintainer: A Maintainer <maint@example.com>
+Build-Depends: debhelper-compat (= 12)
+Rules-Requires-Root: no
+
+Package: linux-image-all
+Architecture: all
+Depends: ${misc:Depends}
+Description: GNU Emacs editor (kernel)
+ GNU Emacs is the extensible self-documenting text editor.
+ This package contains the kernel component, formerly known as Linux.
+
+Package: linux-image-all-signed-template
+Architecture: all
+Depends: ${misc:Depends}
+Description: GNU Emacs editor (kernel, template for signed packages)
+ GNU Emacs is the extensible self-documenting text editor.
+ This package contains templates for building a signed version of the
+ kernel component.

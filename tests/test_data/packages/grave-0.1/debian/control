@@ -1,0 +1,12 @@
+Source: grave
+Section: misc
+Priority: extra
+Maintainer: Développeur <developpeur@example.com>
+Build-Depends: debhelper-compat (= 12)
+Rules-Requires-Root: no
+
+Package: grave
+Architecture: all
+Depends: ${misc:Depends}
+Description: è package
+ è package

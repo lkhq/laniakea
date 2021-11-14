@@ -1,0 +1,8 @@
+/*.changes
+/*.deb
+/*.diff.gz
+/*.dsc
+/*.tar.gz
+/stamp-*
+
+/*/debian/files

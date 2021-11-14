@@ -1,0 +1,13 @@
+Source: package-built-using
+Section: misc
+Priority: extra
+Maintainer: A Maintainer <maint@example.com>
+Build-Depends: debhelper-compat (= 12)
+Rules-Requires-Root: no
+
+Package: package-built-using
+Architecture: all
+Depends: ${misc:Depends}
+Built-Using: package (= 0.1-1)
+Description: a package
+ a package

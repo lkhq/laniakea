@@ -1,0 +1,12 @@
+Source: snowman
+Section: misc
+Priority: extra
+Maintainer: Snowman ☃ <snowman@example.com>
+Build-Depends: debhelper-compat (= 12)
+Rules-Requires-Root: no
+
+Package: snowman
+Architecture: all
+Depends: ${misc:Depends}
+Description: a ☃ package
+ a ☃ package
