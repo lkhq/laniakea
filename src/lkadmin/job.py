@@ -5,13 +5,26 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import click
+import uuid
 from sqlalchemy.orm import undefer
 from laniakea.db import session_scope, Job, JobStatus, JobResult
 from .utils import print_note
 
 
-def job_retry(options):
-    job_uuid = options.retry
+@click.group()
+def job():
+    ''' Manage the Spark job queue. '''
+    pass
+
+
+@job.command()
+@click.option('--id', '-j',
+              help='The UUID of the job to retry.')
+def retry(id):
+    ''' Retry an existing job.
+    Set the job's state back to waiting, so it gets rescheduled. '''
+    job_uuid = str(uuid.UUID(id))
     if not job_uuid:
         print('No job ID to retry was set!')
         sys.exit(1)
@@ -44,22 +57,3 @@ def job_retry(options):
         job.latest_log_excerpt = None
 
         print_note('Job {}/{}::{} was rescheduled.'.format(str(job.module), str(job.kind), str(job.uuid)))
-
-
-def module_job_init(options):
-    ''' Modify Laniakea Jobs '''
-
-    if options.retry:
-        job_retry(options)
-    else:
-        print('No action selected.')
-        sys.exit(1)
-
-
-def add_cli_parser(parser):
-    sp = parser.add_parser('job', help='Modify Spark jobs')
-
-    sp.add_argument('--retry', type=str, dest='retry',
-                    help='Retry an existing job and set its state back to waiting, so it gets rescheduled.')
-
-    sp.set_defaults(func=module_job_init)

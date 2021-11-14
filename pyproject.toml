@@ -31,6 +31,7 @@ base = [
     'PyGObject',
     'PyNaCl',
     'systemd-python',
+    'click>=7.1',
     'gir:AppStream~=1.0',
 ]
 web = [

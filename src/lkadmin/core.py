@@ -5,11 +5,20 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import click
 from laniakea.db import session_factory, session_scope
 from .utils import print_header, print_note, input_str, input_bool, input_list
 
 
-def database_init(options):
+@click.group()
+def core():
+    ''' Elemental functions affecting all of Laniakea. '''
+    pass
+
+
+@core.command()
+def db_init():
+    ''' Initialize database schemas on an empty database. '''
     from laniakea.db import Database
     db = Database()
     db.create_tables()
@@ -17,7 +26,9 @@ def database_init(options):
     print('Database tables created.')
 
 
-def database_upgrade(options):
+@core.command()
+def db_upgrade():
+    ''' Upgrade database schemas to latest version. '''
     from laniakea.db import Database
     db = Database()
     db.upgrade()
@@ -97,11 +108,13 @@ def _add_new_suite(session):
     session.commit()
 
 
-def ask_settings(options):
+@core.command()
+def configure_all():
+    ''' Configure all basic settings in one go. '''
     from laniakea.db.core import config_set_project_name, config_set_distro_tag
     from laniakea.db import ArchiveRepository, ArchiveSuite
 
-    database_init(options)
+    db_init()
     print_header('Configuring base settings for Laniakea')
     session = session_factory()
 
@@ -142,12 +155,16 @@ def ask_settings(options):
     session.commit()
 
 
-def add_suite(options):
+@core.command()
+def add_suite():
+    ''' Add a new archive suite. '''
     with session_scope() as session:
         _add_new_suite(session)
 
 
+@core.command()
 def delete_suite(options):
+    ''' Delete an archive suite. '''
     from laniakea.db import ArchiveSuite
 
     suite_name = options.delete_suite
@@ -165,38 +182,3 @@ def delete_suite(options):
             print('A suite with name "{}" was not found!'.format(suite_name))
             sys.exit(4)
         session.delete(suite)
-
-
-def module_core_init(options):
-    ''' Change the Laniakea Core module '''
-
-    if options.init_db:
-        database_init(options)
-    elif options.upgrade:
-        database_upgrade(options)
-    elif options.config:
-        ask_settings(options)
-    elif options.add_suite:
-        add_suite(options)
-    elif options.delete_suite:
-        delete_suite(options)
-    else:
-        print('No action selected.')
-        sys.exit(1)
-
-
-def add_cli_parser(parser):
-    sp = parser.add_parser('core', help='Basic actions that affect all modules')
-
-    sp.add_argument('--init-db', action='store_true', dest='init_db',
-                    help='Initialize database tables.')
-    sp.add_argument('--upgrade', action='store_true', dest='upgrade',
-                    help='Upgrade database.')
-    sp.add_argument('--config', action='store_true', dest='config',
-                    help='Configure this module.')
-    sp.add_argument('--add-suite', action='store_true', dest='add_suite',
-                    help='Register new suite.')
-    sp.add_argument('--delete-suite', dest='delete_suite', type=str, metavar='SUITE_NAME',
-                    help='Remove a suite from the archive.')
-
-    sp.set_defaults(func=module_core_init)

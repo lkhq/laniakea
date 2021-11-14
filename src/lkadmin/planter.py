@@ -5,10 +5,19 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import click
 from .utils import print_header, input_str
 
 
-def ask_settings(options):
+@click.group()
+def planter():
+    ''' Configure settings for Planter (seed packages) '''
+    pass
+
+
+@planter.command()
+def configure_all():
+    ''' Configure this module. '''
 
     def planter_set_value(key, value):
         from laniakea.db.core import LkModule, config_set_value
@@ -19,22 +28,3 @@ def ask_settings(options):
     git_url = input_str('Git clone URL for the germinate metapackage sources')
     if git_url:
         planter_set_value('git_seeds_url', git_url)
-
-
-def module_planter_init(options):
-    ''' Change the Laniakea Planter module '''
-
-    if options.config:
-        ask_settings(options)
-    else:
-        print('No action selected.')
-        sys.exit(1)
-
-
-def add_cli_parser(parser):
-    sp = parser.add_parser('planter', help='Configure settings for Planter (seed packages)')
-
-    sp.add_argument('--config', action='store_true', dest='config',
-                    help='Configure this module.')
-
-    sp.set_defaults(func=module_planter_init)

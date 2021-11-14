@@ -5,13 +5,22 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import click
 from typing import Optional
 from laniakea.db import session_scope, ImageBuildRecipe, ImageFormat, LkModule, Job, JobKind
 from .utils import print_header, print_done, print_note, input_str, input_list
 from laniakea.msgstream import EventEmitter
 
 
-def add_image_recipe(options):
+@click.group()
+def isotope():
+    ''' Configure disk image build recipes. '''
+    pass
+
+
+@isotope.command()
+def add_image_recipe():
+    ''' Create a new image build recipe. '''
 
     print_header('Add new ISO/IMG image build recipe')
 
@@ -63,8 +72,10 @@ def add_image_recipe(options):
         print_done('Created recipe with name: {}'.format(recipe.name))
 
 
-def trigger_image_build(options):
-    recipe_name = options.trigger_build
+@isotope.command()
+@click.argument('recipe_name', nargs=1)
+def trigger_image_build(recipe_name):
+    ''' Schedule a disk image build job. '''
 
     with session_scope() as session:
         recipe: Optional[ImageBuildRecipe] = session.query(ImageBuildRecipe) \
@@ -106,27 +117,3 @@ def trigger_image_build(options):
 
         session.commit()
         print_done('Scheduled {} job(s) for {}.'.format(job_count, recipe.name))
-
-
-def module_isotope_init(options):
-    ''' Change the Laniakea Isotope module '''
-
-    if options.add_recipe:
-        add_image_recipe(options)
-    elif options.trigger_build:
-        trigger_image_build(options)
-    else:
-        print('No action selected.')
-        sys.exit(1)
-
-
-def add_cli_parser(parser):
-    sp = parser.add_parser('isotope', help='Configure disk image build recipes.')
-
-    sp.add_argument('--add-recipe', action='store_true', dest='add_recipe',
-                    help='Create a new image build recipe.')
-
-    sp.add_argument('--trigger-build', dest='trigger_build',
-                    help='Schedule a disk image build job.')
-
-    sp.set_defaults(func=module_isotope_init)

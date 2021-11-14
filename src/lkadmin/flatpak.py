@@ -6,13 +6,23 @@
 
 import os
 import sys
+import click
 from laniakea import LocalConfig
 from laniakea.db import session_scope, config_get_distro_tag, FlatpakRepository
 from laniakea.flatpak_util import FlatpakUtil
 from .utils import print_header, print_note, print_error_exit, input_str, input_list
 
 
-def add_flatpak_repo(options):
+@click.group()
+def flatpak():
+    ''' Configure settings for Flatpak repositories. '''
+    pass
+
+
+@flatpak.command()
+def add_repo():
+    ''' Create new Flatpak repository. '''
+
     print_header('Add new Flatpak repository')
     lconf = LocalConfig()
     fputil = FlatpakUtil()
@@ -52,22 +62,3 @@ def add_flatpak_repo(options):
 
         fputil.init_repo(repo, repo_path)
         session.add(repo)
-
-
-def module_flatpak_init(options):
-    ''' Change the Laniakea Flatpak module '''
-
-    if options.add_repo:
-        add_flatpak_repo(options)
-    else:
-        print('No action selected.')
-        sys.exit(1)
-
-
-def add_cli_parser(parser):
-    sp = parser.add_parser('flatpak', help='Configure settings for Flatpak repositories')
-
-    sp.add_argument('--add-repo', action='store_true', dest='add_repo',
-                    help='Create new Flatpak repository.')
-
-    sp.set_defaults(func=module_flatpak_init)

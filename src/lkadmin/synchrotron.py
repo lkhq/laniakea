@@ -5,12 +5,22 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import click
 from .utils import print_header, print_section, print_note, input_str, input_bool, input_list
 from laniakea.db import session_scope, SynchrotronSource, SynchrotronConfig, SyncBlacklistEntry, \
     ArchiveSuite
 
 
-def ask_settings(options):
+@click.group()
+def synchrotron():
+    ''' Adjust package synchronization settings. '''
+    pass
+
+
+@synchrotron.command()
+def configure_all():
+    ''' Configure this module. '''
+
     print_header('Configuring base settings for Synchrotron')
     print_section('Add synchronization sources')
 
@@ -61,7 +71,13 @@ def ask_settings(options):
             add_sync_tasks = input_bool('Add another sync task?')
 
 
-def add_blacklist_entry(pkgname, reason):
+@synchrotron.command()
+@click.argument('pkgname', nargs=1)
+@click.argument('reason', nargs=1)
+def blacklist_add(pkgname, reason):
+    ''' Blacklist a package from automatic sync.
+    Takes package name as first, and reason as second parameter.'''
+
     with session_scope() as session:
         # delete existing entry in case it exists
         entry = session.query(SyncBlacklistEntry).filter(SyncBlacklistEntry.pkgname == pkgname).one_or_none()
@@ -74,7 +90,11 @@ def add_blacklist_entry(pkgname, reason):
         entry.reason = reason
 
 
-def remove_blacklist_entry(pkgname):
+@synchrotron.command()
+@click.argument('pkgname', nargs=1)
+def blacklist_remove(pkgname):
+    ''' Remove a package from the sync blacklist. '''
+
     with session_scope() as session:
         # delete existing entry in case it exists
         entry = session.query(SyncBlacklistEntry).filter(SyncBlacklistEntry.pkgname == pkgname).one_or_none()
@@ -82,33 +102,3 @@ def remove_blacklist_entry(pkgname):
             session.delete(entry)
         else:
             print_note('The selected package was not in blacklist. Nothing was removed.')
-
-
-def module_synchrotron_init(options):
-    ''' Change the Laniakea Synchrotron module '''
-
-    if options.config:
-        ask_settings(options)
-    elif options.blacklist_add:
-        info = options.blacklist_add
-        if len(info) != 2:
-            print('Needs a package name and a reason string as paremeters.')
-        add_blacklist_entry(info[0], info[1])
-    elif options.blacklist_remove:
-        remove_blacklist_entry(options.blacklist_remove)
-    else:
-        print('No action selected.')
-        sys.exit(1)
-
-
-def add_cli_parser(parser):
-    sp = parser.add_parser('synchrotron', help='Adjust package synchronization settings.')
-
-    sp.add_argument('--config', action='store_true', dest='config',
-                    help='Configure this module.')
-    sp.add_argument('--blacklist-add', nargs='+', dest='blacklist_add',
-                    help='Blacklist a package from automatic sync. Takes package name as first, and reason as second parameter.')
-    sp.add_argument('--blacklist-remove', dest='blacklist_remove',
-                    help='Remove a package from the sync blacklist.')
-
-    sp.set_defaults(func=module_synchrotron_init)

@@ -5,67 +5,60 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
-from argparse import ArgumentParser, HelpFormatter
+import click
 
 __mainfile = None
 
 
-def check_print_version(options):
-    if options.show_version:
+@click.group(invoke_without_command=True)
+@click.option('--verbose', envvar='VERBOSE', default=False, is_flag=True,
+              help='Enable debug messages.')
+@click.option('--version', default=False, is_flag=True,
+              help='Display the version of Laniakea itself.')
+@click.pass_context
+def cli(ctx, verbose, version):
+    '''Administer a Laniakea instance.
+
+     This utility allows you to perform a lot of administrative actions for
+     Laniakea directly from the command-line.'''
+    if verbose:
+        from laniakea.logging import set_verbose
+        set_verbose(True)
+    if version:
         from laniakea import __version__
         print(__version__)
         sys.exit(0)
+    if ctx.invoked_subcommand is None:
+        click.echo('No subcommand was provided. Can not continue.')
+        sys.exit(1)
 
 
-class CustomArgparseFormatter(HelpFormatter):
-
-    def _split_lines(self, text, width):
-        print(text)
-        if text.startswith('CF|'):
-            return text[3:].splitlines()
-        return HelpFormatter._split_lines(self, text, width)
-
-
-def create_parser(formatter_class=None):
-    ''' Create lkadmin CLI argument parser '''
-
-    if not formatter_class:
-        formatter_class = CustomArgparseFormatter
-
-    parser = ArgumentParser(description='Administer a Laniakea instance', formatter_class=formatter_class)
-    subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
-
-    # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose',
-                        help='Enable debug messages.')
-    parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of Laniakea itself.')
+def _register_commands():
+    ''' Register lk-admin subcommands. '''
 
     import lkadmin.core as core
-    core.add_cli_parser(subparsers)
+    cli.add_command(core.core)
 
     import lkadmin.job as job
-    job.add_cli_parser(subparsers)
+    cli.add_command(job.job)
 
     import lkadmin.synchrotron as synchrotron
-    synchrotron.add_cli_parser(subparsers)
+    cli.add_command(synchrotron.synchrotron)
 
     import lkadmin.spears as spears
-    spears.add_cli_parser(subparsers)
+    cli.add_command(spears.spears)
 
     import lkadmin.ariadne as ariadne
-    ariadne.add_cli_parser(subparsers)
+    cli.add_command(ariadne.ariadne)
 
     import lkadmin.isotope as isotope
-    isotope.add_cli_parser(subparsers)
+    cli.add_command(isotope.isotope)
 
     import lkadmin.planter as planter
-    planter.add_cli_parser(subparsers)
+    cli.add_command(planter.planter)
 
     import lkadmin.flatpak as flatpak
-    flatpak.add_cli_parser(subparsers)
-
-    return parser
+    cli.add_command(flatpak.flatpak)
 
 
 def run(mainfile, args):
@@ -76,8 +69,5 @@ def run(mainfile, args):
     global __mainfile
     __mainfile = mainfile
 
-    parser = create_parser()
-
-    args = parser.parse_args(args)
-    check_print_version(args)
-    args.func(args)
+    _register_commands()
+    cli()

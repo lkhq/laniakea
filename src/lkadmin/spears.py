@@ -5,12 +5,22 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import click
 from laniakea.db import session_factory
 from .utils import print_header, input_str, input_bool, input_list, \
     input_int, print_error_exit
 
 
-def ask_settings(options):
+@click.group()
+def spears():
+    ''' Configure automatic package migration. '''
+    pass
+
+
+@spears.command()
+def configure_all():
+    ''' Configure this module.'''
+
     from laniakea.db import SpearsMigrationEntry, VersionPriority
 
     print_header('Configuring settings for Spears (migrations)')
@@ -36,85 +46,56 @@ def ask_settings(options):
         add_migration = input_bool('Add another migration task?')
 
 
-def add_hint(options):
-    from laniakea.db import SpearsHint
+@spears.command()
+@click.argument('source_suite', nargs=1)
+@click.argument('target_suite', nargs=1)
+@click.argument('hint', nargs=1)
+@click.argument('reason', nargs=1)
+def add_hint(source_suite, target_suite, hint, reason):
+    ''' Add a migration hint.
+    SOURCE_SUITE: Source suite of the package.
+    TARGET_SUITE: Target suite of the package.
+    HINT: Britney hint string.
+    REASON: Reason for adding this hint.
+    '''
 
-    if not options.source_suite:
-        print_error_exit('The source-suite parameter is missing!')
-    if not options.target_suite:
-        print_error_exit('The target-suite parameter is missing!')
-    if not options.hint:
-        print_error_exit('The hint parameter is missing!')
-    if not options.reason:
-        print_error_exit('The reason parameter is missing!')
+    from laniakea.db import SpearsHint
 
     session = session_factory()
 
-    migration_id = '{}-to-{}'.format(options.source_suite, options.target_suite)
+    migration_id = '{}-to-{}'.format(source_suite, target_suite)
 
     # remove a preexisting hint
     session.query(SpearsHint) \
-        .filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == options.hint) \
+        .filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == hint) \
         .delete()
 
-    hint = SpearsHint()
-    hint.migration_id = migration_id
-    hint.hint = options.hint
-    hint.reason = options.reason
+    h = SpearsHint()
+    h.migration_id = migration_id
+    h.hint = hint
+    h.reason = reason
 
-    session.add(hint)
+    session.add(h)
     session.commit()
 
 
-def remove_hint(options):
-    from laniakea.db import SpearsHint
+@spears.command()
+@click.argument('source_suite', nargs=1)
+@click.argument('target_suite', nargs=1)
+@click.argument('hint', nargs=1)
+def remove_hint(source_suite, target_suite, hint):
+    ''' Remove a migration hint.
+    SOURCE_SUITE: Source suite of the package.
+    TARGET_SUITE: Target suite of the package.
+    HINT: Britney hint string.
+    REASON: Reason for adding this hint.
+    '''
 
-    if not options.source_suite:
-        print_error_exit('The source-suite parameter is missing!')
-    if not options.target_suite:
-        print_error_exit('The target-suite parameter is missing!')
-    if not options.hint:
-        print_error_exit('The hint parameter is missing!')
+    from laniakea.db import SpearsHint
 
     session = session_factory()
 
-    migration_id = '{}-to-{}'.format(options.source_suite, options.target_suite)
+    migration_id = '{}-to-{}'.format(source_suite, target_suite)
     session.query(SpearsHint) \
-        .filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == options.hint) \
+        .filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == hint) \
         .delete()
-
-
-def module_spears_init(options):
-    ''' Change the Laniakea Spears module '''
-
-    if options.config:
-        ask_settings(options)
-    elif options.add_hint:
-        add_hint(options)
-    elif options.remove_hint:
-        remove_hint(options)
-    else:
-        print('No action selected.')
-        sys.exit(1)
-
-
-def add_cli_parser(parser):
-    sp = parser.add_parser('spears', help='Configure automatic package migration.')
-
-    sp.add_argument('--config', action='store_true', dest='config',
-                    help='Configure this module.')
-
-    sp.add_argument('--add-hint', action='store_true', dest='add_hint',
-                    help='Add a migration hint.')
-    sp.add_argument('--remove-hint', action='store_true', dest='add_hint',
-                    help='Remove a migration hint.')
-    sp.add_argument('source_suite', action='store', nargs='?', default=None,
-                    help='The source suite(s) for the hint.')
-    sp.add_argument('target_suite', action='store', nargs='?', default=None,
-                    help='The target suite for the hint.')
-    sp.add_argument('hint', action='store', nargs='?', default=None,
-                    help='A britney hint.')
-    sp.add_argument('reason', action='store', nargs='?', default=None,
-                    help='The reason for adding the printey hint.')
-
-    sp.set_defaults(func=module_spears_init)
