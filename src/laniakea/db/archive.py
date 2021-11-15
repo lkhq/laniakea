@@ -21,11 +21,6 @@ UUID_NS_BINPACKAGE = uuid.UUID('b897829c-2eb4-503c-afd1-0fd74da8cc2b')
 UUID_NS_SWCOMPONENT = uuid.UUID('94c8e196-e236-48fe-81c8-38dd47de4650')
 
 
-repo_suite_assoc_table = Table('archive_repo_suite_association', Base.metadata,
-                               Column('repo_id', Integer, ForeignKey('archive_repositories.id', ondelete='cascade')),
-                               Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
-                               )
-
 uploader_repo_assoc_table = Table('archive_uploader_repo_association', Base.metadata,
                                Column('uploader_id', Integer, ForeignKey('archive_uploaders.id', ondelete='cascade')),
                                Column('repo_id', Integer, ForeignKey('archive_repositories.id'))
@@ -49,9 +44,6 @@ class ArchiveConfig(Base):
 
     archive_url = Column(Text(), nullable=False)  # Web URL of the primary archive mirror
 
-    def __init__(self, name):
-        self.name = name
-
 
 class ArchiveRepository(Base):
     '''
@@ -69,11 +61,9 @@ class ArchiveRepository(Base):
                           secondary=uploader_repo_assoc_table,
                           back_populates='repos')
 
-    suites = relationship('ArchiveSuite',
-                          secondary=repo_suite_assoc_table,
-                          back_populates='repos')
     suite_settings = relationship('ArchiveRepoSuiteSettings',
-                                  back_populates='repo')
+                                  back_populates='repo',
+                                  uselist=True)
 
     def __init__(self, name):
         self.name = name
@@ -155,8 +145,8 @@ class ArchiveUploader(Base):
                          secondary=uploader_repo_assoc_table,
                          back_populates='uploaders')
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, email: str):
+        self.email = email
 
 
 class ArchiveSuite(Base):
@@ -173,7 +163,6 @@ class ArchiveSuite(Base):
     version = Column(String(64), nullable=True)  # Version string applicable for this suite
     is_debug = Column(Boolean(), default=False)  # True in case this suite contains debug symbol packages
 
-    repos = relationship('ArchiveRepository', secondary=repo_suite_assoc_table, back_populates='suites')
     architectures = relationship('ArchiveArchitecture', secondary=suite_arch_assoc_table, back_populates='suites')
     components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
 
@@ -205,8 +194,9 @@ class ArchiveSuite(Base):
 
     _primary_arch = None
 
-    def __init__(self, name):
+    def __init__(self, name: str, alias: str = None):
         self.name = name
+        self.alias = alias
 
     @property
     def primary_architecture(self):
@@ -250,7 +240,7 @@ class ArchiveRepoSuiteSettings(Base):
 
     valid_time = Column(Integer, default=604800)  # time in seconds how long the suite index should be considered valid
     phased_update_delay = Column(Integer, default=0)  # delay before a package is available to 100% of all users (0 to disable phased updates)
-    signingkeys = Column(ARRAY(String(64)))  # List of architectures this source package can be built for
+    signingkeys = Column(ARRAY(String(64)))  # Keys packages uploaded to this suite will be signed with
     announce_emails = Column(ARRAY(Text()))  # E-Mail addresses that changes to this repository should be announced at
 
     def __init__(self, repo: ArchiveRepository, suite: ArchiveSuite):

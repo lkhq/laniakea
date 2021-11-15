@@ -39,6 +39,9 @@ def _register_commands():
     import lkadmin.core as core
     cli.add_command(core.core)
 
+    import lkadmin.archive as archive
+    cli.add_command(archive.archive)
+
     import lkadmin.job as job
     cli.add_command(job.job)
 

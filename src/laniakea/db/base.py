@@ -86,9 +86,9 @@ class Database:
             self._update_static_data()
             log.info('Database upgrade done.')
 
-        def _update_static_data(selfself):
+        def _update_static_data(self):
             import json
-            from .archive import ArchiveSection
+            from .archive import ArchiveSection, ArchiveRepository, ArchiveConfig
             from ..localconfig import get_data_file
 
             log.info('Updating static database data.')
@@ -110,6 +110,18 @@ class Database:
                     else:
                         section = ArchiveSection(jsec['name'], jsec['summary'])
                         session.add(section)
+
+                aconfig = session.query(ArchiveConfig).first()
+                if not aconfig:
+                    master_repo = session.query(ArchiveRepository) \
+                                         .filter(ArchiveRepository.name == 'master').one_or_none()
+                    if not master_repo:
+                        master_repo = ArchiveRepository('master')
+                        session.add(master_repo)
+                    aconfig = ArchiveConfig()
+                    aconfig.primary_repo = master_repo
+                    aconfig.archive_url = self._lconf.archive_url
+                    session.add(aconfig)
 
         def downgrade(self, revision):
             ''' Upgrade database schema to the newest revision '''
