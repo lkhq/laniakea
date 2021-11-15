@@ -56,6 +56,14 @@ class ArchiveRepository(Base):
 
     name = Column(String(128), unique=True)  # Name of the repository
     origin_name = Column(String(200))  # Name of the origin of this repository (e.g. "Purism")
+    is_debug = Column(Boolean(), default=False)  # If True, this repository is used for debug suites
+
+    debug_repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
+    debug_repo = relationship('ArchiveRepository', back_populates='debug_repo_for', uselist=False)  # Debug-symbol repository that belongs to this repository
+    debug_repo_for = relationship('ArchiveRepository',
+                                  back_populates='debug_repo',
+                                  remote_side=[id],
+                                  uselist=False)
 
     uploaders = relationship('ArchiveUploader',
                           secondary=uploader_repo_assoc_table,
@@ -161,7 +169,7 @@ class ArchiveSuite(Base):
     alias = Column(String(128), unique=True, nullable=True)  # Alternative name of the suite, e.g. "unstable"
     summary = Column(String(200), nullable=True)  # Short description string for this suite
     version = Column(String(64), nullable=True)  # Version string applicable for this suite
-    is_debug = Column(Boolean(), default=False)  # True in case this suite contains debug symbol packages
+    is_debug = Column(Boolean(), default=False)  # True in case this suite contains only debug symbol packages
 
     architectures = relationship('ArchiveArchitecture', secondary=suite_arch_assoc_table, back_populates='suites')
     components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
@@ -244,6 +252,9 @@ class ArchiveRepoSuiteSettings(Base):
     announce_emails = Column(ARRAY(Text()))  # E-Mail addresses that changes to this repository should be announced at
 
     def __init__(self, repo: ArchiveRepository, suite: ArchiveSuite):
+        if repo.is_debug != suite.is_debug:
+            raise ValueError('Debug-Type values of suite and repository do not match: Suite is debug={}, while repo is debug={}'.format(
+                suite.is_debug, repo.is_debug))
         self.repo_id = repo.id
         self.suite_id = suite.id
 
@@ -455,7 +466,7 @@ class SourcePackage(Base):
     # The unique identifier for the whole source packaging project (stays the same even if the package version changes)
     source_uuid = Column(UUID(as_uuid=True), default=None, nullable=False)
 
-    name = Column(String(256))  # Source package name
+    name = Column(String(200))  # Source package name
     version = Column(DebVersion())  # Version of this package
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
@@ -468,6 +479,7 @@ class SourcePackage(Base):
 
     time_added = Column(DateTime(), default=datetime.utcnow)  # Time when this package was first seen
     time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive
+    time_deleted = Column(DateTime(), nullable=True)  # Time when this package was deleted from the archive
 
     section_id = Column(Integer, ForeignKey('archive_sections.id'))
     section = relationship('ArchiveSection')  # Section of the source package
@@ -567,15 +579,32 @@ class SourcePackage(Base):
         return '{}::source/{}/{}'.format(repo_name, self.name, self.version)
 
 
-class PackageOverrides(Base):
+class ArchiveVersionMemory(Base):
     '''
-    Data of a binary package.
+    Remember the highest version number for a source package that a repository has seen.
+    '''
+    __tablename__ = 'archive_pkg_version_memory'
+    __table_args__ = (UniqueConstraint('pkgname', 'repo_id', name='_pkgname_repo_uc'),)
+
+    id = Column(Integer, primary_key=True)
+
+    pkgname = Column(String(200))  # Name of the source package
+
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
+    repo = relationship('ArchiveRepository')
+
+    highest_version = Column(DebVersion())  # Highest version of the source package that we have seen so far
+
+
+class PackageOverride(Base):
+    '''
+    Overridable "archive organization" data of a binary package.
     '''
     __tablename__ = 'archive_pkg_overrides'
 
     id = Column(Integer, primary_key=True)
 
-    pkgname = Column(String(256))  # Name of the binary package name
+    pkgname = Column(String(200))  # Name of the binary package
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     repo = relationship('ArchiveRepository')
@@ -599,7 +628,7 @@ class BinaryPackage(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
     deb_type = Column(Enum(DebType))  # Deb package type
 
-    name = Column(String(256))  # Package name
+    name = Column(String(200))  # Package name
     version = Column(DebVersion())  # Version of this package
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
@@ -615,6 +644,10 @@ class BinaryPackage(Base):
 
     source_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
     source = relationship('SourcePackage', back_populates='binaries')
+
+    time_added = Column(DateTime(), nullable=True)  # Time when this package was added to the archive
+    time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive
+    time_deleted = Column(DateTime(), nullable=True)  # Time when this package was deleted from the archive
 
     size_installed = Column(Integer())  # Size of the installed package
 
@@ -639,8 +672,9 @@ class BinaryPackage(Base):
 
     multi_arch = Column(CHAR(32))
 
-    time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive
     phased_update_percentage = Column(SmallInteger(), default=100)
+
+    contents = Column(ARRAY(Text()))  # List of filenames that this package contains
 
     extra_data = Column(MutableDict.as_mutable(JSONB))  # Additional key-value metadata that may be specific to this package
 
@@ -706,7 +740,7 @@ class SoftwareComponent(Base):
     summary = Column(Text())  # Short description of this component
     description = Column(Text())  # Description of this component
 
-    icon_name = Column(String(256))  # Name of the primary cached icon of this component
+    icon_name = Column(String(200))  # Name of the primary cached icon of this component
 
     is_free = Column(Boolean(), default=False)  # Whether this component is "free as in freedom" software
     project_license = Column(Text())  # License of this software

@@ -6,6 +6,7 @@
 
 import toml
 import click
+from laniakea import LocalConfig
 from laniakea.db import session_scope, ArchiveRepository, ArchiveComponent, ArchiveArchitecture, ArchiveUploader, \
     ArchiveSuite, ArchiveRepoSuiteSettings
 from .utils import ClickAliasedGroup, input_list, print_header, print_note, input_str, print_error_exit
@@ -17,13 +18,11 @@ def archive():
     pass
 
 
-@archive.command(aliases=['r-a'])
-@click.option('--name', prompt=True, type=str,
-              help='Name of the repository, e.g. "master"')
-@click.option('--origin', prompt=True, type=str, default='',
-              help='Repository origin, e.g. "Debian Project"')
-def repo_add(name: str, origin: str):
-    ''' Create a new repository. '''
+def _add_repo(name: str, origin: str, is_debug: bool = False, debug_for: str = None):
+    ''' Create a new repository (helper function). '''
+
+    if is_debug and not debug_for:
+        raise ValueError('Repo "{}" is marked as debug repo, but no repo name that it contains debug symbols for was given. ')
 
     name = name.lower()
     with session_scope() as session:
@@ -33,6 +32,31 @@ def repo_add(name: str, origin: str):
             repo = ArchiveRepository(name)
             session.add(repo)
         repo.origin_name = origin
+        repo.is_debug = is_debug
+        if is_debug:
+            nd_repo = session.query(ArchiveRepository) \
+                             .filter(ArchiveRepository.name == debug_for).one_or_none()
+            if not nd_repo:
+                raise ValueError('Repository with name "{}" was not found.'.format(debug_for))
+            nd_repo.debug_repo = repo
+
+
+@archive.command(aliases=['r-a'])
+@click.option('--name', prompt=True, type=str,
+              help='Name of the repository, e.g. "master"')
+@click.option('--origin', prompt=True, type=str, default='',
+              help='Repository origin, e.g. "Debian Project"')
+@click.option('--is-debug', 'is_human', prompt=True, default=False, is_flag=True,
+              help='Whether this repository contains only debug symbol packages.')
+@click.option('--debug-for-repo', type=str, default=None,
+              help='Repository name this repository contains debug symbols for.')
+def repo_add(name: str, origin: str, is_debug: bool = False, debug_for_repo: str = None):
+    ''' Create a new repository. '''
+
+    if is_debug and not debug_for_repo:
+        debug_for_repo = input_str('Name of the suite this debug suite contains symbols for')
+
+    _add_repo(name, origin, is_debug, debug_for_repo)
 
 
 @archive.command(aliases=['c-a'])
@@ -102,7 +126,7 @@ def _add_uploader(repo_name, email, fingerprints, is_human,
             uploader.repos.append(repo)
 
 @archive.command(aliases=['u-a'])
-@click.option('--repo', 'repo_name', prompt=True, type=str, default='master',
+@click.option('--repo', 'repo_name', prompt=True, type=str, default=lambda: LocalConfig().master_repo_name,
               help='Name of the repository this entity is allowed to upload to')
 @click.option('--email', prompt=True, type=str,
               help='E-Mail address of the new uploader')
@@ -255,7 +279,7 @@ def _add_suite_to_repo(repo_name: str, suite_name: str,
 
 
 @archive.command(aliases=['r-a-s'])
-@click.option('--repo', 'repo_name', prompt=True, type=str, default='master',
+@click.option('--repo', 'repo_name', prompt=True, type=str, default=lambda: LocalConfig().master_repo_name,
               help='Name of the repository, e.g. "master"')
 @click.option('--suite', 'suite_name', prompt=True, type=str,
               help='Name of the suite, e.g. "sid"')
@@ -293,7 +317,7 @@ def add_from_config(config_fname):
         conf = toml.load(f)
 
     for repo_d in conf.get('Repositories', []):
-        repo_add.callback(**repo_d)
+        _add_repo(**repo_d)
     for component_d in conf.get('Components', []):
         component_add.callback(**component_d)
     for arch_d in conf.get('Architectures', []):

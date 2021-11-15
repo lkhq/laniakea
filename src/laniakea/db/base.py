@@ -111,13 +111,30 @@ class Database:
                         section = ArchiveSection(jsec['name'], jsec['summary'])
                         session.add(section)
 
+                master_repo_name = self._lconf.master_repo_name
+                if not master_repo_name:
+                    raise ValueError('No name set for the master repository of this distribution!')
+                master_debug_repo_name = '{}-debug'.format(master_repo_name)
+
                 aconfig = session.query(ArchiveConfig).first()
                 if not aconfig:
                     master_repo = session.query(ArchiveRepository) \
-                                         .filter(ArchiveRepository.name == 'master').one_or_none()
+                                         .filter(ArchiveRepository.name == master_repo_name).one_or_none()
+                    master_debug_repo = session.query(ArchiveRepository) \
+                                               .filter(ArchiveRepository.name == master_debug_repo_name).one_or_none()
                     if not master_repo:
-                        master_repo = ArchiveRepository('master')
+                        master_repo = ArchiveRepository(master_repo_name)
                         session.add(master_repo)
+                    if not master_debug_repo:
+                        master_debug_repo = ArchiveRepository(master_debug_repo_name)
+                        session.add(master_debug_repo)
+
+                    # set up repo<->debug-repo relation
+                    master_debug_repo.is_debug = True
+                    master_repo.debug_repo = master_debug_repo
+                    master_repo.is_debug = False
+
+                    # set primary repository
                     aconfig = ArchiveConfig()
                     aconfig.primary_repo = master_repo
                     aconfig.archive_url = self._lconf.archive_url

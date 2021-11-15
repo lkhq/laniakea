@@ -78,8 +78,8 @@ class LocalConfig:
                 with open(fname) as toml_file:
                     cdata = toml.load(toml_file)
 
-            jarchive = cdata.get('Archive')
-            if not jarchive:
+            carchive = cdata.get('Archive')
+            if not carchive:
                 raise Exception('No "Archive" configuration found in local config file. Please specify archive details!')
 
             self._workspace = cdata.get('Workspace')
@@ -101,11 +101,12 @@ class LocalConfig:
                                                                                                 port=db_port,
                                                                                                 dbname=db_name)
 
-            self._archive_root_dir = jarchive.get('path', '/nonexistent')
-            self._archive_url = jarchive.get('url', '#')
-            self._archive_appstream_media_url = jarchive.get('appstream_media_url', 'https://appstream.debian.org/media/pool')
+            self._master_repo_name = carchive.get('master_repo_name', 'master')
+            self._archive_root_dir = carchive.get('path', '/nonexistent')
+            self._archive_url = carchive.get('url', '#')
+            self._archive_appstream_media_url = carchive.get('appstream_media_url', 'https://appstream.debian.org/media/pool')
 
-            self._archive_urgencies_export_dir = jarchive.get('urgencies_export_dir', '/srv/dak/export/urgencies/')
+            self._archive_urgencies_export_dir = carchive.get('urgencies_export_dir', '/srv/dak/export/urgencies/')
 
             self._lighthouse = LocalConfig.LighthouseConfig()
             lhconf = cdata.get('Lighthouse', {})
@@ -150,6 +151,11 @@ class LocalConfig:
         @property
         def database_url(self) -> str:
             return self._database_url
+
+        @property
+        def master_repo_name(self) -> str:
+            ''' Name of the master repository for this distribution, that (usually) all other repositories are based on. '''
+            return self._master_repo_name
 
         @property
         def archive_root_dir(self) -> str:
