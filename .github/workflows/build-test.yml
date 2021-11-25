@@ -2,9 +2,9 @@ name: Build Test
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, wip/nativearchive ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, wip/nativearchive ]
 
 jobs:
   linters-deb-testing:
