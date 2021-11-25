@@ -4,11 +4,12 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import json
+
 import pytest
 import zmq
-import json
-from laniakea.db import session_scope, SourcePackage, Job, JobKind
 
+from laniakea.db import Job, JobKind, SourcePackage, session_scope
 
 dataimport_suite = 'unstable'
 

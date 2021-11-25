@@ -6,6 +6,7 @@
 
 import sys
 from argparse import ArgumentParser
+
 from .spearsengine import SpearsEngine
 
 __mainfile = None

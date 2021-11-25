@@ -5,10 +5,13 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import math
-from flask import current_app, Blueprint, render_template, abort
-from laniakea.db import session_scope, SparkWorker, Job, JobStatus, JobKind, JobResult, \
-    SourcePackage, ImageBuildRecipe
+
+from flask import Blueprint, abort, current_app, render_template
+
+from laniakea.db import (ImageBuildRecipe, Job, JobKind, JobResult, JobStatus,
+                         SourcePackage, SparkWorker, session_scope)
 from laniakea.utils import get_dir_shorthand_for_uuid
+
 from ..utils import humanized_timediff, is_uuid
 
 jobs = Blueprint('jobs',

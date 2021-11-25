@@ -5,16 +5,20 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import uuid
 import random
-import zmq
+import uuid
 from datetime import datetime
-from laniakea.msgstream.signing import NACL_ED25519, decode_signing_key_base64, decode_verify_key_bytes, \
-    keyfile_read_signing_key
-from laniakea.msgstream.signedjson import sign_json, verify_signed_json
-from laniakea.utils import decode_base64, json_compact_dump
+
+import zmq
+
 from laniakea.localconfig import LocalConfig
 from laniakea.logging import log
+from laniakea.msgstream.signedjson import sign_json, verify_signed_json
+from laniakea.msgstream.signing import (NACL_ED25519,
+                                        decode_signing_key_base64,
+                                        decode_verify_key_bytes,
+                                        keyfile_read_signing_key)
+from laniakea.utils import decode_base64, json_compact_dump
 
 
 def create_message_tag(module, subject):

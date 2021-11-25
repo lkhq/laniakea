@@ -6,12 +6,15 @@
 
 import os
 import subprocess
-import yaml
 from datetime import datetime
+
+import yaml
+
+from laniakea.db import (DebcheckIssue, PackageConflict, PackageIssue,
+                         PackageType)
 from laniakea.localconfig import LocalConfig
-from laniakea.repository import Repository
-from laniakea.db import DebcheckIssue, PackageType, PackageIssue, PackageConflict
 from laniakea.logging import log
+from laniakea.repository import Repository
 
 
 class Debcheck:

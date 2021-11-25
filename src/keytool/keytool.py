@@ -6,6 +6,7 @@
 
 import os
 import sys
+
 thisfile = __file__
 if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
@@ -14,13 +15,18 @@ if not thisfile.startswith(('/usr', '/bin')):
     sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 import datetime
-import zmq.auth
 from argparse import ArgumentParser
+
+import zmq.auth
+
 from laniakea import LocalConfig
-from laniakea.utils import stringify
-from laniakea.msgstream.signing import generate_signing_key, get_verify_key, \
-    encode_signing_key_base64, encode_verify_key_base64, keyfile_read_verify_key, keyfile_read_signing_key
 from laniakea.logging import log
+from laniakea.msgstream.signing import (encode_signing_key_base64,
+                                        encode_verify_key_base64,
+                                        generate_signing_key, get_verify_key,
+                                        keyfile_read_signing_key,
+                                        keyfile_read_verify_key)
+from laniakea.utils import stringify
 
 
 def _create_metadata_section(metadata):

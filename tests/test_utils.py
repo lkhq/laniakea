@@ -8,7 +8,7 @@ import pytest
 
 
 def test_base64():
-    from laniakea.utils import encode_base64, decode_base64
+    from laniakea.utils import decode_base64, encode_base64
 
     # test encode
     assert encode_base64(b'') == ''

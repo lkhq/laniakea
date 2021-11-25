@@ -4,13 +4,15 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import uuid
 import logging as log
+import uuid
 from datetime import datetime
 from typing import Optional
-from laniakea import LocalConfig, LkModule
-from laniakea.db import session_scope, config_get_value, Job, JobStatus, JobKind, JobResult, \
-    SparkWorker, SourcePackage, ArchiveSuite, ImageBuildRecipe
+
+from laniakea import LkModule, LocalConfig
+from laniakea.db import (ArchiveSuite, ImageBuildRecipe, Job, JobKind,
+                         JobResult, JobStatus, SourcePackage, SparkWorker,
+                         config_get_value, session_scope)
 from laniakea.msgstream import create_message_tag
 from laniakea.utils import json_compact_dump
 

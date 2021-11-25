@@ -5,9 +5,9 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import re
-import humanize
 from datetime import datetime
 
+import humanize
 
 UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 

@@ -5,22 +5,20 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+ AND Apache-2.0
 
-import pytest
 import nacl.signing
+import pytest
+
+from laniakea.msgstream.signedjson import (SignatureVerifyException, sign_json,
+                                           signature_ids, verify_signed_json)
+from laniakea.msgstream.signing import (decode_signing_key_base64,
+                                        decode_verify_key_bytes,
+                                        encode_signing_key_base64,
+                                        encode_verify_key_base64,
+                                        generate_signing_key, get_verify_key,
+                                        is_signing_algorithm_supported,
+                                        read_old_signing_keys,
+                                        read_signing_keys, write_signing_keys)
 from laniakea.utils import decode_base64, encode_base64
-from laniakea.msgstream.signedjson import SignatureVerifyException, sign_json, verify_signed_json, signature_ids
-from laniakea.msgstream.signing import (
-    generate_signing_key,
-    get_verify_key,
-    decode_signing_key_base64,
-    decode_verify_key_bytes,
-    encode_signing_key_base64,
-    is_signing_algorithm_supported,
-    encode_verify_key_base64,
-    read_signing_keys,
-    read_old_signing_keys,
-    write_signing_keys
-)
 
 
 class TestGenerate:

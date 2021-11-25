@@ -5,8 +5,9 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-from typing import List, Dict
-from laniakea.db import VersionPriority, SpearsHint
+from typing import Dict, List
+
+from laniakea.db import SpearsHint, VersionPriority
 from laniakea.logging import log
 
 

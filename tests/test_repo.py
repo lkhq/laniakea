@@ -5,9 +5,12 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+
 import pytest
+
+from laniakea.db import (ArchiveArchitecture, ArchiveComponent, ArchiveSuite,
+                         DebType, PackagePriority)
 from laniakea.repository import Repository
-from laniakea.db import ArchiveSuite, ArchiveComponent, ArchiveArchitecture, DebType, PackagePriority
 from laniakea.utils.gpg import GpgException
 
 

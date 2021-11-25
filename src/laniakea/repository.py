@@ -5,14 +5,18 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-from apt_pkg import TagFile, TagSection, sha256sum, version_compare  # type: ignore[attr-defined]
-from laniakea.utils import is_remote_url, download_file, split_strip
-from laniakea.utils.gpg import SignedFile
+
+from apt_pkg import (TagFile, TagSection,  # type: ignore[attr-defined]
+                     sha256sum, version_compare)
+
+from laniakea.db import (ArchiveArchitecture, ArchiveComponent, ArchiveFile,
+                         ArchiveRepository, ArchiveSuite, BinaryPackage,
+                         DebType, PackageInfo, SourcePackage,
+                         debtype_from_string, packagepriority_from_string)
 from laniakea.localconfig import LocalConfig
-from laniakea.db import ArchiveFile, SourcePackage, BinaryPackage, PackageInfo, DebType, \
-    packagepriority_from_string, debtype_from_string, ArchiveSuite, ArchiveComponent, ArchiveArchitecture, \
-    ArchiveRepository
 from laniakea.logging import log
+from laniakea.utils import download_file, is_remote_url, split_strip
+from laniakea.utils.gpg import SignedFile
 
 
 def parse_checksums_list(data, base_dir=None):

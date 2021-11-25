@@ -4,9 +4,11 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import yaml
-from typing import Dict
 from datetime import datetime
+from typing import Dict
+
+import yaml
+
 from laniakea.db import SpearsExcuse, SpearsOldBinaries
 
 

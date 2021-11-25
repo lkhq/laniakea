@@ -5,14 +5,17 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import json
-from sqlalchemy import Column, Text, String, Integer, DateTime, Enum, ForeignKey
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import JSON, ARRAY
-from marshmallow import Schema, fields, EXCLUDE
-from uuid import uuid4
 from datetime import datetime
-from .base import Base, UUID, DebVersion
+from uuid import uuid4
+
+from marshmallow import EXCLUDE, Schema, fields
+from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, String,
+                        Text)
+from sqlalchemy.dialects.postgresql import ARRAY, JSON
+from sqlalchemy.orm import backref, relationship
+
 from .archive import PackageType
+from .base import UUID, Base, DebVersion
 
 
 class PackageIssue(Schema):

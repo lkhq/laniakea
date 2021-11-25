@@ -5,14 +5,18 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import math
+
 import humanize
-from flask import current_app, Blueprint, render_template, abort, url_for
-from laniakea.db import session_scope, BinaryPackage, SourcePackage, ArchiveSuite, \
-    Job, JobStatus, JobResult, SparkWorker, ArchiveArchitecture, DebcheckIssue, \
-    PackageType, SpearsExcuse
-from sqlalchemy.orm import undefer, joinedload
+from flask import Blueprint, abort, current_app, render_template, url_for
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload, undefer
+
+from laniakea.db import (ArchiveArchitecture, ArchiveSuite, BinaryPackage,
+                         DebcheckIssue, Job, JobResult, JobStatus, PackageType,
+                         SourcePackage, SparkWorker, SpearsExcuse,
+                         session_scope)
 from laniakea.utils import get_dir_shorthand_for_uuid
+
 from ..extensions import cache
 from ..utils import humanized_timediff, is_uuid
 

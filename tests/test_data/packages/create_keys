@@ -20,5 +20,3 @@ create_key() {
 # later time in the past for testing
 create_key "Développeur <developpeur@example.com>" 20200202T200000
 create_key "Snowman ☃ <snowman@example.com>" 20200202T200000
-
-

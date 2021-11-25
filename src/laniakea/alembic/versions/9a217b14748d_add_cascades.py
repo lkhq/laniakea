@@ -8,9 +8,8 @@ Create Date: 2019-08-30 19:11:48.347206
 # flake8: noqa
 # pylint: disable=W,R,C
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '9a217b14748d'

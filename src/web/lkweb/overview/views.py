@@ -6,7 +6,6 @@
 
 from flask import Blueprint, render_template
 
-
 overview = Blueprint('overview', __name__)
 
 

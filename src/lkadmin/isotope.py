@@ -5,11 +5,15 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
-import click
 from typing import Optional
-from laniakea.db import session_scope, ImageBuildRecipe, ImageFormat, LkModule, Job, JobKind
-from .utils import print_header, print_done, print_note, input_str, input_list
+
+import click
+
+from laniakea.db import (ImageBuildRecipe, ImageFormat, Job, JobKind, LkModule,
+                         session_scope)
 from laniakea.msgstream import EventEmitter
+
+from .utils import input_list, input_str, print_done, print_header, print_note
 
 
 @click.group()

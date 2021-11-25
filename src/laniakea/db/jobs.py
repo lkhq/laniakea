@@ -5,12 +5,14 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import enum
-from enum import IntEnum
-from sqlalchemy import Column, Text, String, Integer, DateTime, Enum
-from sqlalchemy.dialects.postgresql import JSON
-from uuid import uuid4
 from datetime import datetime
-from .base import Base, UUID, DebVersion
+from enum import IntEnum
+from uuid import uuid4
+
+from sqlalchemy import Column, DateTime, Enum, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSON
+
+from .base import UUID, Base, DebVersion
 
 
 class JobStatus(IntEnum):

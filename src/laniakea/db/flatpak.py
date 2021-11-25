@@ -5,11 +5,13 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import enum
-from sqlalchemy import Column, Text, String, Integer, Enum, ForeignKey
+from uuid import uuid4
+
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, BYTEA
 from sqlalchemy.orm import relationship
-from uuid import uuid4
-from .base import Base, UUID, DebVersion
+
+from .base import UUID, Base, DebVersion
 
 
 class FlatpakRepository(Base):

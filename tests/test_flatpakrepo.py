@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 from tempfile import TemporaryDirectory
+
 from laniakea.db import FlatpakRepository
 from laniakea.flatpak_util import FlatpakUtil
 

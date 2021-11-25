@@ -5,8 +5,9 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 from flask import Blueprint, render_template
-from laniakea.db import session_scope, ArchiveSuite, SynchrotronConfig, SynchrotronIssue, \
-    SynchrotronIssueKind, SyncBlacklistEntry
+
+from laniakea.db import (ArchiveSuite, SyncBlacklistEntry, SynchrotronConfig,
+                         SynchrotronIssue, SynchrotronIssueKind, session_scope)
 
 synchronization = Blueprint('synchronization',
                             __name__,

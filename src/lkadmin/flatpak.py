@@ -6,11 +6,15 @@
 
 import os
 import sys
+
 import click
+
 from laniakea import LocalConfig
-from laniakea.db import session_scope, config_get_distro_tag, FlatpakRepository
+from laniakea.db import FlatpakRepository, config_get_distro_tag, session_scope
 from laniakea.flatpak_util import FlatpakUtil
-from .utils import print_header, print_note, print_error_exit, input_str, input_list
+
+from .utils import (input_list, input_str, print_error_exit, print_header,
+                    print_note)
 
 
 @click.group()

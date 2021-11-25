@@ -6,8 +6,9 @@
 
 import os
 import re
-import requests
 from contextlib import contextmanager
+
+import requests
 
 
 def get_dir_shorthand_for_uuid(uuid):

@@ -8,10 +8,11 @@ Create Date: 2019-08-25 02:11:10.030312
 # flake8: noqa
 # pylint: disable=W,R,C
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-from laniakea.db import session_scope, SynchrotronIssue
+
+from laniakea.db import SynchrotronIssue, session_scope
 
 # revision identifiers, used by Alembic.
 revision = 'b3cc3de026da'

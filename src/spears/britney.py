@@ -5,8 +5,9 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-from laniakea.localconfig import LocalConfig, ExternalToolsUrls
+
 from laniakea.git import Git
+from laniakea.localconfig import ExternalToolsUrls, LocalConfig
 from laniakea.logging import get_verbose
 
 

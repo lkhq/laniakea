@@ -8,10 +8,12 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import os
-from laniakea.utils import run_command, deb822
-import firehose.model
 import hashlib
+import os
+
+import firehose.model
+
+from laniakea.utils import deb822, run_command
 
 
 class DudFileException(Exception):

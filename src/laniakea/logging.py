@@ -6,7 +6,6 @@
 
 import logging as log
 
-
 __all__ = ['log',
            'set_verbose',
            'get_verbose']

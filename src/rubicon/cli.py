@@ -6,6 +6,7 @@
 
 import sys
 from argparse import ArgumentParser
+
 from .fileimport import import_files
 
 __mainfile = None

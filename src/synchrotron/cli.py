@@ -6,10 +6,13 @@
 
 import sys
 from argparse import ArgumentParser
+
 from laniakea import LkModule
-from laniakea.db import session_scope, SynchrotronConfig, SynchrotronIssue, SynchrotronSource
+from laniakea.db import (SynchrotronConfig, SynchrotronIssue,
+                         SynchrotronSource, session_scope)
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
+
 from .syncengine import SyncEngine
 
 __mainfile = None

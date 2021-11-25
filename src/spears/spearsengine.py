@@ -6,21 +6,25 @@
 
 from __future__ import annotations
 
-import os
 import lzma
+import os
 import shutil
 from typing import Any
 from uuid import uuid4
+
 from apt_pkg import TagFile
 from sqlalchemy.orm import joinedload
-from laniakea.localconfig import LocalConfig
-from laniakea.repository import Repository
-from laniakea.db import session_scope, LkModule, SpearsMigrationEntry, SpearsExcuse, \
-    SpearsHint, ArchiveRepository, ArchiveSuite
+
 from laniakea.dakbridge import DakBridge
-from laniakea.utils import open_compressed
-from laniakea.msgstream import EventEmitter
+from laniakea.db import (ArchiveRepository, ArchiveSuite, LkModule,
+                         SpearsExcuse, SpearsHint, SpearsMigrationEntry,
+                         session_scope)
+from laniakea.localconfig import LocalConfig
 from laniakea.logging import log
+from laniakea.msgstream import EventEmitter
+from laniakea.repository import Repository
+from laniakea.utils import open_compressed
+
 from .britney import Britney
 from .britneyconfig import BritneyConfig
 from .excuses import ExcusesFile

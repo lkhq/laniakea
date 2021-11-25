@@ -13,8 +13,9 @@ if not os.path.isabs(thisfile):
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
-from laniakea.db import session_scope, ArchiveSuite, ArchiveRepository, PackageType, \
-    DebcheckIssue
+
+from laniakea.db import (ArchiveRepository, ArchiveSuite, DebcheckIssue,
+                         PackageType, session_scope)
 from laniakea.debcheck import Debcheck
 
 

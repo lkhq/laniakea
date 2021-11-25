@@ -5,18 +5,19 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.types import UserDefinedType
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
 from contextlib import contextmanager
 from typing import Any
-from ..localconfig import LocalConfig
-from ..utils import cd
-from ..logging import log
 
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import func
+from sqlalchemy.types import UserDefinedType
+
+from ..localconfig import LocalConfig
+from ..logging import log
+from ..utils import cd
 
 __all__ = ['Base',
            'DebVersion',
@@ -45,6 +46,7 @@ class DebVersion(UserDefinedType):
 
 
 from sqlalchemy.databases import postgres
+
 postgres.ischema_names['debversion'] = DebVersion
 
 
@@ -64,6 +66,7 @@ class Database:
             ''' Initialize the database and create all tables '''
             from alembic import command
             from alembic.config import Config
+
             from .. import lk_py_directory
 
             with cd(lk_py_directory):
@@ -75,6 +78,7 @@ class Database:
         def upgrade(self):
             ''' Upgrade database schema to the newest revision '''
             import alembic.config
+
             from .. import lk_py_directory
 
             with cd(lk_py_directory):
@@ -88,8 +92,10 @@ class Database:
 
         def _update_static_data(self):
             import json
-            from .archive import ArchiveSection, ArchiveRepository, ArchiveConfig
+
             from ..localconfig import get_data_file
+            from .archive import (ArchiveConfig, ArchiveRepository,
+                                  ArchiveSection)
 
             log.info('Updating static database data.')
             with open(get_data_file('archive-sections.json'), 'r') as f:
@@ -143,6 +149,7 @@ class Database:
         def downgrade(self, revision):
             ''' Upgrade database schema to the newest revision '''
             import alembic.config
+
             from .. import lk_py_directory
 
             with cd(lk_py_directory):

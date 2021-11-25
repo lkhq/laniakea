@@ -15,8 +15,8 @@ if not os.path.isabs(thisfile):
 lk_py_directory = os.path.normpath(os.path.join(os.path.dirname(thisfile)))
 sys.path.append(lk_py_directory)
 
-from laniakea.localconfig import LocalConfig, get_config_file
 from laniakea.db import LkModule
+from laniakea.localconfig import LocalConfig, get_config_file
 
 __all__ = ['LocalConfig',
            'get_config_file',

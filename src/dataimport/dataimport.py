@@ -6,23 +6,29 @@
 
 import os
 import sys
+
 thisfile = __file__
 if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
-import json
 import gzip
+import json
 import lzma
 from argparse import ArgumentParser
-from laniakea import LocalConfig, LkModule
-from laniakea.logging import log
-from laniakea.db import session_factory, session_scope, ArchiveSuite, ArchiveRepository, ArchiveArchitecture, \
-    SourcePackage, BinaryPackage, ArchiveFile, SoftwareComponent, binpkg_suite_assoc_table
-from laniakea.msgstream import EventEmitter
-from sqlalchemy.orm import joinedload, Bundle
-from laniakea.repository import Repository
+
 import gi
+from sqlalchemy.orm import Bundle, joinedload
+
+from laniakea import LkModule, LocalConfig
+from laniakea.db import (ArchiveArchitecture, ArchiveFile, ArchiveRepository,
+                         ArchiveSuite, BinaryPackage, SoftwareComponent,
+                         SourcePackage, binpkg_suite_assoc_table,
+                         session_factory, session_scope)
+from laniakea.logging import log
+from laniakea.msgstream import EventEmitter
+from laniakea.repository import Repository
+
 gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
 

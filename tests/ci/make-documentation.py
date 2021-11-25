@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # flake8: noqa
 
-import os
-import sys
 import glob
-import subprocess
+import os
 import signal
+import subprocess
+import sys
+
 
 def get_sources_list(source_root):
     res = list()

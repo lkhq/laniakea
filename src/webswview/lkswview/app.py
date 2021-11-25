@@ -4,14 +4,15 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import os
 import logging as log
-import jinja2
+import os
 from logging.handlers import RotatingFileHandler
-from flask import Flask, render_template
-from .extensions import cache
-from .config import DefaultConfig, INSTANCE_FOLDER_PATH
 
+import jinja2
+from flask import Flask, render_template
+
+from .config import INSTANCE_FOLDER_PATH, DefaultConfig
+from .extensions import cache
 
 # For import *
 __all__ = ['create_app']
@@ -71,8 +72,8 @@ def configure_blueprints(app):
     '''
 
     from .api import api
-    from .portal import portal
     from .packages import packages
+    from .portal import portal
     from .software import software
 
     blueprints = [api,

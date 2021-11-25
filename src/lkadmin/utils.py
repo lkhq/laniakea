@@ -5,8 +5,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import click
 import readline  # noqa: F401 pylint: disable=unused-import
+
+import click
 
 
 class ClickAliasedGroup(click.Group):

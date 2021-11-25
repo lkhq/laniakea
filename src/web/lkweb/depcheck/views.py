@@ -5,9 +5,12 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import math
-from flask import Blueprint, render_template, abort
+
+from flask import Blueprint, abort, render_template
+
+from laniakea.db import ArchiveSuite, DebcheckIssue, PackageType, session_scope
+
 from ..utils import is_uuid
-from laniakea.db import session_scope, ArchiveSuite, DebcheckIssue, PackageType
 
 depcheck = Blueprint('depcheck',
                      __name__,

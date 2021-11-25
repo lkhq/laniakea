@@ -4,18 +4,19 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import os
-import sys
 import json
 import logging as log
-from laniakea import LocalConfig, LkModule
-from laniakea.utils import json_compact_dump
-from lighthouse.jobs_worker import JobWorker
+import os
+import sys
 
 import zmq
 import zmq.auth
 from zmq.auth.ioloop import IOLoopAuthenticator
 from zmq.eventloop import ioloop, zmqstream
+
+from laniakea import LkModule, LocalConfig
+from laniakea.utils import json_compact_dump
+from lighthouse.jobs_worker import JobWorker
 
 
 class JobsServer:

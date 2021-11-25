@@ -4,15 +4,17 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import logging as log
 import os
 import sys
-import logging as log
 from glob import glob
+
 from laniakea import LkModule
+from laniakea.db import Job, JobKind, JobResult, SourcePackage, session_scope
 from laniakea.dud import Dud
-from laniakea.utils import get_dir_shorthand_for_uuid, random_string
-from laniakea.db import session_scope, Job, JobResult, JobKind, SourcePackage
 from laniakea.msgstream import EventEmitter
+from laniakea.utils import get_dir_shorthand_for_uuid, random_string
+
 from .rubiconfig import RubiConfig
 from .utils import safe_rename
 

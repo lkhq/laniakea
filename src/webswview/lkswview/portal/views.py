@@ -5,14 +5,19 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import math
-from flask import Blueprint, render_template, request, flash, redirect, url_for, abort
-from laniakea.db import session_scope, BinaryPackage, SoftwareComponent, ArchiveSuite, \
-    get_archive_sections
-from sqlalchemy import String, func, cast
-from sqlalchemy.orm import joinedload
-from sqlalchemy.dialects.postgresql import ARRAY
-from ..extensions import cache
+
 import gi
+from flask import (Blueprint, abort, flash, redirect, render_template, request,
+                   url_for)
+from sqlalchemy import String, cast, func
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import joinedload
+
+from laniakea.db import (ArchiveSuite, BinaryPackage, SoftwareComponent,
+                         get_archive_sections, session_scope)
+
+from ..extensions import cache
+
 gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
 

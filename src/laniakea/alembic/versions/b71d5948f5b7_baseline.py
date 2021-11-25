@@ -7,9 +7,10 @@ Create Date: 2019-08-24 17:23:22.604954
 """
 # flake8: noqa
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
+
 import laniakea
 
 # revision identifiers, used by Alembic.

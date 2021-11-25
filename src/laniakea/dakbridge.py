@@ -6,9 +6,10 @@
 
 import os
 from typing import List
-from laniakea.localconfig import LocalConfig, ExternalToolsUrls
+
 from laniakea.git import Git
-from laniakea.logging import log, get_verbose
+from laniakea.localconfig import ExternalToolsUrls, LocalConfig
+from laniakea.logging import get_verbose, log
 from laniakea.utils import listify
 
 

@@ -5,9 +5,11 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import toml
 import platform
 from glob import glob
+
+import toml
+
 from laniakea.utils import listify
 
 

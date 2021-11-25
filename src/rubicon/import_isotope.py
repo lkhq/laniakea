@@ -4,12 +4,14 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import logging as log
 import os
 import time
-import logging as log
+from email.utils import parsedate
+
 from laniakea import LkModule
 from laniakea.db import ImageBuildRecipe
-from email.utils import parsedate
+
 from .utils import safe_rename
 
 

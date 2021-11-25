@@ -5,8 +5,10 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import toml
 from typing import Any
+
+import toml
+
 from laniakea import get_config_file
 
 

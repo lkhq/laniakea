@@ -4,9 +4,10 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import sys
 import asyncio
+import sys
 from argparse import ArgumentParser
+
 from .msgpublish import MatrixPublisher
 
 

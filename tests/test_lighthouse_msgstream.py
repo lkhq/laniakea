@@ -4,12 +4,16 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import pytest
-import zmq
 import json
 from uuid import UUID
-from laniakea.msgstream import create_event_listen_socket, create_submit_socket, \
-    create_message_tag, create_event_message, verify_event_message, submit_event_message
+
+import pytest
+import zmq
+
+from laniakea.msgstream import (create_event_listen_socket,
+                                create_event_message, create_message_tag,
+                                create_submit_socket, submit_event_message,
+                                verify_event_message)
 
 
 class TestLighthouseMsgStream:
@@ -17,7 +21,8 @@ class TestLighthouseMsgStream:
     @pytest.fixture(autouse=True)
     def setup(self, localconfig, lighthouse_server, make_curve_trusted_key):
         from laniakea.db import LkModule
-        from laniakea.msgstream import keyfile_read_verify_key, keyfile_read_signing_key
+        from laniakea.msgstream import (keyfile_read_signing_key,
+                                        keyfile_read_verify_key)
 
         sender_keyfile = make_curve_trusted_key('test-event-submitter')
         self._server_key_fname = localconfig.secret_curve_keyfile_for_module(LkModule.LIGHTHOUSE)

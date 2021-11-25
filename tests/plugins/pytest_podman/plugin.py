@@ -5,13 +5,14 @@
 # SPDX-License-Identifier: MIT OR LGPL-3.0+
 
 import contextlib
+import json
 import os
 import re
 import subprocess
 import time
 import timeit
-import json
 import uuid
+
 import attr
 import pytest
 

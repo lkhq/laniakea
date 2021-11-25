@@ -5,8 +5,10 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+
 import click
-from .utils import print_header, print_note, input_str
+
+from .utils import input_str, print_header, print_note
 
 
 @click.group()

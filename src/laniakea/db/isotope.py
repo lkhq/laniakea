@@ -5,10 +5,12 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import enum
-from sqlalchemy import Column, Text, String, Enum, Integer, Boolean
-from sqlalchemy.dialects.postgresql import ARRAY
 from uuid import uuid4
-from .base import Base, UUID
+
+from sqlalchemy import Boolean, Column, Enum, Integer, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY
+
+from .base import UUID, Base
 
 
 class ImageFormat(enum.IntEnum):

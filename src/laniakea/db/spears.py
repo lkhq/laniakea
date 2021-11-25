@@ -4,12 +4,14 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from sqlalchemy import Column, Text, String, Integer, DateTime, Boolean
-from sqlalchemy.dialects.postgresql import JSON, ARRAY
-from uuid import uuid4
 from datetime import datetime
 from typing import Any
-from .base import Base, UUID, DebVersion
+from uuid import uuid4
+
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, JSON
+
+from .base import UUID, Base, DebVersion
 
 
 class SpearsHint(Base):

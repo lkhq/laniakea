@@ -4,11 +4,14 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from flask import current_app, Blueprint, render_template, abort
-from laniakea.db import session_scope, BinaryPackage, SoftwareComponent
-from sqlalchemy.orm import joinedload
-from ..extensions import cache
 import gi
+from flask import Blueprint, abort, current_app, render_template
+from sqlalchemy.orm import joinedload
+
+from laniakea.db import BinaryPackage, SoftwareComponent, session_scope
+
+from ..extensions import cache
+
 gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
 

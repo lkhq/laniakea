@@ -5,13 +5,13 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import apt_pkg
 import datetime
 import fcntl
 import os
 import select
 import subprocess
 
+import apt_pkg
 
 try:
     _MAXFD = os.sysconf('SC_OPEN_MAX')

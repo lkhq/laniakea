@@ -4,17 +4,20 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import json
 import enum
+import json
 import uuid
-from sqlalchemy import Column, Table, Index, Text, String, Integer, SmallInteger, DateTime, Enum, ForeignKey, Boolean, UniqueConstraint
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import ARRAY, CHAR, JSON, JSONB, TEXT
-from sqlalchemy.sql import func, cast
-from sqlalchemy.ext.mutable import MutableDict
 from datetime import datetime
-from .base import Base, UUID, DebVersion, create_tsvector
 
+from sqlalchemy import (Boolean, Column, DateTime, Enum, ForeignKey, Index,
+                        Integer, SmallInteger, String, Table, Text,
+                        UniqueConstraint)
+from sqlalchemy.dialects.postgresql import ARRAY, CHAR, JSON, JSONB, TEXT
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import backref, relationship
+from sqlalchemy.sql import cast, func
+
+from .base import UUID, Base, DebVersion, create_tsvector
 
 UUID_NS_SRCPACKAGE = uuid.UUID('bdc4cc28-43ed-58f7-8cf8-7bd1b4e80560')
 UUID_NS_BINPACKAGE = uuid.UUID('b897829c-2eb4-503c-afd1-0fd74da8cc2b')

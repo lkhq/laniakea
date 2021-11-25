@@ -4,11 +4,13 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import os
-import zmq
 import logging as log
-from laniakea.utils import json_compact_dump
+import os
+
+import zmq
+
 from laniakea.msgstream.signedjson import sign_json
+from laniakea.utils import json_compact_dump
 
 
 class EventsPublisher:
@@ -18,9 +20,10 @@ class EventsPublisher:
     '''
 
     def __init__(self, endpoints, pub_queue):
-        from laniakea import LocalConfig, LkModule
-        from laniakea.msgstream.signing import NACL_ED25519, decode_signing_key_base64, \
-            keyfile_read_signing_key
+        from laniakea import LkModule, LocalConfig
+        from laniakea.msgstream.signing import (NACL_ED25519,
+                                                decode_signing_key_base64,
+                                                keyfile_read_signing_key)
 
         lconf = LocalConfig()
         self._sockets = []

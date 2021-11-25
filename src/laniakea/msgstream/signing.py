@@ -6,7 +6,8 @@
 # SPDX-License-Identifier: LGPL-3.0+ AND Apache-2.0
 
 import nacl.signing
-from laniakea.utils import encode_base64, decode_base64
+
+from laniakea.utils import decode_base64, encode_base64
 
 NACL_ED25519 = 'ed25519'
 SUPPORTED_ALGORITHMS = [NACL_ED25519]

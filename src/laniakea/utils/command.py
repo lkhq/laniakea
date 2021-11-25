@@ -5,9 +5,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import sys
 import shlex
 import subprocess
+import sys
 
 
 class SubprocessError(Exception):

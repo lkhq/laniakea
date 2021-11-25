@@ -5,12 +5,14 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import enum
-from enum import IntEnum
-from sqlalchemy import Column, Text, DateTime, Enum, Boolean
-from sqlalchemy.dialects.postgresql import ARRAY
-from uuid import uuid4
 from datetime import datetime
-from .base import Base, UUID
+from enum import IntEnum
+from uuid import uuid4
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, Text
+from sqlalchemy.dialects.postgresql import ARRAY
+
+from .base import UUID, Base
 
 
 class WorkerStatus(IntEnum):

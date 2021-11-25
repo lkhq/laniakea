@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+
 from laniakea import LocalConfig
 from laniakea.db import config_get_project_name
 

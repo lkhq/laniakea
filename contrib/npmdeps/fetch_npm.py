@@ -4,9 +4,9 @@
 #
 
 import os
-import sys
-import subprocess
 import shutil
+import subprocess
+import sys
 from glob import glob
 
 thisfile = __file__

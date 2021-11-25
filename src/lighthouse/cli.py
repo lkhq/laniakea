@@ -4,9 +4,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import sys
-import signal
 import logging as log
+import signal
+import sys
 from argparse import ArgumentParser
 from multiprocessing import Process, Queue
 
@@ -59,6 +59,7 @@ def term_signal_handler(signum, frame):
 
 def run_server(options):
     import systemd.daemon
+
     from laniakea.localconfig import LocalConfig
 
     if options.config_fname:

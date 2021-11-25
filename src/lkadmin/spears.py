@@ -5,10 +5,13 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+
 import click
+
 from laniakea.db import session_factory
-from .utils import print_header, input_str, input_bool, input_list, \
-    input_int, print_error_exit
+
+from .utils import (input_bool, input_int, input_list, input_str,
+                    print_error_exit, print_header)
 
 
 @click.group()

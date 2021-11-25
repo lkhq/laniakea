@@ -5,10 +5,11 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from debian.deb822 import _gpg_multivalued
-from debian.deb822 import Changes as Changes_
 import hashlib
 import os
+
+from debian.deb822 import Changes as Changes_
+from debian.deb822 import _gpg_multivalued
 
 
 # Copy of debian.deb822.Dsc with Package-List: support added.

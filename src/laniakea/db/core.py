@@ -6,6 +6,7 @@
 
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import JSON
+
 from .base import Base
 
 

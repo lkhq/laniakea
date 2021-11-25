@@ -6,6 +6,7 @@
 
 import os
 import sys
+
 thisfile = __file__
 if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
@@ -13,11 +14,14 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 import logging as log
 from argparse import ArgumentParser
-from laniakea import LkModule
-from laniakea.utils import any_arch_matches
-from laniakea.db import session_factory, config_get_value, ArchiveSuite, ArchiveRepository, SourcePackage, BinaryPackage, \
-    DebcheckIssue, PackageType, Job, JobStatus, JobKind
+
 from sqlalchemy.orm import undefer
+
+from laniakea import LkModule
+from laniakea.db import (ArchiveRepository, ArchiveSuite, BinaryPackage,
+                         DebcheckIssue, Job, JobKind, JobStatus, PackageType,
+                         SourcePackage, config_get_value, session_factory)
+from laniakea.utils import any_arch_matches
 
 
 def get_newest_sources_index(session, repo, suite):

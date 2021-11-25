@@ -5,10 +5,13 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
-import click
 import uuid
+
+import click
 from sqlalchemy.orm import undefer
-from laniakea.db import session_scope, Job, JobStatus, JobResult
+
+from laniakea.db import Job, JobResult, JobStatus, session_scope
+
 from .utils import print_note
 
 

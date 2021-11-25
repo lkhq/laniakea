@@ -5,10 +5,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+ AND Apache-2.0
 
-from laniakea.utils import json_compact_dump, encode_base64, decode_base64
-from laniakea.msgstream.signing import SUPPORTED_ALGORITHMS
 from laniakea.logging import log as logging
-
+from laniakea.msgstream.signing import SUPPORTED_ALGORITHMS
+from laniakea.utils import decode_base64, encode_base64, json_compact_dump
 
 log = logging.getLogger(__name__)
 

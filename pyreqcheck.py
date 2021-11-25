@@ -3,10 +3,10 @@
 # Check whether all required Python modules are found on the system.
 #
 
-import os
-import sys
-import subprocess
 import argparse
+import os
+import subprocess
+import sys
 
 if sys.version_info[0] < 3 or sys.version_info[1] < 9:
     print('Laniakea requires at least Python 3.9 to run!', file=sys.stderr)

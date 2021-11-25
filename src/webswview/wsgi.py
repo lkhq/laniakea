@@ -8,4 +8,5 @@ if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
 from lkswview import create_app
+
 application = create_app()

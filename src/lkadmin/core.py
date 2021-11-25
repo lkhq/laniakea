@@ -5,9 +5,12 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+
 import click
+
 from laniakea.db import session_factory, session_scope
-from .utils import print_header, print_note, input_str, input_bool, input_list
+
+from .utils import input_bool, input_list, input_str, print_header, print_note
 
 
 @click.group()
@@ -39,8 +42,8 @@ def db_upgrade():
 @core.command()
 def configure_all():
     ''' Configure all basic settings in one go. '''
-    from laniakea.db.core import config_set_project_name, config_set_distro_tag
     from laniakea.db import ArchiveRepository, ArchiveSuite
+    from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     db_init()
     print_header('Configuring base settings for Laniakea')

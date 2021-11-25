@@ -5,12 +5,15 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import enum
-from sqlalchemy import Column, Text, String, DateTime, Enum, Integer, ForeignKey, Boolean
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import ARRAY
-from uuid import uuid4
 from datetime import datetime
-from .base import Base, UUID, DebVersion
+from uuid import uuid4
+
+from sqlalchemy import (Boolean, Column, DateTime, Enum, ForeignKey, Integer,
+                        String, Text)
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import backref, relationship
+
+from .base import UUID, Base, DebVersion
 
 
 class SynchrotronSource(Base):

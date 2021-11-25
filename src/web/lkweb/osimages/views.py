@@ -5,7 +5,10 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 from flask import Blueprint, render_template
-from laniakea.db import session_scope, ImageBuildRecipe, ImageFormat, Job, JobResult
+
+from laniakea.db import (ImageBuildRecipe, ImageFormat, Job, JobResult,
+                         session_scope)
+
 from ..utils import humanized_timediff
 
 osimages = Blueprint('osimages',

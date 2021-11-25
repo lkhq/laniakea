@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import shutil
+
 from laniakea import LocalConfig
 from laniakea.db import FlatpakRepository
 from laniakea.utils import safe_run_forwarded

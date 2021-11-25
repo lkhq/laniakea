@@ -11,4 +11,5 @@ if not thisfile.startswith(('/usr', '/bin')):
     sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from daktape import cli
+
 sys.exit(cli.run(thisfile, sys.argv[1:]))

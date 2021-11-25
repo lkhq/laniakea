@@ -12,12 +12,13 @@ if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
-from argparse import ArgumentParser
 import logging as log
-from laniakea import LocalConfig, LkModule
+from argparse import ArgumentParser
+
+from laniakea import LkModule, LocalConfig
+from laniakea.db import ArchiveSuite, config_get_value, session_factory
 from laniakea.git import Git
 from laniakea.logging import get_verbose
-from laniakea.db import session_factory, ArchiveSuite, config_get_value
 
 
 class Germinate:
@@ -43,7 +44,7 @@ class Germinate:
         self._results_base_dir = os.path.join(workspace, 'results')
 
     def _run_germinate(self, wdir, args):
-        from laniakea.utils import run_command, cd
+        from laniakea.utils import cd, run_command
 
         ge_args = [self._germinate_exe]
         ge_args.extend(args)

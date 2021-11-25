@@ -6,15 +6,20 @@
 
 import re
 from typing import List
+
 from apt_pkg import version_compare
-from laniakea import LocalConfig, LkModule
-from laniakea.repository import Repository, make_newest_packages_dict, version_revision
-from laniakea.db import session_scope, config_get_distro_tag, \
-    ArchiveSuite, ArchiveComponent, ArchiveArchitecture, SourcePackage, SynchrotronIssue, \
-    SynchrotronIssueKind, SynchrotronSource, SynchrotronConfig, SyncBlacklistEntry
+
+from laniakea import LkModule, LocalConfig
 from laniakea.dakbridge import DakBridge
+from laniakea.db import (ArchiveArchitecture, ArchiveComponent, ArchiveSuite,
+                         SourcePackage, SyncBlacklistEntry, SynchrotronConfig,
+                         SynchrotronIssue, SynchrotronIssueKind,
+                         SynchrotronSource, config_get_distro_tag,
+                         session_scope)
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
+from laniakea.repository import (Repository, make_newest_packages_dict,
+                                 version_revision)
 
 
 class SyncEngine:

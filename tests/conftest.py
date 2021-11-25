@@ -6,12 +6,13 @@
 
 import os
 import sys
+
 import pytest
+
 from laniakea import LocalConfig
+from laniakea.db import LkModule
 from laniakea.logging import set_verbose
 from laniakea.utils import random_string
-from laniakea.db import LkModule
-
 
 # unconditionally enable verbose mode
 set_verbose(True)
@@ -115,9 +116,11 @@ def database(localconfig, podman_ip, podman_services):
     never run in parallel.
     '''
     import toml
-    from laniakea.db import Database, session_scope, ArchiveRepository, ArchiveSuite, \
-        ArchiveComponent, ArchiveArchitecture
-    from laniakea.db.core import config_set_project_name, config_set_distro_tag
+
+    from laniakea.db import (ArchiveArchitecture, ArchiveComponent,
+                             ArchiveRepository, ArchiveSuite, Database,
+                             session_scope)
+    from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     # get IP of our database container
     db_port = podman_services.port_for('postgres', 5432)
@@ -281,8 +284,8 @@ class LighthouseServer:
             self._pipe = None
 
         def start(self):
-            import time
             import subprocess
+            import time
 
             # ensure we are not running anymore, in case we were before
             self.terminate()

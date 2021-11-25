@@ -4,18 +4,22 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import os
 import json
+import logging as log
+import os
+from fnmatch import fnmatch
+from typing import Any
+
 import zmq
 import zmq.asyncio
-import logging as log
-from typing import Any
-from fnmatch import fnmatch
-from laniakea.msgstream import create_event_listen_socket, verify_event_message, event_message_is_valid_and_signed
+
+from laniakea.msgstream import (create_event_listen_socket,
+                                event_message_is_valid_and_signed,
+                                verify_event_message)
 
 from .config import MirkConfig
 from .matrix_client import MirkMatrixClient
-from .messages import message_templates, message_prestyle_event_data
+from .messages import message_prestyle_event_data, message_templates
 
 
 class RoomSettings:
@@ -77,6 +81,7 @@ class MatrixPublisher:
 
     def __init__(self):
         from glob import glob
+
         from laniakea.localconfig import LocalConfig
         from laniakea.msgstream import keyfile_read_verify_key
 

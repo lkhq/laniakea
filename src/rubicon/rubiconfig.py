@@ -4,9 +4,11 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import os
-import toml
 import logging as log
+import os
+
+import toml
+
 from laniakea import LocalConfig, get_config_file
 
 

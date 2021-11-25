@@ -4,12 +4,16 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import toml
 import click
+import toml
+
 from laniakea import LocalConfig
-from laniakea.db import session_scope, ArchiveRepository, ArchiveComponent, ArchiveArchitecture, ArchiveUploader, \
-    ArchiveSuite, ArchiveRepoSuiteSettings
-from .utils import ClickAliasedGroup, input_list, print_header, print_note, input_str, print_error_exit
+from laniakea.db import (ArchiveArchitecture, ArchiveComponent,
+                         ArchiveRepository, ArchiveRepoSuiteSettings,
+                         ArchiveSuite, ArchiveUploader, session_scope)
+
+from .utils import (ClickAliasedGroup, input_list, input_str, print_error_exit,
+                    print_header, print_note)
 
 
 @click.group(cls=ClickAliasedGroup)

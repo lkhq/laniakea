@@ -1,18 +1,11 @@
-from .plugin import (
-    podman_cleanup,
-    podman_compose_file,
-    podman_compose_project_name,
-    podman_compose_package_project_name,
-    podman_compose_module_project_name,
-    podman_compose_class_project_name,
-    podman_compose_function_project_name,
-    podman_ip,
-    podman_services,
-    podman_package_services,
-    podman_module_services,
-    podman_class_services,
-    podman_function_services,
-)
+from .plugin import (podman_class_services, podman_cleanup,
+                     podman_compose_class_project_name, podman_compose_file,
+                     podman_compose_function_project_name,
+                     podman_compose_module_project_name,
+                     podman_compose_package_project_name,
+                     podman_compose_project_name, podman_function_services,
+                     podman_ip, podman_module_services,
+                     podman_package_services, podman_services)
 
 __all__ = ['podman_cleanup',
            'podman_compose_file',

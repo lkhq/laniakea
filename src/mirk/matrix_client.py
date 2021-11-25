@@ -6,9 +6,10 @@
 
 import logging as log
 from typing import Optional
+
 from mautrix.client import Client as MatrixClient
-from mautrix.types import RoomID, EventType, MessageEvent, MessageType, Membership, \
-    TextMessageEventContent
+from mautrix.types import (EventType, Membership, MessageEvent, MessageType,
+                           RoomID, TextMessageEventContent)
 
 from .config import MirkConfig
 
@@ -57,6 +58,7 @@ class MirkMatrixClient:
     async def send_simple_html(self, room_id: RoomID, html: str):
         ''' Publish a simple HTML message in the selected room. '''
         from mautrix.types import Format
+
         # pylint: disable=unexpected-keyword-arg
         content = TextMessageEventContent(msgtype=MessageType.TEXT)
         content.format = Format.HTML

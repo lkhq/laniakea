@@ -5,10 +5,14 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+
 import click
-from .utils import print_header, print_section, print_note, input_str, input_bool, input_list
-from laniakea.db import session_scope, SynchrotronSource, SynchrotronConfig, SyncBlacklistEntry, \
-    ArchiveSuite
+
+from laniakea.db import (ArchiveSuite, SyncBlacklistEntry, SynchrotronConfig,
+                         SynchrotronSource, session_scope)
+
+from .utils import (input_bool, input_list, input_str, print_header,
+                    print_note, print_section)
 
 
 @click.group()
