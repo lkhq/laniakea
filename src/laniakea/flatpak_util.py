@@ -28,31 +28,36 @@ class FlatpakUtil:
             raise Exception('Unable to find the "ostree" binary, can not modify Flatpak repositories.')
 
     def _run_ostree(self, args):
-        ''' Run an OSTree CLI command '''
+        '''Run an OSTree CLI command'''
         cmd = [self._ostree_exe]
         cmd.extend(args)
         return safe_run_forwarded(cmd)
 
     def _run_flatpak(self, args):
-        ''' Run a Flatpak CLI command '''
+        '''Run a Flatpak CLI command'''
         cmd = [self._flatpak_exe]
         cmd.extend(args)
         return safe_run_forwarded(cmd)
 
     def init_repo(self, repo: FlatpakRepository, repo_path: str):
-        ''' Initialize a new, empty Flatpak repository '''
+        '''Initialize a new, empty Flatpak repository'''
 
-        ost_args = ['init',
-                    '--mode', 'archive-z2',
-                    '--repo', repo_path]
+        ost_args = ['init', '--mode', 'archive-z2', '--repo', repo_path]
         self._run_ostree(ost_args)
 
-        fp_args = ['build-update-repo',
-                   '--title', repo.title,
-                   '--default-branch', repo.default_branch,
-                   '--collection-id', repo.collection_id,
-                   '--gpg-sign', repo.gpg_key_id,
-                   '--gpg-homedir', self._lconf.secret_gpg_home_dir]
+        fp_args = [
+            'build-update-repo',
+            '--title',
+            repo.title,
+            '--default-branch',
+            repo.default_branch,
+            '--collection-id',
+            repo.collection_id,
+            '--gpg-sign',
+            repo.gpg_key_id,
+            '--gpg-homedir',
+            self._lconf.secret_gpg_home_dir,
+        ]
         if repo.comment:
             fp_args.extend(['--comment', repo.comment])
         if repo.description:

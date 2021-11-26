@@ -18,9 +18,19 @@ from argparse import ArgumentParser
 from sqlalchemy.orm import undefer
 
 from laniakea import LkModule
-from laniakea.db import (ArchiveRepository, ArchiveSuite, BinaryPackage,
-                         DebcheckIssue, Job, JobKind, JobStatus, PackageType,
-                         SourcePackage, config_get_value, session_factory)
+from laniakea.db import (
+    Job,
+    JobKind,
+    JobStatus,
+    PackageType,
+    ArchiveSuite,
+    BinaryPackage,
+    DebcheckIssue,
+    SourcePackage,
+    ArchiveRepository,
+    session_factory,
+    config_get_value,
+)
 from laniakea.utils import any_arch_matches
 
 
@@ -32,13 +42,15 @@ def get_newest_sources_index(session, repo, suite):
     from apt_pkg import version_compare
 
     res_spkgs = {}
-    spkgs = session.query(SourcePackage) \
-        .options(undefer(SourcePackage.version)) \
-        .options(undefer(SourcePackage.architectures)) \
-        .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id)) \
-        .filter(SourcePackage.repo_id == repo.id) \
-        .order_by(SourcePackage.version.desc()) \
+    spkgs = (
+        session.query(SourcePackage)
+        .options(undefer(SourcePackage.version))
+        .options(undefer(SourcePackage.architectures))
+        .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id))
+        .filter(SourcePackage.repo_id == repo.id)
+        .order_by(SourcePackage.version.desc())
         .all()
+    )
 
     for pkg in spkgs:
         epkg = res_spkgs.get(pkg.uuid)
@@ -55,11 +67,14 @@ def binaries_exist_for_package(session, repo, spkg, arch):
     Get list of binary packages built for the given source package.
     '''
 
-    eq = session.query(BinaryPackage) \
-        .filter(BinaryPackage.repo_id == repo.id) \
-        .filter(BinaryPackage.source_name == spkg.name) \
-        .filter(BinaryPackage.source_version == spkg.version) \
-        .filter(BinaryPackage.architecture == arch).exists()
+    eq = (
+        session.query(BinaryPackage)
+        .filter(BinaryPackage.repo_id == repo.id)
+        .filter(BinaryPackage.source_name == spkg.name)
+        .filter(BinaryPackage.source_version == spkg.version)
+        .filter(BinaryPackage.architecture == arch)
+        .exists()
+    )
     return session.query(eq).scalar()
 
 
@@ -68,16 +83,21 @@ def debcheck_has_issues_for_package(session, suite, spkg, arch):
     Get Debcheck issues related to the given source package.
     '''
 
-    eq = session.query(DebcheckIssue) \
-        .filter(DebcheckIssue.package_type == PackageType.SOURCE) \
-        .filter(DebcheckIssue.suite_id == suite.id) \
-        .filter(DebcheckIssue.package_name == spkg.name) \
-        .filter(DebcheckIssue.package_version == spkg.version) \
-        .filter(DebcheckIssue.architectures.any(arch.name)).exists()
+    eq = (
+        session.query(DebcheckIssue)
+        .filter(DebcheckIssue.package_type == PackageType.SOURCE)
+        .filter(DebcheckIssue.suite_id == suite.id)
+        .filter(DebcheckIssue.package_name == spkg.name)
+        .filter(DebcheckIssue.package_version == spkg.version)
+        .filter(DebcheckIssue.architectures.any(arch.name))
+        .exists()
+    )
     return session.query(eq).scalar()
 
 
-def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, *, enforce_indep=False, arch_all=None, simulate=False):
+def schedule_build_for_arch(
+    session, repo, spkg, arch, incoming_suite, *, enforce_indep=False, arch_all=None, simulate=False
+):
     '''
     Schedule a job for the given architecture, if the
     package can be built on it and no prior job was scheduled.
@@ -104,14 +124,16 @@ def schedule_build_for_arch(session, repo, spkg, arch, incoming_suite, *, enforc
 
     # check if we have already scheduled a job for this in the past and don't create
     # another one in that case
-    job = session.query(Job) \
-                 .options(undefer(Job.status)) \
-                 .options(undefer(Job.result)) \
-                 .filter(Job.trigger == spkg.source_uuid) \
-                 .filter(Job.version == spkg.version) \
-                 .filter(Job.architecture == arch.name) \
-                 .order_by(Job.time_created) \
-                 .first()
+    job = (
+        session.query(Job)
+        .options(undefer(Job.status))
+        .options(undefer(Job.result))
+        .filter(Job.trigger == spkg.source_uuid)
+        .filter(Job.version == spkg.version)
+        .filter(Job.architecture == arch.name)
+        .order_by(Job.time_created)
+        .first()
+    )
     if job:
         if has_dependency_issues:
             # dependency issues and an already existing job means there is nothing to
@@ -164,16 +186,21 @@ def delete_orphaned_jobs(session, simulate=False):
     the archive entirely.
     '''
 
-    pending_jobs = session.query(Job) \
-        .filter(Job.module == LkModule.ARIADNE) \
-        .filter(Job.status.in_((JobStatus.UNKNOWN, JobStatus.WAITING, JobStatus.DEPWAIT))).all()
+    pending_jobs = (
+        session.query(Job)
+        .filter(Job.module == LkModule.ARIADNE)
+        .filter(Job.status.in_((JobStatus.UNKNOWN, JobStatus.WAITING, JobStatus.DEPWAIT)))
+        .all()
+    )
     for job in pending_jobs:
         # The job only is an orphan if the source package triggering it
         # does no longer exist with the given version number.
-        spkg = session.query(SourcePackage) \
-            .filter(SourcePackage.source_uuid == job.trigger) \
-            .filter(SourcePackage.version == job.version) \
+        spkg = (
+            session.query(SourcePackage)
+            .filter(SourcePackage.source_uuid == job.trigger)
+            .filter(SourcePackage.version == job.version)
             .one_or_none()
+        )
         if spkg:
             continue
 
@@ -197,10 +224,8 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
     # where to build pure arch:all packages?
     arch_indep_affinity = config_get_value(LkModule.ARIADNE, 'indep_arch_affinity')
 
-    repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name == repo_name).one()
-    incoming_suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.name == incoming_suite_name).one_or_none()
+    repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
+    incoming_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == incoming_suite_name).one_or_none()
     if not incoming_suite:
         log.error('Incoming suite "{}" was not found in the database.'.format(incoming_suite_name))
         return False
@@ -213,7 +238,11 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
             arch_all = arch
             break
     if not arch_all:
-        log.warning('Suite "{}" does not have arch:all in its architecture set, some packages can not be built.'.format(incoming_suite.name))
+        log.warning(
+            'Suite "{}" does not have arch:all in its architecture set, some packages can not be built.'.format(
+                incoming_suite.name
+            )
+        )
 
     if simulate:
         log.info('Simulation, not scheduling any actual builds.')
@@ -270,14 +299,16 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
             force_indep = True
 
         for arch in build_for_archs:
-            if schedule_build_for_arch(session,
-                                       repo,
-                                       spkg,
-                                       arch,
-                                       incoming_suite,
-                                       enforce_indep=force_indep,
-                                       arch_all=arch_all,
-                                       simulate=simulate):
+            if schedule_build_for_arch(
+                session,
+                repo,
+                spkg,
+                arch,
+                incoming_suite,
+                enforce_indep=force_indep,
+                arch_all=arch_all,
+                simulate=simulate,
+            ):
                 scheduled_count += 1
 
             if limit_count > 0 and scheduled_count >= limit_count:
@@ -305,8 +336,7 @@ def schedule_builds(repo_name, simulate=False, limit_architecture=None, limit_co
     session = session_factory()
 
     # FIXME: We need much better ways to select the right suite to synchronize with
-    incoming_suites = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.accept_uploads == True).all()  # noqa: E712
+    incoming_suites = session.query(ArchiveSuite).filter(ArchiveSuite.accept_uploads == True).all()  # noqa: E712
 
     for incoming_suite in incoming_suites:
         if not schedule_builds_for_suite(repo_name, incoming_suite.name, simulate, limit_architecture, limit_count):
@@ -315,7 +345,7 @@ def schedule_builds(repo_name, simulate=False, limit_architecture=None, limit_co
 
 
 def command_run(options):
-    ''' Schedule package builds '''
+    '''Schedule package builds'''
 
     # FIXME: Don't hardcode the "master" repository here, fully implement
     # the "multiple repositories" feature
@@ -336,25 +366,34 @@ def command_run(options):
 
 
 def create_parser(formatter_class=None):
-    ''' Create Ariadne CLI argument parser '''
+    '''Create Ariadne CLI argument parser'''
 
     parser = ArgumentParser(description='Schedule package build jobs.')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose',
-                        help='Enable debug messages.')
-    parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of Laniakea itself.')
+    parser.add_argument('--verbose', action='store_true', dest='verbose', help='Enable debug messages.')
+    parser.add_argument(
+        '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
+    )
 
     sp = subparsers.add_parser('run', help='Trigger package build jobs for the incoming suite or a specific suite.')
     sp.add_argument('suite', type=str, help='The suite to schedule builds for.', nargs='?')
-    sp.add_argument('--simulate', action='store_true', dest='simulate',
-                    help='Run simulation, don\'t schedule any jobs and instead just display what would be done.')
-    sp.add_argument('--limit-count', type=int, dest='limit_count',
-                    help='Limit the amount of builds scheduled at a time to a certain number.')
-    sp.add_argument('--limit-architecture', type=str, dest='limit_arch',
-                    help='Only schedule builds for the selected architecture.')
+    sp.add_argument(
+        '--simulate',
+        action='store_true',
+        dest='simulate',
+        help='Run simulation, don\'t schedule any jobs and instead just display what would be done.',
+    )
+    sp.add_argument(
+        '--limit-count',
+        type=int,
+        dest='limit_count',
+        help='Limit the amount of builds scheduled at a time to a certain number.',
+    )
+    sp.add_argument(
+        '--limit-architecture', type=str, dest='limit_arch', help='Only schedule builds for the selected architecture.'
+    )
     sp.set_defaults(func=command_run)
 
     return parser
@@ -363,6 +402,7 @@ def create_parser(formatter_class=None):
 def check_print_version(options):
     if options.show_version:
         from laniakea import __version__
+
         print(__version__)
         sys.exit(0)
 
@@ -371,6 +411,7 @@ def check_verbose(options):
     if options.verbose:
         log.basicConfig(level=log.DEBUG, format="[%(levelname)s] %(message)s")
         from laniakea.logging import set_verbose
+
         set_verbose(True)
 
 

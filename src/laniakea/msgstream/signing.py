@@ -52,7 +52,11 @@ def decode_signing_key_base64(algorithm, key_base64, version=0):
         key.alg = NACL_ED25519
         return key
     else:
-        raise ValueError('Unsupported algorithm {}'.format(algorithm,))
+        raise ValueError(
+            'Unsupported algorithm {}'.format(
+                algorithm,
+            )
+        )
 
 
 def encode_signing_key_base64(key):
@@ -95,7 +99,7 @@ def decode_verify_key_bytes(key_id, key_bytes):
         A VerifyKey object.
     '''
     if key_id.startswith(NACL_ED25519 + ':'):
-        version = key_id[len(NACL_ED25519) + 1:]
+        version = key_id[len(NACL_ED25519) + 1 :]
         key = nacl.signing.VerifyKey(key_bytes)
         key.version = version
         key.alg = NACL_ED25519
@@ -131,7 +135,10 @@ def read_old_signing_keys(stream):
     keys = []
     for line in stream:
         algorithm, version, expired, key_base64 = line.split()
-        key_name = '%s:%s' % (algorithm, version,)
+        key_name = '%s:%s' % (
+            algorithm,
+            version,
+        )
         key = decode_verify_key_bytes(key_name, decode_base64(key_base64))
         key.expired = int(expired)
         keys.append(key)
@@ -186,8 +193,7 @@ def keyfile_read_verify_key(fname):
                     continue
 
     if verify_key:
-        verify_key = decode_verify_key_bytes(NACL_ED25519 + ':' + '0',
-                                             decode_base64(verify_key))
+        verify_key = decode_verify_key_bytes(NACL_ED25519 + ':' + '0', decode_base64(verify_key))
 
     return signer_id, verify_key
 

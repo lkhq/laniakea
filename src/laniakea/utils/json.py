@@ -12,10 +12,7 @@ def json_compact_dump(obj, as_bytes=False):
     Convert :obj to JSON string reproducibly and
     in the most compact form possible.
     '''
-    s = json.dumps(obj,
-                   ensure_ascii=False,
-                   separators=(',', ':'),
-                   sort_keys=True)
+    s = json.dumps(obj, ensure_ascii=False, separators=(',', ':'), sort_keys=True)
     if as_bytes:
         return bytes(s, 'utf-8')
     return s

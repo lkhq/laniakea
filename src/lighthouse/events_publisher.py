@@ -4,13 +4,13 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import logging as log
 import os
+import logging as log
 
 import zmq
 
-from laniakea.msgstream.signedjson import sign_json
 from laniakea.utils import json_compact_dump
+from laniakea.msgstream.signedjson import sign_json
 
 
 class EventsPublisher:
@@ -21,9 +21,11 @@ class EventsPublisher:
 
     def __init__(self, endpoints, pub_queue):
         from laniakea import LkModule, LocalConfig
-        from laniakea.msgstream.signing import (NACL_ED25519,
-                                                decode_signing_key_base64,
-                                                keyfile_read_signing_key)
+        from laniakea.msgstream.signing import (
+            NACL_ED25519,
+            keyfile_read_signing_key,
+            decode_signing_key_base64,
+        )
 
         lconf = LocalConfig()
         self._sockets = []
@@ -46,7 +48,7 @@ class EventsPublisher:
                 self._signing_key = decode_signing_key_base64(NACL_ED25519, self._signing_key)
 
     def _sign_message(self, event):
-        ''' Sign an outgoing message, if possible '''
+        '''Sign an outgoing message, if possible'''
 
         if not self._signing_key:
             return event
@@ -61,8 +63,7 @@ class EventsPublisher:
         new_data = json_compact_dump(event)
 
         # create message
-        msg = [bytes(event['tag'], 'utf-8'),
-               bytes(new_data, 'utf-8')]
+        msg = [bytes(event['tag'], 'utf-8'), bytes(new_data, 'utf-8')]
 
         # send message
         for socket in self._sockets:

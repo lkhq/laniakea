@@ -5,20 +5,22 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import random
 import uuid
+import random
 from datetime import datetime
 
 import zmq
 
-from laniakea.localconfig import LocalConfig
-from laniakea.logging import log
-from laniakea.msgstream.signedjson import sign_json, verify_signed_json
-from laniakea.msgstream.signing import (NACL_ED25519,
-                                        decode_signing_key_base64,
-                                        decode_verify_key_bytes,
-                                        keyfile_read_signing_key)
 from laniakea.utils import decode_base64, json_compact_dump
+from laniakea.logging import log
+from laniakea.localconfig import LocalConfig
+from laniakea.msgstream.signing import (
+    NACL_ED25519,
+    decode_verify_key_bytes,
+    keyfile_read_signing_key,
+    decode_signing_key_base64,
+)
+from laniakea.msgstream.signedjson import sign_json, verify_signed_json
 
 
 def create_message_tag(module, subject):
@@ -37,11 +39,7 @@ def create_event_message(sender, tag, data, key):
     if type(key) is str:
         key = decode_signing_key_base64(NACL_ED25519, key)
 
-    msg = {'tag': tag,
-           'uuid': str(uuid.uuid1()),
-           'format': '1.0',
-           'time': datetime.now().isoformat(),
-           'data': data}
+    msg = {'tag': tag, 'uuid': str(uuid.uuid1()), 'format': '1.0', 'time': datetime.now().isoformat(), 'data': data}
 
     return sign_json(msg, sender, key)
 
@@ -166,11 +164,7 @@ class EventEmitter:
         Submit an event to a Lighthouse instance for publication.
         '''
         tag = create_message_tag(self._module, subject)
-        submit_event_message(self._socket,
-                             self._signer_id,
-                             tag,
-                             data,
-                             self._signing_key)
+        submit_event_message(self._socket, self._signer_id, tag, data, self._signing_key)
 
     def submit_event_for_mod(self, mod, subject, data):
         '''
@@ -178,18 +172,10 @@ class EventEmitter:
         :EventEmitter was created for.
         '''
         tag = create_message_tag(mod, subject)
-        submit_event_message(self._socket,
-                             self._signer_id,
-                             tag,
-                             data,
-                             self._signing_key)
+        submit_event_message(self._socket, self._signer_id, tag, data, self._signing_key)
 
     def submit_event_for_tag(self, tag, data):
         '''
         Submit and event and set a custom tag.
         '''
-        submit_event_message(self._socket,
-                             self._signer_id,
-                             tag,
-                             data,
-                             self._signing_key)
+        submit_event_message(self._socket, self._signer_id, tag, data, self._signing_key)

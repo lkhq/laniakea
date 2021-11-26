@@ -48,6 +48,26 @@ if get_option('linting')
         suite: 'linters',
         timeout: 180,
     )
+
+    isort_exe = find_program('isort')
+    test('isort',
+        py,
+        args: [isort_exe.path(),
+               '--diff', '.'],
+        workdir: source_root,
+        suite: 'linters',
+        timeout: 180,
+    )
+
+    black_exe = find_program('black')
+    test('black',
+        py,
+        args: [black_exe.path(),
+               '--diff', '.'],
+        workdir: source_root,
+        suite: 'linters',
+        timeout: 180,
+    )
 endif
 
 py_exe = find_program('python3')

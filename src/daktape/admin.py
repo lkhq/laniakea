@@ -36,7 +36,7 @@ def run_add_suite(options):
 
 
 def module_admin_init(options):
-    ''' Run DakTape admin actions '''
+    '''Run DakTape admin actions'''
 
     if options.run:
         run_dak_command(options)
@@ -48,7 +48,6 @@ def module_admin_init(options):
 def add_cli_parser(parser):
     sp = parser.add_parser('admin', help='Run (manual) administrative actions')
 
-    sp.add_argument('--run', nargs='*', dest='run',
-                    help='Pass all arguments to the dak CLI tool.')
+    sp.add_argument('--run', nargs='*', dest='run', help='Pass all arguments to the dak CLI tool.')
 
     sp.set_defaults(func=module_admin_init)

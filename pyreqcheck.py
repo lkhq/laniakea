@@ -3,10 +3,10 @@
 # Check whether all required Python modules are found on the system.
 #
 
-import argparse
 import os
-import subprocess
 import sys
+import argparse
+import subprocess
 
 if sys.version_info[0] < 3 or sys.version_info[1] < 9:
     print('Laniakea requires at least Python 3.9 to run!', file=sys.stderr)
@@ -15,15 +15,25 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 9:
 try:
     from packaging.requirements import Requirement
 except ModuleNotFoundError:
-    print(('Unable to find "packaging" Python module. Please install it via '
-           '`apt install python3-packaging` or `pip install packaging`'), file=sys.stderr)
+    print(
+        (
+            'Unable to find "packaging" Python module. Please install it via '
+            '`apt install python3-packaging` or `pip install packaging`'
+        ),
+        file=sys.stderr,
+    )
     sys.exit(2)
 
 try:
     import toml
 except ModuleNotFoundError:
-    print(('Unable to find "toml" Python module. Please install it via '
-           '`apt install python3-toml` or `pip install toml`'), file=sys.stderr)
+    print(
+        (
+            'Unable to find "toml" Python module. Please install it via '
+            '`apt install python3-toml` or `pip install toml`'
+        ),
+        file=sys.stderr,
+    )
     sys.exit(2)
 
 thisfile = __file__
@@ -45,8 +55,10 @@ def ensure_gir(req_str):
     try:
         import gi
     except ModuleNotFoundError:
-        print(('Unable to GObject Introspection for Python. Please install it via '
-               '`apt install python3-gi`'), file=sys.stderr)
+        print(
+            ('Unable to GObject Introspection for Python. Please install it via ' '`apt install python3-gi`'),
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     if not req_str.startswith('gir:'):
@@ -58,13 +70,15 @@ def ensure_gir(req_str):
         gi.require_version(req.name, list(req.specifier)[0].version)
         exec('from gi.repository import {}'.format(req.name))
     except ValueError:
-        print('Laniakea requires "{}" GObject introspection data. Please install it to continue.'
-              .format(req.name), file=sys.stderr)
+        print(
+            'Laniakea requires "{}" GObject introspection data. Please install it to continue.'.format(req.name),
+            file=sys.stderr,
+        )
         sys.exit(2)
 
 
 def ensure_dependencies(dependencies, installed_mods=None):
-    ''' Ensure all dependencies in the list are available in the current environment '''
+    '''Ensure all dependencies in the list are available in the current environment'''
 
     if dependencies is None:
         print('No module to check for was defined in this set!', file=sys.stderr)
@@ -89,13 +103,17 @@ def ensure_dependencies(dependencies, installed_mods=None):
 
         candidates = list(req.specifier.filter(versions))
         if not candidates:
-            print('Python module "{}" found, but version "{}" is not sufficient (need: {}).'
-                  .format(req.name, versions[0], req_str), file=sys.stderr)
+            print(
+                'Python module "{}" found, but version "{}" is not sufficient (need: {}).'.format(
+                    req.name, versions[0], req_str
+                ),
+                file=sys.stderr,
+            )
             sys.exit(2)
 
 
 def write_requirements(all_dependencies):
-    ''' Write requirements.txt file(s) for all groups, based on the current environment '''
+    '''Write requirements.txt file(s) for all groups, based on the current environment'''
 
     installed_mods = get_installed_modules()
     for group, req_list in all_dependencies.items():
@@ -139,7 +157,7 @@ def write_requirements(all_dependencies):
 
 
 def write_requirements_readthedocs(all_dependencies):
-    ''' Write requirements.txt file, just for Readthedocs '''
+    '''Write requirements.txt file, just for Readthedocs'''
 
     ignore_reqs = set(['systemd-python', 'python-apt', 'PyGObject'])
     with open(os.path.join('docs', 'readthedocs-reqs.txt'), 'w') as f:
@@ -157,10 +175,10 @@ def write_requirements_readthedocs(all_dependencies):
 
 def run(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--check-group', type=str,
-                        help='Test if dependencies in the given group are satisfied.')
-    parser.add_argument('--write-requirements', action='store_true',
-                        help='Write requirements file based on the current environment.')
+    parser.add_argument('--check-group', type=str, help='Test if dependencies in the given group are satisfied.')
+    parser.add_argument(
+        '--write-requirements', action='store_true', help='Write requirements file based on the current environment.'
+    )
     args = parser.parse_args()
 
     if not args.check_group and not args.write_requirements:

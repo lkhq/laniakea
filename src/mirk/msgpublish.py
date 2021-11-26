@@ -4,22 +4,24 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import os
 import json
 import logging as log
-import os
-from fnmatch import fnmatch
 from typing import Any
+from fnmatch import fnmatch
 
 import zmq
 import zmq.asyncio
 
-from laniakea.msgstream import (create_event_listen_socket,
-                                event_message_is_valid_and_signed,
-                                verify_event_message)
+from laniakea.msgstream import (
+    verify_event_message,
+    create_event_listen_socket,
+    event_message_is_valid_and_signed,
+)
 
 from .config import MirkConfig
+from .messages import message_templates, message_prestyle_event_data
 from .matrix_client import MirkMatrixClient
-from .messages import message_prestyle_event_data, message_templates
 
 
 class RoomSettings:
@@ -82,8 +84,8 @@ class MatrixPublisher:
     def __init__(self):
         from glob import glob
 
-        from laniakea.localconfig import LocalConfig
         from laniakea.msgstream import keyfile_read_verify_key
+        from laniakea.localconfig import LocalConfig
 
         self._zctx = zmq.asyncio.Context()
         self._lhsub_socket = create_event_listen_socket(self._zctx)
@@ -101,7 +103,7 @@ class MatrixPublisher:
         self._mclient = MirkMatrixClient(self._mconf)
 
     def _tag_data_to_html_message(self, tag, event):
-        ''' Convert the JSON message into a nice HTML string for display. '''
+        '''Convert the JSON message into a nice HTML string for display.'''
 
         sdata = event.copy()
         sdata['url_webswview'] = self._mconf.webswview_url
@@ -175,7 +177,7 @@ class MatrixPublisher:
         self._mclient.stop()
 
     async def run(self):
-        ''' Run Matrix Bot operations, forever. '''
+        '''Run Matrix Bot operations, forever.'''
 
         # log into matrix
         await self._mclient.login()

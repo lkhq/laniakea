@@ -6,28 +6,34 @@
 
 from __future__ import annotations
 
-import lzma
 import os
+import lzma
 import shutil
-from typing import Any
 from uuid import uuid4
+from typing import Any
 
 from apt_pkg import TagFile
 from sqlalchemy.orm import joinedload
 
-from laniakea.dakbridge import DakBridge
-from laniakea.db import (ArchiveRepository, ArchiveSuite, LkModule,
-                         SpearsExcuse, SpearsHint, SpearsMigrationEntry,
-                         session_scope)
-from laniakea.localconfig import LocalConfig
+from laniakea.db import (
+    LkModule,
+    SpearsHint,
+    ArchiveSuite,
+    SpearsExcuse,
+    ArchiveRepository,
+    SpearsMigrationEntry,
+    session_scope,
+)
+from laniakea.utils import open_compressed
 from laniakea.logging import log
+from laniakea.dakbridge import DakBridge
 from laniakea.msgstream import EventEmitter
 from laniakea.repository import Repository
-from laniakea.utils import open_compressed
+from laniakea.localconfig import LocalConfig
 
 from .britney import Britney
-from .britneyconfig import BritneyConfig
 from .excuses import ExcusesFile
+from .britneyconfig import BritneyConfig
 
 
 class SpearsEngine:
@@ -67,18 +73,20 @@ class SpearsEngine:
         res: dict[str, Any] = {'error': False, 'from': [], 'to': None}
 
         for suite_name in mentry.source_suites:
-            maybe_suite = session.query(ArchiveSuite) \
-                                 .filter(ArchiveSuite.name == suite_name).one_or_none()
+            maybe_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
             if not maybe_suite:
-                log.error('Migration source suite "{}" does not exist. Can not create configuration.'.format(suite_name))
+                log.error(
+                    'Migration source suite "{}" does not exist. Can not create configuration.'.format(suite_name)
+                )
                 res['error'] = True
                 return res
             res['from'].append(maybe_suite)
 
-        maybe_suite = session.query(ArchiveSuite) \
-                             .filter(ArchiveSuite.name == mentry.target_suite).one_or_none()
+        maybe_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == mentry.target_suite).one_or_none()
         if not maybe_suite:
-            log.error('Migration target suite "{}" does not exist. Can not create configuration.'.format(mentry.target_suite))
+            log.error(
+                'Migration target suite "{}" does not exist. Can not create configuration.'.format(mentry.target_suite)
+            )
             res['error'] = True
             return res
         res['to'] = maybe_suite
@@ -100,11 +108,8 @@ class SpearsEngine:
         return os.path.join(self._workspace, self._get_migration_id(suites_from, suite_to))
 
     def _get_local_repo(self, session, repo_name='master'):
-        repo = session.query(ArchiveRepository) \
-                      .filter(ArchiveRepository.name == repo_name).one()
-        local_repo = Repository(self._lconf.archive_root_dir,
-                                repo.name,
-                                trusted_keyrings=[])
+        repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
+        local_repo = Repository(self._lconf.archive_root_dir, repo.name, trusted_keyrings=[])
 
         # we unconditionally trust the local repository - for now
         local_repo.set_trusted(True)
@@ -131,8 +136,10 @@ class SpearsEngine:
                 log.info('Refreshing Britney config for "{}"'.format(self._get_migration_name(suites_from, suite_to)))
                 mi_wspace = self._get_migrate_workspace(suites_from, suite_to)
                 bc = BritneyConfig(mi_wspace)
-                bc.set_archive_paths(self._get_source_suite_dists_dir(mi_wspace, suites_from),
-                                     os.path.join(self._lconf.archive_root_dir, 'dists', suite_to.name))
+                bc.set_archive_paths(
+                    self._get_source_suite_dists_dir(mi_wspace, suites_from),
+                    os.path.join(self._lconf.archive_root_dir, 'dists', suite_to.name),
+                )
                 bc.set_components([c.name for c in suite_to.components])
                 bc.set_architectures([a.name for a in suite_to.architectures])
                 bc.set_delays(mentry.delays)
@@ -147,7 +154,9 @@ class SpearsEngine:
 
         return True
 
-    def _prepare_source_data(self, session, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite):
+    def _prepare_source_data(
+        self, session, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite
+    ):
         '''
         If there is more than one source suite, we need to give Britney an amalgamation
         of the data of the two source suites.
@@ -169,29 +178,30 @@ class SpearsEngine:
 
                 for installer_dir in ['', 'debian-installer']:
                     for suite_source in suites_source:
-                        pfile = os.path.join(archive_root_dir,
-                                             'dists',
-                                             suite_source.name,
-                                             component.name,
-                                             installer_dir,
-                                             'binary-{}'.format(arch.name),
-                                             'Packages.xz')
+                        pfile = os.path.join(
+                            archive_root_dir,
+                            'dists',
+                            suite_source.name,
+                            component.name,
+                            installer_dir,
+                            'binary-{}'.format(arch.name),
+                            'Packages.xz',
+                        )
                         if os.path.isfile(pfile):
                             log.debug('Looking for packages in: {}'.format(pfile))
                             packages_files.append(pfile)
 
                     if not installer_dir and not installer_dir:
-                        raise Exception('No packages found on {}/{} in sources for migration "{}": Can not continue.'.format(
-                                        component.name,
-                                        arch.name,
-                                        self._get_migration_id(suites_source, suite_target)))
+                        raise Exception(
+                            'No packages found on {}/{} in sources for migration "{}": Can not continue.'.format(
+                                component.name, arch.name, self._get_migration_id(suites_source, suite_target)
+                            )
+                        )
 
                     # create new merged Packages file
-                    target_packages_file = os.path.join(fake_dists_dir,
-                                                        component.name,
-                                                        installer_dir,
-                                                        'binary-{}'.format(arch.name),
-                                                        'Packages.xz')
+                    target_packages_file = os.path.join(
+                        fake_dists_dir, component.name, installer_dir, 'binary-{}'.format(arch.name), 'Packages.xz'
+                    )
                     log.debug('Generating combined new fake packages file: {}'.format(target_packages_file))
                     os.makedirs(os.path.dirname(target_packages_file), exist_ok=True)
 
@@ -204,26 +214,22 @@ class SpearsEngine:
 
             sources_files = []
             for suite_source in suites_source:
-                sfile = os.path.join(archive_root_dir,
-                                     'dists',
-                                     suite_source.name,
-                                     component.name,
-                                     'source',
-                                     'Sources.xz')
+                sfile = os.path.join(
+                    archive_root_dir, 'dists', suite_source.name, component.name, 'source', 'Sources.xz'
+                )
                 if os.path.isfile(sfile):
                     log.debug('Looking for source packages in: {}'.format(sfile))
                     sources_files.append(sfile)
 
             if not sources_files:
-                raise Exception('No source packages found in "{}" sources for migration "{}": Can not continue.'.format(
-                                component.name,
-                                self._get_migration_id(suites_source, suite_target)))
+                raise Exception(
+                    'No source packages found in "{}" sources for migration "{}": Can not continue.'.format(
+                        component.name, self._get_migration_id(suites_source, suite_target)
+                    )
+                )
 
             # Create new merged Sources file
-            target_sources_file = os.path.join(fake_dists_dir,
-                                               component.name,
-                                               'source',
-                                               'Sources.xz')
+            target_sources_file = os.path.join(fake_dists_dir, component.name, 'source', 'Sources.xz')
             log.debug('Generating combined new fake sources file: {}'.format(target_sources_file))
             os.makedirs(os.path.dirname(target_sources_file), exist_ok=True)
 
@@ -237,17 +243,16 @@ class SpearsEngine:
         # Britney needs a Release file to determine the source suites components and architectures.
         # To keep things simple, we just copy one of the source Release files.
         # TODO: Synthesize a dedicated file instead and be less lazy
-        release_file = os.path.join(archive_root_dir,
-                                    'dists',
-                                    suites_source[0].name,
-                                    'Release')
+        release_file = os.path.join(archive_root_dir, 'dists', suites_source[0].name, 'Release')
         target_release_file = os.path.join(fake_dists_dir, 'Release')
         log.debug('Using Release file for fake suite: {}'.format(target_release_file))
         if os.path.join(target_release_file):
             os.remove(target_release_file)
         shutil.copyfile(release_file, target_release_file)
 
-    def _create_faux_packages(self, session, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite):
+    def _create_faux_packages(
+        self, session, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite
+    ):
         '''
         If we have a partial source and target suite, we need to let Britney know about the
         parent packages somehow.
@@ -275,10 +280,13 @@ class SpearsEngine:
         repo = self._get_local_repo(session)
 
         for suite in suites_source:
-            esuite = session.query(ArchiveSuite) \
-                            .options(joinedload(ArchiveSuite.components)) \
-                            .options(joinedload(ArchiveSuite.architectures)) \
-                            .filter(ArchiveSuite.id == suite.id).one()
+            esuite = (
+                session.query(ArchiveSuite)
+                .options(joinedload(ArchiveSuite.components))
+                .options(joinedload(ArchiveSuite.architectures))
+                .filter(ArchiveSuite.id == suite.id)
+                .one()
+            )
             session.expunge(esuite)  # we don't want packages accidentally added to the database here
             for component in esuite.components:
                 for arch in esuite.architectures:
@@ -297,13 +305,15 @@ class SpearsEngine:
 
             for installer_dir in ['', 'debian-installer']:
                 for arch in suite_target.parent.architectures:
-                    pfile = os.path.join(archive_root_dir,
-                                         'dists',
-                                         suite_target.parent.name,
-                                         component.name,
-                                         installer_dir,
-                                         'binary-{}'.format(arch.name),
-                                         'Packages.xz')
+                    pfile = os.path.join(
+                        archive_root_dir,
+                        'dists',
+                        suite_target.parent.name,
+                        component.name,
+                        installer_dir,
+                        'binary-{}'.format(arch.name),
+                        'Packages.xz',
+                    )
                     if not os.path.isfile(pfile):
                         continue
 
@@ -396,9 +406,9 @@ class SpearsEngine:
                 f.write('')
 
         # there is no support for Piuparts yet, but Britney crashes without these files
-        piupats_dummy_json = ('{"_id": "Piuparts Package Test Results Summary", '
-                              '"_version": "1.0", '
-                              '"packages": {}}\n')
+        piupats_dummy_json = (
+            '{"_id": "Piuparts Package Test Results Summary", ' '"_version": "1.0", ' '"packages": {}}\n'
+        )
         for suite in suites_source:
             piuparts_file_u = os.path.join(mi_wspace, 'state', 'piuparts-summary-{}.json'.format(suite.name))
             if not os.path.isfile(piuparts_file_u):
@@ -461,10 +471,13 @@ class SpearsEngine:
             repo = self._get_local_repo(session)
 
             for suite in suites_from:
-                esuite = session.query(ArchiveSuite) \
-                                .options(joinedload(ArchiveSuite.components)) \
-                                .options(joinedload(ArchiveSuite.architectures)) \
-                                .filter(ArchiveSuite.id == suite.id).one()
+                esuite = (
+                    session.query(ArchiveSuite)
+                    .options(joinedload(ArchiveSuite.components))
+                    .options(joinedload(ArchiveSuite.architectures))
+                    .filter(ArchiveSuite.id == suite.id)
+                    .one()
+                )
                 session.expunge(esuite)  # we don't want packages accidentally added to the database here
                 for component in esuite.components:
                     for spkg in repo.source_packages(esuite, component):
@@ -486,8 +499,11 @@ class SpearsEngine:
         mi_wspace = self._get_migrate_workspace(suites_from, suite_to)
         britney_conf = os.path.join(mi_wspace, 'britney.conf')
         if not os.path.isfile(britney_conf):
-            log.warning('No Britney config for migration run "{}" - maybe the configuration was not yet updated?'.format(
-                        self._get_migration_name(suites_from, suite_to)))
+            log.warning(
+                'No Britney config for migration run "{}" - maybe the configuration was not yet updated?'.format(
+                    self._get_migration_name(suites_from, suite_to)
+                )
+            )
             return None
 
         log.info('Migration run for "{}"'.format(self._get_migration_name(suites_from, suite_to)))
@@ -535,7 +551,13 @@ class SpearsEngine:
             existing_excuses = {}
             all_excuses = session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == migration_id).all()
             for excuse in all_excuses:
-                eid = '{}-{}:{}-{}/{}'.format(excuse.suite_source, excuse.suite_target, excuse.source_package, excuse.version_new, excuse.version_old)
+                eid = '{}-{}:{}-{}/{}'.format(
+                    excuse.suite_source,
+                    excuse.suite_target,
+                    excuse.source_package,
+                    excuse.version_new,
+                    excuse.version_old,
+                )
                 existing_excuses[eid] = excuse
 
             for new_excuse in n_excuses:
@@ -551,12 +573,14 @@ class SpearsEngine:
                     excuse.uuid = uuid4()  # we need an UUID immediately to submit it in the event payload
                     session.add(excuse)
 
-                    data = {'uuid': str(excuse.uuid),
-                            'suite_source': excuse.suite_source,
-                            'suite_target': excuse.suite_target,
-                            'source_package': excuse.source_package,
-                            'version_new': excuse.version_new,
-                            'version_old': excuse.version_old}
+                    data = {
+                        'uuid': str(excuse.uuid),
+                        'suite_source': excuse.suite_source,
+                        'suite_target': excuse.suite_target,
+                        'source_package': excuse.source_package,
+                        'version_new': excuse.version_new,
+                        'version_old': excuse.version_old,
+                    }
                     emitter.submit_event('new-excuse', data)
                 else:
                     excuse.is_candidate = new_excuse.is_candidate
@@ -577,12 +601,14 @@ class SpearsEngine:
                     excuse.log_excerpt = new_excuse.log_excerpt
 
             for excuse in existing_excuses.values():
-                data = {'uuid': str(excuse.uuid),
-                        'suite_source': excuse.suite_source,
-                        'suite_target': excuse.suite_target,
-                        'source_package': excuse.source_package,
-                        'version_new': excuse.version_new,
-                        'version_old': excuse.version_old}
+                data = {
+                    'uuid': str(excuse.uuid),
+                    'suite_source': excuse.suite_source,
+                    'suite_target': excuse.suite_target,
+                    'source_package': excuse.source_package,
+                    'version_new': excuse.version_new,
+                    'version_old': excuse.version_old,
+                }
                 emitter.submit_event('excuse-removed', data)
                 session.delete(excuse)
 

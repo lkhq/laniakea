@@ -4,58 +4,75 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import click
 import toml
+import click
 
 from laniakea import LocalConfig
-from laniakea.db import (ArchiveArchitecture, ArchiveComponent,
-                         ArchiveRepository, ArchiveRepoSuiteSettings,
-                         ArchiveSuite, ArchiveUploader, session_scope)
+from laniakea.db import (
+    ArchiveSuite,
+    ArchiveUploader,
+    ArchiveComponent,
+    ArchiveRepository,
+    ArchiveArchitecture,
+    ArchiveRepoSuiteSettings,
+    session_scope,
+)
 
-from .utils import (ClickAliasedGroup, input_list, input_str, print_error_exit,
-                    print_header, print_note)
+from .utils import (
+    ClickAliasedGroup,
+    input_str,
+    input_list,
+    print_note,
+    print_header,
+    print_error_exit,
+)
 
 
 @click.group(cls=ClickAliasedGroup)
 def archive():
-    ''' Configure package archive settings. '''
+    '''Configure package archive settings.'''
     pass
 
 
 def _add_repo(name: str, origin: str, is_debug: bool = False, debug_for: str = None):
-    ''' Create a new repository (helper function). '''
+    '''Create a new repository (helper function).'''
 
     if is_debug and not debug_for:
-        raise ValueError('Repo "{}" is marked as debug repo, but no repo name that it contains debug symbols for was given. ')
+        raise ValueError(
+            'Repo "{}" is marked as debug repo, but no repo name that it contains debug symbols for was given. '
+        )
 
     name = name.lower()
     with session_scope() as session:
-        repo = session.query(ArchiveRepository) \
-            .filter(ArchiveRepository.name == name).one_or_none()
+        repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == name).one_or_none()
         if not repo:
             repo = ArchiveRepository(name)
             session.add(repo)
         repo.origin_name = origin
         repo.is_debug = is_debug
         if is_debug:
-            nd_repo = session.query(ArchiveRepository) \
-                             .filter(ArchiveRepository.name == debug_for).one_or_none()
+            nd_repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == debug_for).one_or_none()
             if not nd_repo:
                 raise ValueError('Repository with name "{}" was not found.'.format(debug_for))
             nd_repo.debug_repo = repo
 
 
 @archive.command(aliases=['r-a'])
-@click.option('--name', prompt=True, type=str,
-              help='Name of the repository, e.g. "master"')
-@click.option('--origin', prompt=True, type=str, default='',
-              help='Repository origin, e.g. "Debian Project"')
-@click.option('--is-debug', 'is_human', prompt=True, default=False, is_flag=True,
-              help='Whether this repository contains only debug symbol packages.')
-@click.option('--debug-for-repo', type=str, default=None,
-              help='Repository name this repository contains debug symbols for.')
+@click.option('--name', prompt=True, type=str, help='Name of the repository, e.g. "master"')
+@click.option('--origin', prompt=True, type=str, default='', help='Repository origin, e.g. "Debian Project"')
+@click.option(
+    '--is-debug',
+    'is_human',
+    prompt=True,
+    default=False,
+    is_flag=True,
+    help='Whether this repository contains only debug symbol packages.',
+)
+@click.option(
+    '--debug-for-repo', type=str, default=None, help='Repository name this repository contains debug symbols for.'
+)
 def repo_add(name: str, origin: str, is_debug: bool = False, debug_for_repo: str = None):
-    ''' Create a new repository. '''
+    '''Create a new repository.'''
 
     if is_debug and not debug_for_repo:
         debug_for_repo = input_str('Name of the suite this debug suite contains symbols for')
@@ -64,17 +81,16 @@ def repo_add(name: str, origin: str, is_debug: bool = False, debug_for_repo: str
 
 
 @archive.command(aliases=['c-a'])
-@click.option('--name', prompt=True, type=str,
-              help='Name of the component, e.g. "main"')
-@click.option('--summary', prompt=True, type=str, default='',
-              help='Short description of the component, e.g. "Supported packages"')
+@click.option('--name', prompt=True, type=str, help='Name of the component, e.g. "main"')
+@click.option(
+    '--summary', prompt=True, type=str, default='', help='Short description of the component, e.g. "Supported packages"'
+)
 def component_add(name: str, summary: str):
-    ''' Add a new archive component. '''
+    '''Add a new archive component.'''
 
     name = name.lower()
     with session_scope() as session:
-        component = session.query(ArchiveComponent) \
-                           .filter(ArchiveComponent.name == name).one_or_none()
+        component = session.query(ArchiveComponent).filter(ArchiveComponent.name == name).one_or_none()
         if not component:
             component = ArchiveComponent(name)
             session.add(component)
@@ -82,27 +98,37 @@ def component_add(name: str, summary: str):
 
 
 @archive.command(aliases=['a-a'])
-@click.option('--name', prompt=True, type=str,
-              help='Name of the architecture, e.g. "amd64"')
-@click.option('--summary', prompt=True, type=str, default='',
-              help='Short description of the architecture, e.g. "AMD x86-64 architecture"')
+@click.option('--name', prompt=True, type=str, help='Name of the architecture, e.g. "amd64"')
+@click.option(
+    '--summary',
+    prompt=True,
+    type=str,
+    default='',
+    help='Short description of the architecture, e.g. "AMD x86-64 architecture"',
+)
 def architecture_add(name: str, summary: str):
-    ''' Register a new archive architecture. '''
+    '''Register a new archive architecture.'''
 
     name = name.lower()
     with session_scope() as session:
-        arch = session.query(ArchiveArchitecture) \
-                      .filter(ArchiveArchitecture.name == name).one_or_none()
+        arch = session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == name).one_or_none()
         if not arch:
             arch = ArchiveArchitecture(name)
             session.add(arch)
         arch.summary = summary
 
 
-def _add_uploader(repo_name, email, fingerprints, is_human,
-                 allow_source_uploads=True, allow_binary_uploads=True,
-                 always_review=False, allow_packages=None):
-    ''' Set up a new entity who is allowed to upload packages. '''
+def _add_uploader(
+    repo_name,
+    email,
+    fingerprints,
+    is_human,
+    allow_source_uploads=True,
+    allow_binary_uploads=True,
+    always_review=False,
+    allow_packages=None,
+):
+    '''Set up a new entity who is allowed to upload packages.'''
 
     if not allow_packages:
         allow_packages = []
@@ -110,13 +136,11 @@ def _add_uploader(repo_name, email, fingerprints, is_human,
         raise ValueError('Can not add uploader without GPG fingerprints.')
 
     with session_scope() as session:
-        repo = session.query(ArchiveRepository) \
-                      .filter(ArchiveRepository.name == repo_name).one_or_none()
+        repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one_or_none()
         if not repo:
             print_error_exit('Repository with name "{}" does not exist.'.format(repo_name))
 
-        uploader = session.query(ArchiveUploader) \
-                          .filter(ArchiveUploader.email == email).one_or_none()
+        uploader = session.query(ArchiveUploader).filter(ArchiveUploader.email == email).one_or_none()
         if not uploader:
             uploader = ArchiveUploader(email)
             session.add(uploader)
@@ -129,41 +153,78 @@ def _add_uploader(repo_name, email, fingerprints, is_human,
         if repo not in uploader.repos:
             uploader.repos.append(repo)
 
+
 @archive.command(aliases=['u-a'])
-@click.option('--repo', 'repo_name', prompt=True, type=str, default=lambda: LocalConfig().master_repo_name,
-              help='Name of the repository this entity is allowed to upload to')
-@click.option('--email', prompt=True, type=str,
-              help='E-Mail address of the new uploader')
-@click.option('--fingerprint', 'fingerprints', multiple=True, type=str, default=None,
-              help='PGP fingerprint for this new uploader')
-@click.option('--human/--no-human', 'is_human', prompt=True, default=True,
-              help='Whether the new uploader is human or an automaton.')
-@click.option('--allow-source-uploads', prompt=True, default=True, is_flag=True,
-              help='Allow uploads of source packages.')
-@click.option('--allow-binary-uploads', prompt=True, default=True, is_flag=True,
-              help='Allow uploads of binary packages.')
-@click.option('--always-review', prompt=True, default=False, is_flag=True,
-              help='Uploads of this uploader will never be published immediately and always marked for review first.')
-@click.option('--allow-package', 'allow_packages', multiple=True, default=[],
-              help='Allow only specific packages to be uploaded by this uploader.')
-def uploader_add(repo_name, email, fingerprints, is_human,
-                 allow_source_uploads=True, allow_binary_uploads=True,
-                 always_review=False, allow_packages=None):
-    ''' Set up a new entity who is allowed to upload packages. '''
+@click.option(
+    '--repo',
+    'repo_name',
+    prompt=True,
+    type=str,
+    default=lambda: LocalConfig().master_repo_name,
+    help='Name of the repository this entity is allowed to upload to',
+)
+@click.option('--email', prompt=True, type=str, help='E-Mail address of the new uploader')
+@click.option(
+    '--fingerprint', 'fingerprints', multiple=True, type=str, default=None, help='PGP fingerprint for this new uploader'
+)
+@click.option(
+    '--human/--no-human',
+    'is_human',
+    prompt=True,
+    default=True,
+    help='Whether the new uploader is human or an automaton.',
+)
+@click.option(
+    '--allow-source-uploads', prompt=True, default=True, is_flag=True, help='Allow uploads of source packages.'
+)
+@click.option(
+    '--allow-binary-uploads', prompt=True, default=True, is_flag=True, help='Allow uploads of binary packages.'
+)
+@click.option(
+    '--always-review',
+    prompt=True,
+    default=False,
+    is_flag=True,
+    help='Uploads of this uploader will never be published immediately and always marked for review first.',
+)
+@click.option(
+    '--allow-package',
+    'allow_packages',
+    multiple=True,
+    default=[],
+    help='Allow only specific packages to be uploaded by this uploader.',
+)
+def uploader_add(
+    repo_name,
+    email,
+    fingerprints,
+    is_human,
+    allow_source_uploads=True,
+    allow_binary_uploads=True,
+    always_review=False,
+    allow_packages=None,
+):
+    '''Set up a new entity who is allowed to upload packages.'''
 
     if not fingerprints:
         fingerprints = input_list('Fingerprints')
     if not allow_packages:
         allow_packages = input_list('Allowed Packages', allow_empty=True)
 
-    _add_uploader(repo_name, email, fingerprints, is_human,
-                  allow_source_uploads, allow_binary_uploads,
-                  always_review, allow_packages)
+    _add_uploader(
+        repo_name,
+        email,
+        fingerprints,
+        is_human,
+        allow_source_uploads,
+        allow_binary_uploads,
+        always_review,
+        allow_packages,
+    )
 
 
-def _add_suite(name, alias, summary, version,
-              arch_names=None, component_names=None, parent_names=None):
-    ''' Register a new suite with the archive. '''
+def _add_suite(name, alias, summary, version, arch_names=None, component_names=None, parent_names=None):
+    '''Register a new suite with the archive.'''
 
     name = name.lower()
     alias = alias.lower()
@@ -183,8 +244,7 @@ def _add_suite(name, alias, summary, version,
         parent_names = []
 
     with session_scope() as session:
-        suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.name == name).one_or_none()
+        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == name).one_or_none()
         if not suite:
             suite = ArchiveSuite(name, alias)
             session.add(suite)
@@ -193,24 +253,21 @@ def _add_suite(name, alias, summary, version,
         suite.version = version
 
         for cname in component_names:
-            component = session.query(ArchiveComponent) \
-                .filter(ArchiveComponent.name == cname).one_or_none()
+            component = session.query(ArchiveComponent).filter(ArchiveComponent.name == cname).one_or_none()
             if not component:
                 print_error_exit('Component with name "{}" does not exist.'.format(cname))
             if component not in suite.components:
                 suite.components.append(component)
 
         for aname in arch_names:
-            arch = session.query(ArchiveArchitecture) \
-                .filter(ArchiveArchitecture.name == aname).one_or_none()
+            arch = session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == aname).one_or_none()
             if not arch:
                 print_error_exit('Architecture with name "{}" does not exist.'.format(aname))
             if arch not in suite.architectures:
                 suite.architectures.append(arch)
 
         for pname in parent_names:
-            parent = session.query(ArchiveSuite) \
-                .filter(ArchiveSuite.name == pname).one_or_none()
+            parent = session.query(ArchiveSuite).filter(ArchiveSuite.name == pname).one_or_none()
             if not parent:
                 print_error_exit('Parent suite with name "{}" does not exist.'.format(pname))
             if parent not in suite.parents:
@@ -218,23 +275,15 @@ def _add_suite(name, alias, summary, version,
 
 
 @archive.command(aliases=['s-a'])
-@click.option('--name', prompt=True, type=str,
-              help='Name of the suite (e.g. "sid")')
-@click.option('--alias', prompt=True, type=str, default='',
-              help='Alias name of the suite (e.g. "unstable")')
-@click.option('--summary', prompt=True, type=str, default='',
-              help='Short suite description')
-@click.option('--version', prompt=True, type=str, default='',
-              help='Distribution version this suite belongs to')
-@click.option('--arch', 'arch_names', multiple=True, type=str,
-              help='Architectures this suite can contain')
-@click.option('--component', 'component_names', multiple=True, type=str,
-              help='Components this suite contains')
-@click.option('--parent', 'parent_names', multiple=True, type=str,
-              help='Parent suite names')
-def suite_add(name, alias, summary, version,
-              arch_names=None, component_names=None, parent_names=None):
-    ''' Register a new suite with the archive. '''
+@click.option('--name', prompt=True, type=str, help='Name of the suite (e.g. "sid")')
+@click.option('--alias', prompt=True, type=str, default='', help='Alias name of the suite (e.g. "unstable")')
+@click.option('--summary', prompt=True, type=str, default='', help='Short suite description')
+@click.option('--version', prompt=True, type=str, default='', help='Distribution version this suite belongs to')
+@click.option('--arch', 'arch_names', multiple=True, type=str, help='Architectures this suite can contain')
+@click.option('--component', 'component_names', multiple=True, type=str, help='Components this suite contains')
+@click.option('--parent', 'parent_names', multiple=True, type=str, help='Parent suite names')
+def suite_add(name, alias, summary, version, arch_names=None, component_names=None, parent_names=None):
+    '''Register a new suite with the archive.'''
 
     if not arch_names:
         arch_names = input_list('Architectures')
@@ -243,14 +292,20 @@ def suite_add(name, alias, summary, version,
     if not parent_names:
         parent_names = input_list('Suite Parents', allow_empty=True)
 
-    _add_suite(name, alias, summary, version,
-               arch_names, component_names, parent_names)
+    _add_suite(name, alias, summary, version, arch_names, component_names, parent_names)
 
 
-def _add_suite_to_repo(repo_name: str, suite_name: str,
-                   accept_uploads=True, devel_target=False, auto_overrides=False,
-                   manual_accept=False, signingkeys=None, announce_emails=None):
-    ''' Add suite to a repository. '''
+def _add_suite_to_repo(
+    repo_name: str,
+    suite_name: str,
+    accept_uploads=True,
+    devel_target=False,
+    auto_overrides=False,
+    manual_accept=False,
+    signingkeys=None,
+    announce_emails=None,
+):
+    '''Add suite to a repository.'''
 
     if not signingkeys:
         raise ValueError('Can not associate a suite with a repository without signingkeys set.')
@@ -258,18 +313,16 @@ def _add_suite_to_repo(repo_name: str, suite_name: str,
         announce_emails = []
 
     with session_scope() as session:
-        repo = session.query(ArchiveRepository) \
-                      .filter(ArchiveRepository.name == repo_name).one_or_none()
+        repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one_or_none()
         if not repo:
             print_error_exit('Repository with name "{}" does not exist.'.format(repo_name))
-        suite = session.query(ArchiveSuite) \
-                       .filter(ArchiveSuite.name == suite_name).one_or_none()
+        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
         if not suite:
             print_error_exit('Suite with name "{}" does not exist.'.format(suite_name))
 
-        rs_settings = session.query(ArchiveRepoSuiteSettings) \
-                             .filter_by(repo_id = repo.id,
-                                        suite_id = suite.id).one_or_none()
+        rs_settings = (
+            session.query(ArchiveRepoSuiteSettings).filter_by(repo_id=repo.id, suite_id=suite.id).one_or_none()
+        )
         if not rs_settings:
             rs_settings = ArchiveRepoSuiteSettings(repo, suite)
             session.add(rs_settings)
@@ -283,40 +336,85 @@ def _add_suite_to_repo(repo_name: str, suite_name: str,
 
 
 @archive.command(aliases=['r-a-s'])
-@click.option('--repo', 'repo_name', prompt=True, type=str, default=lambda: LocalConfig().master_repo_name,
-              help='Name of the repository, e.g. "master"')
-@click.option('--suite', 'suite_name', prompt=True, type=str,
-              help='Name of the suite, e.g. "sid"')
-@click.option('--accept-uploads', prompt='Accepts Uploads', default=True, is_flag=True,
-              help='Whether the suite accepts uploads in this repository.')
-@click.option('--devel-target', prompt='Development Target', default=False, is_flag=True,
-              help='Whether the suite accepts uploads in this repository.')
-@click.option('--auto-overrides', prompt='Automatic Overrides', default=False, is_flag=True,
-              help='Automatically process overrides for the suite, if possible.')
-@click.option('--manual-accept', prompt='Manual Accept For Everything', default=False, is_flag=True,
-              help='Whether every package uplod needs to be accepted manually.')
-@click.option('--signingkey', 'signingkeys', multiple=True, type=str, default=None,
-              help='PGP fingerprint of keys used to sign this suite in the selected repository')
-@click.option('--announce', 'announce_emails', multiple=True, type=str, default=None,
-              help='E-Mail addresses to announce changes to.')
-def repo_add_suite(repo_name: str, suite_name: str,
-                   accept_uploads=True, devel_target=False, auto_overrides=False,
-                   manual_accept=False, signingkeys=None, announce_emails=None):
-    ''' Add suite to a repository. '''
+@click.option(
+    '--repo',
+    'repo_name',
+    prompt=True,
+    type=str,
+    default=lambda: LocalConfig().master_repo_name,
+    help='Name of the repository, e.g. "master"',
+)
+@click.option('--suite', 'suite_name', prompt=True, type=str, help='Name of the suite, e.g. "sid"')
+@click.option(
+    '--accept-uploads',
+    prompt='Accepts Uploads',
+    default=True,
+    is_flag=True,
+    help='Whether the suite accepts uploads in this repository.',
+)
+@click.option(
+    '--devel-target',
+    prompt='Development Target',
+    default=False,
+    is_flag=True,
+    help='Whether the suite accepts uploads in this repository.',
+)
+@click.option(
+    '--auto-overrides',
+    prompt='Automatic Overrides',
+    default=False,
+    is_flag=True,
+    help='Automatically process overrides for the suite, if possible.',
+)
+@click.option(
+    '--manual-accept',
+    prompt='Manual Accept For Everything',
+    default=False,
+    is_flag=True,
+    help='Whether every package uplod needs to be accepted manually.',
+)
+@click.option(
+    '--signingkey',
+    'signingkeys',
+    multiple=True,
+    type=str,
+    default=None,
+    help='PGP fingerprint of keys used to sign this suite in the selected repository',
+)
+@click.option(
+    '--announce',
+    'announce_emails',
+    multiple=True,
+    type=str,
+    default=None,
+    help='E-Mail addresses to announce changes to.',
+)
+def repo_add_suite(
+    repo_name: str,
+    suite_name: str,
+    accept_uploads=True,
+    devel_target=False,
+    auto_overrides=False,
+    manual_accept=False,
+    signingkeys=None,
+    announce_emails=None,
+):
+    '''Add suite to a repository.'''
 
     if not signingkeys:
         signingkeys = input_list('PGP Signing Key Fingerprints')
     if announce_emails is None:
         announce_emails = input_list('Announce E-Mails', allow_empty=True)
 
-    _add_suite_to_repo(repo_name, suite_name,
-                       accept_uploads, devel_target, auto_overrides,
-                       manual_accept, signingkeys, announce_emails)
+    _add_suite_to_repo(
+        repo_name, suite_name, accept_uploads, devel_target, auto_overrides, manual_accept, signingkeys, announce_emails
+    )
+
 
 @archive.command()
 @click.argument('config_fname', nargs=1)
 def add_from_config(config_fname):
-    ''' Add/update all archive settings from a TOML config file. '''
+    '''Add/update all archive settings from a TOML config file.'''
     with open(config_fname, 'r', encoding='utf-8') as f:
         conf = toml.load(f)
 

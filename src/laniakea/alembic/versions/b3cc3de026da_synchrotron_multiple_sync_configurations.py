@@ -28,26 +28,34 @@ def upgrade():
     except Exception as e:
         pass
 
-    op.create_table('synchrotron_sources',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('os_name', sa.Text(), nullable=False),
-    sa.Column('suite_name', sa.String(length=256), nullable=False),
-    sa.Column('architectures', postgresql.ARRAY(sa.String(length=64)), nullable=True),
-    sa.Column('components', postgresql.ARRAY(sa.String(length=128)), nullable=True),
-    sa.Column('repo_url', sa.Text(), nullable=False),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('suite_name')
+    op.create_table(
+        'synchrotron_sources',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('os_name', sa.Text(), nullable=False),
+        sa.Column('suite_name', sa.String(length=256), nullable=False),
+        sa.Column('architectures', postgresql.ARRAY(sa.String(length=64)), nullable=True),
+        sa.Column('components', postgresql.ARRAY(sa.String(length=128)), nullable=True),
+        sa.Column('repo_url', sa.Text(), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('suite_name'),
     )
-    op.create_table('synchrotron_config',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('source_id', sa.Integer(), nullable=True),
-    sa.Column('destination_suite_id', sa.Integer(), nullable=True),
-    sa.Column('sync_enabled', sa.Boolean(), nullable=True),
-    sa.Column('sync_auto_enabled', sa.Boolean(), nullable=True),
-    sa.Column('sync_binaries', sa.Boolean(), nullable=True),
-    sa.ForeignKeyConstraint(['destination_suite_id'], ['archive_suites.id'], ),
-    sa.ForeignKeyConstraint(['source_id'], ['synchrotron_sources.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    op.create_table(
+        'synchrotron_config',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('source_id', sa.Integer(), nullable=True),
+        sa.Column('destination_suite_id', sa.Integer(), nullable=True),
+        sa.Column('sync_enabled', sa.Boolean(), nullable=True),
+        sa.Column('sync_auto_enabled', sa.Boolean(), nullable=True),
+        sa.Column('sync_binaries', sa.Boolean(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ['destination_suite_id'],
+            ['archive_suites.id'],
+        ),
+        sa.ForeignKeyConstraint(
+            ['source_id'],
+            ['synchrotron_sources.id'],
+        ),
+        sa.PrimaryKeyConstraint('id'),
     )
     op.add_column('synchrotron_blacklist', sa.Column('config_id', sa.Integer(), nullable=True))
     op.create_foreign_key(None, 'synchrotron_blacklist', 'synchrotron_config', ['config_id'], ['id'])

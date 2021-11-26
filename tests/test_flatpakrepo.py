@@ -11,7 +11,7 @@ from laniakea.flatpak_util import FlatpakUtil
 
 
 def test_flatpak_init_repo(localconfig, samplesdir):
-    ''' Check if we can create an empty Flatpak repo '''
+    '''Check if we can create an empty Flatpak repo'''
 
     repo = FlatpakRepository('laniakea_test')
     repo.collection_id = 'org.example.LaniakeaUnittest'

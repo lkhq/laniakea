@@ -1,8 +1,12 @@
 [flake8]
-max-line-length = 180
+max-line-length = 140
 ignore = E402
 exclude =
     .git,
     __pycache__,
     build,
     dist
+extend-ignore =
+    W503,
+    # See https://github.com/PyCQA/pycodestyle/issues/373
+    E203,

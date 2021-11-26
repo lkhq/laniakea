@@ -6,8 +6,8 @@
 
 import json
 
-import pytest
 import zmq
+import pytest
 
 from laniakea.db import Job, JobKind, SourcePackage, session_scope
 
@@ -15,10 +15,8 @@ dataimport_suite = 'unstable'
 
 
 class TestLighthouseJobRequests:
-
     @pytest.fixture(autouse=True)
-    def setup(self, localconfig, make_curve_trusted_key, lighthouse_server,
-              import_package_data, database):
+    def setup(self, localconfig, make_curve_trusted_key, lighthouse_server, import_package_data, database):
         from laniakea.db import LkModule
 
         self._client_key = make_curve_trusted_key('spark-builder')
@@ -33,9 +31,9 @@ class TestLighthouseJobRequests:
 
         # create jobs
         with session_scope() as session:
-            spkg = session.query(SourcePackage) \
-                .filter(SourcePackage.uuid == '194f1434-af2e-501c-9baa-8474a3ac4bab') \
-                .one()
+            spkg = (
+                session.query(SourcePackage).filter(SourcePackage.uuid == '194f1434-af2e-501c-9baa-8474a3ac4bab').one()
+            )
             job = Job()
             job.module = LkModule.ARIADNE
             job.kind = JobKind.PACKAGE_BUILD
@@ -45,9 +43,9 @@ class TestLighthouseJobRequests:
             job.data = {'suite': 'unstable'}
             session.add(job)
 
-            spkg = session.query(SourcePackage) \
-                .filter(SourcePackage.uuid == 'eb0d4c75-3055-5084-84ad-19f56c40c3ea') \
-                .one()
+            spkg = (
+                session.query(SourcePackage).filter(SourcePackage.uuid == 'eb0d4c75-3055-5084-84ad-19f56c40c3ea').one()
+            )
             job = Job()
             job.module = LkModule.ARIADNE
             job.kind = JobKind.PACKAGE_BUILD
@@ -68,7 +66,7 @@ class TestLighthouseJobRequests:
 
         # wait for a reply
         reply_msgs = None
-        if (poller.poll(10000)):
+        if poller.poll(10000):
             reply_msgs = sock.recv_multipart()
         else:
             pytest.fail('Request expired (Lighthouse server might be unreachable).')
@@ -80,10 +78,7 @@ class TestLighthouseJobRequests:
         return reply
 
     def test_request_job(self, new_zmq_curve_socket, localconfig, database):
-        sock = new_zmq_curve_socket(zmq.REQ,
-                                    localconfig.lighthouse.servers_jobs[0],
-                                    self._server_key,
-                                    self._client_key)
+        sock = new_zmq_curve_socket(zmq.REQ, localconfig.lighthouse.servers_jobs[0], self._server_key, self._client_key)
 
         req = self.req_base()
         req['request'] = 'job'
@@ -101,15 +96,18 @@ class TestLighthouseJobRequests:
         del reply['time_created']
         assert reply['uuid']
         del reply['uuid']
-        assert reply == {'module': 'ariadne',
-                         'kind': 'package-build',
-                         'version': '0.0.20-1',
-                         'architecture': 'amd64',
-                         'data': {'package_name': '0ad',
-                                  'package_version': '0.0.20-1',
-                                  'maintainer': 'Debian Games Team <pkg-games-devel@lists.alioth.debian.org>',
-                                  'suite': 'unstable',
-                                  'dsc_url': '#/pool/main/0/0ad/0ad_0.0.20-1.dsc',
-                                  'do_indep': False,
-                                  'sha256sum': 'f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955'}
-                         }
+        assert reply == {
+            'module': 'ariadne',
+            'kind': 'package-build',
+            'version': '0.0.20-1',
+            'architecture': 'amd64',
+            'data': {
+                'package_name': '0ad',
+                'package_version': '0.0.20-1',
+                'maintainer': 'Debian Games Team <pkg-games-devel@lists.alioth.debian.org>',
+                'suite': 'unstable',
+                'dsc_url': '#/pool/main/0/0ad/0ad_0.0.20-1.dsc',
+                'do_indep': False,
+                'sha256sum': 'f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955',
+            },
+        }

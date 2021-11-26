@@ -4,15 +4,15 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import logging as log
 import os
+import logging as log
 
 import toml
 
 from laniakea import LocalConfig, get_config_file
 
 
-class RubiConfig():
+class RubiConfig:
     '''
     Local configuration for Rubicon.
     '''
@@ -46,13 +46,17 @@ class RubiConfig():
 
         self.rejected_dir = cdata.get('RejectedDir', None)
         if not self.rejected_dir:
-            raise Exception('No "RejectedDir" entry in Rubicon configuration: We need to know where to place rejected files.')
+            raise Exception(
+                'No "RejectedDir" entry in Rubicon configuration: We need to know where to place rejected files.'
+            )
 
         self.trusted_gpg_keyrings = cdata.get('TrustedGpgKeyringDir', [])
         if not self.trusted_gpg_keyrings or type(self.trusted_gpg_keyrings) != list:
             self.trusted_gpg_keyrings = self._lconf.trusted_gpg_keyrings
             if not self.trusted_gpg_keyrings:
-                log.error('No trusted GPG keyrings were found. Ensure "TrustedGpgKeyringDir" entry in the general configuration is set properly.')
+                log.error(
+                    'No trusted GPG keyrings were found. Ensure "TrustedGpgKeyringDir" entry in the general configuration is set properly.'
+                )
 
         self.isotope_root_dir = cdata.get('IsotopeRootDir', None)
 

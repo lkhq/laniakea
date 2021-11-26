@@ -7,7 +7,7 @@
 import enum
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, Enum, Integer, String, Text
+from sqlalchemy import Enum, Text, Column, String, Boolean, Integer
 from sqlalchemy.dialects.postgresql import ARRAY
 
 from .base import UUID, Base
@@ -17,6 +17,7 @@ class ImageFormat(enum.IntEnum):
     '''
     Kind of the image to build.
     '''
+
     UNKNOWN = 0
     ISO = enum.auto()
     IMG = enum.auto()
@@ -45,9 +46,11 @@ class ImageBuildRecipe(Base):
     environment = Column(Text(), nullable=False)  # The environment (GNOME, Plasma, server, ...) to use
     style = Column(Text(), nullable=True)  # Style of the image (e.g. "oem" or "live")
     architectures = Column(ARRAY(String(128)))  # Architectures to build the image for
-    host_architecture = Column(String(128), nullable=False)  # Architecture of the host that is allowed to build the images, or "any"
+    # Architecture of the host that is allowed to build the images, or "any"
+    host_architecture = Column(String(128), nullable=False)
 
     git_url = Column(Text(), nullable=False)  # Git repository URL with the live-build scripts / other build recipes
     result_move_to = Column(Text())  # Local or remote URL to copy the resulting build artifacts to
-    retain_images_n = Column(Integer(), default=-1)  # Number of images to retain, oldest images will be deleted first. -1 to keep images forever
+    # Number of images to retain, oldest images will be deleted first. -1 to keep images forever
+    retain_images_n = Column(Integer(), default=-1)
     create_latest_symlink = Column(Boolean(), default=False)  # Create a "latest" symlink directory to the latest build

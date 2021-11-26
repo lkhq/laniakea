@@ -2,6 +2,7 @@ PyNaCl
 PyYAML
 SQLAlchemy
 alembic
+click
 firehose
 humanize
 marshmallow

@@ -3,6 +3,7 @@ PyNaCl~=1.4.0
 PyYAML>=5.3.1
 SQLAlchemy~=1.4.23
 alembic~=1.7.1.dev0
+click>=7.1
 firehose~=0.5
 humanize
 marshmallow~=3.13.0

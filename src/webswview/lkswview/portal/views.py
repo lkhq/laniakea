@@ -7,14 +7,18 @@
 import math
 
 import gi
-from flask import (Blueprint, abort, flash, redirect, render_template, request,
-                   url_for)
+from flask import Blueprint, abort, flash, request, url_for, redirect, render_template
 from sqlalchemy import String, cast, func
-from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import joinedload
+from sqlalchemy.dialects.postgresql import ARRAY
 
-from laniakea.db import (ArchiveSuite, BinaryPackage, SoftwareComponent,
-                         get_archive_sections, session_scope)
+from laniakea.db import (
+    ArchiveSuite,
+    BinaryPackage,
+    SoftwareComponent,
+    session_scope,
+    get_archive_sections,
+)
 
 from ..extensions import cache
 
@@ -37,9 +41,11 @@ def search_pkg():
         return redirect(url_for('portal.index'))
 
     with session_scope() as session:
-        q = session.query(BinaryPackage) \
-            .filter(BinaryPackage.__ts_vector__.op('@@')(func.plainto_tsquery(term))) \
+        q = (
+            session.query(BinaryPackage)
+            .filter(BinaryPackage.__ts_vector__.op('@@')(func.plainto_tsquery(term)))
             .distinct(BinaryPackage.name, BinaryPackage.version)
+        )
 
         results_count = q.count()
         packages = q.all()
@@ -47,12 +53,14 @@ def search_pkg():
         results_per_page = results_count
         page_count = math.ceil(results_count / results_per_page) if results_per_page > 0 else 1
 
-        return render_template('pkg_search_results.html',
-                               term=term,
-                               results_count=results_count,
-                               results_per_page=results_per_page,
-                               page_count=page_count,
-                               packages=packages)
+        return render_template(
+            'pkg_search_results.html',
+            term=term,
+            results_count=results_count,
+            results_per_page=results_per_page,
+            page_count=page_count,
+            packages=packages,
+        )
 
 
 @portal.route('/search_sw', methods=['GET', 'POST'])
@@ -63,11 +71,13 @@ def search_software():
         return redirect(url_for('portal.index'))
 
     with session_scope() as session:
-        q = session.query(SoftwareComponent) \
-            .join(SoftwareComponent.pkgs_binary) \
-            .filter(SoftwareComponent.__ts_vector__.op('@@')(func.plainto_tsquery(term))) \
-            .order_by(SoftwareComponent.cid, BinaryPackage.version.desc()) \
+        q = (
+            session.query(SoftwareComponent)
+            .join(SoftwareComponent.pkgs_binary)
+            .filter(SoftwareComponent.__ts_vector__.op('@@')(func.plainto_tsquery(term)))
+            .order_by(SoftwareComponent.cid, BinaryPackage.version.desc())
             .distinct(SoftwareComponent.cid)
+        )
 
         results_count = q.count()
         software = q.all()
@@ -75,12 +85,14 @@ def search_software():
         results_per_page = results_count
         page_count = math.ceil(results_count / results_per_page) if results_per_page > 0 else 1
 
-        return render_template('software_search_results.html',
-                               term=term,
-                               results_count=results_count,
-                               results_per_page=results_per_page,
-                               page_count=page_count,
-                               software=software)
+        return render_template(
+            'software_search_results.html',
+            term=term,
+            results_count=results_count,
+            results_per_page=results_per_page,
+            page_count=page_count,
+            software=software,
+        )
 
 
 @portal.route('/suites')
@@ -96,9 +108,7 @@ def suites_index():
 @cache.cached(timeout=8400)
 def sections_index(suite_name):
     with session_scope() as session:
-        suite = session.query(ArchiveSuite) \
-                       .filter(ArchiveSuite.name == suite_name) \
-                       .one_or_none()
+        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
         if not suite:
             abort(404)
 
@@ -110,33 +120,37 @@ def sections_index(suite_name):
 @cache.cached(timeout=3600)
 def section_view(suite_name, section_name, page):
     with session_scope() as session:
-        suite = session.query(ArchiveSuite) \
-                       .filter(ArchiveSuite.name == suite_name) \
-                       .one_or_none()
+        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
         if not suite:
             abort(404)
 
         pkgs_per_page = 50
-        pkg_query = session.query(BinaryPackage) \
-                           .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \
-                           .filter(BinaryPackage.section == section_name) \
-                           .distinct(BinaryPackage.name, BinaryPackage.version) \
-                           .order_by(BinaryPackage.name)
+        pkg_query = (
+            session.query(BinaryPackage)
+            .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id))
+            .filter(BinaryPackage.section == section_name)
+            .distinct(BinaryPackage.name, BinaryPackage.version)
+            .order_by(BinaryPackage.name)
+        )
         pkgs_total = pkg_query.count()
         page_count = math.ceil(pkgs_total / pkgs_per_page)
 
-        packages = pkg_query.options(joinedload(BinaryPackage.component)) \
-                            .slice((page - 1) * pkgs_per_page, page * pkgs_per_page) \
-                            .all()
+        packages = (
+            pkg_query.options(joinedload(BinaryPackage.component))
+            .slice((page - 1) * pkgs_per_page, page * pkgs_per_page)
+            .all()
+        )
 
-        return render_template('section_view.html',
-                               section_name=section_name,
-                               suite=suite,
-                               packages=packages,
-                               pkgs_per_page=pkgs_per_page,
-                               pkgs_total=pkgs_total,
-                               current_page=page,
-                               page_count=page_count)
+        return render_template(
+            'section_view.html',
+            section_name=section_name,
+            suite=suite,
+            packages=packages,
+            pkgs_per_page=pkgs_per_page,
+            pkgs_total=pkgs_total,
+            current_page=page,
+            page_count=page_count,
+        )
 
 
 # cached app category dictionary
@@ -197,22 +211,26 @@ def category_view(cat_id, subcat_id, page):
             else:
                 dcats.append(parts[-1])
 
-        sw_query = session.query(SoftwareComponent) \
-                          .join(SoftwareComponent.pkgs_binary) \
-                          .filter(SoftwareComponent.categories.overlap(cast(dcats, ARRAY(String())))) \
-                          .order_by(SoftwareComponent.cid, BinaryPackage.version.desc()) \
-                          .distinct(SoftwareComponent.cid)
+        sw_query = (
+            session.query(SoftwareComponent)
+            .join(SoftwareComponent.pkgs_binary)
+            .filter(SoftwareComponent.categories.overlap(cast(dcats, ARRAY(String()))))
+            .order_by(SoftwareComponent.cid, BinaryPackage.version.desc())
+            .distinct(SoftwareComponent.cid)
+        )
         software = sw_query.slice((page - 1) * sw_per_page, page * sw_per_page).all()
 
         sw_total = sw_query.count()
         page_count = math.ceil(sw_total / sw_per_page)
 
-        return render_template('category_view.html',
-                               parent_category=parent_category,
-                               category=category,
-                               subcat_id=subcat_id,
-                               software=software,
-                               sw_per_page=sw_per_page,
-                               sw_total=sw_total,
-                               current_page=page,
-                               page_count=page_count)
+        return render_template(
+            'category_view.html',
+            parent_category=parent_category,
+            category=category,
+            subcat_id=subcat_id,
+            software=software,
+            sw_per_page=sw_per_page,
+            sw_total=sw_total,
+            current_page=page,
+            page_count=page_count,
+        )

@@ -12,7 +12,7 @@ import toml
 from laniakea import get_config_file
 
 
-class MirkConfig():
+class MirkConfig:
     '''
     Local configuration for mIrk.
     '''
@@ -41,7 +41,9 @@ class MirkConfig():
 
         self.username = cdata.get('Username', None)
         if not self.username:
-            raise Exception('No "Username" entry in mIrk configuration: We need to know a Matrix username to connect as.')
+            raise Exception(
+                'No "Username" entry in mIrk configuration: We need to know a Matrix username to connect as.'
+            )
 
         self.password = cdata.get('Password', None)
         if not self.password:
@@ -51,7 +53,9 @@ class MirkConfig():
         if not self.rooms:
             raise Exception('No "Rooms" entry in mIrk configuration: We need at least one registered room.')
         if type(self.rooms) is not dict:
-            raise Exception('"Rooms" entry in mIrk configuration is no mapping: Needs to be a mapping of room names to settings.')
+            raise Exception(
+                '"Rooms" entry in mIrk configuration is no mapping: Needs to be a mapping of room names to settings.'
+            )
 
         self.allow_unsigned = cdata.get('AllowUnsigned', False)
 

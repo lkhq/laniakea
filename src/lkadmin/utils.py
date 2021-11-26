@@ -83,6 +83,7 @@ class ClickAliasedGroup(click.Group):
             with formatter.section('Commands'):
                 formatter.write_dl(rows)
 
+
 def input_str(prompt, allow_empty=False):
     while True:
         s = input('{}: '.format(prompt))
@@ -146,5 +147,6 @@ def print_note(msg):
 
 def print_error_exit(msg):
     import sys
+
     print(msg, file=sys.stderr)
     sys.exit(1)

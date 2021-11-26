@@ -5,13 +5,21 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import enum
-from datetime import datetime
 from uuid import uuid4
+from datetime import datetime
 
-from sqlalchemy import (Boolean, Column, DateTime, Enum, ForeignKey, Integer,
-                        String, Text)
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import (
+    Enum,
+    Text,
+    Column,
+    String,
+    Boolean,
+    Integer,
+    DateTime,
+    ForeignKey,
+)
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.dialects.postgresql import ARRAY
 
 from .base import UUID, Base, DebVersion
 
@@ -20,6 +28,7 @@ class SynchrotronSource(Base):
     '''
     Definition of a foreign suite to sync packages from.
     '''
+
     __tablename__ = 'synchrotron_sources'
 
     id = Column(Integer, primary_key=True)
@@ -35,6 +44,7 @@ class SynchrotronConfig(Base):
     '''
     Configuration for automatic synchrotron tasks.
     '''
+
     __tablename__ = 'synchrotron_config'
 
     id = Column(Integer, primary_key=True)
@@ -55,6 +65,7 @@ class SyncBlacklistEntry(Base):
     '''
     Synchrotron blacklist
     '''
+
     __tablename__ = 'synchrotron_blacklist'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
@@ -73,6 +84,7 @@ class SynchrotronIssueKind(enum.IntEnum):
     '''
     Kind of a Synchrotron issue.
     '''
+
     UNKNOWN = 0
     NONE = 1
     MERGE_REQUIRED = 2
@@ -98,13 +110,13 @@ class SynchrotronIssue(Base):
     '''
     Hints about why packages are not synchronized with a source distribution/suite.
     '''
+
     __tablename__ = 'synchrotron_issues'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     config_id = Column(Integer, ForeignKey('synchrotron_config.id'), nullable=False)
-    config = relationship('SynchrotronConfig', backref=backref('issues',
-                                                               cascade='all, delete'))
+    config = relationship('SynchrotronConfig', backref=backref('issues', cascade='all, delete'))
 
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 

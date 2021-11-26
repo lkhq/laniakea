@@ -17,5 +17,4 @@ sys.path.append(os.path.normpath(os.path.join(source_root, 'src')))
 pytest_plugins = ("tests.plugins.pytest_podman",)
 
 
-__all__ = ['source_root',
-           'pytest_plugins']
+__all__ = ['source_root', 'pytest_plugins']

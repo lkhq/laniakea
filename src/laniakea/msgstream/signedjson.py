@@ -5,9 +5,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+ AND Apache-2.0
 
+from laniakea.utils import decode_base64, encode_base64, json_compact_dump
 from laniakea.logging import log as logging
 from laniakea.msgstream.signing import SUPPORTED_ALGORITHMS
-from laniakea.utils import decode_base64, encode_base64, json_compact_dump
 
 log = logging.getLogger(__name__)
 
@@ -42,8 +42,7 @@ def sign_json(json_object, signature_name, signing_key):
     return json_object
 
 
-def signature_ids(json_object, signature_name,
-                  supported_algorithms: list[str] = None):
+def signature_ids(json_object, signature_name, supported_algorithms: list[str] = None):
     '''
     Does the JSON object have a signature for the given name?
     Args:
@@ -57,14 +56,12 @@ def signature_ids(json_object, signature_name,
     if not supported_algorithms:
         supported_algorithms = SUPPORTED_ALGORITHMS
     key_ids = json_object.get('signatures', {}).get(signature_name, {}).keys()
-    return list(
-        key_id for key_id in key_ids
-        if key_id.split(':')[0] in supported_algorithms
-    )
+    return list(key_id for key_id in key_ids if key_id.split(':')[0] in supported_algorithms)
 
 
 class SignatureVerifyException(Exception):
     '''A signature could not be verified'''
+
     pass  # pylint: disable=unnecessary-pass
 
 

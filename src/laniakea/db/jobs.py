@@ -5,11 +5,11 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import enum
-from datetime import datetime
 from enum import IntEnum
 from uuid import uuid4
+from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Enum, Integer, String, Text
+from sqlalchemy import Enum, Text, Column, String, Integer, DateTime
 from sqlalchemy.dialects.postgresql import JSON
 
 from .base import UUID, Base, DebVersion
@@ -19,26 +19,28 @@ class JobStatus(IntEnum):
     '''
     State of a job.
     '''
+
     UNKNOWN = 0
-    WAITING = enum.auto()     # waiting for someone to take the job
-    DEPWAIT = enum.auto()     # waiting for a dependency
-    SCHEDULED = enum.auto()   # job has been assigned,
-    RUNNING = enum.auto()     # the job is running
-    DONE = enum.auto()        # the job is done
+    WAITING = enum.auto()  # waiting for someone to take the job
+    DEPWAIT = enum.auto()  # waiting for a dependency
+    SCHEDULED = enum.auto()  # job has been assigned,
+    RUNNING = enum.auto()  # the job is running
+    DONE = enum.auto()  # the job is done
     TERMINATED = enum.auto()  # the job was terminated
-    STARVING = enum.auto()    # the job was denied computing resources for an extended period of time
+    STARVING = enum.auto()  # the job was denied computing resources for an extended period of time
 
 
 class JobResult(IntEnum):
     '''
     Result of a job.
     '''
+
     UNKNOWN = 0
-    SUCCESS_PENDING = enum.auto()     # job was successful, but artifacts are still missing
-    SUCCESS = enum.auto()             # job was successful
+    SUCCESS_PENDING = enum.auto()  # job was successful, but artifacts are still missing
+    SUCCESS = enum.auto()  # job was successful
     FAILURE_DEPENDENCY = enum.auto()  # job was aborted because of a dependency issue
-    FAILURE_PENDING = enum.auto()     # job failed, but artifacts or reports are still missing
-    FAILURE = enum.auto()             # job failed
+    FAILURE_PENDING = enum.auto()  # job failed, but artifacts or reports are still missing
+    FAILURE = enum.auto()  # job failed
 
     def __str__(self):
         if self.value == self.SUCCESS_PENDING:
@@ -59,6 +61,7 @@ class JobKind:
     The different job kind identifier strings used by
     the different Laniakea modules which can enqueue jobs.
     '''
+
     OS_IMAGE_BUILD = 'os-image-build'
     PACKAGE_BUILD = 'package-build'
 
@@ -81,7 +84,8 @@ class Job(Base):
 
     version = Column(DebVersion())  # Version of the item this job is for (can be null)
 
-    architecture = Column(Text(), default='any')  # Architecture this job can run on, "any" in case the architecture does not matter
+    # Architecture this job can run on, "any" in case the architecture does not matter
+    architecture = Column(Text(), default='any')
 
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this job was created.
     time_assigned = Column(DateTime())  # Time when this job was assigned to a worker.
@@ -104,4 +108,8 @@ class Job(Base):
         return self.result != JobResult.UNKNOWN
 
     def is_failed(self):
-        return self.result == JobResult.FAILURE or self.result == JobResult.FAILURE_PENDING or self.result == JobResult.FAILURE_DEPENDENCY
+        return (
+            self.result == JobResult.FAILURE
+            or self.result == JobResult.FAILURE_PENDING
+            or self.result == JobResult.FAILURE_DEPENDENCY
+        )

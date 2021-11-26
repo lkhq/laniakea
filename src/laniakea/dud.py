@@ -8,8 +8,8 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import hashlib
 import os
+import hashlib
 
 import firehose.model
 
@@ -56,8 +56,7 @@ class Dud(object):
         return self._absfile
 
     def get_firehose(self):
-        return firehose.model.Analysis.from_xml(
-            open(self.get_firehose_file(), 'r'))
+        return firehose.model.Analysis.from_xml(open(self.get_firehose_file(), 'r'))
 
     def get_firehose_file(self):
         for item in self.get_files():
@@ -70,10 +69,8 @@ class Dud(object):
                 return item
 
     def get_files(self):
-        '''
-        '''
-        return [os.path.join(self._directory, z['name'])
-                for z in self._data['Files']]
+        ''' '''
+        return [os.path.join(self._directory, z['name']) for z in self._data['Files']]
 
     def __getitem__(self, key):
         '''
@@ -116,10 +113,7 @@ class Dud(object):
         Validate the GPG signature of a .changes file.
         '''
 
-        cmd = ['gpg',
-               '--batch',
-               '--status-fd', '1',
-               '--no-default-keyring']
+        cmd = ['gpg', '--batch', '--status-fd', '1', '--no-default-keyring']
         for k in keyrings:
             cmd.extend(['--keyring', k])
         cmd.extend(['--verify', self.get_dud_file()])
@@ -127,8 +121,7 @@ class Dud(object):
         (gpg_output, gpg_output_stderr, exit_status) = run_command(cmd)
 
         if exit_status == -1:
-            raise DudFileException(
-                'Unknown problem while verifying signature')
+            raise DudFileException('Unknown problem while verifying signature')
 
         if gpg_output.count('[GNUPG:] GOODSIG'):
             pass
@@ -139,9 +132,7 @@ class Dud(object):
         elif gpg_output.count('[GNUPG:] NODATA'):
             raise DudFileException('No signature')
         else:
-            raise DudFileException(
-                'Unknown problem while verifying signature'
-            )
+            raise DudFileException('Unknown problem while verifying signature')
 
         key = None
         for line in gpg_output.split('\n'):
@@ -184,14 +175,11 @@ class Dud(object):
                 raise Exception('get_files() returns different files than Files: knows?!')
 
             with open(filename, 'rb') as fc:
-                for chunk in iter((lambda fc=fc, hash_type=hash_type:
-                                   fc.read(128 * hash_type.block_size)), b''):
+                for chunk in iter((lambda fc=fc, hash_type=hash_type: fc.read(128 * hash_type.block_size)), b''):
                     hash_type.update(chunk)
 
             if not hash_type.hexdigest() == changed_files[field_name]:
                 raise DudFileException(
-                    'Checksum mismatch for file %s: %s != %s' % (
-                        filename,
-                        hash_type.hexdigest(),
-                        changed_files[field_name]
-                    ))
+                    'Checksum mismatch for file %s: %s != %s'
+                    % (filename, hash_type.hexdigest(), changed_files[field_name])
+                )

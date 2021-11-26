@@ -8,10 +8,15 @@ import os
 
 import pytest
 
-from laniakea.db import (ArchiveArchitecture, ArchiveComponent, ArchiveSuite,
-                         DebType, PackagePriority)
-from laniakea.repository import Repository
+from laniakea.db import (
+    DebType,
+    ArchiveSuite,
+    PackagePriority,
+    ArchiveComponent,
+    ArchiveArchitecture,
+)
 from laniakea.utils.gpg import GpgException
+from laniakea.repository import Repository
 
 
 def validate_src_packages(spkgs):
@@ -27,12 +32,30 @@ def validate_src_packages(spkgs):
         assert spkg.maintainer == 'Debian Games Team <pkg-games-devel@lists.alioth.debian.org>'
         assert spkg.uploaders == ['Vincent Cheng <vcheng@debian.org>']
 
-        assert spkg.build_depends == ['autoconf', 'debhelper (>= 9)', 'dpkg-dev (>= 1.15.5)', 'libboost-dev',
-                                      'libboost-filesystem-dev', 'libcurl4-gnutls-dev | libcurl4-dev', 'libenet-dev (>= 1.3)',
-                                      'libgloox-dev (>= 1.0.9)', 'libicu-dev', 'libminiupnpc-dev (>= 1.6)', 'libnspr4-dev',
-                                      'libnvtt-dev (>= 2.0.8-1+dfsg-4~)', 'libogg-dev', 'libopenal-dev', 'libpng-dev',
-                                      'libsdl2-dev (>= 2.0.2)', 'libvorbis-dev', 'libwxgtk3.0-dev | libwxgtk2.8-dev',
-                                      'libxcursor-dev', 'libxml2-dev', 'pkg-config', 'zlib1g-dev']
+        assert spkg.build_depends == [
+            'autoconf',
+            'debhelper (>= 9)',
+            'dpkg-dev (>= 1.15.5)',
+            'libboost-dev',
+            'libboost-filesystem-dev',
+            'libcurl4-gnutls-dev | libcurl4-dev',
+            'libenet-dev (>= 1.3)',
+            'libgloox-dev (>= 1.0.9)',
+            'libicu-dev',
+            'libminiupnpc-dev (>= 1.6)',
+            'libnspr4-dev',
+            'libnvtt-dev (>= 2.0.8-1+dfsg-4~)',
+            'libogg-dev',
+            'libopenal-dev',
+            'libpng-dev',
+            'libsdl2-dev (>= 2.0.2)',
+            'libvorbis-dev',
+            'libwxgtk3.0-dev | libwxgtk2.8-dev',
+            'libxcursor-dev',
+            'libxml2-dev',
+            'pkg-config',
+            'zlib1g-dev',
+        ]
 
         assert spkg.architectures == ['amd64', 'arm64', 'armhf', 'i386', 'kfreebsd-amd64', 'kfreebsd-i386']
         assert spkg.standards_version == '3.9.7'

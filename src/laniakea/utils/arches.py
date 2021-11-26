@@ -40,11 +40,7 @@ def arch_matches(arch, alias):
 
     # This is a performance disaster
     # Hopefully we'll rarely get here
-    out, err, ret = run_command([
-        "/usr/bin/dpkg-architecture",
-        "-a%s" % (arch),
-        "-i%s" % (alias)
-    ])
+    out, err, ret = run_command(["/usr/bin/dpkg-architecture", "-a%s" % (arch), "-i%s" % (alias)])
     return ret == 0
 
 

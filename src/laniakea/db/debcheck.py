@@ -5,23 +5,23 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import json
-from datetime import datetime
 from uuid import uuid4
+from datetime import datetime
 
+from sqlalchemy import Enum, Text, Column, String, Integer, DateTime, ForeignKey
 from marshmallow import EXCLUDE, Schema, fields
-from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, String,
-                        Text)
-from sqlalchemy.dialects.postgresql import ARRAY, JSON
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
-from .archive import PackageType
 from .base import UUID, Base, DebVersion
+from .archive import PackageType
 
 
 class PackageIssue(Schema):
     '''
     Information about the package issue reason.
     '''
+
     package_type = fields.Int()  # PackageType enum
     package_name = fields.Str()
     package_version = fields.Str()
@@ -69,7 +69,8 @@ class DebcheckIssue(Base):
     suite_id = Column(Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
     suite = relationship('ArchiveSuite', backref=backref('debcheck_issues', passive_deletes=True))
 
-    architectures = Column(ARRAY(Text()), default=['any'])  # Architectures this issue affects, may be a wildcard like "any" or (list of) architecture expressions
+    # Architectures this issue affects, may be a wildcard like "any" or (list of) architecture expressions
+    architectures = Column(ARRAY(Text()), default=['any'])
 
     package_name = Column(String(256))  # Name of the package this issue affects
     package_version = Column(DebVersion())  # Version of the package this issue affects

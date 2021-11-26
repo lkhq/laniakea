@@ -8,8 +8,12 @@ import sys
 from argparse import ArgumentParser
 
 from laniakea import LkModule
-from laniakea.db import (SynchrotronConfig, SynchrotronIssue,
-                         SynchrotronSource, session_scope)
+from laniakea.db import (
+    SynchrotronIssue,
+    SynchrotronConfig,
+    SynchrotronSource,
+    session_scope,
+)
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 
@@ -19,7 +23,7 @@ __mainfile = None
 
 
 def command_sync(options):
-    ''' Synchronize a dedicated set of packages '''
+    '''Synchronize a dedicated set of packages'''
 
     if not options.packages:
         print('You need to define at least one package to synchronize!')
@@ -32,17 +36,23 @@ def command_sync(options):
 
 
 def command_autosync(options):
-    ''' Automatically synchronize packages '''
+    '''Automatically synchronize packages'''
 
     with session_scope() as session:
         sync_sources = session.query(SynchrotronSource).all()
-        autosyncs = session.query(SynchrotronConfig) \
-                           .filter(SynchrotronConfig.sync_enabled == True) \
-                           .filter(SynchrotronConfig.sync_auto_enabled == True).all()  # noqa: E712
+        autosyncs = (
+            session.query(SynchrotronConfig)
+            .filter(SynchrotronConfig.sync_enabled == True)
+            .filter(SynchrotronConfig.sync_auto_enabled == True)
+            .all()
+        )  # noqa: E712
 
         for autosync in autosyncs:
-            log.info('Synchronizing packages from {}/{} with {}'.format(autosync.source.os_name, autosync.source.suite_name,
-                                                                        autosync.destination_suite.name))
+            log.info(
+                'Synchronizing packages from {}/{} with {}'.format(
+                    autosync.source.os_name, autosync.source.suite_name, autosync.destination_suite.name
+                )
+            )
 
             emitter = EventEmitter(LkModule.SYNCHROTRON)
 
@@ -54,13 +64,19 @@ def command_autosync(options):
 
             existing_sync_issues = {}
             for ssource in sync_sources:
-                all_issues = session.query(SynchrotronIssue) \
-                                    .filter(SynchrotronIssue.source_suite == ssource.suite_name,
-                                            SynchrotronIssue.target_suite == autosync.destination_suite.name,
-                                            SynchrotronIssue.config_id == autosync.id) \
-                                    .all()
+                all_issues = (
+                    session.query(SynchrotronIssue)
+                    .filter(
+                        SynchrotronIssue.source_suite == ssource.suite_name,
+                        SynchrotronIssue.target_suite == autosync.destination_suite.name,
+                        SynchrotronIssue.config_id == autosync.id,
+                    )
+                    .all()
+                )
                 for eissue in all_issues:
-                    eid = '{}-{}-{}:{}'.format(eissue.package_name, eissue.source_version, eissue.target_version, str(eissue.kind))
+                    eid = '{}-{}-{}:{}'.format(
+                        eissue.package_name, eissue.source_version, eissue.target_version, str(eissue.kind)
+                    )
                     existing_sync_issues[eid] = eissue
 
             for info in issue_data:
@@ -77,44 +93,50 @@ def command_autosync(options):
                 if new_issue:
                     session.add(issue)
 
-                    data = {'name': issue.package_name,
-                            'src_os': autosync.source.os_name,
-                            'suite_src': issue.source_suite,
-                            'suite_dest': issue.target_suite,
-                            'version_src': issue.source_version,
-                            'version_dest': issue.target_version,
-                            'kind': str(issue.kind)}
+                    data = {
+                        'name': issue.package_name,
+                        'src_os': autosync.source.os_name,
+                        'suite_src': issue.source_suite,
+                        'suite_dest': issue.target_suite,
+                        'version_src': issue.source_version,
+                        'version_dest': issue.target_version,
+                        'kind': str(issue.kind),
+                    }
 
                     emitter.submit_event('new-autosync-issue', data)
 
             for eissue in existing_sync_issues.values():
                 session.delete(eissue)
 
-                data = {'name': eissue.package_name,
-                        'src_os': autosync.source.os_name,
-                        'suite_src': eissue.source_suite,
-                        'suite_dest': eissue.target_suite,
-                        'version_src': eissue.source_version,
-                        'version_dest': eissue.target_version,
-                        'kind': str(eissue.kind)}
+                data = {
+                    'name': eissue.package_name,
+                    'src_os': autosync.source.os_name,
+                    'suite_src': eissue.source_suite,
+                    'suite_dest': eissue.target_suite,
+                    'version_src': eissue.source_version,
+                    'version_dest': eissue.target_version,
+                    'kind': str(eissue.kind),
+                }
 
                 emitter.submit_event('resolved-autosync-issue', data)
 
 
 def create_parser(formatter_class=None):
-    ''' Create synchrotron CLI argument parser '''
+    '''Create synchrotron CLI argument parser'''
 
     parser = ArgumentParser(description='Synchronize packages with another distribution')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose',
-                        help='Enable debug messages.')
-    parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of Laniakea itself.')
+    parser.add_argument('--verbose', action='store_true', dest='verbose', help='Enable debug messages.')
+    parser.add_argument(
+        '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
+    )
 
     sp = subparsers.add_parser('sync', help='Synchronize a package or set of packages')
-    sp.add_argument('--force', action='store_true', dest='force', help='Force package import and ignore version conflicts.')
+    sp.add_argument(
+        '--force', action='store_true', dest='force', help='Force package import and ignore version conflicts.'
+    )
     sp.add_argument('src_suite', type=str, help='The suite to synchronize from')
     sp.add_argument('dest_suite', type=str, help='The suite to synchronize to')
     sp.add_argument('component', type=str, help='The archive component to import from')
@@ -130,6 +152,7 @@ def create_parser(formatter_class=None):
 def check_print_version(options):
     if options.show_version:
         from laniakea import __version__
+
         print(__version__)
         sys.exit(0)
 
@@ -137,6 +160,7 @@ def check_print_version(options):
 def check_verbose(options):
     if options.verbose:
         from laniakea.logging import set_verbose
+
         set_verbose(True)
 
 

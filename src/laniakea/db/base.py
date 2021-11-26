@@ -5,27 +5,21 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-from contextlib import contextmanager
 from typing import Any
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 from sqlalchemy.types import UserDefinedType
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import UUID
 
-from ..localconfig import LocalConfig
-from ..logging import log
 from ..utils import cd
+from ..logging import log
+from ..localconfig import LocalConfig
 
-__all__ = ['Base',
-           'DebVersion',
-           'Database',
-           'UUID',
-           'session_scope',
-           'create_tsvector',
-           'print_query']
+__all__ = ['Base', 'DebVersion', 'Database', 'UUID', 'session_scope', 'create_tsvector', 'print_query']
 
 
 Base: Any = declarative_base()
@@ -63,7 +57,7 @@ class Database:
             self._SessionFactory = sessionmaker(bind=self._engine)
 
         def create_tables(self):
-            ''' Initialize the database and create all tables '''
+            '''Initialize the database and create all tables'''
             from alembic import command
             from alembic.config import Config
 
@@ -76,7 +70,7 @@ class Database:
             self.upgrade()
 
         def upgrade(self):
-            ''' Upgrade database schema to the newest revision '''
+            '''Upgrade database schema to the newest revision'''
             import alembic.config
 
             from .. import lk_py_directory
@@ -84,7 +78,8 @@ class Database:
             with cd(lk_py_directory):
                 alembicArgs = [
                     '--raiseerr',
-                    'upgrade', 'head',
+                    'upgrade',
+                    'head',
                 ]
                 alembic.config.main(argv=alembicArgs)
             self._update_static_data()
@@ -93,9 +88,8 @@ class Database:
         def _update_static_data(self):
             import json
 
+            from .archive import ArchiveConfig, ArchiveSection, ArchiveRepository
             from ..localconfig import get_data_file
-            from .archive import (ArchiveConfig, ArchiveRepository,
-                                  ArchiveSection)
 
             log.info('Updating static database data.')
             with open(get_data_file('archive-sections.json'), 'r') as f:
@@ -109,8 +103,7 @@ class Database:
                     if 'summary' not in jsec:
                         jsec['summary'] = 'The {} section'.format(jsec['name'])
 
-                    section = session.query(ArchiveSection) \
-                                     .filter(ArchiveSection.name == jsec['name']).one_or_none()
+                    section = session.query(ArchiveSection).filter(ArchiveSection.name == jsec['name']).one_or_none()
                     if section:
                         section.summary = jsec['summary']
                     else:
@@ -124,10 +117,16 @@ class Database:
 
                 aconfig = session.query(ArchiveConfig).first()
                 if not aconfig:
-                    master_repo = session.query(ArchiveRepository) \
-                                         .filter(ArchiveRepository.name == master_repo_name).one_or_none()
-                    master_debug_repo = session.query(ArchiveRepository) \
-                                               .filter(ArchiveRepository.name == master_debug_repo_name).one_or_none()
+                    master_repo = (
+                        session.query(ArchiveRepository)
+                        .filter(ArchiveRepository.name == master_repo_name)
+                        .one_or_none()
+                    )
+                    master_debug_repo = (
+                        session.query(ArchiveRepository)
+                        .filter(ArchiveRepository.name == master_debug_repo_name)
+                        .one_or_none()
+                    )
                     if not master_repo:
                         master_repo = ArchiveRepository(master_repo_name)
                         session.add(master_repo)
@@ -147,7 +146,7 @@ class Database:
                     session.add(aconfig)
 
         def downgrade(self, revision):
-            ''' Upgrade database schema to the newest revision '''
+            '''Upgrade database schema to the newest revision'''
             import alembic.config
 
             from .. import lk_py_directory
@@ -155,7 +154,8 @@ class Database:
             with cd(lk_py_directory):
                 alembicArgs = [
                     '--raiseerr',
-                    'downgrade', revision,
+                    'downgrade',
+                    revision,
                 ]
                 alembic.config.main(argv=alembicArgs)
 

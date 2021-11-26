@@ -18,6 +18,4 @@ sys.path.append(lk_py_directory)
 from laniakea.db import LkModule
 from laniakea.localconfig import LocalConfig, get_config_file
 
-__all__ = ['LocalConfig',
-           'get_config_file',
-           'LkModule']
+__all__ = ['LocalConfig', 'get_config_file', 'LkModule']

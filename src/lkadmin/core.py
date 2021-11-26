@@ -8,21 +8,22 @@ import sys
 
 import click
 
-from laniakea.db import session_factory, session_scope
+from laniakea.db import session_scope, session_factory
 
-from .utils import input_bool, input_list, input_str, print_header, print_note
+from .utils import input_str, input_bool, input_list, print_note, print_header
 
 
 @click.group()
 def core():
-    ''' Elemental functions affecting all of Laniakea. '''
+    '''Elemental functions affecting all of Laniakea.'''
     pass
 
 
 @core.command()
 def db_init():
-    ''' Initialize database schemas on an empty database. '''
+    '''Initialize database schemas on an empty database.'''
     from laniakea.db import Database
+
     db = Database()
     db.create_tables()
 
@@ -31,8 +32,9 @@ def db_init():
 
 @core.command()
 def db_upgrade():
-    ''' Upgrade database schemas to latest version. '''
+    '''Upgrade database schemas to latest version.'''
     from laniakea.db import Database
+
     db = Database()
     db.upgrade()
 
@@ -41,8 +43,8 @@ def db_upgrade():
 
 @core.command()
 def configure_all():
-    ''' Configure all basic settings in one go. '''
-    from laniakea.db import ArchiveRepository, ArchiveSuite
+    '''Configure all basic settings in one go.'''
+    from laniakea.db import ArchiveSuite, ArchiveRepository
     from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     db_init()
@@ -51,5 +53,9 @@ def configure_all():
 
     config_set_project_name(input_str('Name of this project'))
 
-    config_set_distro_tag(input_str('Distribution version tag (commonly found in package versions, e.g. \'tanglu\' for OS \'Tanglu\' with versions like \'1.0-0tanglu1\''))
+    config_set_distro_tag(
+        input_str(
+            'Distribution version tag (commonly found in package versions, e.g. \'tanglu\' for OS \'Tanglu\' with versions like \'1.0-0tanglu1\''
+        )
+    )
     session.commit()

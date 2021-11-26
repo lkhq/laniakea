@@ -5,10 +5,10 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import datetime
-import fcntl
 import os
+import fcntl
 import select
+import datetime
 import subprocess
 
 import apt_pkg
@@ -99,10 +99,7 @@ class SignedFile:
         return self.signature_ids[0]
 
     def _verify(self, data, require_signature):
-        with _Pipe() as stdin, \
-                _Pipe() as contents, \
-                _Pipe() as status, \
-                _Pipe() as stderr:
+        with _Pipe() as stdin, _Pipe() as contents, _Pipe() as status, _Pipe() as stderr:
             pid = os.fork()
             if pid == 0:
                 self._exec_gpg(stdin.r, contents.w, stderr.w, status.w)
@@ -123,7 +120,9 @@ class SignedFile:
 
                 if self.status == b'':
                     stderr = self.stderr.decode('ascii', errors='replace')
-                    raise GpgException('No status output from GPG. (GPG exited with status code %s)\n%s' % (exit_code, stderr))
+                    raise GpgException(
+                        'No status output from GPG. (GPG exited with status code %s)\n%s' % (exit_code, stderr)
+                    )
 
                 for line in self.status.splitlines():
                     self._parse_status(line)
@@ -133,7 +132,9 @@ class SignedFile:
 
                 if require_signature and not self.valid:
                     stderr = self.stderr.decode('ascii', errors='replace')
-                    raise GpgException('No valid signature found. (GPG exited with status code %s)\n%s' % (exit_code, stderr))
+                    raise GpgException(
+                        'No valid signature found. (GPG exited with status code %s)\n%s' % (exit_code, stderr)
+                    )
 
         assert len(self.fingerprints) == len(self.primary_fingerprints)
         assert len(self.fingerprints) == len(self.signature_ids)
@@ -157,7 +158,7 @@ class SignedFile:
                 else:
                     read_lines[fd].append(data)
             for fd in w:
-                data = write[fd][write_pos[fd]:]
+                data = write[fd][write_pos[fd] :]
                 if len(data) == 0:
                     os.close(fd)
                     write_set.remove(fd)
@@ -230,10 +231,20 @@ class SignedFile:
         elif fields[1] == b'SIG_ID':
             self.signature_ids.append(fields[2])
 
-        elif fields[1] in (b'PLAINTEXT', b'GOODSIG', b'KEY_CONSIDERED',
-                           b'NEWSIG', b'NOTATION_NAME', b'NOTATION_FLAGS',
-                           b'NOTATION_DATA', b'SIGEXPIRED', b'KEYEXPIRED',
-                           b'POLICY_URL', b'PROGRESS', b'VERIFICATION_COMPLIANCE_MODE'):
+        elif fields[1] in (
+            b'PLAINTEXT',
+            b'GOODSIG',
+            b'KEY_CONSIDERED',
+            b'NEWSIG',
+            b'NOTATION_NAME',
+            b'NOTATION_FLAGS',
+            b'NOTATION_DATA',
+            b'SIGEXPIRED',
+            b'KEYEXPIRED',
+            b'POLICY_URL',
+            b'PROGRESS',
+            b'VERIFICATION_COMPLIANCE_MODE',
+        ):
             pass
 
         elif fields[1] in (b'EXPSIG', b'EXPKEYSIG'):
@@ -262,13 +273,16 @@ class SignedFile:
                 fcntl.fcntl(fd, fcntl.F_SETFD, old & ~fcntl.FD_CLOEXEC)
             os.closerange(4, _MAXFD)
 
-            args = [self.gpg,
-                    '--status-fd=3',
-                    '--no-default-keyring',
-                    '--batch',
-                    '--no-tty',
-                    '--trust-model', 'always',
-                    '--fixed-list-mode']
+            args = [
+                self.gpg,
+                '--status-fd=3',
+                '--no-default-keyring',
+                '--batch',
+                '--no-tty',
+                '--trust-model',
+                'always',
+                '--fixed-list-mode',
+            ]
             for k in self.keyrings:
                 args.extend(['--keyring', k])
             args.extend(['--decrypt', '-'])
@@ -281,15 +295,28 @@ class SignedFile:
         return apt_pkg.sha1sum(self.contents)
 
 
-def sign(infile, outfile, keyids: list[str] = None, inline=False, pubring=None, secring=None, homedir=None, passphrase_file=None):
+def sign(
+    infile,
+    outfile,
+    keyids: list[str] = None,
+    inline=False,
+    pubring=None,
+    secring=None,
+    homedir=None,
+    passphrase_file=None,
+):
 
     if not keyids:
         keyids = []
 
     args = [
         '/usr/bin/gpg',
-        '--no-options', '--no-tty', '--batch', '--armour',
-        '--personal-digest-preferences', 'SHA256',
+        '--no-options',
+        '--no-tty',
+        '--batch',
+        '--armour',
+        '--personal-digest-preferences',
+        'SHA256',
     ]
 
     for keyid in keyids:
@@ -301,8 +328,7 @@ def sign(infile, outfile, keyids: list[str] = None, inline=False, pubring=None, 
     if homedir is not None:
         args.extend(['--homedir', homedir])
     if passphrase_file is not None:
-        args.extend(['--pinentry-mode', 'loopback',
-                     '--passphrase-file', passphrase_file])
+        args.extend(['--pinentry-mode', 'loopback', '--passphrase-file', passphrase_file])
 
     args.append('--clearsign' if inline else '--detach-sign')
 

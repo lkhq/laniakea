@@ -4,15 +4,15 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import json
-import logging as log
 import os
 import sys
+import json
+import logging as log
 
 import zmq
 import zmq.auth
-from zmq.auth.ioloop import IOLoopAuthenticator
 from zmq.eventloop import ioloop, zmqstream
+from zmq.auth.ioloop import IOLoopAuthenticator
 
 from laniakea import LkModule, LocalConfig
 from laniakea.utils import json_compact_dump
@@ -36,7 +36,7 @@ class JobsServer:
         self._worker = JobWorker(pub_queue)
 
     def _client_request_received(self, server, msg):
-        ''' Called when we receive a request from a client. '''
+        '''Called when we receive a request from a client.'''
 
         if len(msg) != 3:
             log.info('Received request of invalid length %s: %s', str(len(msg)), msg)
@@ -96,7 +96,9 @@ class JobsServer:
             sys.exit(2)
 
         if not os.path.isdir(self._trusted_keys_dir):
-            log.warning('Trusted keys directory does not exist. No clients will be able to make connections to this Lighthouse server.')
+            log.warning(
+                'Trusted keys directory does not exist. No clients will be able to make connections to this Lighthouse server.'
+            )
 
         # Start an authenticator for this context.
         auth = IOLoopAuthenticator(self._ctx)

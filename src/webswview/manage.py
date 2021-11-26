@@ -4,8 +4,8 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from flask_script import Manager
 from lkswview import create_app
+from flask_script import Manager
 from lkswview.config import DebugConfig
 
 app = create_app(config=DebugConfig)
@@ -19,10 +19,7 @@ def run():
     app.run()
 
 
-manager.add_option('-c', '--config',
-                   dest='config',
-                   required=False,
-                   help="config file")
+manager.add_option('-c', '--config', dest='config', required=False, help="config file")
 
 
 if __name__ == '__main__':

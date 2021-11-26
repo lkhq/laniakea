@@ -4,9 +4,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import logging as log
 import os
 import time
+import logging as log
 from email.utils import parsedate
 
 from laniakea import LkModule
@@ -21,21 +21,22 @@ def handle_isotope_upload(session, success, conf, dud, job, event_emitter):
     '''
 
     result_move_to = ''
-    recipe = session.query(ImageBuildRecipe) \
-        .filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
+    recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
     if not recipe:
         log.error('Could not find recipe for "{}". Can not process the file.'.format(dud.get_filename()))
         return
 
     result_move_to = recipe.result_move_to
 
-    event_data = {'format': str(recipe.format),
-                  'distribution': recipe.distribution,
-                  'suite': recipe.suite,
-                  'environment': recipe.environment,
-                  'style': recipe.style,
-                  'architecture': job.architecture,
-                  'job_id': str(job.uuid)}
+    event_data = {
+        'format': str(recipe.format),
+        'distribution': recipe.distribution,
+        'suite': recipe.suite,
+        'environment': recipe.environment,
+        'style': recipe.style,
+        'architecture': job.architecture,
+        'job_id': str(job.uuid),
+    }
 
     if not success:
         # validation failed, we couldn't accept this upload
@@ -44,7 +45,9 @@ def handle_isotope_upload(session, success, conf, dud, job, event_emitter):
 
     image_dir_tmpl = os.path.join(conf.isotope_root_dir, result_move_to).strip()
     if not image_dir_tmpl:
-        log.error('Found an Isotope ISO image build, but we have no idea where to put it. Is "IsotopeRootDir" set correctly?')
+        log.error(
+            'Found an Isotope ISO image build, but we have no idea where to put it. Is "IsotopeRootDir" set correctly?'
+        )
         return
 
     try:
@@ -54,9 +57,11 @@ def handle_isotope_upload(session, success, conf, dud, job, event_emitter):
         log.error('Unable to get time from Dud: {}'.format(str(e)))
         date = time.gmtime(time.time())
 
-    image_dir = image_dir_tmpl.replace('%{DATETIME}', time.strftime('%Y-%m-%d_%H.%M', date)) \
-        .replace('%{DATE}', time.strftime('%Y-%m-%d', date)) \
+    image_dir = (
+        image_dir_tmpl.replace('%{DATETIME}', time.strftime('%Y-%m-%d_%H.%M', date))
+        .replace('%{DATE}', time.strftime('%Y-%m-%d', date))
         .replace('%{TIME}', time.strftime('%H.%M', date))
+    )
 
     os.makedirs(image_dir, exist_ok=True)
 

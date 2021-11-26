@@ -9,13 +9,24 @@ import json
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (Boolean, Column, DateTime, Enum, ForeignKey, Index,
-                        Integer, SmallInteger, String, Table, Text,
-                        UniqueConstraint)
-from sqlalchemy.dialects.postgresql import ARRAY, CHAR, JSON, JSONB, TEXT
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy import (
+    Enum,
+    Text,
+    Index,
+    Table,
+    Column,
+    String,
+    Boolean,
+    Integer,
+    DateTime,
+    ForeignKey,
+    SmallInteger,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import cast, func
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.dialects.postgresql import CHAR, JSON, TEXT, ARRAY, JSONB
 
 from .base import UUID, Base, DebVersion, create_tsvector
 
@@ -24,25 +35,30 @@ UUID_NS_BINPACKAGE = uuid.UUID('b897829c-2eb4-503c-afd1-0fd74da8cc2b')
 UUID_NS_SWCOMPONENT = uuid.UUID('94c8e196-e236-48fe-81c8-38dd47de4650')
 
 
-uploader_repo_assoc_table = Table('archive_uploader_repo_association', Base.metadata,
-                               Column('uploader_id', Integer, ForeignKey('archive_uploaders.id', ondelete='cascade')),
-                               Column('repo_id', Integer, ForeignKey('archive_repositories.id'))
-                               )
+uploader_repo_assoc_table = Table(
+    'archive_uploader_repo_association',
+    Base.metadata,
+    Column('uploader_id', Integer, ForeignKey('archive_uploaders.id', ondelete='cascade')),
+    Column('repo_id', Integer, ForeignKey('archive_repositories.id')),
+)
 
 
 class ArchiveConfig(Base):
     '''
     General archive configuration that applies to all repositories and suites.
     '''
+
     __tablename__ = 'archive_config'
 
     id = Column(Integer, primary_key=True)
 
     primary_repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     primary_repo = relationship('ArchiveRepository')
-    auto_debug_management = Column(Boolean(), default=True)  # If True, Laniakea will automatically create, delete and assign debug suites
+    # If True, Laniakea will automatically create, delete and assign debug suites
+    auto_debug_management = Column(Boolean(), default=True)
 
-    primary_repo_root = Column(Text(), nullable=False, default='/')  # Location (directory) of the primary/master repository
+    # Location (directory) of the primary/master repository
+    primary_repo_root = Column(Text(), nullable=False, default='/')
     extra_repo_root = Column(Text(), nullable=False, default='/multiverse')  # Location of the additional repositories
 
     archive_url = Column(Text(), nullable=False)  # Web URL of the primary archive mirror
@@ -53,6 +69,7 @@ class ArchiveRepository(Base):
     A system architecture software can be compiled for.
     Usually associated with an :ArchiveSuite
     '''
+
     __tablename__ = 'archive_repositories'
 
     id = Column(Integer, primary_key=True)
@@ -62,83 +79,86 @@ class ArchiveRepository(Base):
     is_debug = Column(Boolean(), default=False)  # If True, this repository is used for debug suites
 
     debug_repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
-    debug_repo = relationship('ArchiveRepository', back_populates='debug_repo_for', uselist=False)  # Debug-symbol repository that belongs to this repository
-    debug_repo_for = relationship('ArchiveRepository',
-                                  back_populates='debug_repo',
-                                  remote_side=[id],
-                                  uselist=False)
+    # Debug-symbol repository that belongs to this repository
+    debug_repo = relationship('ArchiveRepository', back_populates='debug_repo_for', uselist=False)
+    debug_repo_for = relationship('ArchiveRepository', back_populates='debug_repo', remote_side=[id], uselist=False)
 
-    uploaders = relationship('ArchiveUploader',
-                          secondary=uploader_repo_assoc_table,
-                          back_populates='repos')
+    uploaders = relationship('ArchiveUploader', secondary=uploader_repo_assoc_table, back_populates='repos')
 
-    suite_settings = relationship('ArchiveRepoSuiteSettings',
-                                  back_populates='repo',
-                                  uselist=True)
+    suite_settings = relationship('ArchiveRepoSuiteSettings', back_populates='repo', uselist=True)
 
     def __init__(self, name):
         self.name = name
 
 
-suite_component_assoc_table = Table('archive_suite_component_association', Base.metadata,
-                                    Column('suite_id', Integer,
-                                           ForeignKey('archive_suites.id', ondelete='cascade'),
-                                           primary_key=True),
-                                    Column('component_id', Integer,
-                                           ForeignKey('archive_components.id', ondelete='cascade'),
-                                           primary_key=True)
-                                    )
+suite_component_assoc_table = Table(
+    'archive_suite_component_association',
+    Base.metadata,
+    Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'), primary_key=True),
+    Column('component_id', Integer, ForeignKey('archive_components.id', ondelete='cascade'), primary_key=True),
+)
 
-suite_arch_assoc_table = Table('archive_suite_architecture_association', Base.metadata,
-                               Column('suite_id', Integer,
-                                      ForeignKey('archive_suites.id', ondelete='cascade'),
-                                      primary_key=True),
-                               Column('arch_id', Integer,
-                                      ForeignKey('archive_architectures.id', ondelete='cascade'),
-                                      primary_key=True)
-                               )
+suite_arch_assoc_table = Table(
+    'archive_suite_architecture_association',
+    Base.metadata,
+    Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'), primary_key=True),
+    Column('arch_id', Integer, ForeignKey('archive_architectures.id', ondelete='cascade'), primary_key=True),
+)
 
-suite_parents_assoc_table = Table('archive_suite_parents_association', Base.metadata,
-                                  Column('suite_id', Integer,
-                                         ForeignKey('archive_suites.id', ondelete='cascade'),
-                                         primary_key=True),
-                                  Column('parent_suite_id', Integer,
-                                         ForeignKey('archive_suites.id', ondelete='cascade'),
-                                         primary_key=True)
-                                  )
+suite_parents_assoc_table = Table(
+    'archive_suite_parents_association',
+    Base.metadata,
+    Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'), primary_key=True),
+    Column('parent_suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'), primary_key=True),
+)
 
-srcpkg_suite_assoc_table = Table('archive_srcpkg_suite_association', Base.metadata,
-                                 Column('src_package_uuid', UUID(as_uuid=True),
-                                        ForeignKey('archive_pkgs_source.uuid', ondelete='cascade'),
-                                        primary_key=True),
-                                 Column('suite_id', Integer,
-                                        ForeignKey('archive_suites.id', ondelete='cascade'),
-                                        primary_key=True)
-                                 )
+srcpkg_suite_assoc_table = Table(
+    'archive_srcpkg_suite_association',
+    Base.metadata,
+    Column(
+        'src_package_uuid',
+        UUID(as_uuid=True),
+        ForeignKey('archive_pkgs_source.uuid', ondelete='cascade'),
+        primary_key=True,
+    ),
+    Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'), primary_key=True),
+)
 
-binpkg_suite_assoc_table = Table('archive_binpkg_suite_association', Base.metadata,
-                                 Column('bin_package_uuid', UUID(as_uuid=True),
-                                        ForeignKey('archive_pkgs_binary.uuid', ondelete='cascade'),
-                                        primary_key=True),
-                                 Column('suite_id', Integer,
-                                        ForeignKey('archive_suites.id', ondelete='cascade'),
-                                        primary_key=True)
-                                 )
+binpkg_suite_assoc_table = Table(
+    'archive_binpkg_suite_association',
+    Base.metadata,
+    Column(
+        'bin_package_uuid',
+        UUID(as_uuid=True),
+        ForeignKey('archive_pkgs_binary.uuid', ondelete='cascade'),
+        primary_key=True,
+    ),
+    Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'), primary_key=True),
+)
 
-swcpt_binpkg_assoc_table = Table('archive_swcpt_binpkg_association', Base.metadata,
-                                 Column('sw_cpt_uuid', UUID(as_uuid=True),
-                                        ForeignKey('archive_sw_components.uuid', ondelete='cascade'),
-                                        primary_key=True),
-                                 Column('bin_package_uuid', UUID(as_uuid=True),
-                                        ForeignKey('archive_pkgs_binary.uuid', ondelete='cascade'),
-                                        primary_key=True)
-                                 )
+swcpt_binpkg_assoc_table = Table(
+    'archive_swcpt_binpkg_association',
+    Base.metadata,
+    Column(
+        'sw_cpt_uuid',
+        UUID(as_uuid=True),
+        ForeignKey('archive_sw_components.uuid', ondelete='cascade'),
+        primary_key=True,
+    ),
+    Column(
+        'bin_package_uuid',
+        UUID(as_uuid=True),
+        ForeignKey('archive_pkgs_binary.uuid', ondelete='cascade'),
+        primary_key=True,
+    ),
+)
 
 
 class ArchiveUploader(Base):
     '''
     Entities who are permitted to upload data to archive repositories.
     '''
+
     __tablename__ = 'archive_uploaders'
 
     id = Column(Integer, primary_key=True)
@@ -149,12 +169,12 @@ class ArchiveUploader(Base):
 
     allow_source_uploads = Column(Boolean(), default=True)  # Whether source uploads are permitted
     allow_binary_uploads = Column(Boolean(), default=True)  # Whether binary package uploads are permitted
-    always_review = Column(Boolean(), default=False)  # Whether uploads of this entity should always end up in the NEW queue
-    allowed_packages = Column(ARRAY(Text()))  # Names of source packages that this entity is allowed to touch, empty to allow all
+    # Whether uploads of this entity should always end up in the NEW queue
+    always_review = Column(Boolean(), default=False)
+    # Names of source packages that this entity is allowed to touch, empty to allow all
+    allowed_packages = Column(ARRAY(Text()))
 
-    repos = relationship('ArchiveRepository',
-                         secondary=uploader_repo_assoc_table,
-                         back_populates='uploaders')
+    repos = relationship('ArchiveRepository', secondary=uploader_repo_assoc_table, back_populates='uploaders')
 
     def __init__(self, email: str):
         self.email = email
@@ -164,6 +184,7 @@ class ArchiveSuite(Base):
     '''
     Information about suite in a distribution repository.
     '''
+
     __tablename__ = 'archive_suites'
 
     id = Column(Integer, primary_key=True)
@@ -179,29 +200,25 @@ class ArchiveSuite(Base):
 
     debug_suite_id = Column(Integer, ForeignKey('archive_suites.id'))
     debug_suite = relationship('ArchiveSuite', back_populates='debug_suite_for')
-    debug_suite_for = relationship('ArchiveSuite',
-                                   back_populates='debug_suite',
-                                   remote_side=[id],
-                                   uselist=True)
+    debug_suite_for = relationship('ArchiveSuite', back_populates='debug_suite', remote_side=[id], uselist=True)
 
-    repo_settings = relationship('ArchiveRepoSuiteSettings',
-                                  back_populates='suite')
+    repo_settings = relationship('ArchiveRepoSuiteSettings', back_populates='suite')
 
-    parents = relationship('ArchiveSuite',
-                           secondary=suite_parents_assoc_table,
-                           foreign_keys=[suite_parents_assoc_table.c.parent_suite_id],
-                           back_populates='overlays')
-    overlays = relationship('ArchiveSuite',
-                            secondary=suite_parents_assoc_table,
-                            foreign_keys=[suite_parents_assoc_table.c.suite_id],
-                            back_populates='parents')
+    parents = relationship(
+        'ArchiveSuite',
+        secondary=suite_parents_assoc_table,
+        foreign_keys=[suite_parents_assoc_table.c.parent_suite_id],
+        back_populates='overlays',
+    )
+    overlays = relationship(
+        'ArchiveSuite',
+        secondary=suite_parents_assoc_table,
+        foreign_keys=[suite_parents_assoc_table.c.suite_id],
+        back_populates='parents',
+    )
 
-    pkgs_source = relationship('SourcePackage',
-                               secondary=srcpkg_suite_assoc_table,
-                               back_populates='suites')
-    pkgs_binary = relationship('BinaryPackage',
-                               secondary=binpkg_suite_assoc_table,
-                               back_populates='suites')
+    pkgs_source = relationship('SourcePackage', secondary=srcpkg_suite_assoc_table, back_populates='suites')
+    pkgs_binary = relationship('BinaryPackage', secondary=binpkg_suite_assoc_table, back_populates='suites')
 
     _primary_arch = None
 
@@ -228,6 +245,7 @@ class ArchiveRepoSuiteSettings(Base):
     Settings that are specific to a suite in a particular repository, but
     will not apply to the suite globally.
     '''
+
     __tablename__ = 'archive_repo_suite_settings'
     __table_args__ = (UniqueConstraint('repo_id', 'suite_id', name='_repo_suite_uc'),)
 
@@ -239,25 +257,35 @@ class ArchiveRepoSuiteSettings(Base):
     suite_id = Column(Integer, ForeignKey('archive_suites.id'))
     suite = relationship('ArchiveSuite', back_populates='repo_settings')
 
-    suite_summary = Column(String(200), nullable=True)  # Override the default suite summary text for the particular repository
-    accept_uploads = Column(Boolean(), default=True)  # Whether new packages can arrive in this suite via regular uploads ("unstable", "staging", ...)
-    devel_target = Column(Boolean(), default=False)  # Whether this is a development target suite ("testing", "green", ...)
+    # Override the default suite summary text for the particular repository
+    suite_summary = Column(String(200), nullable=True)
+    # Whether new packages can arrive in this suite via regular uploads ("unstable", "staging", ...)
+    accept_uploads = Column(Boolean(), default=True)
+    # Whether this is a development target suite ("testing", "green", ...)
+    devel_target = Column(Boolean(), default=False)
     frozen = Column(Boolean(), default=False)  # Whether the suite is frozen and immutable for changes
     auto_overrides = Column(Boolean(), default=False)  # Automatically process overrides, no package will land in NEW
-    manual_accept = Column(Boolean(), default=False)  # Every package will end up in the NEW queue for manual review, no automatic ACCEPT will happen
+    # Every package will end up in the NEW queue for manual review, no automatic ACCEPT will happen
+    manual_accept = Column(Boolean(), default=False)
 
-    not_automatic = Column(Boolean(), default=False)  # If set, packages from this source will not be installed automatically
-    but_automatic_upgrades = Column(Boolean(), default=False)  # Packages will not be auto-installed, but auto-upgraded if already installed
+    # If set, packages from this source will not be installed automatically
+    not_automatic = Column(Boolean(), default=False)
+    # Packages will not be auto-installed, but auto-upgraded if already installed
+    but_automatic_upgrades = Column(Boolean(), default=False)
 
     valid_time = Column(Integer, default=604800)  # time in seconds how long the suite index should be considered valid
-    phased_update_delay = Column(Integer, default=0)  # delay before a package is available to 100% of all users (0 to disable phased updates)
+    # delay before a package is available to 100% of all users (0 to disable phased updates)
+    phased_update_delay = Column(Integer, default=0)
     signingkeys = Column(ARRAY(String(64)))  # Keys packages uploaded to this suite will be signed with
     announce_emails = Column(ARRAY(Text()))  # E-Mail addresses that changes to this repository should be announced at
 
     def __init__(self, repo: ArchiveRepository, suite: ArchiveSuite):
         if repo.is_debug != suite.is_debug:
-            raise ValueError('Debug-Type values of suite and repository do not match: Suite is debug={}, while repo is debug={}'.format(
-                suite.is_debug, repo.is_debug))
+            raise ValueError(
+                'Debug-Type values of suite and repository do not match: Suite is debug={}, while repo is debug={}'.format(
+                    suite.is_debug, repo.is_debug
+                )
+            )
         self.repo_id = repo.id
         self.suite_id = suite.id
 
@@ -266,6 +294,7 @@ class ArchiveComponent(Base):
     '''
     Information about an archive component within a suite.
     '''
+
     __tablename__ = 'archive_components'
 
     id = Column(Integer, primary_key=True)
@@ -276,7 +305,8 @@ class ArchiveComponent(Base):
     suites = relationship('ArchiveSuite', secondary=suite_component_assoc_table, back_populates='components')
 
     parent_component_id = Column(Integer, ForeignKey('archive_components.id'))
-    parent_component = relationship('ArchiveComponent', remote_side=[id])  # Other components that need to be present to fulfill dependencies of packages in this component
+    # Other components that need to be present to fulfill dependencies of packages in this component
+    parent_component = relationship('ArchiveComponent', remote_side=[id])
 
     def __init__(self, name):
         self.name = name
@@ -293,6 +323,7 @@ class ArchiveArchitecture(Base):
     A system architecture software can be compiled for.
     Usually associated with an :ArchiveSuite
     '''
+
     __tablename__ = 'archive_architectures'
 
     id = Column(Integer, primary_key=True)
@@ -300,12 +331,11 @@ class ArchiveArchitecture(Base):
     name = Column(String(128), unique=True)  # Name of the architecture
     summary = Column(String(200))  # Short description of this architecture
 
-    suites = relationship('ArchiveSuite',
-                          secondary=suite_arch_assoc_table,
-                          back_populates='architectures')  # Suites that contain this architecture
+    suites = relationship(
+        'ArchiveSuite', secondary=suite_arch_assoc_table, back_populates='architectures'
+    )  # Suites that contain this architecture
 
-    pkgs_binary = relationship('BinaryPackage',
-                               back_populates='architecture')
+    pkgs_binary = relationship('BinaryPackage', back_populates='architecture')
 
     def __init__(self, name):
         self.name = name
@@ -316,6 +346,7 @@ class ArchiveSection(Base):
     Known sections in the archive that packages are sorted into.
     See https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections for reference.
     '''
+
     __tablename__ = 'archive_sections'
 
     id = Column(Integer, primary_key=True)
@@ -332,6 +363,7 @@ class PackageType(enum.IntEnum):
     '''
     Type of the package.
     '''
+
     UNKNOWN = 0
     SOURCE = enum.auto()
     BINARY = enum.auto()
@@ -341,6 +373,7 @@ class DebType(enum.IntEnum):
     '''
     Type of the Debian package.
     '''
+
     UNKNOWN = 0
     DEB = enum.auto()
     UDEB = enum.auto()
@@ -368,6 +401,7 @@ class PackagePriority(enum.IntEnum):
     '''
     Priority of a Debian package.
     '''
+
     UNKNOWN = 0
     REQUIRED = enum.auto()
     IMPORTANT = enum.auto()
@@ -397,6 +431,7 @@ class VersionPriority(enum.IntEnum):
     '''
     Priority of a package upload.
     '''
+
     LOW = 0
     MEDIUM = enum.auto()
     HIGH = enum.auto()
@@ -422,6 +457,7 @@ class PackageInfo:
     Basic package information, used by
     :SourcePackage to refer to binary packages.
     '''
+
     deb_type = DebType.DEB
     name = None
     version = None
@@ -434,6 +470,7 @@ class ArchiveFile(Base):
     '''
     A file in the archive.
     '''
+
     __tablename__ = 'archive_files'
 
     id = Column(Integer, primary_key=True)
@@ -462,6 +499,7 @@ class SourcePackage(Base):
     '''
     Data of a source package.
     '''
+
     __tablename__ = 'archive_pkgs_source'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
@@ -475,7 +513,9 @@ class SourcePackage(Base):
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     repo = relationship('ArchiveRepository')
 
-    suites = relationship('ArchiveSuite', secondary=srcpkg_suite_assoc_table, back_populates='pkgs_source')  # Suites this package is in
+    suites = relationship(
+        'ArchiveSuite', secondary=srcpkg_suite_assoc_table, back_populates='pkgs_source'
+    )  # Suites this package is in
 
     component_id = Column(Integer, ForeignKey('archive_components.id'))
     component = relationship('ArchiveComponent')  # Component this package is in
@@ -508,11 +548,11 @@ class SourcePackage(Base):
     files = relationship('ArchiveFile', back_populates='srcpkg', cascade='all, delete, delete-orphan')
     directory = Column(Text())
 
-    binaries = relationship('BinaryPackage',
-                            back_populates='source')
+    binaries = relationship('BinaryPackage', back_populates='source')
 
     _expected_binaries_json = Column('expected_binaries', JSON)
-    extra_data = Column(MutableDict.as_mutable(JSONB))  # Additional key-value metadata that may be specific to this package
+    # Additional key-value metadata that may be specific to this package
+    extra_data = Column(MutableDict.as_mutable(JSONB))
 
     _expected_binaries = None
 
@@ -541,12 +581,14 @@ class SourcePackage(Base):
 
         data = []
         for v in value:
-            d = {'deb_type': v.deb_type,
-                 'name': v.name,
-                 'version': v.version,
-                 'section': v.section,
-                 'priority': v.priority,
-                 'architectures': v.architectures}
+            d = {
+                'deb_type': v.deb_type,
+                'name': v.name,
+                'version': v.version,
+                'section': v.section,
+                'priority': v.priority,
+                'architectures': v.architectures,
+            }
             data.append(d)
         self._expected_binaries_json = json.dumps(data)
         self._expected_binaries = None  # Force the data to be re-loaded from JSON
@@ -586,6 +628,7 @@ class ArchiveVersionMemory(Base):
     '''
     Remember the highest version number for a source package that a repository has seen.
     '''
+
     __tablename__ = 'archive_pkg_version_memory'
     __table_args__ = (UniqueConstraint('pkgname', 'repo_id', name='_pkgname_repo_uc'),)
 
@@ -603,6 +646,7 @@ class PackageOverride(Base):
     '''
     Overridable "archive organization" data of a binary package.
     '''
+
     __tablename__ = 'archive_pkg_overrides'
 
     id = Column(Integer, primary_key=True)
@@ -626,6 +670,7 @@ class BinaryPackage(Base):
     '''
     Data of a binary package.
     '''
+
     __tablename__ = 'archive_pkgs_binary'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
@@ -637,13 +682,16 @@ class BinaryPackage(Base):
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     repo = relationship('ArchiveRepository')  # Repository this package belongs to
 
-    suites = relationship('ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='pkgs_binary')  # Suites this package is in
+    suites = relationship(
+        'ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='pkgs_binary'
+    )  # Suites this package is in
 
     component_id = Column(Integer, ForeignKey('archive_components.id'))
     component = relationship('ArchiveComponent')  # Component this package is in
 
     architecture_id = Column(Integer, ForeignKey('archive_architectures.id'))
-    architecture = relationship('ArchiveArchitecture', back_populates='pkgs_binary')  # Architecture this binary was built for
+    # Architecture this binary was built for
+    architecture = relationship('ArchiveArchitecture', back_populates='pkgs_binary')
 
     source_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
     source = relationship('SourcePackage', back_populates='binaries')
@@ -679,23 +727,15 @@ class BinaryPackage(Base):
 
     contents = Column(ARRAY(Text()))  # List of filenames that this package contains
 
-    extra_data = Column(MutableDict.as_mutable(JSONB))  # Additional key-value metadata that may be specific to this package
+    # Additional key-value metadata that may be specific to this package
+    extra_data = Column(MutableDict.as_mutable(JSONB))
 
     bin_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg', cascade='all, delete, delete-orphan')
     sw_cpts = relationship('SoftwareComponent', secondary=swcpt_binpkg_assoc_table, back_populates='pkgs_binary')
 
-    __ts_vector__ = create_tsvector(
-        cast(func.coalesce(name, ''), TEXT),
-        cast(func.coalesce(description, ''), TEXT)
-    )
+    __ts_vector__ = create_tsvector(cast(func.coalesce(name, ''), TEXT), cast(func.coalesce(description, ''), TEXT))
 
-    __table_args__ = (
-        Index(
-            'idx_bin_package_fts',
-            __ts_vector__,
-            postgresql_using='gin'
-        ),
-    )
+    __table_args__ = (Index('idx_bin_package_fts', __ts_vector__, postgresql_using='gin'),)
 
     @staticmethod
     def generate_uuid(repo_name, name, version, arch_name):
@@ -720,9 +760,7 @@ class BinaryPackage(Base):
 
 # index to speed up data imports, where packages belonging to a certain repository/arch combination
 # are requested frequently
-bin_package_repo_arch_index = Index('idx_bin_package_repo_arch',
-                                    BinaryPackage.repo_id,
-                                    BinaryPackage.architecture_id)
+bin_package_repo_arch_index = Index('idx_bin_package_repo_arch', BinaryPackage.repo_id, BinaryPackage.architecture_id)
 
 
 class SoftwareComponent(Base):
@@ -730,6 +768,7 @@ class SoftwareComponent(Base):
     Description of a software component as described by the AppStream
     specification.
     '''
+
     __tablename__ = 'archive_sw_components'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -753,10 +792,12 @@ class SoftwareComponent(Base):
 
     categories = Column(ARRAY(String(256)))  # Categories this component is in
 
-    pkgs_binary = relationship('BinaryPackage',
-                                secondary=swcpt_binpkg_assoc_table,
-                                order_by='desc(BinaryPackage.version)',
-                                back_populates='sw_cpts')  # Packages this software component is contained in
+    pkgs_binary = relationship(
+        'BinaryPackage',
+        secondary=swcpt_binpkg_assoc_table,
+        order_by='desc(BinaryPackage.version)',
+        back_populates='sw_cpts',
+    )  # Packages this software component is contained in
 
     flatpakref_uuid = Column(UUID(as_uuid=True), ForeignKey('flatpak_refs.uuid'))
     flatpakref = relationship('FlatpakRef')
@@ -766,16 +807,10 @@ class SoftwareComponent(Base):
     __ts_vector__ = create_tsvector(
         cast(func.coalesce(name, ''), TEXT),
         cast(func.coalesce(summary, ''), TEXT),
-        cast(func.coalesce(description, ''), TEXT)
+        cast(func.coalesce(description, ''), TEXT),
     )
 
-    __table_args__ = (
-        Index(
-            'idx_sw_components_fts',
-            __ts_vector__,
-            postgresql_using='gin'
-        ),
-    )
+    __table_args__ = (Index('idx_sw_components_fts', __ts_vector__, postgresql_using='gin'),)
 
     cpt = None
 
@@ -784,7 +819,9 @@ class SoftwareComponent(Base):
         Update the unique identifier for this component.
         '''
         if not self.gcid and not self.xml:
-            raise Exception('Global component ID is not set for this component, and no XML data was found for it. Can not create UUID.')
+            raise Exception(
+                'Global component ID is not set for this component, and no XML data was found for it. Can not create UUID.'
+            )
 
         self.uuid = uuid.uuid5(UUID_NS_SWCOMPONENT, self.gcid if self.gcid else self.xml)
         return self.uuid
@@ -802,8 +839,10 @@ class SoftwareComponent(Base):
         # set up the context
         if not context:
             import gi
+
             gi.require_version('AppStream', '1.0')
             from gi.repository import AppStream
+
             context = AppStream.Context()
         context.set_style(AppStream.FormatStyle.COLLECTION)
 

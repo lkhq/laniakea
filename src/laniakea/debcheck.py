@@ -10,11 +10,10 @@ from datetime import datetime
 
 import yaml
 
-from laniakea.db import (DebcheckIssue, PackageConflict, PackageIssue,
-                         PackageType)
-from laniakea.localconfig import LocalConfig
+from laniakea.db import PackageType, PackageIssue, DebcheckIssue, PackageConflict
 from laniakea.logging import log
 from laniakea.repository import Repository
+from laniakea.localconfig import LocalConfig
 
 
 class Debcheck:
@@ -38,10 +37,7 @@ class Debcheck:
         cmd.extend(args)
         cmd.extend(files)
 
-        pipe = subprocess.Popen(cmd,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                universal_newlines=True)
+        pipe = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         while True:
             line = pipe.stdout.readline()
             if line == '' and pipe.poll() is not None:
@@ -73,16 +69,22 @@ class Debcheck:
                 if fname:
                     res['fg'].append(fname)
 
-                fname = self._repo.index_file(suite, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz'))
+                fname = self._repo.index_file(
+                    suite, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz')
+                )
                 if fname:
                     res['bg'].append(fname)
             else:
-                fname = self._repo.index_file(suite, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz'))
+                fname = self._repo.index_file(
+                    suite, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz')
+                )
                 if fname:
                     res['fg'].append(fname)
 
             if arch.name == 'all':
-                fname = self._repo.index_file(suite, os.path.join(component.name, 'binary-{}'.format(bin_arch.name), 'Packages.xz'))
+                fname = self._repo.index_file(
+                    suite, os.path.join(component.name, 'binary-{}'.format(bin_arch.name), 'Packages.xz')
+                )
                 if fname:
                     res['bg'].append(fname)
 
@@ -106,15 +108,19 @@ class Debcheck:
             if not indices['fg']:
                 if arch.name == 'all':
                     continue
-                raise Exception('Unable to get any indices for {}/{} to check for dependency issues.'.format(suite.name, arch.name))
+                raise Exception(
+                    'Unable to get any indices for {}/{} to check for dependency issues.'.format(suite.name, arch.name)
+                )
 
-            dose_args = ['--quiet',
-                         '--latest=1',
-                         '-e',
-                         '-f',
-                         '--summary',
-                         '--deb-emulate-sbuild',
-                         '--deb-native-arch={}'.format(suite.primary_architecture.name if arch.name == 'all' else arch.name)]
+            dose_args = [
+                '--quiet',
+                '--latest=1',
+                '-e',
+                '-f',
+                '--summary',
+                '--deb-emulate-sbuild',
+                '--deb-native-arch={}'.format(suite.primary_architecture.name if arch.name == 'all' else arch.name),
+            ]
 
             # run builddepcheck
             success, data = self._execute_dose('dose-builddebcheck', dose_args, indices['bg'] + indices['fg'])
@@ -136,14 +142,18 @@ class Debcheck:
             if not indices['fg']:
                 if arch.name == 'all':
                     continue
-                raise Exception('Unable to get any indices for {}/{} to check for dependency issues.'.format(suite.name, arch.name))
+                raise Exception(
+                    'Unable to get any indices for {}/{} to check for dependency issues.'.format(suite.name, arch.name)
+                )
 
-            dose_args = ['--quiet',
-                         '--latest=1',
-                         '-e',
-                         '-f',
-                         '--summary',
-                         '--deb-native-arch={}'.format(suite.primary_architecture.name if arch.name == 'all' else arch.name)]
+            dose_args = [
+                '--quiet',
+                '--latest=1',
+                '-e',
+                '-f',
+                '--summary',
+                '--deb-native-arch={}'.format(suite.primary_architecture.name if arch.name == 'all' else arch.name),
+            ]
 
             # run depcheck
             indices_args = []
@@ -153,7 +163,9 @@ class Debcheck:
                 indices_args.append('--fg={}'.format(f))
             success, data = self._execute_dose('dose-debcheck', dose_args, indices_args)
             if not success:
-                log.error('Dose debcheck command failed: ' + ' '.join(dose_args) + ' ' + ' '.join(indices_args) + '\n' + data)
+                log.error(
+                    'Dose debcheck command failed: ' + ' '.join(dose_args) + ' ' + ' '.join(indices_args) + '\n' + data
+                )
                 raise Exception('Unable to run Dose for {}/{}: {}'.format(suite.name, arch.name, data))
 
             arch_issue_map[arch.name] = data
@@ -161,7 +173,6 @@ class Debcheck:
         return arch_issue_map
 
     def _dose_yaml_to_issues(self, yaml_data, suite, arch_name):
-
         def set_basic_package_info(v, entry):
             if 'type' in entry and entry['type'] == "src":
                 v.package_type = PackageType.SOURCE
@@ -251,7 +262,7 @@ class Debcheck:
         return res
 
     def build_depcheck_issues(self, suite):
-        ''' Get a list of build-dependency issues affecting the suite '''
+        '''Get a list of build-dependency issues affecting the suite'''
 
         issues = []
         issues_yaml = self._generate_build_depcheck_yaml(suite)
@@ -261,7 +272,7 @@ class Debcheck:
         return issues
 
     def depcheck_issues(self, suite):
-        ''' Get a list of dependency issues affecting the suite '''
+        '''Get a list of dependency issues affecting the suite'''
 
         issues = []
         issues_yaml = self._generate_depcheck_yaml(suite)

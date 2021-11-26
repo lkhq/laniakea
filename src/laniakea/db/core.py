@@ -14,30 +14,33 @@ class LkModule:
     '''
     String identifiers of Laniakea modules.
     '''
+
     UNKNOWN = ''
-    BASE = 'core'                # The Laniakea base platform
-    TESTSUITE = 'test'           # The Laniakea testsuite
-    LIGHTHOUSE = 'lighthouse'    # Message relay station
+    BASE = 'core'  # The Laniakea base platform
+    TESTSUITE = 'test'  # The Laniakea testsuite
+    LIGHTHOUSE = 'lighthouse'  # Message relay station
     SYNCHROTRON = 'synchrotron'  # Syncs packages from a source distribution
-    SPEARS = 'spears'            # Automatic package migration
-    PLANTER = 'planter'          # Interface to Germinate, a metapackage / default-package-selection generator
-    ADMINCLI = 'admin-cli'       # CLI interface to Laniakea settings and the database, useful debug tool
-    KEYTOOL = 'keytool'          # Small CLI tool to handle encryption keys and certificates
-    WEB = 'web'                  # Laniakea web view
-    WEBSWVIEW = 'webswview'      # Packages / software web view
-    DEBCHECK = 'debcheck'        # Package installability and dependency tests
-    ISOTOPE = 'isotope'          # ISO image build scheduling and data import
-    RUBICON = 'rubicon'          # Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place
-    ARCHIVE = 'archive'          # Lists packages in the database
-    DATAIMPORT = 'dataimport'    # Import various data from other sources into the database
-    ARIADNE = 'ariadne'          # Package autobuild scheduler
-    ARCHIVE = 'archive'          # Package archive related things
+    SPEARS = 'spears'  # Automatic package migration
+    PLANTER = 'planter'  # Interface to Germinate, a metapackage / default-package-selection generator
+    ADMINCLI = 'admin-cli'  # CLI interface to Laniakea settings and the database, useful debug tool
+    KEYTOOL = 'keytool'  # Small CLI tool to handle encryption keys and certificates
+    WEB = 'web'  # Laniakea web view
+    WEBSWVIEW = 'webswview'  # Packages / software web view
+    DEBCHECK = 'debcheck'  # Package installability and dependency tests
+    ISOTOPE = 'isotope'  # ISO image build scheduling and data import
+    # Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place
+    RUBICON = 'rubicon'
+    ARCHIVE = 'archive'  # Lists packages in the database
+    DATAIMPORT = 'dataimport'  # Import various data from other sources into the database
+    ARIADNE = 'ariadne'  # Package autobuild scheduler
+    ARCHIVE = 'archive'  # Package archive related things
 
 
 class ConfigEntry(Base):
     '''
     A generic, multi-purpose configuration entry.
     '''
+
     __tablename__ = 'config'
 
     id = Column(String, primary_key=True)

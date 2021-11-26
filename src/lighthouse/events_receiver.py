@@ -4,15 +4,14 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import os
 import json
 import logging as log
-import os
 
 import zmq
 from zmq.eventloop import ioloop, zmqstream
 
-from laniakea.msgstream import (event_message_is_valid_and_signed,
-                                verify_event_message)
+from laniakea.msgstream import verify_event_message, event_message_is_valid_and_signed
 
 
 class EventsReceiver:

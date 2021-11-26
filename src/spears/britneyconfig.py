@@ -31,7 +31,9 @@ class BritneyConfig:
         self._base_dir = britney_dir
 
         # add basic settings
-        self._contents.append('# Configuration file for Britney\n# This file is managed by Laniakea.Spears - DO NOT EDIT IT MANUALLY!\n')
+        self._contents.append(
+            '# Configuration file for Britney\n# This file is managed by Laniakea.Spears - DO NOT EDIT IT MANUALLY!\n'
+        )
 
         # output
         self._contents.append('NONINST_STATUS      = output/target/non-installable-status')

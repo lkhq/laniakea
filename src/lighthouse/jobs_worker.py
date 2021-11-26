@@ -4,17 +4,26 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import logging as log
 import uuid
-from datetime import datetime
+import logging as log
 from typing import Optional
+from datetime import datetime
 
 from laniakea import LkModule, LocalConfig
-from laniakea.db import (ArchiveSuite, ImageBuildRecipe, Job, JobKind,
-                         JobResult, JobStatus, SourcePackage, SparkWorker,
-                         config_get_value, session_scope)
-from laniakea.msgstream import create_message_tag
+from laniakea.db import (
+    Job,
+    JobKind,
+    JobResult,
+    JobStatus,
+    SparkWorker,
+    ArchiveSuite,
+    SourcePackage,
+    ImageBuildRecipe,
+    session_scope,
+    config_get_value,
+)
 from laniakea.utils import json_compact_dump
+from laniakea.msgstream import create_message_tag
 
 
 class JobWorker:
@@ -29,10 +38,12 @@ class JobWorker:
 
         with session_scope() as session:
             # FIXME: We need much better ways to select the right suite to synchronize with
-            incoming_suite = session.query(ArchiveSuite) \
-                .filter(ArchiveSuite.accept_uploads == True) \
-                .order_by(ArchiveSuite.name) \
-                .first()  # noqa: E712
+            incoming_suite = (
+                session.query(ArchiveSuite)
+                .filter(ArchiveSuite.accept_uploads == True)
+                .order_by(ArchiveSuite.name)
+                .first()
+            )  # noqa: E712
             self._default_incoming_suite_name = incoming_suite.name
 
     def _emit_event(self, subject, data):
@@ -40,18 +51,15 @@ class JobWorker:
             return  # do nothing if event publishing is disabled
 
         tag = create_message_tag('jobs', subject)
-        msg = {'tag': tag,
-               'uuid': str(uuid.uuid1()),
-               'format': '1.0',
-               'time': datetime.now().isoformat(),
-               'data': data}
+        msg = {'tag': tag, 'uuid': str(uuid.uuid1()), 'format': '1.0', 'time': datetime.now().isoformat(), 'data': data}
         self._event_pub_queue.put(msg)
 
     def _error_reply(self, message):
         return json_compact_dump({'error': message})
 
     def _assign_suitable_job(self, session, job_kind, arch, client_id):
-        qres = session.execute('''WITH cte AS (
+        qres = session.execute(
+            '''WITH cte AS (
                                         SELECT uuid
                                         FROM   jobs
                                         WHERE  status=:jstatus_old
@@ -67,11 +75,15 @@ class JobWorker:
                                         time_assigned=now()
                                     FROM cte
                                         WHERE  j.uuid = cte.uuid
-                                    RETURNING j.*''', {'jstatus_old': 'WAITING',
-                                                       'arch': arch,
-                                                       'jkind': job_kind,
-                                                       'jstatus_new': 'SCHEDULED',
-                                                       'worker_id': client_id})
+                                    RETURNING j.*''',
+            {
+                'jstatus_old': 'WAITING',
+                'arch': arch,
+                'jkind': job_kind,
+                'jstatus_new': 'SCHEDULED',
+                'worker_id': client_id,
+            },
+        )
         res = qres.fetchone()
         session.commit()
         return res
@@ -100,20 +112,26 @@ class JobWorker:
         if job_kind == JobKind.PACKAGE_BUILD:
             # Sanity check for broken configuration (archive URL is not mandatory (yet))
             if not self._lconf.archive_url:
-                log.error('Trying to schedule a package build job, but archive URL is not set in local config. Please fix your configuration!')
+                log.error(
+                    'Trying to schedule a package build job, but archive URL is not set in local config. Please fix your configuration!'
+                )
                 job.status = JobStatus.WAITING
                 session.commit()
 
                 # This is a server error, no need to inform the client about it as well
                 return None
 
-            spkg = session.query(SourcePackage) \
-                .filter(SourcePackage.source_uuid == trigger_uuid) \
-                .filter(SourcePackage.version == job_version) \
+            spkg = (
+                session.query(SourcePackage)
+                .filter(SourcePackage.source_uuid == trigger_uuid)
+                .filter(SourcePackage.version == job_version)
                 .one_or_none()
+            )
             if not spkg:
                 job.status = JobStatus.TERMINATED
-                job.latest_log_excerpt = 'We were unable to find a source package for this build job. The job has been terminated.'
+                job.latest_log_excerpt = (
+                    'We were unable to find a source package for this build job. The job has been terminated.'
+                )
                 session.commit()
 
                 # This not an error the client needs to know about
@@ -121,7 +139,9 @@ class JobWorker:
 
             if not job.data:
                 job.status = JobStatus.TERMINATED
-                job.latest_log_excerpt = 'Required data was missing to perform this job. This is an internal server error.'
+                job.latest_log_excerpt = (
+                    'Required data was missing to perform this job. This is an internal server error.'
+                )
                 session.commit()
 
                 # This not an error the client needs to know about
@@ -158,17 +178,22 @@ class JobWorker:
 
             if not jdata['dsc_url']:
                 job.status = JobStatus.TERMINATED
-                job.latest_log_excerpt = 'We were unable to find a source package .dsc file for this build. The job has been terminated.'
+                job.latest_log_excerpt = (
+                    'We were unable to find a source package .dsc file for this build. The job has been terminated.'
+                )
                 session.commit()
 
                 # This not an error the client needs to know about
                 return None
         elif job_kind == JobKind.OS_IMAGE_BUILD:
-            recipe: Optional[ImageBuildRecipe] = session.query(ImageBuildRecipe) \
-                                                        .filter(ImageBuildRecipe.uuid == trigger_uuid).one_or_none()
+            recipe: Optional[ImageBuildRecipe] = (
+                session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid == trigger_uuid).one_or_none()
+            )
             if not recipe:
                 job.status = JobStatus.TERMINATED
-                job.latest_log_excerpt = 'We were unable to find the image build recipe for this job. The job has been terminated.'
+                job.latest_log_excerpt = (
+                    'We were unable to find the image build recipe for this job. The job has been terminated.'
+                )
                 session.commit()
 
                 # This not an error the client needs to know about
@@ -196,8 +221,7 @@ class JobWorker:
         architectures = req_data.get('architectures', [])
 
         # update information about this client
-        worker = session.query(SparkWorker) \
-            .filter(SparkWorker.uuid == client_id).one_or_none()
+        worker = session.query(SparkWorker).filter(SparkWorker.uuid == client_id).one_or_none()
 
         # we might have a new machine, so set the ID again to create an empty new worker
         if not worker:
@@ -241,13 +265,15 @@ class JobWorker:
                     job_data = self._get_job_details(session, job)
                     job_assigned = True
 
-                    event_data = {'job_id': job_data['uuid'],
-                                  'client_name': client_name,
-                                  'client_id': client_id,
-                                  'job_module': job_data['module'],
-                                  'job_kind': job_data['kind'],
-                                  'job_version': job_data['version'],
-                                  'job_architecture': job_data['architecture']}
+                    event_data = {
+                        'job_id': job_data['uuid'],
+                        'client_name': client_name,
+                        'client_id': client_id,
+                        'job_module': job_data['module'],
+                        'job_kind': job_data['kind'],
+                        'job_version': job_data['version'],
+                        'job_architecture': job_data['architecture'],
+                    }
                     self._emit_event('job-assigned', event_data)
                     break
             if job_assigned:
@@ -280,9 +306,7 @@ class JobWorker:
         job.status = JobStatus.RUNNING
         session.commit()
 
-        event_data = {'job_id': job_id,
-                      'client_name': client_name,
-                      'client_id': client_id}
+        event_data = {'job_id': job_id, 'client_name': client_name, 'client_id': client_id}
         self._emit_event('job-accepted', event_data)
 
         return True
@@ -315,16 +339,22 @@ class JobWorker:
             # to block a possibly important job though, and rather have another worker take it instead.
             # (we do log this behavior though, for now only to the system journal)
             # TODO: Generate a Laniakea event for this behavior
-            log.info('Worker "{}" changed its mind on job "{}" and rejected it after it was already running.'.format(client_name, str(job_id)))
+            log.info(
+                'Worker "{}" changed its mind on job "{}" and rejected it after it was already running.'.format(
+                    client_name, str(job_id)
+                )
+            )
         elif job.status != JobStatus.SCHEDULED:
-            log.warning('Worker "{}" rejected job "{}", but the job was not scheduled (state: {}).'.format(client_name, str(job_id), str(job.status)))
+            log.warning(
+                'Worker "{}" rejected job "{}", but the job was not scheduled (state: {}).'.format(
+                    client_name, str(job_id), str(job.status)
+                )
+            )
 
         job.status = JobStatus.WAITING
         session.commit()
 
-        event_data = {'job_id': job_id,
-                      'client_name': client_name,
-                      'client_id': client_id}
+        event_data = {'job_id': job_id, 'client_name': client_name, 'client_id': client_id}
         self._emit_event('job-rejected', event_data)
 
         return True
@@ -382,10 +412,7 @@ class JobWorker:
         job.result = JobResult.SUCCESS_PENDING if success else JobResult.FAILURE_PENDING
         job.status = JobStatus.DONE
 
-        event_data = {'job_id': job_id,
-                      'client_name': client_name,
-                      'client_id': client_id,
-                      'result': str(job.result)}
+        event_data = {'job_id': job_id, 'client_name': client_name, 'client_id': client_id, 'result': str(job.result)}
         self._emit_event('job-finished', event_data)
 
         return True
@@ -417,6 +444,7 @@ class JobWorker:
                 return self._error_reply('Request type is unknown.')
         except Exception as e:
             import traceback
+
             log.error('Failed to handle request: {} => {}'.format(str(request), str(e)))
             traceback.print_exc()
             return self._error_reply('Failed to handle request: {}'.format(str(e)))

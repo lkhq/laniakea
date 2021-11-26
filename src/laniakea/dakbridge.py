@@ -8,9 +8,9 @@ import os
 from typing import List
 
 from laniakea.git import Git
-from laniakea.localconfig import ExternalToolsUrls, LocalConfig
-from laniakea.logging import get_verbose, log
 from laniakea.utils import listify
+from laniakea.logging import log, get_verbose
+from laniakea.localconfig import LocalConfig, ExternalToolsUrls
 
 
 class DakBridge:
@@ -42,9 +42,7 @@ class DakBridge:
         cmd = [self._dak_exe]
         cmd.extend(args)
 
-        out, err, ret = run_command(cmd,
-                                    input=input_data,
-                                    capture_output=not get_verbose())
+        out, err, ret = run_command(cmd, input=input_data, capture_output=not get_verbose())
         out = out if out else ''
         err = err if err else ''
         if check and ret != 0:
@@ -92,8 +90,9 @@ class DakBridge:
         log.info('Updated packages in "{}" based on Britney result.'.format(suite_name))
         return True
 
-    def import_package_files(self, suite: str, component: str, fnames: List[str],
-                             ignore_signature: bool = False, add_overrides: bool = True) -> bool:
+    def import_package_files(
+        self, suite: str, component: str, fnames: List[str], ignore_signature: bool = False, add_overrides: bool = True
+    ) -> bool:
 
         # run dak import command.
         args = ['import']
@@ -111,40 +110,34 @@ class DakBridge:
         if ret != 0:
             raise Exception('Unable to import package files \'{}\': {}'.format(' '.join(fnames), out))
 
-        log.info('Imported \'{}\' into \'{}/{}\'.'.format(' '.join([os.path.basename(f) for f in fnames]), suite, component))
+        log.info(
+            'Imported \'{}\' into \'{}/{}\'.'.format(' '.join([os.path.basename(f) for f in fnames]), suite, component)
+        )
         return True
 
     def package_is_removable(self, package_name: str, suite_name: str) -> bool:
-        ''' Check if a package can be removed without breaking reverse dependencies. '''
+        '''Check if a package can be removed without breaking reverse dependencies.'''
 
         log.debug('Testing package \'{}\' removal from \'{}\''.format(package_name, suite_name))
 
         # simulate package removal
-        args = ['rm',
-                '-R',
-                '-m', 'RID: Removed from Debian',
-                '-C', 'janitor@dak',
-                '-n',
-                '-s', suite_name,
-                package_name]
+        args = ['rm', '-R', '-m', 'RID: Removed from Debian', '-C', 'janitor@dak', '-n', '-s', suite_name, package_name]
 
         ret, out = self._run_dak(args, check=False)
 
         if ret != 0:
-            raise Exception('Unable to check if package \'{}\' is removable from \'{}\': {}'.format(package_name, suite_name, out))
+            raise Exception(
+                'Unable to check if package \'{}\' is removable from \'{}\': {}'.format(package_name, suite_name, out)
+            )
         return 'No dependency problem found.' in out
 
     def remove_package(self, package_name: str, suite_name: str) -> bool:
-        ''' Remove a package from a specified suite. '''
+        '''Remove a package from a specified suite.'''
 
         log.info('Removing \'{}\' from \'{}\''.format(package_name, suite_name))
 
         # actually remove a package
-        args = ['rm',
-                '-m', 'RID: Removed from Debian',
-                '-C', 'janitor@dak',
-                '-s', suite_name,
-                package_name]
+        args = ['rm', '-m', 'RID: Removed from Debian', '-C', 'janitor@dak', '-s', suite_name, package_name]
 
         ret, out = self._run_dak(args, 'y\n', check=False)
 

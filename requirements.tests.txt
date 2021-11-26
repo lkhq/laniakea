@@ -1,4 +1,6 @@
+black
 flake8
+isort
 mypy
 git+https://github.com/containers/podman-compose.git@b33c42b7e27dd8b67ff8ebdf7be05721099ee480
 pylint

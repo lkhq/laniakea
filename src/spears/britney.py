@@ -7,8 +7,8 @@
 import os
 
 from laniakea.git import Git
-from laniakea.localconfig import ExternalToolsUrls, LocalConfig
 from laniakea.logging import get_verbose
+from laniakea.localconfig import LocalConfig, ExternalToolsUrls
 
 
 class Britney:

@@ -21,34 +21,42 @@ depends_on = None
 
 
 def upgrade():
-    op.create_table('flatpak_repositories',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=128), nullable=True),
-    sa.Column('collection_id', sa.Text(), nullable=True),
-    sa.Column('title', sa.Text(), nullable=True),
-    sa.Column('comment', sa.Text(), nullable=True),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('url_homepage', sa.Text(), nullable=True),
-    sa.Column('url_icon', sa.Text(), nullable=True),
-    sa.Column('default_branch', sa.String(length=128), nullable=True),
-    sa.Column('gpg_key_id', sa.Text(), nullable=True),
-    sa.Column('allowed_branches', postgresql.ARRAY(sa.String(length=128)), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('collection_id'),
-    sa.UniqueConstraint('name')
+    op.create_table(
+        'flatpak_repositories',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('name', sa.String(length=128), nullable=True),
+        sa.Column('collection_id', sa.Text(), nullable=True),
+        sa.Column('title', sa.Text(), nullable=True),
+        sa.Column('comment', sa.Text(), nullable=True),
+        sa.Column('description', sa.Text(), nullable=True),
+        sa.Column('url_homepage', sa.Text(), nullable=True),
+        sa.Column('url_icon', sa.Text(), nullable=True),
+        sa.Column('default_branch', sa.String(length=128), nullable=True),
+        sa.Column('gpg_key_id', sa.Text(), nullable=True),
+        sa.Column('allowed_branches', postgresql.ARRAY(sa.String(length=128)), nullable=True),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('collection_id'),
+        sa.UniqueConstraint('name'),
     )
-    op.create_table('flatpak_refs',
-    sa.Column('uuid', postgresql.UUID(as_uuid=True), nullable=False),
-    sa.Column('repo_id', sa.Integer(), nullable=True),
-    sa.Column('kind', sa.Enum('UNKNOWN', 'APP', 'RUNTIME', name='flatpakrefkind'), nullable=True),
-    sa.Column('name', sa.Text(), nullable=True),
-    sa.Column('version', laniakea.db.base.DebVersion(), nullable=True),
-    sa.Column('branch', sa.String(length=128), nullable=True),
-    sa.Column('commit', postgresql.BYTEA(), nullable=True),
-    sa.Column('architecture_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['architecture_id'], ['archive_architectures.id'], ),
-    sa.ForeignKeyConstraint(['repo_id'], ['flatpak_repositories.id'], ),
-    sa.PrimaryKeyConstraint('uuid')
+    op.create_table(
+        'flatpak_refs',
+        sa.Column('uuid', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('repo_id', sa.Integer(), nullable=True),
+        sa.Column('kind', sa.Enum('UNKNOWN', 'APP', 'RUNTIME', name='flatpakrefkind'), nullable=True),
+        sa.Column('name', sa.Text(), nullable=True),
+        sa.Column('version', laniakea.db.base.DebVersion(), nullable=True),
+        sa.Column('branch', sa.String(length=128), nullable=True),
+        sa.Column('commit', postgresql.BYTEA(), nullable=True),
+        sa.Column('architecture_id', sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ['architecture_id'],
+            ['archive_architectures.id'],
+        ),
+        sa.ForeignKeyConstraint(
+            ['repo_id'],
+            ['flatpak_repositories.id'],
+        ),
+        sa.PrimaryKeyConstraint('uuid'),
     )
     op.add_column('archive_sw_components', sa.Column('flatpakref_uuid', postgresql.UUID(as_uuid=True), nullable=True))
     op.add_column('archive_sw_components', sa.Column('supports_touch', sa.Boolean(), nullable=True))

@@ -5,20 +5,28 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+ AND Apache-2.0
 
-import nacl.signing
 import pytest
+import nacl.signing
 
-from laniakea.msgstream.signedjson import (SignatureVerifyException, sign_json,
-                                           signature_ids, verify_signed_json)
-from laniakea.msgstream.signing import (decode_signing_key_base64,
-                                        decode_verify_key_bytes,
-                                        encode_signing_key_base64,
-                                        encode_verify_key_base64,
-                                        generate_signing_key, get_verify_key,
-                                        is_signing_algorithm_supported,
-                                        read_old_signing_keys,
-                                        read_signing_keys, write_signing_keys)
 from laniakea.utils import decode_base64, encode_base64
+from laniakea.msgstream.signing import (
+    get_verify_key,
+    read_signing_keys,
+    write_signing_keys,
+    generate_signing_key,
+    read_old_signing_keys,
+    decode_verify_key_bytes,
+    encode_verify_key_base64,
+    decode_signing_key_base64,
+    encode_signing_key_base64,
+    is_signing_algorithm_supported,
+)
+from laniakea.msgstream.signedjson import (
+    SignatureVerifyException,
+    sign_json,
+    signature_ids,
+    verify_signed_json,
+)
 
 
 class TestGenerate:
@@ -38,9 +46,7 @@ class TestDecode:
         self.verify_key_base64 = encode_verify_key_base64(self.verify_key)
 
     def test_decode(self):
-        decoded_key = decode_signing_key_base64(
-            "ed25519", self.key_base64, self.version
-        )
+        decoded_key = decode_signing_key_base64("ed25519", self.key_base64, self.version)
         assert decoded_key.alg == "ed25519"
         assert decoded_key.version == self.version
 
@@ -74,6 +80,7 @@ class TestDecode:
         class MockStream:
             def write(self, data):
                 pass
+
         write_signing_keys(MockStream(), [self.key])
 
 
@@ -85,9 +92,7 @@ class TestAlgorithmSupported:
         assert not is_signing_algorithm_supported("unsupported:")
 
 
-SIGNING_KEY_SEED = decode_base64(
-    "YJDBA9Xnr2sVqXD9Vj7XVUnmFZcZrlw8Md7kMW+3XA1"
-)
+SIGNING_KEY_SEED = decode_base64("YJDBA9Xnr2sVqXD9Vj7XVUnmFZcZrlw8Md7kMW+3XA1")
 
 KEY_ALG = "ed25519"
 KEY_VER = 1
@@ -110,7 +115,7 @@ class TestKnownKey:
             'signatures': {
                 'domain': {
                     KEY_NAME: "K8280/U9SSy9IVtjBuVeLr+HpOB4BQFWbg+UZaADMt"
-                              "TdGYI7Geitb76LTrr5QV/7Xg4ahLwYGYZzuHGZKM5ZAQ"
+                    "TdGYI7Geitb76LTrr5QV/7Xg4ahLwYGYZzuHGZKM5ZAQ"
                 },
             }
         }
@@ -123,9 +128,9 @@ class TestKnownKey:
             'signatures': {
                 'domain': {
                     KEY_NAME: "KqmLSbO39/Bzb0QIYE82zqLwsA+PDzYIpIRA2sRQ4s"
-                              "L53+sN6/fpNSoqE7BP7vBZhG6kYdD13EIMJpvhJI+6Bw"
+                    "L53+sN6/fpNSoqE7BP7vBZhG6kYdD13EIMJpvhJI+6Bw"
                 },
-            }
+            },
         }
         assert sign_json({'one': 1, 'two': "Two"}, "domain", self.signing_key) == res
 
@@ -171,15 +176,11 @@ class TestJsonSign:
         verify_signed_json(self.signed, 'Alice', self.verkey)
 
     def test_signature_ids(self):
-        key_ids = signature_ids(
-            self.signed, 'Alice', supported_algorithms=['mock']
-        )
+        key_ids = signature_ids(self.signed, 'Alice', supported_algorithms=['mock'])
         assert key_ids == ['mock:test']
 
     def test_verify_fail(self):
-        self.signed['signatures']['Alice']['mock:test'] = encode_base64(
-            b'not a signature'
-        )
+        self.signed['signatures']['Alice']['mock:test'] = encode_base64(b'not a signature')
         with pytest.raises(SignatureVerifyException):
             verify_signed_json(self.signed, 'Alice', self.verkey)
 

@@ -10,16 +10,23 @@ from typing import List
 from apt_pkg import version_compare
 
 from laniakea import LkModule, LocalConfig
-from laniakea.dakbridge import DakBridge
-from laniakea.db import (ArchiveArchitecture, ArchiveComponent, ArchiveSuite,
-                         SourcePackage, SyncBlacklistEntry, SynchrotronConfig,
-                         SynchrotronIssue, SynchrotronIssueKind,
-                         SynchrotronSource, config_get_distro_tag,
-                         session_scope)
+from laniakea.db import (
+    ArchiveSuite,
+    SourcePackage,
+    ArchiveComponent,
+    SynchrotronIssue,
+    SynchrotronConfig,
+    SynchrotronSource,
+    SyncBlacklistEntry,
+    ArchiveArchitecture,
+    SynchrotronIssueKind,
+    session_scope,
+    config_get_distro_tag,
+)
 from laniakea.logging import log
+from laniakea.dakbridge import DakBridge
 from laniakea.msgstream import EventEmitter
-from laniakea.repository import (Repository, make_newest_packages_dict,
-                                 version_revision)
+from laniakea.repository import Repository, version_revision, make_newest_packages_dict
 
 
 class SyncEngine:
@@ -35,8 +42,7 @@ class SyncEngine:
         repo_name = 'master'
 
         # the repository of the distribution we import stuff into
-        self._target_repo = Repository(self._lconf.archive_root_dir,
-                                       repo_name)
+        self._target_repo = Repository(self._lconf.archive_root_dir, repo_name)
         self._target_repo.set_trusted(True)
 
         self._target_suite_name = target_suite_name
@@ -45,8 +51,9 @@ class SyncEngine:
         self._synced_source_pkgs: list[SourcePackage] = []
 
         with session_scope() as session:
-            sync_source = session.query(SynchrotronSource) \
-                                 .filter(SynchrotronSource.suite_name == self._source_suite_name).one()
+            sync_source = (
+                session.query(SynchrotronSource).filter(SynchrotronSource.suite_name == self._source_suite_name).one()
+            )
 
             # FIXME: Synchrotron needs adjustments to work
             # better with the new "multiple autosync tasks" model.
@@ -54,9 +61,9 @@ class SyncEngine:
             # (currently it is just a 1:1 translation from D code)
 
             # the repository of the distribution we use to sync stuff from
-            self._source_repo = Repository(sync_source.repo_url,
-                                           sync_source.os_name,
-                                           self._lconf.synchrotron_sourcekeyrings)
+            self._source_repo = Repository(
+                sync_source.repo_url, sync_source.os_name, self._lconf.synchrotron_sourcekeyrings
+            )
 
         # we trust everything by default
         self._imports_trusted = True
@@ -65,30 +72,33 @@ class SyncEngine:
             self._sync_blacklist = set([value for value, in session.query(SyncBlacklistEntry.pkgname)])
 
     def _publish_synced_spkg_events(self, src_os, src_suite, dest_suite, forced=False, emitter=None):
-        ''' Submit events for the synced source packages to the message stream '''
+        '''Submit events for the synced source packages to the message stream'''
         if not emitter:
             emitter = EventEmitter(LkModule.SYNCHROTRON)
         for spkg in self._synced_source_pkgs:
-            data = {'name': spkg.name,
-                    'version': spkg.version,
-                    'src_os': src_os,
-                    'suite_src': src_suite,
-                    'suite_dest': dest_suite,
-                    'forced': forced}
+            data = {
+                'name': spkg.name,
+                'version': spkg.version,
+                'src_os': src_os,
+                'suite_src': src_suite,
+                'suite_dest': dest_suite,
+                'forced': forced,
+            }
 
             emitter.submit_event('src-package-imported', data)
 
     def _get_repo_source_package_map(self, repo, suite_name: str, component_name: str):
-        ''' Get an associative array of the newest source packages present in a repository. '''
+        '''Get an associative array of the newest source packages present in a repository.'''
 
         suite = ArchiveSuite(suite_name)
         component = ArchiveComponent(component_name)
         spkgs = repo.source_packages(suite, component)
         return make_newest_packages_dict(spkgs)
 
-    def _get_repo_binary_package_map(self, repo, suite_name: str, component_name: str,
-                                     arch_name: str = None, with_installer: bool = True):
-        ''' Get an associative array of the newest binary packages present in a repository. '''
+    def _get_repo_binary_package_map(
+        self, repo, suite_name: str, component_name: str, arch_name: str = None, with_installer: bool = True
+    ):
+        '''Get an associative array of the newest binary packages present in a repository.'''
 
         suite = ArchiveSuite(suite_name)
         component = ArchiveComponent(component_name)
@@ -104,18 +114,13 @@ class SyncEngine:
         return make_newest_packages_dict(bpkgs)
 
     def _get_target_source_packages(self, component: str):
-        ''' Get mapping of all sources packages in a suite and its parent suite. '''
+        '''Get mapping of all sources packages in a suite and its parent suite.'''
         with session_scope() as session:
-            target_suite = session.query(ArchiveSuite) \
-                                  .filter(ArchiveSuite.name == self._target_suite_name).one()
-            suite_pkgmap = self._get_repo_source_package_map(self._target_repo,
-                                                             target_suite.name,
-                                                             component)
+            target_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == self._target_suite_name).one()
+            suite_pkgmap = self._get_repo_source_package_map(self._target_repo, target_suite.name, component)
             if target_suite.parent:
                 # we have a parent suite
-                parent_map = self._get_repo_source_package_map(self._target_repo,
-                                                               target_suite.parent.name,
-                                                               component)
+                parent_map = self._get_repo_source_package_map(self._target_repo, target_suite.parent.name, component)
 
                 # merge the two arrays, keeping only the latest versions
                 suite_pkgmap = make_newest_packages_dict(list(parent_map.values()) + list(suite_pkgmap.values()))
@@ -123,7 +128,7 @@ class SyncEngine:
         return suite_pkgmap
 
     def _import_package_files(self, suite: str, component: str, fnames: List[str]):
-        ''' Import an arbitrary amount of packages via the archive management software. '''
+        '''Import an arbitrary amount of packages via the archive management software.'''
         return self._dak.import_package_files(suite, component, fnames, self._imports_trusted, True)
 
     def _import_source_package(self, spkg: SourcePackage, component: str) -> bool:
@@ -141,8 +146,11 @@ class SyncEngine:
             self._source_repo.get_file(f)
 
         if not dscfile:
-            log.error('Critical consistency error: Source package {} in repository {} has no .dsc file.'
-                      .format(spkg.name, self._source_repo.base_dir))
+            log.error(
+                'Critical consistency error: Source package {} in repository {} has no .dsc file.'.format(
+                    spkg.name, self._source_repo.base_dir
+                )
+            )
             return False
 
         if self._import_package_files(self._target_suite_name, component, [dscfile]):
@@ -150,9 +158,10 @@ class SyncEngine:
             return True
         return False
 
-    def _import_binaries_for_source(self, sync_conf, target_suite, component: str, spkgs: List[SourcePackage],
-                                    ignore_target_changes: bool = False) -> bool:
-        ''' Import binary packages for the given set of source packages into the archive. '''
+    def _import_binaries_for_source(
+        self, sync_conf, target_suite, component: str, spkgs: List[SourcePackage], ignore_target_changes: bool = False
+    ) -> bool:
+        '''Import binary packages for the given set of source packages into the archive.'''
 
         if not sync_conf.sync_binaries:
             log.debug('Skipping binary syncs.')
@@ -164,12 +173,16 @@ class SyncEngine:
         # cache of binary-package mappings for the source
         src_bpkg_arch_map = {}
         for aname in target_archs:
-            src_bpkg_arch_map[aname] = self._get_repo_binary_package_map(self._source_repo, self._source_suite_name, component, aname)
+            src_bpkg_arch_map[aname] = self._get_repo_binary_package_map(
+                self._source_repo, self._source_suite_name, component, aname
+            )
 
         # cache of binary-package mappings from the target repository
         dest_bpkg_arch_map = {}
         for aname in target_archs:
-            dest_bpkg_arch_map[aname] = self._get_repo_binary_package_map(self._target_repo, self._target_suite_name, component, aname)
+            dest_bpkg_arch_map[aname] = self._get_repo_binary_package_map(
+                self._target_repo, self._target_suite_name, component, aname
+            )
 
         for spkg in spkgs:
             bin_files_synced = False
@@ -192,15 +205,21 @@ class SyncEngine:
                         continue
                     bpkg = src_bpkg_map[bin_i.name]
                     if bin_i.version != bpkg.source_version:
-                        log.debug('Not syncing binary package \'{}\': Version number \'{}\' does not match source package version \'{}\'.'
-                                  .format(bpkg.name, bin_i.version, bpkg.source_version))
+                        log.debug(
+                            'Not syncing binary package \'{}\': Version number \'{}\' does not match source package version \'{}\'.'.format(
+                                bpkg.name, bin_i.version, bpkg.source_version
+                            )
+                        )
                         continue
 
                     ebpkg = dest_bpkg_map.get(bpkg.name)
                     if ebpkg:
                         if version_compare(ebpkg.version, bpkg.version) >= 0:
-                            log.debug('Not syncing binary package \'{}/{}\': Existing binary package with bigger/equal version \'{}\' found.'
-                                      .format(bpkg.name, bpkg.version, ebpkg.version))
+                            log.debug(
+                                'Not syncing binary package \'{}/{}\': Existing binary package with bigger/equal version \'{}\' found.'.format(
+                                    bpkg.name, bpkg.version, ebpkg.version
+                                )
+                            )
                             existing_packages = True
                             continue
 
@@ -211,15 +230,22 @@ class SyncEngine:
                         # (in that case the source package version will be bigger than the existing binary package version)
                         if version_compare(spkg.version, ebpkg.version) >= 0:
                             if re.match(r'(.*)b([0-9]+)', ebpkg.version):
-                                log.debug('Not syncing binary package \'{}/{}\': Existing binary package with rebuild upload \'{}\' found.'
-                                          .format(bpkg.name, bpkg.version, ebpkg.version))
+                                log.debug(
+                                    'Not syncing binary package \'{}/{}\': Existing binary package with rebuild upload \'{}\' found.'.format(
+                                        bpkg.name, bpkg.version, ebpkg.version
+                                    )
+                                )
                                 existing_packages = True
                                 continue
 
                         if not ignore_target_changes and self._distro_tag in version_revision(ebpkg.version):
                             # safety measure, we should never get here as packages with modifications were
                             # filtered out previously.
-                            log.debug('Can not sync binary package {}/{}: Target has modifications.'.format(bin_i.name, bin_i.version))
+                            log.debug(
+                                'Can not sync binary package {}/{}: Target has modifications.'.format(
+                                    bin_i.name, bin_i.version
+                                )
+                            )
                             continue
 
                     fname = self._source_repo.get_file(bpkg.bin_file)
@@ -241,11 +267,16 @@ class SyncEngine:
         self._synced_source_pkgs = []
 
         with session_scope() as session:
-            sync_conf = session.query(SynchrotronConfig) \
-                               .join(SynchrotronConfig.destination_suite) \
-                               .join(SynchrotronConfig.source) \
-                               .filter(ArchiveSuite.name == self._target_suite_name,
-                                       SynchrotronSource.suite_name == self._source_suite_name).one_or_none()
+            sync_conf = (
+                session.query(SynchrotronConfig)
+                .join(SynchrotronConfig.destination_suite)
+                .join(SynchrotronConfig.source)
+                .filter(
+                    ArchiveSuite.name == self._target_suite_name,
+                    SynchrotronSource.suite_name == self._source_suite_name,
+                )
+                .one_or_none()
+            )
             if not sync_conf:
                 log.error('Unable to find a sync config for this source/destination combination.')
                 return False
@@ -254,13 +285,10 @@ class SyncEngine:
                 log.error('Can not synchronize package: Synchronization is disabled for this configuration.')
                 return False
 
-            target_suite = session.query(ArchiveSuite) \
-                                  .filter(ArchiveSuite.name == self._target_suite_name).one()
+            target_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == self._target_suite_name).one()
 
             dest_pkg_map = self._get_target_source_packages(component)
-            src_pkg_map = self._get_repo_source_package_map(self._source_repo,
-                                                            self._source_suite_name,
-                                                            component)
+            src_pkg_map = self._get_repo_source_package_map(self._source_repo, self._source_suite_name, component)
 
             for pkgname in pkgnames:
                 spkg = src_pkg_map.get(pkgname)
@@ -276,17 +304,26 @@ class SyncEngine:
                 if dpkg:
                     if version_compare(dpkg.version, spkg.version) >= 0:
                         if force:
-                            log.warning('{}: Target version \'{}\' is newer/equal than source version \'{}\'.'
-                                        .format(pkgname, dpkg.version, spkg.version))
+                            log.warning(
+                                '{}: Target version \'{}\' is newer/equal than source version \'{}\'.'.format(
+                                    pkgname, dpkg.version, spkg.version
+                                )
+                            )
                         else:
-                            log.info('Can not sync {}: Target version \'{}\' is newer/equal than source version \'{}\'.'
-                                     .format(pkgname, dpkg.version, spkg.version))
+                            log.info(
+                                'Can not sync {}: Target version \'{}\' is newer/equal than source version \'{}\'.'.format(
+                                    pkgname, dpkg.version, spkg.version
+                                )
+                            )
                             continue
 
                     if not force:
                         if self._distro_tag in version_revision(dpkg.version):
-                            log.error('Not syncing {}/{}: Destination has modifications (found {}).'
-                                      .format(spkg.name, spkg.version, dpkg.version))
+                            log.error(
+                                'Not syncing {}/{}: Destination has modifications (found {}).'.format(
+                                    spkg.name, spkg.version, dpkg.version
+                                )
+                            )
                             continue
 
                 # sync source package
@@ -301,26 +338,28 @@ class SyncEngine:
             # import them into the target in their correct order.
             # Then apply the correct, synced override from the source distro.
 
-            self._publish_synced_spkg_events(sync_conf.source.os_name,
-                                             sync_conf.source.suite_name,
-                                             sync_conf.destination_suite.name,
-                                             force)
+            self._publish_synced_spkg_events(
+                sync_conf.source.os_name, sync_conf.source.suite_name, sync_conf.destination_suite.name, force
+            )
             return ret
 
     def autosync(self, session, sync_conf, remove_cruft: bool = True):
-        ''' Synchronize all packages that are newer '''
+        '''Synchronize all packages that are newer'''
 
         self._synced_source_pkgs = []
         active_src_pkgs = []  # source packages which should have their binary packages updated
         res_issues = []
 
-        target_suite = session.query(ArchiveSuite) \
-                              .filter(ArchiveSuite.name == self._target_suite_name).one()
-        sync_conf = session.query(SynchrotronConfig) \
-                           .join(SynchrotronConfig.destination_suite) \
-                           .join(SynchrotronConfig.source) \
-                           .filter(ArchiveSuite.name == self._target_suite_name,
-                                   SynchrotronSource.suite_name == self._source_suite_name).one_or_none()
+        target_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == self._target_suite_name).one()
+        sync_conf = (
+            session.query(SynchrotronConfig)
+            .join(SynchrotronConfig.destination_suite)
+            .join(SynchrotronConfig.source)
+            .filter(
+                ArchiveSuite.name == self._target_suite_name, SynchrotronSource.suite_name == self._source_suite_name
+            )
+            .one_or_none()
+        )
 
         for component in target_suite.components:
             dest_pkg_map = self._get_target_source_packages(component.name)
@@ -337,9 +376,9 @@ class SyncEngine:
             if sync_conf.sync_binaries:
                 src_pkg_range = self._source_repo.source_packages(ArchiveSuite(self._source_suite_name), component)
             else:
-                src_pkg_range = self._get_repo_source_package_map(self._source_repo,
-                                                                  self._source_suite_name,
-                                                                  component).values()
+                src_pkg_range = self._get_repo_source_package_map(
+                    self._source_repo, self._source_suite_name, component
+                ).values()
 
             for spkg in src_pkg_range:
                 # ignore blacklisted packages in automatic sync
@@ -349,15 +388,21 @@ class SyncEngine:
                 dpkg = dest_pkg_map.get(spkg.name)
                 if dpkg:
                     if version_compare(dpkg.version, spkg.version) >= 0:
-                        log.debug('Skipped sync of {}: Target version \'{}\' is equal/newer than source version \'{}\'.'
-                                  .format(spkg.name, dpkg.version, spkg.version))
+                        log.debug(
+                            'Skipped sync of {}: Target version \'{}\' is equal/newer than source version \'{}\'.'.format(
+                                spkg.name, dpkg.version, spkg.version
+                            )
+                        )
                         continue
 
                     # check if we have a modified target package,
                     # indicated via its Debian revision, e.g. "1.0-0tanglu1"
                     if self._distro_tag in version_revision(dpkg.version):
-                        log.info('Not syncing {}/{}: Destination has modifications (found {}).'
-                                 .format(spkg.name, spkg.version, dpkg.version))
+                        log.info(
+                            'Not syncing {}/{}: Destination has modifications (found {}).'.format(
+                                spkg.name, spkg.version, dpkg.version
+                            )
+                        )
 
                         # add information that this package needs to be merged to the issue list
                         issue = SynchrotronIssue()
@@ -398,17 +443,13 @@ class SyncEngine:
         # test for cruft packages
         target_pkg_index = {}
         for component in target_suite.components:
-            dest_pkg_map = self._get_repo_source_package_map(self._target_repo,
-                                                             target_suite.name,
-                                                             component.name)
+            dest_pkg_map = self._get_repo_source_package_map(self._target_repo, target_suite.name, component.name)
             for pkgname, pkg in dest_pkg_map.items():
                 target_pkg_index[pkgname] = pkg
 
         # check which packages are present in the target, but not in the source suite
         for component in target_suite.components:
-            src_pkg_map = self._get_repo_source_package_map(self._source_repo,
-                                                            self._source_suite_name,
-                                                            component.name)
+            src_pkg_map = self._get_repo_source_package_map(self._source_repo, self._source_suite_name, component.name)
             for pkgname in src_pkg_map.keys():
                 target_pkg_index.pop(pkgname, None)
 
@@ -463,13 +504,14 @@ class SyncEngine:
                     issue.package_name = dpkg.name
                     issue.source_version = None
                     issue.target_version = dpkg.version
-                    issue.details = 'This package can not be removed without breaking other packages. It needs manual removal.'
+                    issue.details = (
+                        'This package can not be removed without breaking other packages. It needs manual removal.'
+                    )
 
                     res_issues.append(issue)
 
-        self._publish_synced_spkg_events(sync_conf.source.os_name,
-                                         sync_conf.source.suite_name,
-                                         sync_conf.destination_suite.name,
-                                         False)
+        self._publish_synced_spkg_events(
+            sync_conf.source.os_name, sync_conf.source.suite_name, sync_conf.destination_suite.name, False
+        )
 
         return True, res_issues

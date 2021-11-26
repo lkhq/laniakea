@@ -20,17 +20,20 @@ from argparse import ArgumentParser
 import zmq.auth
 
 from laniakea import LocalConfig
-from laniakea.logging import log
-from laniakea.msgstream.signing import (encode_signing_key_base64,
-                                        encode_verify_key_base64,
-                                        generate_signing_key, get_verify_key,
-                                        keyfile_read_signing_key,
-                                        keyfile_read_verify_key)
 from laniakea.utils import stringify
+from laniakea.logging import log
+from laniakea.msgstream.signing import (
+    get_verify_key,
+    generate_signing_key,
+    keyfile_read_verify_key,
+    encode_verify_key_base64,
+    keyfile_read_signing_key,
+    encode_signing_key_base64,
+)
 
 
 def _create_metadata_section(metadata):
-    ''' Create metadata string for use in Laniakea keyfiles '''
+    '''Create metadata string for use in Laniakea keyfiles'''
 
     s = 'metadata\n'
     for key, value in metadata.items():
@@ -39,18 +42,26 @@ def _create_metadata_section(metadata):
 
 
 def _write_key_file(fname, metadata, curve_public_key, curve_secret_key, ed_public_key, ed_secret_key):
-    ''' Create a Laniakea keyfile for the given set of keys '''
+    '''Create a Laniakea keyfile for the given set of keys'''
 
     secret_keyfile = True
     with open(fname, 'w') as f:
         if curve_secret_key or ed_secret_key:
-            f.write(('#\n# Laniakea Messaging **Secret** Certificate\n'
-                     '# DO NOT PROVIDE THIS FILE TO OTHER USERS nor change its permissions.\n#\n'))
+            f.write(
+                (
+                    '#\n# Laniakea Messaging **Secret** Certificate\n'
+                    '# DO NOT PROVIDE THIS FILE TO OTHER USERS nor change its permissions.\n#\n'
+                )
+            )
             secret_keyfile = True
         else:
-            f.write(('#\n# Laniakea Messaging Public Certificate\n'
-                     '# Exchange securely, or use a secure mechanism to verify the contents\n'
-                     '# of this file after exchange.\n#\n'))
+            f.write(
+                (
+                    '#\n# Laniakea Messaging Public Certificate\n'
+                    '# Exchange securely, or use a secure mechanism to verify the contents\n'
+                    '# of this file after exchange.\n#\n'
+                )
+            )
             secret_keyfile = False
         f.write('\n')
         f.write(_create_metadata_section(metadata))
@@ -82,7 +93,7 @@ def _write_key_file(fname, metadata, curve_public_key, curve_secret_key, ed_publ
 
 
 def command_keyfile_new(options):
-    ''' Create new certificate '''
+    '''Create new certificate'''
 
     base_path = options.path
     if not base_path:
@@ -115,24 +126,14 @@ def command_keyfile_new(options):
     ed_public_key = encode_verify_key_base64(ed_verify_key)
 
     # write secret keyfile
-    _write_key_file(secret_fname,
-                    metadata,
-                    curve_public_key,
-                    curve_secret_key,
-                    ed_public_key,
-                    ed_secret_key)
+    _write_key_file(secret_fname, metadata, curve_public_key, curve_secret_key, ed_public_key, ed_secret_key)
 
     # write public keyfile
-    _write_key_file(public_fname,
-                    metadata,
-                    curve_public_key,
-                    None,
-                    ed_public_key,
-                    None)
+    _write_key_file(public_fname, metadata, curve_public_key, None, ed_public_key, None)
 
 
 def install_service_keyfile(options):
-    ''' Install a private key for a specific service '''
+    '''Install a private key for a specific service'''
     from shutil import copyfile
 
     service = '' if not options.service else options.service.lower()
@@ -156,7 +157,9 @@ def install_service_keyfile(options):
     lconf = LocalConfig()
     target_keyfile = lconf.secret_curve_keyfile_for_module(service)
     if os.path.isfile(target_keyfile) and not options.force:
-        print('We already have a secret key for this service on the current machine. You can override the existing one by specifying "--force".')
+        print(
+            'We already have a secret key for this service on the current machine. You can override the existing one by specifying "--force".'
+        )
         sys.exit(2)
 
     try:
@@ -168,7 +171,7 @@ def install_service_keyfile(options):
 
 
 def install_trusted_keyfile(options):
-    ''' Install a public key to trust a client node. '''
+    '''Install a public key to trust a client node.'''
     from shutil import copyfile
 
     if not options.name:
@@ -194,7 +197,9 @@ def install_trusted_keyfile(options):
         log.info('The given keyfile does not contain a public ZCurve key!')
     if sec_key:
         print('')
-        print('/!\\ The current file contains a secret ZCurve key. This file should never leave the client machine it is installed on.')
+        print(
+            '/!\\ The current file contains a secret ZCurve key. This file should never leave the client machine it is installed on.'
+        )
         print('')
 
     _, verify_key = keyfile_read_verify_key(source_keyfile)
@@ -207,13 +212,19 @@ def install_trusted_keyfile(options):
     _, sign_key = keyfile_read_signing_key(source_keyfile)
     if sign_key:
         print('')
-        print('/!\\ The current file contains a secret signing key. This file should never leave the client machine it is installed on.')
+        print(
+            '/!\\ The current file contains a secret signing key. This file should never leave the client machine it is installed on.'
+        )
         print('')
 
     lconf = LocalConfig()
     target_keyfile = os.path.join(lconf.trusted_curve_keys_dir, '{}.pub.key'.format(options.name))
     if os.path.isfile(target_keyfile) and not options.force:
-        print('We already trust a key for "{}" on this machine. You can override the existing one by specifying "--force".'.format(options.name))
+        print(
+            'We already trust a key for "{}" on this machine. You can override the existing one by specifying "--force".'.format(
+                options.name
+            )
+        )
         sys.exit(2)
 
     try:
@@ -225,34 +236,46 @@ def install_trusted_keyfile(options):
 
 
 def create_parser(formatter_class=None):
-    ''' Create KeyTool CLI argument parser '''
+    '''Create KeyTool CLI argument parser'''
 
     parser = ArgumentParser(description='Manage key-files used for secure messaging between modules')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose',
-                        help='Enable debug messages.')
-    parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of Laniakea itself.')
+    parser.add_argument('--verbose', action='store_true', dest='verbose', help='Enable debug messages.')
+    parser.add_argument(
+        '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
+    )
 
     sp = subparsers.add_parser('key-new', help='Create new keyfile for use with Laniakea\'s messaging.')
-    sp.add_argument('--id', help='Service/signer ID used with this key. Is used as part of the key filenames.', required=True)
+    sp.add_argument(
+        '--id', help='Service/signer ID used with this key. Is used as part of the key filenames.', required=True
+    )
     sp.add_argument('--name', help='Name of the certificate issuer.', required=True)
     sp.add_argument('--email', help='E-Mail address of the certificate issuer.', required=True)
     sp.add_argument('--organization', help='Organization of the certificate issuer.')
-    sp.add_argument('--sign-only', action='store_true', help='Only generate Ed25519 keys to sign data, but none to encrypt data streams.')
+    sp.add_argument(
+        '--sign-only',
+        action='store_true',
+        help='Only generate Ed25519 keys to sign data, but none to encrypt data streams.',
+    )
     sp.add_argument('path', type=str, help='Directory to store the generated keyfiles in.', nargs='?')
     sp.set_defaults(func=command_keyfile_new)
 
-    sp = subparsers.add_parser('install-service-key', help='Install a private key for a specific service on this machine.')
-    sp.add_argument('--force', action='store_true', help='Enforce installation of the key file, overriding any existing one.')
+    sp = subparsers.add_parser(
+        'install-service-key', help='Install a private key for a specific service on this machine.'
+    )
+    sp.add_argument(
+        '--force', action='store_true', help='Enforce installation of the key file, overriding any existing one.'
+    )
     sp.add_argument('service', type=str, help='Name of the Laniakea service.', nargs='?')
     sp.add_argument('keyfile', type=str, help='The private key filename.', nargs='?')
     sp.set_defaults(func=install_service_keyfile)
 
     sp = subparsers.add_parser('install-trusted-key', help='Install a public key from a client node to trust it.')
-    sp.add_argument('--force', action='store_true', help='Enforce installation of the key file, overriding any existing one.')
+    sp.add_argument(
+        '--force', action='store_true', help='Enforce installation of the key file, overriding any existing one.'
+    )
     sp.add_argument('name', type=str, help='Name of the client this public key file belongs to.', nargs='?')
     sp.add_argument('keyfile', type=str, help='The public key filename.', nargs='?')
     sp.set_defaults(func=install_trusted_keyfile)
@@ -263,6 +286,7 @@ def create_parser(formatter_class=None):
 def check_print_version(options):
     if options.show_version:
         from laniakea import __version__
+
         print(__version__)
         sys.exit(0)
 
@@ -270,6 +294,7 @@ def check_print_version(options):
 def check_verbose(options):
     if options.verbose:
         from laniakea.logging import set_verbose
+
         set_verbose(True)
 
 

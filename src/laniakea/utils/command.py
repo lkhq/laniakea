@@ -5,9 +5,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import sys
 import shlex
 import subprocess
-import sys
 
 
 class SubprocessError(Exception):
@@ -41,12 +41,13 @@ def run_command(command, input=None, capture_output=True):
         p_stderr = subprocess.PIPE
 
     try:
-        pipe = subprocess.Popen(command,
-                                shell=False,
-                                stdin=subprocess.PIPE,
-                                stdout=p_stdout,
-                                stderr=p_stderr,
-                                )
+        pipe = subprocess.Popen(
+            command,
+            shell=False,
+            stdin=subprocess.PIPE,
+            stdout=p_stdout,
+            stderr=p_stderr,
+        )
     except OSError as e:
         return (None, str(e), -1)
 
@@ -58,7 +59,7 @@ def run_command(command, input=None, capture_output=True):
 
 def safe_run(cmd, input=None, expected=0):
     if not isinstance(expected, tuple):
-        expected = (expected, )
+        expected = (expected,)
 
     out, err, ret = run_command(cmd, input=input)
 
@@ -77,10 +78,7 @@ def run_forwarded(command, cwd=None, print_output=True):
         command = shlex.split(command)
 
     output = ''
-    proc = subprocess.Popen(command,
-                            cwd=cwd,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     while True:
         line = proc.stdout.readline()
         if proc.poll() is not None:
@@ -95,7 +93,7 @@ def run_forwarded(command, cwd=None, print_output=True):
 
 def safe_run_forwarded(command, expected=0, cwd=None, print_output=True):
     if not isinstance(expected, tuple):
-        expected = (expected, )
+        expected = (expected,)
 
     out, ret = run_forwarded(command, cwd=cwd, print_output=print_output)
 

@@ -8,22 +8,33 @@ import sys
 
 import click
 
-from laniakea.db import (ArchiveSuite, SyncBlacklistEntry, SynchrotronConfig,
-                         SynchrotronSource, session_scope)
+from laniakea.db import (
+    ArchiveSuite,
+    SynchrotronConfig,
+    SynchrotronSource,
+    SyncBlacklistEntry,
+    session_scope,
+)
 
-from .utils import (input_bool, input_list, input_str, print_header,
-                    print_note, print_section)
+from .utils import (
+    input_str,
+    input_bool,
+    input_list,
+    print_note,
+    print_header,
+    print_section,
+)
 
 
 @click.group()
 def synchrotron():
-    ''' Adjust package synchronization settings. '''
+    '''Adjust package synchronization settings.'''
     pass
 
 
 @synchrotron.command()
 def configure_all():
-    ''' Configure this module. '''
+    '''Configure this module.'''
 
     print_header('Configuring base settings for Synchrotron')
     print_section('Add synchronization sources')
@@ -41,7 +52,9 @@ def configure_all():
             sync_source.suite_name = input_str('Adding a new source suite. Please set a name')
 
             sync_source.components = input_list('List of components for suite \'{}\''.format(sync_source.suite_name))
-            sync_source.architectures = input_list('List of architectures for suite \'{}\''.format(sync_source.suite_name))
+            sync_source.architectures = input_list(
+                'List of architectures for suite \'{}\''.format(sync_source.suite_name)
+            )
 
             session.add(sync_source)
             add_suite = input_bool('Add another suite?')
@@ -54,7 +67,9 @@ def configure_all():
             sync_source = None
             while not sync_source:
                 src_suite = input_str('Source suite name')
-                sync_source = session.query(SynchrotronSource).filter(SynchrotronSource.suite_name == src_suite).one_or_none()
+                sync_source = (
+                    session.query(SynchrotronSource).filter(SynchrotronSource.suite_name == src_suite).one_or_none()
+                )
                 if not sync_source:
                     print_note('Could not find sync source with suite name "{}"'.format(src_suite))
             autosync.source = sync_source
@@ -79,7 +94,7 @@ def configure_all():
 @click.argument('pkgname', nargs=1)
 @click.argument('reason', nargs=1)
 def blacklist_add(pkgname, reason):
-    ''' Blacklist a package from automatic sync.
+    '''Blacklist a package from automatic sync.
     Takes package name as first, and reason as second parameter.'''
 
     with session_scope() as session:
@@ -97,7 +112,7 @@ def blacklist_add(pkgname, reason):
 @synchrotron.command()
 @click.argument('pkgname', nargs=1)
 def blacklist_remove(pkgname):
-    ''' Remove a package from the sync blacklist. '''
+    '''Remove a package from the sync blacklist.'''
 
     with session_scope() as session:
         # delete existing entry in case it exists

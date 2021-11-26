@@ -6,17 +6,30 @@
 
 import os
 
-from apt_pkg import (TagFile, TagSection,  # type: ignore[attr-defined]
-                     sha256sum, version_compare)
+from apt_pkg import (  # type: ignore[attr-defined]
+    TagFile,
+    TagSection,
+    sha256sum,
+    version_compare,
+)
 
-from laniakea.db import (ArchiveArchitecture, ArchiveComponent, ArchiveFile,
-                         ArchiveRepository, ArchiveSuite, BinaryPackage,
-                         DebType, PackageInfo, SourcePackage,
-                         debtype_from_string, packagepriority_from_string)
-from laniakea.localconfig import LocalConfig
+from laniakea.db import (
+    DebType,
+    ArchiveFile,
+    PackageInfo,
+    ArchiveSuite,
+    BinaryPackage,
+    SourcePackage,
+    ArchiveComponent,
+    ArchiveRepository,
+    ArchiveArchitecture,
+    debtype_from_string,
+    packagepriority_from_string,
+)
+from laniakea.utils import split_strip, download_file, is_remote_url
 from laniakea.logging import log
-from laniakea.utils import download_file, is_remote_url, split_strip
 from laniakea.utils.gpg import SignedFile
+from laniakea.localconfig import LocalConfig
 
 
 def parse_checksums_list(data, base_dir=None):
@@ -24,7 +37,8 @@ def parse_checksums_list(data, base_dir=None):
     if not data:
         return files
     for line in data.split('\n'):
-        parts = split_strip(line, ' ')  # f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955 2455 0ad_0.0.20-1.dsc
+        # f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955 2455 0ad_0.0.20-1.dsc
+        parts = split_strip(line, ' ')
         if len(parts) != 3:
             continue
 
@@ -82,7 +96,7 @@ def version_revision(version: str, full_for_native: bool = True) -> str:
     idx = version.rfind('-')
     if idx < 0:
         return version if full_for_native else ''
-    return version[idx + 1:]
+    return version[idx + 1 :]
 
 
 class Repository:
@@ -176,7 +190,9 @@ class Repository:
             with open(fname, 'rb') as f:
                 sha256h = sha256sum(f)
                 if sha256h != afile.sha256sum:
-                    raise Exception('Checksum validation of "{}" failed ({} != {}).'.format(fname, sha256h, afile.sha256sum))
+                    raise Exception(
+                        'Checksum validation of "{}" failed ({} != {}).'.format(fname, sha256h, afile.sha256sum)
+                    )
 
         return fname
 
@@ -237,7 +253,9 @@ class Repository:
         for af in ird.files:
             if af.fname == fname:
                 if index_sha256sum != af.sha256sum:
-                    raise Exception('Checksum validation of "{}" failed ({} != {})'.format(fname, index_sha256sum, af.sha256sum))
+                    raise Exception(
+                        'Checksum validation of "{}" failed ({} != {})'.format(fname, index_sha256sum, af.sha256sum)
+                    )
                 valid = True
 
         if not valid and check:
@@ -246,7 +264,7 @@ class Repository:
         return index_fname
 
     def source_packages(self, suite, component):
-        ''' Return a list of all source packages in the given suite and component. '''
+        '''Return a list of all source packages in the given suite and component.'''
         assert type(suite) is ArchiveSuite
         assert type(component) is ArchiveComponent
 
@@ -260,7 +278,9 @@ class Repository:
                 pkgname = e['Package']
                 pkgversion = e['Version']
                 if not pkgname or not pkgversion:
-                    raise Exception('Found invalid block (no Package and Version fields) in Sources file "{}".'.format(index_fname))
+                    raise Exception(
+                        'Found invalid block (no Package and Version fields) in Sources file "{}".'.format(index_fname)
+                    )
 
                 pkg = SourcePackage()
                 pkg.repo = self._repo_entity
@@ -277,7 +297,8 @@ class Repository:
                 pkg.vcs_browser = e.get('Vcs-Browser')
                 pkg.homepage = e.get('Homepage')
                 pkg.maintainer = e['Maintainer']
-                pkg.uploaders = split_strip(e.get('Uploaders', ''), ',')  # FIXME: Careful! Splitting just by comma isn't enough! We need to parse this properly.
+                # FIXME: Careful! Splitting just by comma isn't enough! We need to parse this properly.
+                pkg.uploaders = split_strip(e.get('Uploaders', ''), ',')
 
                 pkg.build_depends = split_strip(e.get('Build-Depends', ''), ',')
                 pkg.directory = e['Directory']
@@ -302,7 +323,11 @@ class Repository:
 
                 # do some issue-reporting
                 if not pkg.files and pkg.format_version != '1.0':
-                    log.warning('Source package {}/{} seems to have no files (in {}).'.format(pkg.name, pkg.version, self.location))
+                    log.warning(
+                        'Source package {}/{} seems to have no files (in {}).'.format(
+                            pkg.name, pkg.version, self.location
+                        )
+                    )
 
                 # add package to results set
                 pkg.update_uuid()
@@ -318,7 +343,9 @@ class Repository:
             pkgname = e['Package']
             pkgversion = e['Version']
             if not pkgname or not pkgversion:
-                raise Exception('Found invalid block (no Package and Version fields) in Packages file "{}".'.format(tf_fname))
+                raise Exception(
+                    'Found invalid block (no Package and Version fields) in Packages file "{}".'.format(tf_fname)
+                )
 
             arch_name = e['Architecture']
 
@@ -328,7 +355,11 @@ class Repository:
 
             # sanity check
             if arch_name != arch.name:
-                log.warning('Found package "{}::{}/{}" with unexpeced architecture "{}" (expected "{}")'.format(self._name, pkgname, pkgversion, arch_name, arch.name))
+                log.warning(
+                    'Found package "{}::{}/{}" with unexpeced architecture "{}" (expected "{}")'.format(
+                        self._name, pkgname, pkgversion, arch_name, arch.name
+                    )
+                )
 
             pkg = BinaryPackage()
             pkg.repo = self._repo_entity
@@ -346,8 +377,8 @@ class Repository:
                 pkg.source_name = pkg.name
                 pkg.source_version = pkg.version
             elif '(' in source_id:
-                pkg.source_name = source_id[0:source_id.index('(') - 1].strip()
-                pkg.source_version = source_id[source_id.index('(') + 1:source_id.index(')')].strip()
+                pkg.source_name = source_id[0 : source_id.index('(') - 1].strip()
+                pkg.source_version = source_id[source_id.index('(') + 1 : source_id.index(')')].strip()
             else:
                 pkg.source_name = source_id
                 pkg.source_version = pkg.version
@@ -376,7 +407,9 @@ class Repository:
 
             # do some issue-reporting
             if not pkg.bin_file.fname:
-                log.warning('Binary package "{}/{}/{}" seems to have no files.'.format(pkg.name, pkg.version, arch.name))
+                log.warning(
+                    'Binary package "{}/{}/{}" seems to have no files.'.format(pkg.name, pkg.version, arch.name)
+                )
 
             # update UUID and add package to results set
             pkg.update_uuid()
@@ -394,17 +427,14 @@ class Repository:
         assert type(component) is ArchiveComponent
         assert type(arch) is ArchiveArchitecture
 
-        index_fname = self.index_file(suite.name, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz'))
+        index_fname = self.index_file(
+            suite.name, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz')
+        )
         if not index_fname:
             return []
 
         with TagFile(index_fname) as tf:
-            return self._read_binary_packages_from_tf(tf,
-                                                      index_fname,
-                                                      suite,
-                                                      component,
-                                                      arch,
-                                                      DebType.DEB)
+            return self._read_binary_packages_from_tf(tf, index_fname, suite, component, arch, DebType.DEB)
 
     def installer_packages(self, suite, component, arch):
         '''
@@ -418,17 +448,14 @@ class Repository:
         assert type(component) is ArchiveComponent
         assert type(arch) is ArchiveArchitecture
 
-        index_fname = self.index_file(suite.name, os.path.join(component.name, 'debian-installer', 'binary-{}'.format(arch.name), 'Packages.xz'))
+        index_fname = self.index_file(
+            suite.name, os.path.join(component.name, 'debian-installer', 'binary-{}'.format(arch.name), 'Packages.xz')
+        )
         if not index_fname:
             return []
 
         with TagFile(index_fname) as tf:
-            return self._read_binary_packages_from_tf(tf,
-                                                      index_fname,
-                                                      suite,
-                                                      component,
-                                                      arch,
-                                                      DebType.UDEB)
+            return self._read_binary_packages_from_tf(tf, index_fname, suite, component, arch, DebType.UDEB)
 
 
 def make_newest_packages_dict(pkgs):

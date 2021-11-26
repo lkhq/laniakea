@@ -15,6 +15,7 @@ def safe_rename(src, dst):
     '''
 
     from shutil import copy2
+
     new_fname = copy2(src, dst)
     os.chmod(new_fname, 0o755)
     os.remove(src)

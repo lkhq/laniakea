@@ -10,21 +10,27 @@ import click
 
 from laniakea.db import session_factory
 
-from .utils import (input_bool, input_int, input_list, input_str,
-                    print_error_exit, print_header)
+from .utils import (
+    input_int,
+    input_str,
+    input_bool,
+    input_list,
+    print_header,
+    print_error_exit,
+)
 
 
 @click.group()
 def spears():
-    ''' Configure automatic package migration. '''
+    '''Configure automatic package migration.'''
     pass
 
 
 @spears.command()
 def configure_all():
-    ''' Configure this module.'''
+    '''Configure this module.'''
 
-    from laniakea.db import SpearsMigrationEntry, VersionPriority
+    from laniakea.db import VersionPriority, SpearsMigrationEntry
 
     print_header('Configuring settings for Spears (migrations)')
 
@@ -55,7 +61,7 @@ def configure_all():
 @click.argument('hint', nargs=1)
 @click.argument('reason', nargs=1)
 def add_hint(source_suite, target_suite, hint, reason):
-    ''' Add a migration hint.
+    '''Add a migration hint.
     SOURCE_SUITE: Source suite of the package.
     TARGET_SUITE: Target suite of the package.
     HINT: Britney hint string.
@@ -69,9 +75,7 @@ def add_hint(source_suite, target_suite, hint, reason):
     migration_id = '{}-to-{}'.format(source_suite, target_suite)
 
     # remove a preexisting hint
-    session.query(SpearsHint) \
-        .filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == hint) \
-        .delete()
+    session.query(SpearsHint).filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == hint).delete()
 
     h = SpearsHint()
     h.migration_id = migration_id
@@ -87,7 +91,7 @@ def add_hint(source_suite, target_suite, hint, reason):
 @click.argument('target_suite', nargs=1)
 @click.argument('hint', nargs=1)
 def remove_hint(source_suite, target_suite, hint):
-    ''' Remove a migration hint.
+    '''Remove a migration hint.
     SOURCE_SUITE: Source suite of the package.
     TARGET_SUITE: Target suite of the package.
     HINT: Britney hint string.
@@ -99,6 +103,4 @@ def remove_hint(source_suite, target_suite, hint):
     session = session_factory()
 
     migration_id = '{}-to-{}'.format(source_suite, target_suite)
-    session.query(SpearsHint) \
-        .filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == hint) \
-        .delete()
+    session.query(SpearsHint).filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == hint).delete()

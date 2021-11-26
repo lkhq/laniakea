@@ -15,9 +15,7 @@ from ..extensions import cache
 gi.require_version('AppStream', '1.0')
 from gi.repository import AppStream
 
-software = Blueprint('software',
-                     __name__,
-                     url_prefix='/sw')
+software = Blueprint('software', __name__, url_prefix='/sw')
 
 
 def screenshot_get_orig_image_url(scr):
@@ -33,13 +31,14 @@ def details(cid):
     with session_scope() as session:
         # NOTE: We display the newest component here. Maybe we want to actually
         # display the different component data by-version?
-        sws = session.query(SoftwareComponent) \
-            .options(joinedload(SoftwareComponent.pkgs_binary)
-                     .joinedload(BinaryPackage.suites)) \
-            .join(SoftwareComponent.pkgs_binary) \
-            .filter(SoftwareComponent.cid == cid) \
-            .order_by(BinaryPackage.version.desc()) \
+        sws = (
+            session.query(SoftwareComponent)
+            .options(joinedload(SoftwareComponent.pkgs_binary).joinedload(BinaryPackage.suites))
+            .join(SoftwareComponent.pkgs_binary)
+            .filter(SoftwareComponent.cid == cid)
+            .order_by(BinaryPackage.version.desc())
             .all()
+        )
         if not sws:
             abort(404)
 
@@ -61,12 +60,14 @@ def details(cid):
 
         screenshots = cpt.get_screenshots()
 
-        return render_template('software/sw_details.html',
-                               AppStream=AppStream,
-                               screenshot_get_orig_image_url=screenshot_get_orig_image_url,
-                               ComponentKind=AppStream.ComponentKind,
-                               sw=sw,
-                               cpt=cpt,
-                               component_id=cid,
-                               packages_map=packages_map,
-                               screenshots=screenshots)
+        return render_template(
+            'software/sw_details.html',
+            AppStream=AppStream,
+            screenshot_get_orig_image_url=screenshot_get_orig_image_url,
+            ComponentKind=AppStream.ComponentKind,
+            sw=sw,
+            cpt=cpt,
+            component_id=cid,
+            packages_map=packages_map,
+            screenshots=screenshots,
+        )

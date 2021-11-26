@@ -17,27 +17,28 @@ from .utils import print_note
 
 @click.group()
 def job():
-    ''' Manage the Spark job queue. '''
+    '''Manage the Spark job queue.'''
     pass
 
 
 @job.command()
-@click.option('--id', '-j',
-              help='The UUID of the job to retry.')
+@click.option('--id', '-j', help='The UUID of the job to retry.')
 def retry(id):
-    ''' Retry an existing job.
-    Set the job's state back to waiting, so it gets rescheduled. '''
+    '''Retry an existing job.
+    Set the job's state back to waiting, so it gets rescheduled.'''
     job_uuid = str(uuid.UUID(id))
     if not job_uuid:
         print('No job ID to retry was set!')
         sys.exit(1)
 
     with session_scope() as session:
-        job = session.query(Job) \
-                     .options(undefer(Job.status)) \
-                     .options(undefer(Job.result)) \
-                     .filter(Job.uuid == job_uuid) \
-                     .one_or_none()
+        job = (
+            session.query(Job)
+            .options(undefer(Job.status))
+            .options(undefer(Job.result))
+            .filter(Job.uuid == job_uuid)
+            .one_or_none()
+        )
         if not job:
             print('Did not find job with ID "{}"'.format(job_uuid))
             sys.exit(1)

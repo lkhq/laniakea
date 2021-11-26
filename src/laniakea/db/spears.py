@@ -4,12 +4,12 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from datetime import datetime
-from typing import Any
 from uuid import uuid4
+from typing import Any
+from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, JSON
+from sqlalchemy import Text, Column, String, Boolean, Integer, DateTime
+from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
 from .base import UUID, Base, DebVersion
 
@@ -18,11 +18,13 @@ class SpearsHint(Base):
     '''
     User-defined hints for Britney.
     '''
+
     __tablename__ = 'spears_hints'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    migration_id = Column(String(256))  # Identifier for the respective migration task, in the form of "source1+source2-to-target"
+    # Identifier for the respective migration task, in the form of "source1+source2-to-target"
+    migration_id = Column(String(256))
 
     time = Column(DateTime(), default=datetime.utcnow)  # Time when this hint was created
     hint = Column(Text())  # A Britney hint
@@ -35,6 +37,7 @@ class SpearsMigrationEntry(Base):
     '''
     Configuration specific for the Spears tool.
     '''
+
     __tablename__ = 'spears_migrations'
 
     idname = Column(Text(), primary_key=True, nullable=False)
@@ -79,7 +82,8 @@ class SpearsExcuse(Base):
 
     time = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 
-    migration_id = Column(Text(), nullable=False)  # Identifier for the respective migration task, in the form of "source1+source2-to-target"
+    # Identifier for the respective migration task, in the form of "source1+source2-to-target"
+    migration_id = Column(Text(), nullable=False)
 
     suite_target = Column(String(128))  # Target suite of this package
     suite_source = Column(String(128))  # Source suite of this package
@@ -95,8 +99,10 @@ class SpearsExcuse(Base):
     version_new = Column(DebVersion())  # package version waiting to migrate
     version_old = Column(DebVersion())  # old package version in the target suite
 
-    missing_archs_primary = Column(ARRAY(String(128)))    # list of primary architectures where the package has not been built
-    missing_archs_secondary = Column(ARRAY(String(128)))  # list of secondary architectures where the package has not been built
+    # list of primary architectures where the package has not been built
+    missing_archs_primary = Column(ARRAY(String(128)))
+    # list of secondary architectures where the package has not been built
+    missing_archs_secondary = Column(ARRAY(String(128)))
 
     old_binaries = Column(JSON)  # Superseded cruft binaries that need to be garbage-collected
 
@@ -139,4 +145,6 @@ class SpearsExcuse(Base):
         self.old_binaries = j
 
     def make_idname(self):
-        return '{}-{}:{}-{}/{}'.format(self.suite_source, self.suite_target, self.source_package, self.version_new, self.version_old)
+        return '{}-{}:{}-{}/{}'.format(
+            self.suite_source, self.suite_target, self.source_package, self.version_new, self.version_old
+        )

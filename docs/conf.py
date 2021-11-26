@@ -22,10 +22,12 @@ on_rtd = os.environ.get('READTHEDOCS') == 'True'
 html_theme = 'sphinxawesome_theme'
 html_theme_options = {"show_prev_next": True}
 
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.coverage',
-              'sphinx.ext.intersphinx',
-              'sphinx_autodoc_typehints']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.coverage',
+    'sphinx.ext.intersphinx',
+    'sphinx_autodoc_typehints',
+]
 
 if on_rtd:
     autodoc_mock_imports = ['gi', 'systemd', 'apt_pkg']

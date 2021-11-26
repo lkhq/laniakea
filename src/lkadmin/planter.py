@@ -13,16 +13,17 @@ from .utils import input_str, print_header
 
 @click.group()
 def planter():
-    ''' Configure settings for Planter (seed packages) '''
+    '''Configure settings for Planter (seed packages)'''
     pass
 
 
 @planter.command()
 def configure_all():
-    ''' Configure this module. '''
+    '''Configure this module.'''
 
     def planter_set_value(key, value):
         from laniakea.db.core import LkModule, config_set_value
+
         config_set_value(LkModule.PLANTER, key, value)
 
     print_header('Configuring settings for Planter (metapackages / germinator)')

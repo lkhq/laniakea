@@ -12,9 +12,7 @@ from laniakea.db import SpearsExcuse, SpearsMigrationEntry, session_scope
 
 from ..utils import is_uuid
 
-migrations = Blueprint('migrations',
-                       __name__,
-                       url_prefix='/migrations')
+migrations = Blueprint('migrations', __name__, url_prefix='/migrations')
 
 
 @migrations.route('/')
@@ -23,9 +21,7 @@ def index():
         entries = session.query(SpearsMigrationEntry).all()
         disp_entries = []
         for e in entries:
-            disp_entries.append({'id': e.idname,
-                                 'from': ', '.join(e.source_suites),
-                                 'to': e.target_suite})
+            disp_entries.append({'id': e.idname, 'from': ', '.join(e.source_suites), 'to': e.target_suite})
 
         return render_template('migrations/index.html', migrations=disp_entries)
 
@@ -34,27 +30,29 @@ def index():
 def excuses_list(migration_id, page):
     with session_scope() as session:
 
-        migration = session.query(SpearsMigrationEntry) \
-            .filter(SpearsMigrationEntry.idname == migration_id).one()
+        migration = session.query(SpearsMigrationEntry).filter(SpearsMigrationEntry.idname == migration_id).one()
 
         excuses_per_page = 50
-        excuses_total = session.query(SpearsExcuse) \
-            .filter(SpearsExcuse.migration_id == migration_id).count()
+        excuses_total = session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == migration_id).count()
         page_count = math.ceil(excuses_total / excuses_per_page)
 
-        excuses = session.query(SpearsExcuse) \
-            .filter(SpearsExcuse.migration_id == migration_id) \
-            .order_by(SpearsExcuse.source_package) \
-            .slice((page - 1) * excuses_per_page, page * excuses_per_page) \
+        excuses = (
+            session.query(SpearsExcuse)
+            .filter(SpearsExcuse.migration_id == migration_id)
+            .order_by(SpearsExcuse.source_package)
+            .slice((page - 1) * excuses_per_page, page * excuses_per_page)
             .all()
+        )
 
-        return render_template('migrations/excuses.html',
-                               excuses=excuses,
-                               migration=migration,
-                               excuses_per_page=excuses_per_page,
-                               excuses_total=excuses_total,
-                               current_page=page,
-                               page_count=page_count)
+        return render_template(
+            'migrations/excuses.html',
+            excuses=excuses,
+            migration=migration,
+            excuses_per_page=excuses_per_page,
+            excuses_total=excuses_total,
+            current_page=page,
+            page_count=page_count,
+        )
 
 
 @migrations.route('/excuse/<uuid>')

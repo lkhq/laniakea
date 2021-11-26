@@ -11,8 +11,8 @@ import pytest
 
 from laniakea import LocalConfig
 from laniakea.db import LkModule
-from laniakea.logging import set_verbose
 from laniakea.utils import random_string
+from laniakea.logging import set_verbose
 
 # unconditionally enable verbose mode
 set_verbose(True)
@@ -56,6 +56,7 @@ def localconfig(samplesdir):
     test_aux_data_dir = os.path.join('/tmp', 'test-lkaux')
     if os.path.isdir(test_aux_data_dir):
         from shutil import rmtree
+
         rmtree(test_aux_data_dir)
     os.makedirs(test_aux_data_dir)
 
@@ -99,7 +100,7 @@ def localconfig(samplesdir):
 
 
 def pgsql_test_available(session_scope):
-    ''' test if PostgreSQL is available with the current configuration '''
+    '''test if PostgreSQL is available with the current configuration'''
     try:
         with session_scope() as session:
             session.execute('SELECT CURRENT_TIME;')
@@ -117,17 +118,21 @@ def database(localconfig, podman_ip, podman_services):
     '''
     import toml
 
-    from laniakea.db import (ArchiveArchitecture, ArchiveComponent,
-                             ArchiveRepository, ArchiveSuite, Database,
-                             session_scope)
+    from laniakea.db import (
+        Database,
+        ArchiveSuite,
+        ArchiveComponent,
+        ArchiveRepository,
+        ArchiveArchitecture,
+        session_scope,
+    )
     from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     # get IP of our database container
     db_port = podman_services.port_for('postgres', 5432)
 
     # update database URL to use scratch database in our container
-    pgdb_url = 'postgresql://lkdbuser_test:notReallySecret@{}:{}/laniakea_unittest'.format(
-        podman_ip, db_port)
+    pgdb_url = 'postgresql://lkdbuser_test:notReallySecret@{}:{}/laniakea_unittest'.format(podman_ip, db_port)
     LocalConfig.instance._database_url = pgdb_url
     assert localconfig.database_url == pgdb_url
 
@@ -143,9 +148,7 @@ def database(localconfig, podman_ip, podman_services):
     db = Database(localconfig)
 
     # wait for the database to become available
-    podman_services.wait_until_responsive(
-        timeout=60.0, pause=0.5, check=lambda: pgsql_test_available(session_scope)
-    )
+    podman_services.wait_until_responsive(timeout=60.0, pause=0.5, check=lambda: pgsql_test_available(session_scope))
 
     # clear database tables so test function has a pristine database to work with
     with session_scope() as session:
@@ -222,12 +225,20 @@ def generate_curve_keys_for_module(sourcesdir, localconfig, mod):
     tmp_path = '/tmp'
     key_basepath = os.path.join(tmp_path, key_id)
 
-    subprocess.run([keytool_exe,
-                    'key-new',
-                    '--id', key_id,
-                    '--name', 'Test Key for {}'.format(mod),
-                    '--email', 'test-{}@example.org'.format(mod),
-                    tmp_path], check=True)
+    subprocess.run(
+        [
+            keytool_exe,
+            'key-new',
+            '--id',
+            key_id,
+            '--name',
+            'Test Key for {}'.format(mod),
+            '--email',
+            'test-{}@example.org'.format(mod),
+            tmp_path,
+        ],
+        check=True,
+    )
 
     assert os.path.isfile(key_basepath + '.key')
     assert os.path.isfile(key_basepath + '.key_secret')
@@ -238,7 +249,6 @@ def generate_curve_keys_for_module(sourcesdir, localconfig, mod):
 
 @pytest.fixture
 def make_curve_trusted_key(sourcesdir, localconfig):
-
     def _make_curve_trusted_key(name):
         import subprocess
 
@@ -252,12 +262,20 @@ def make_curve_trusted_key(sourcesdir, localconfig):
         tmp_path = '/tmp'
         key_basepath = os.path.join(tmp_path, key_id)
 
-        subprocess.run([keytool_exe,
-                        'key-new',
-                        '--id', key_id,
-                        '--name', 'Test Key {}'.format(name),
-                        '--email', 'test-{}@example.org'.format(key_id),
-                        tmp_path], check=True)
+        subprocess.run(
+            [
+                keytool_exe,
+                'key-new',
+                '--id',
+                key_id,
+                '--name',
+                'Test Key {}'.format(name),
+                '--email',
+                'test-{}@example.org'.format(key_id),
+                tmp_path,
+            ],
+            check=True,
+        )
 
         assert os.path.isfile(key_basepath + '.key')
         assert os.path.isfile(key_basepath + '.key_secret')
@@ -284,8 +302,8 @@ class LighthouseServer:
             self._pipe = None
 
         def start(self):
-            import subprocess
             import time
+            import subprocess
 
             # ensure we are not running anymore, in case we were before
             self.terminate()
@@ -294,12 +312,9 @@ class LighthouseServer:
             generate_curve_keys_for_module(self._sources_dir, self._lconf, LkModule.LIGHTHOUSE)
 
             lh_exe = os.path.join(self._sources_dir, 'lighthouse', 'lighthouse-server')
-            self._pipe = subprocess.Popen([lh_exe,
-                                           '--verbose',
-                                           '--config', self._lconf.fname],
-                                          shell=False,
-                                          stdout=sys.stdout,
-                                          stderr=sys.stderr)
+            self._pipe = subprocess.Popen(
+                [lh_exe, '--verbose', '--config', self._lconf.fname], shell=False, stdout=sys.stdout, stderr=sys.stderr
+            )
             time.sleep(0.5)
             if self._pipe.poll():
                 pytest.fail('Lighthouse failed to start up, check stderr')
@@ -362,6 +377,7 @@ def new_zmq_curve_socket(request):
 
         def fin():
             sock.close()
+
         request.addfinalizer(fin)
 
         return sock
@@ -381,6 +397,4 @@ def import_package_data(request, sourcesdir, localconfig, database):
     dataimport_exe = os.path.join(sourcesdir, 'dataimport', 'dataimport.py')
     suite_name = getattr(request.module, 'dataimport_suite', 'unstable')
 
-    subprocess.run([dataimport_exe,
-                    '--config', localconfig.fname,
-                    'repo', suite_name], check=True)
+    subprocess.run([dataimport_exe, '--config', localconfig.fname, 'repo', suite_name], check=True)

@@ -4,8 +4,8 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from flask_caching import Cache
 from flask_login import LoginManager
+from flask_caching import Cache
 
 login_manager = LoginManager()
 

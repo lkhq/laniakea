@@ -4,19 +4,19 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import logging as log
 import os
 import sys
+import logging as log
 from glob import glob
 
 from laniakea import LkModule
 from laniakea.db import Job, JobKind, JobResult, SourcePackage, session_scope
 from laniakea.dud import Dud
+from laniakea.utils import random_string, get_dir_shorthand_for_uuid
 from laniakea.msgstream import EventEmitter
-from laniakea.utils import get_dir_shorthand_for_uuid, random_string
 
-from .rubiconfig import RubiConfig
 from .utils import safe_rename
+from .rubiconfig import RubiConfig
 
 
 def accept_upload(conf, dud, event_emitter):
@@ -61,30 +61,32 @@ def accept_upload(conf, dud, event_emitter):
         # handle different job data
         if job.module == LkModule.ISOTOPE:
             from .import_isotope import handle_isotope_upload
-            handle_isotope_upload(session,
-                                  success=job_success,
-                                  conf=conf,
-                                  dud=dud,
-                                  job=job,
-                                  event_emitter=event_emitter)
+
+            handle_isotope_upload(
+                session, success=job_success, conf=conf, dud=dud, job=job, event_emitter=event_emitter
+            )
 
         elif job.kind == JobKind.PACKAGE_BUILD:
             # the package has been imported by Dak, so we just announce this
             # event to the world
-            spkg = session.query(SourcePackage) \
-                .filter(SourcePackage.source_uuid == job.trigger) \
-                .filter(SourcePackage.version == job.version) \
+            spkg = (
+                session.query(SourcePackage)
+                .filter(SourcePackage.source_uuid == job.trigger)
+                .filter(SourcePackage.version == job.version)
                 .one_or_none()
+            )
             if spkg:
                 suite_target_name = '?'
                 if job.data:
                     suite_target_name = job.data.get('suite', '?')
 
-                event_data = {'pkgname': spkg.name,
-                              'version': job.version,
-                              'architecture': job.architecture,
-                              'suite': suite_target_name,
-                              'job_id': job_id}
+                event_data = {
+                    'pkgname': spkg.name,
+                    'version': job.version,
+                    'architecture': job.architecture,
+                    'suite': suite_target_name,
+                    'job_id': job_id,
+                }
                 if job_success:
                     event_emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-build-success', event_data)
                 else:

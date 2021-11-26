@@ -5,11 +5,11 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import enum
-from datetime import datetime
 from enum import IntEnum
 from uuid import uuid4
+from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, Text
+from sqlalchemy import Enum, Text, Column, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import ARRAY
 
 from .base import UUID, Base
@@ -19,6 +19,7 @@ class WorkerStatus(IntEnum):
     '''
     State this worker is in.
     '''
+
     UNKNOWN = 0
     ACTIVE = enum.auto()
     IDLE = enum.auto()
@@ -35,7 +36,7 @@ class SparkWorker(Base):
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    name = Column(Text())   # The machine/worker name
+    name = Column(Text())  # The machine/worker name
     owner = Column(Text())  # Owner of this worker
 
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this worker was registered/created

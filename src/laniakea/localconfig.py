@@ -56,6 +56,7 @@ class LocalConfig:
         Configuration for a Lighthouse server and/or client.
         The configuration is loaded from a :LocalConfig.
         '''
+
         endpoints_jobs: list[str] = []
         endpoints_submit: list[str] = []
         endpoints_publish: list[str] = []
@@ -67,7 +68,6 @@ class LocalConfig:
     instance = None
 
     class __LocalConfig:
-
         def __init__(self, fname=None):
             if not fname:
                 fname = get_config_file('base-config.toml')
@@ -82,11 +82,15 @@ class LocalConfig:
 
             carchive = cdata.get('Archive')
             if not carchive:
-                raise Exception('No "Archive" configuration found in local config file. Please specify archive details!')
+                raise Exception(
+                    'No "Archive" configuration found in local config file. Please specify archive details!'
+                )
 
             self._workspace = cdata.get('Workspace')
             if not self._workspace:
-                raise Exception('No "Workspace" directory set in local config file. Please specify a persistent workspace location!')
+                raise Exception(
+                    'No "Workspace" directory set in local config file. Please specify a persistent workspace location!'
+                )
 
             self._cache_dir = cdata.get('CacheLocation', '/var/tmp/laniakea')
 
@@ -97,16 +101,16 @@ class LocalConfig:
             db_user = jdb.get('user', 'laniakea-user')
             db_password = jdb.get('password', '')
 
-            self._database_url = 'postgresql://{user}:{password}@{host}:{port}/{dbname}'.format(user=db_user,
-                                                                                                password=db_password,
-                                                                                                host=db_host,
-                                                                                                port=db_port,
-                                                                                                dbname=db_name)
+            self._database_url = 'postgresql://{user}:{password}@{host}:{port}/{dbname}'.format(
+                user=db_user, password=db_password, host=db_host, port=db_port, dbname=db_name
+            )
 
             self._master_repo_name = carchive.get('master_repo_name', 'master')
             self._archive_root_dir = carchive.get('path', '/nonexistent')
             self._archive_url = carchive.get('url', '#')
-            self._archive_appstream_media_url = carchive.get('appstream_media_url', 'https://appstream.debian.org/media/pool')
+            self._archive_appstream_media_url = carchive.get(
+                'appstream_media_url', 'https://appstream.debian.org/media/pool'
+            )
 
             self._archive_urgencies_export_dir = carchive.get('urgencies_export_dir', '/srv/dak/export/urgencies/')
 
@@ -156,7 +160,7 @@ class LocalConfig:
 
         @property
         def master_repo_name(self) -> str:
-            ''' Name of the master repository for this distribution, that (usually) all other repositories are based on. '''
+            '''Name of the master repository for this distribution, that (usually) all other repositories are based on.'''
             return self._master_repo_name
 
         @property
@@ -188,7 +192,7 @@ class LocalConfig:
             return self._synchrotron_sourcekeyrings
 
         def secret_curve_keyfile_for_module(self, module) -> str:
-            ''' Retrieve the secret ZCurve key filename for a given module name. '''
+            '''Retrieve the secret ZCurve key filename for a given module name.'''
 
             secrets_dir = os.path.join(self._curve_keys_basedir, 'secret')
             try:
@@ -208,7 +212,7 @@ class LocalConfig:
 
         @property
         def trusted_curve_keys_dir(self) -> str:
-            ''' Retrieve the directory for trusted ZCurve public keys '''
+            '''Retrieve the directory for trusted ZCurve public keys'''
 
             trusted_dir = os.path.join(self._curve_keys_basedir, 'trusted')
             try:
@@ -253,7 +257,9 @@ class ExternalToolsUrls:
                 cdata = toml.load(toml_file)
 
         cspears = cdata.get('Spears', {})
-        self.britney_git_repository = cspears.get('britneyGitRepository', 'https://salsa.debian.org/release-team/britney2.git')
+        self.britney_git_repository = cspears.get(
+            'britneyGitRepository', 'https://salsa.debian.org/release-team/britney2.git'
+        )
 
         cdaktape = cdata.get('DakTape', {})
         self.dak_git_repository = cdaktape.get('dakGitRepository', 'https://salsa.debian.org/ftp-team/dak.git')

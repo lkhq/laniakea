@@ -16,13 +16,12 @@ import logging as log
 from argparse import ArgumentParser
 
 from laniakea import LkModule, LocalConfig
-from laniakea.db import ArchiveSuite, config_get_value, session_factory
+from laniakea.db import ArchiveSuite, session_factory, config_get_value
 from laniakea.git import Git
 from laniakea.logging import get_verbose
 
 
 class Germinate:
-
     def __init__(self):
         from laniakea.db import config_get_project_name
 
@@ -66,8 +65,7 @@ class Germinate:
 
     def run(self):
         session = session_factory()
-        dev_suite = session.query(ArchiveSuite) \
-            .filter(ArchiveSuite.devel_target == True).one_or_none()  # noqa: E712
+        dev_suite = session.query(ArchiveSuite).filter(ArchiveSuite.devel_target == True).one_or_none()  # noqa: E712
 
         if not dev_suite:
             log.info('No development target suite found, doing nothing.')
@@ -86,12 +84,20 @@ class Germinate:
         os.makedirs(results_dir, exist_ok=True)
 
         # prepare parameters
-        ge_args = ['-S', 'file://' + seed_src_dir,  # seed source
-                   '-s', dev_suite.name,  # suite name
-                   '-d', dev_suite.name,  # suite / dist name
-                   '-m', 'file://' + self._lconf.archive_root_dir,  # mirror
-                   '-c', ' '.join([c.name for c in dev_suite.components]),  # components to check
-                   '-a', dev_suite.primary_architecture.name]
+        ge_args = [
+            '-S',
+            'file://' + seed_src_dir,  # seed source
+            '-s',
+            dev_suite.name,  # suite name
+            '-d',
+            dev_suite.name,  # suite / dist name
+            '-m',
+            'file://' + self._lconf.archive_root_dir,  # mirror
+            '-c',
+            ' '.join([c.name for c in dev_suite.components]),  # components to check
+            '-a',
+            dev_suite.primary_architecture.name,
+        ]
         # NOTE: Maybe we want to limit the seed to only stuff in the primary (main) component?
 
         # execute germinator
@@ -105,7 +111,7 @@ class Germinate:
 
 
 def command_run(options):
-    ''' Update Germinator data '''
+    '''Update Germinator data'''
 
     germinate = Germinate()
     if not germinate.run():
@@ -113,16 +119,16 @@ def command_run(options):
 
 
 def create_parser(formatter_class=None):
-    ''' Create Planter CLI argument parser '''
+    '''Create Planter CLI argument parser'''
 
     parser = ArgumentParser(description='Update seed information using Germinator.')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose',
-                        help='Enable debug messages.')
-    parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of Laniakea itself.')
+    parser.add_argument('--verbose', action='store_true', dest='verbose', help='Enable debug messages.')
+    parser.add_argument(
+        '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
+    )
 
     sp = subparsers.add_parser('run', help='Run Germinator and update data.')
     sp.set_defaults(func=command_run)
@@ -133,6 +139,7 @@ def create_parser(formatter_class=None):
 def check_print_version(options):
     if options.show_version:
         from laniakea import __version__
+
         print(__version__)
         sys.exit(0)
 
@@ -140,6 +147,7 @@ def check_print_version(options):
 def check_verbose(options):
     if options.verbose:
         from laniakea.logging import set_verbose
+
         set_verbose(True)
 
 

@@ -4,8 +4,8 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from datetime import datetime
 from typing import Dict
+from datetime import datetime
 
 import yaml
 

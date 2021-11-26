@@ -12,21 +12,21 @@ __mainfile = None
 
 
 @click.group(invoke_without_command=True)
-@click.option('--verbose', envvar='VERBOSE', default=False, is_flag=True,
-              help='Enable debug messages.')
-@click.option('--version', default=False, is_flag=True,
-              help='Display the version of Laniakea itself.')
+@click.option('--verbose', envvar='VERBOSE', default=False, is_flag=True, help='Enable debug messages.')
+@click.option('--version', default=False, is_flag=True, help='Display the version of Laniakea itself.')
 @click.pass_context
 def cli(ctx, verbose, version):
     '''Administer a Laniakea instance.
 
-     This utility allows you to perform a lot of administrative actions for
-     Laniakea directly from the command-line.'''
+    This utility allows you to perform a lot of administrative actions for
+    Laniakea directly from the command-line.'''
     if verbose:
         from laniakea.logging import set_verbose
+
         set_verbose(True)
     if version:
         from laniakea import __version__
+
         print(__version__)
         sys.exit(0)
     if ctx.invoked_subcommand is None:
@@ -35,33 +35,42 @@ def cli(ctx, verbose, version):
 
 
 def _register_commands():
-    ''' Register lk-admin subcommands. '''
+    '''Register lk-admin subcommands.'''
 
     import lkadmin.core as core
+
     cli.add_command(core.core)
 
     import lkadmin.archive as archive
+
     cli.add_command(archive.archive)
 
     import lkadmin.job as job
+
     cli.add_command(job.job)
 
     import lkadmin.synchrotron as synchrotron
+
     cli.add_command(synchrotron.synchrotron)
 
     import lkadmin.spears as spears
+
     cli.add_command(spears.spears)
 
     import lkadmin.ariadne as ariadne
+
     cli.add_command(ariadne.ariadne)
 
     import lkadmin.isotope as isotope
+
     cli.add_command(isotope.isotope)
 
     import lkadmin.planter as planter
+
     cli.add_command(planter.planter)
 
     import lkadmin.flatpak as flatpak
+
     cli.add_command(flatpak.flatpak)
 
 

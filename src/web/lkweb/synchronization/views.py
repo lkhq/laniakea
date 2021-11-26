@@ -6,20 +6,24 @@
 
 from flask import Blueprint, render_template
 
-from laniakea.db import (ArchiveSuite, SyncBlacklistEntry, SynchrotronConfig,
-                         SynchrotronIssue, SynchrotronIssueKind, session_scope)
+from laniakea.db import (
+    ArchiveSuite,
+    SynchrotronIssue,
+    SynchrotronConfig,
+    SyncBlacklistEntry,
+    SynchrotronIssueKind,
+    session_scope,
+)
 
-synchronization = Blueprint('synchronization',
-                            __name__,
-                            url_prefix='/sync')
+synchronization = Blueprint('synchronization', __name__, url_prefix='/sync')
 
 
 @synchronization.route('/')
 def index():
     with session_scope() as session:
-        sync_configs = session.query(SynchrotronConfig) \
-            .join(SynchrotronConfig.destination_suite) \
-            .order_by(ArchiveSuite.name).all()
+        sync_configs = (
+            session.query(SynchrotronConfig).join(SynchrotronConfig.destination_suite).order_by(ArchiveSuite.name).all()
+        )
 
         return render_template('synchronization/index.html', sync_configs=sync_configs)
 
@@ -27,14 +31,14 @@ def index():
 @synchronization.route('/<suite_name>')
 def issues_table(suite_name):
     with session_scope() as session:
-        issues = session.query(SynchrotronIssue) \
-            .filter(SynchrotronIssue.target_suite == suite_name) \
-            .all()
+        issues = session.query(SynchrotronIssue).filter(SynchrotronIssue.target_suite == suite_name).all()
 
-        return render_template('synchronization/sync_issue_table.html',
-                               issues=issues,
-                               SyncIssueKind=SynchrotronIssueKind,
-                               target_suite_name=suite_name)
+        return render_template(
+            'synchronization/sync_issue_table.html',
+            issues=issues,
+            SyncIssueKind=SynchrotronIssueKind,
+            target_suite_name=suite_name,
+        )
 
 
 @synchronization.route('/blacklist')

@@ -53,6 +53,8 @@ tests = [
     'pylint',
     'pylint-flask',
     'pylint-sqlalchemy',
+    'isort',
+    'black',
 ]
 docs = [
     'Sphinx>=3.4',
@@ -73,7 +75,7 @@ for p in glob("./src/*"):
 extension-pkg-whitelist = ['apt_pkg']
 
 [tool.pylint.format]
-max-line-length = 100
+max-line-length = 140
 
 [tool.pylint."messages control"]
 disable = [
@@ -105,3 +107,16 @@ ignored-modules = [
     'zmq',
     'mautrix.types'
 ]
+
+[tool.isort]
+py_version = 39
+profile = "black"
+multi_line_output = 3
+skip_gitignore = true
+length_sort = true
+atomic = true
+
+[tool.black]
+target-version = ['py39']
+line-length = 120
+skip-string-normalization = true

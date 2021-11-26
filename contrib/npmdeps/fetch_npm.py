@@ -4,9 +4,9 @@
 #
 
 import os
+import sys
 import shutil
 import subprocess
-import sys
 from glob import glob
 
 thisfile = __file__
@@ -17,48 +17,58 @@ os.chdir(thisdir)
 
 
 src_dir = '../../src/'
-node_modules = [{'name': 'bulma',
-                 'files': ['css/bulma.min.css'],
-                 'copy_to': [os.path.join(src_dir, 'web/templates/default/static/css/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/css/'),
-                             os.path.join(src_dir, 'webswview/templates/pureos/static/css/')]
-                 },
-
-                {'name': '@fortawesome/fontawesome-free',
-                 'files': ['css/fontawesome.min.css', 'css/all.min.css'],
-                 'copy_to': [os.path.join(src_dir, 'web/templates/default/static/css/fontawesome/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/css/fontawesome/'),
-                             os.path.join(src_dir, 'webswview/templates/pureos/static/css/fontawesome/')]
-                 },
-
-                {'name': '@fortawesome/fontawesome-free',
-                 'files': ['webfonts/*'],
-                 'copy_to': [os.path.join(src_dir, 'web/templates/default/static/css/webfonts/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/css/webfonts/'),
-                             os.path.join(src_dir, 'webswview/templates/pureos/static/css/webfonts/')]
-                 },
-
-                {'name': '@fontsource/cantarell',
-                 'files': ['files/*'],
-                 'copy_to': [os.path.join(src_dir, 'web/templates/default/static/fonts/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/fonts/'),
-                             os.path.join(src_dir, 'webswview/templates/pureos/static/fonts/')]
-                 },
-
-                {'name': 'jquery',
-                 'files': ['dist/jquery.slim.min.js'],
-                 'copy_to': [os.path.join(src_dir, 'web/templates/default/static/js/jquery/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
-                             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
-                             os.path.join(src_dir, 'webswview/templates/pureos/static/js/jquery/')]
-                 },
-                ]
+node_modules = [
+    {
+        'name': 'bulma',
+        'files': ['css/bulma.min.css'],
+        'copy_to': [
+            os.path.join(src_dir, 'web/templates/default/static/css/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/css/'),
+            os.path.join(src_dir, 'webswview/templates/pureos/static/css/'),
+        ],
+    },
+    {
+        'name': '@fortawesome/fontawesome-free',
+        'files': ['css/fontawesome.min.css', 'css/all.min.css'],
+        'copy_to': [
+            os.path.join(src_dir, 'web/templates/default/static/css/fontawesome/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/css/fontawesome/'),
+            os.path.join(src_dir, 'webswview/templates/pureos/static/css/fontawesome/'),
+        ],
+    },
+    {
+        'name': '@fortawesome/fontawesome-free',
+        'files': ['webfonts/*'],
+        'copy_to': [
+            os.path.join(src_dir, 'web/templates/default/static/css/webfonts/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/css/webfonts/'),
+            os.path.join(src_dir, 'webswview/templates/pureos/static/css/webfonts/'),
+        ],
+    },
+    {
+        'name': '@fontsource/cantarell',
+        'files': ['files/*'],
+        'copy_to': [
+            os.path.join(src_dir, 'web/templates/default/static/fonts/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/fonts/'),
+            os.path.join(src_dir, 'webswview/templates/pureos/static/fonts/'),
+        ],
+    },
+    {
+        'name': 'jquery',
+        'files': ['dist/jquery.slim.min.js'],
+        'copy_to': [
+            os.path.join(src_dir, 'web/templates/default/static/js/jquery/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
+            os.path.join(src_dir, 'webswview/templates/pureos/static/js/jquery/'),
+        ],
+    },
+]
 
 
 def fetch_node_modules(node_cmd):
-    subprocess.run([node_cmd,
-                    'install',
-                    '--no-save'], check=True)
+    subprocess.run([node_cmd, 'install', '--no-save'], check=True)
 
 
 def install_node_modules():

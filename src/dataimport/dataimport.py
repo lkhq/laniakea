@@ -21,10 +21,18 @@ import gi
 from sqlalchemy.orm import Bundle, joinedload
 
 from laniakea import LkModule, LocalConfig
-from laniakea.db import (ArchiveArchitecture, ArchiveFile, ArchiveRepository,
-                         ArchiveSuite, BinaryPackage, SoftwareComponent,
-                         SourcePackage, binpkg_suite_assoc_table,
-                         session_factory, session_scope)
+from laniakea.db import (
+    ArchiveFile,
+    ArchiveSuite,
+    BinaryPackage,
+    SourcePackage,
+    ArchiveRepository,
+    SoftwareComponent,
+    ArchiveArchitecture,
+    session_scope,
+    session_factory,
+    binpkg_suite_assoc_table,
+)
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 from laniakea.repository import Repository
@@ -42,8 +50,7 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
             session.expunge(bpkg)
             if suite.id in e_suites:
                 continue  # the binary package is already registered with this suite
-            session.execute(sa.insert(binpkg_suite_assoc_table,
-                                      {'suite_id': suite.id, 'bin_package_uuid': bpkg.uuid}))
+            session.execute(sa.insert(binpkg_suite_assoc_table, {'suite_id': suite.id, 'bin_package_uuid': bpkg.uuid}))
             e_suites.append(suite.id)
 
             # NOTE: We do deliberately not emit messages for binary package suite changes, as they
@@ -53,11 +60,12 @@ def _register_binary_packages(session, repo, suite, component, arch, existing_bp
         else:
             session.add(bpkg)
 
-            _emit_package_event(emitter,
-                                'binary-package-published',
-                                bpkg,
-                                {'architecture': bpkg.architecture.name,
-                                 'source_name': bpkg.source_name})
+            _emit_package_event(
+                emitter,
+                'binary-package-published',
+                bpkg,
+                {'architecture': bpkg.architecture.name, 'source_name': bpkg.source_name},
+            )
 
     return existing_bpkgs
 
@@ -73,14 +81,17 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
         # and are included in arch-specific files (even if the package they belong to is arch:all)
         return
 
-    arch_all = session.query(ArchiveArchitecture) \
-                      .filter(ArchiveArchitecture.name == 'all').one()
+    arch_all = session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == 'all').one()
 
-    yaml_fname = local_repo.index_file(suite, os.path.join(component.name, 'dep11', 'Components-{}.yml.xz'.format(arch.name)))
+    yaml_fname = local_repo.index_file(
+        suite, os.path.join(component.name, 'dep11', 'Components-{}.yml.xz'.format(arch.name))
+    )
     if not yaml_fname:
         return
 
-    cidmap_fname = local_repo.index_file(suite, os.path.join(component.name, 'dep11', 'CID-Index-{}.json.gz'.format(arch.name)), check=False)
+    cidmap_fname = local_repo.index_file(
+        suite, os.path.join(component.name, 'dep11', 'CID-Index-{}.json.gz'.format(arch.name)), check=False
+    )
     if not cidmap_fname:
         return
 
@@ -113,17 +124,24 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
         if not pkgname:
             # we skip these for now, web-apps have no package assigned - we might need a better way to map
             # those to their packages, likely with an improved appstream-generator integration
-            log.debug('Found DEP-11 component without package name in {}/{}: {}'.format(suite.name, component.name, cpt.get_id()))
+            log.debug(
+                'Found DEP-11 component without package name in {}/{}: {}'.format(
+                    suite.name, component.name, cpt.get_id()
+                )
+            )
             continue
 
         # fetch package this component belongs to
-        bin_pkg = session.query(BinaryPackage) \
-            .filter(BinaryPackage.name == pkgname) \
-            .filter(BinaryPackage.repo_id == repo.id) \
-            .filter(BinaryPackage.architecture_id.in_((arch.id, arch_all.id))) \
-            .filter(BinaryPackage.component_id == component.id) \
-            .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id)) \
-            .order_by(BinaryPackage.version.desc()).first()
+        bin_pkg = (
+            session.query(BinaryPackage)
+            .filter(BinaryPackage.name == pkgname)
+            .filter(BinaryPackage.repo_id == repo.id)
+            .filter(BinaryPackage.architecture_id.in_((arch.id, arch_all.id)))
+            .filter(BinaryPackage.component_id == component.id)
+            .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id))
+            .order_by(BinaryPackage.version.desc())
+            .first()
+        )
 
         if not bin_pkg:
             log.info('Found orphaned DEP-11 component in {}/{}: {}'.format(suite.name, component.name, cpt.get_id()))
@@ -137,15 +155,15 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
 
         dcpt.gcid = cid_map.get(dcpt.cid)
         if not dcpt.gcid:
-            log.warning('Found DEP-11 component without GCID in {}/{}: {}'.format(
-                suite.name, component.name, cpt.get_id()))
+            log.warning(
+                'Found DEP-11 component without GCID in {}/{}: {}'.format(suite.name, component.name, cpt.get_id())
+            )
             continue
 
         # create UUID for this component (based on GCID or XML data)
         dcpt.update_uuid()
 
-        existing_dcpt = session.query(SoftwareComponent) \
-            .filter(SoftwareComponent.uuid == dcpt.uuid).one_or_none()
+        existing_dcpt = session.query(SoftwareComponent).filter(SoftwareComponent.uuid == dcpt.uuid).one_or_none()
         if existing_dcpt:
             if bin_pkg in existing_dcpt.pkgs_binary:
                 continue  # the binary package is already registered with this component
@@ -189,18 +207,20 @@ def update_appstream_data(session, local_repo, repo, suite, component, arch):
 
 
 def _emit_package_event(emitter, tag, pkg, extra: dict = None):
-    ''' Send a package event to Lighthouse '''
+    '''Send a package event to Lighthouse'''
 
     if not emitter:
         return
     if not extra:
         extra = {}
 
-    data = {'repo': pkg.repo.name,
-            'name': pkg.name,
-            'version': pkg.version,
-            'component': pkg.component.name,
-            'suites': [s.name for s in pkg.suites]}
+    data = {
+        'repo': pkg.repo.name,
+        'name': pkg.name,
+        'version': pkg.version,
+        'component': pkg.component.name,
+        'suites': [s.name for s in pkg.suites],
+    }
     data.update(extra)
     emitter.submit_event(tag, data)
 
@@ -211,16 +231,11 @@ def import_suite_packages(suite_name):
     repo_name = 'master'
 
     session = session_factory()
-    suite = session.query(ArchiveSuite) \
-        .filter(ArchiveSuite.name == suite_name).one()
-    repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name == repo_name).one()
+    suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one()
+    repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
 
     lconf = LocalConfig()
-    local_repo = Repository(lconf.archive_root_dir,
-                            repo.name,
-                            trusted_keyrings=[],
-                            entity=repo)
+    local_repo = Repository(lconf.archive_root_dir, repo.name, trusted_keyrings=[], entity=repo)
 
     # we unconditionally trust the local repository - for now
     local_repo.set_trusted(True)
@@ -233,10 +248,13 @@ def import_suite_packages(suite_name):
         # fetch all source packages for the given repository
         # FIXME: Urgh... Can this be more efficient?
         existing_spkgs = dict()
-        all_existing_src_packages = session.query(SourcePackage) \
-            .options(joinedload(SourcePackage.suites)) \
-            .filter(SourcePackage.repo_id == repo.id) \
-            .filter(SourcePackage.component_id == component.id).all()
+        all_existing_src_packages = (
+            session.query(SourcePackage)
+            .options(joinedload(SourcePackage.suites))
+            .filter(SourcePackage.repo_id == repo.id)
+            .filter(SourcePackage.component_id == component.id)
+            .all()
+        )
         for e_spkg in all_existing_src_packages:
             existing_spkgs[e_spkg.uuid] = e_spkg
 
@@ -273,10 +291,13 @@ def import_suite_packages(suite_name):
             bpkg_b = Bundle('bin_package', BinaryPackage.uuid)
             suite_b = Bundle('archive_suite', ArchiveSuite.id)
             existing_bpkgs = dict()
-            for e_bpkg, suite_i in session.query(bpkg_b, suite_b) \
-                    .filter(BinaryPackage.repo_id == repo.id) \
-                    .filter(BinaryPackage.component_id == component.id) \
-                    .filter(BinaryPackage.architecture_id == arch.id).join(BinaryPackage.suites):
+            for e_bpkg, suite_i in (
+                session.query(bpkg_b, suite_b)
+                .filter(BinaryPackage.repo_id == repo.id)
+                .filter(BinaryPackage.component_id == component.id)
+                .filter(BinaryPackage.architecture_id == arch.id)
+                .join(BinaryPackage.suites)
+            ):
                 sl = existing_bpkgs.get(e_bpkg.uuid)
                 if not sl:
                     existing_bpkgs[e_bpkg.uuid] = [suite_i.id]  # if there is just one suite, we may get a scalar here
@@ -284,45 +305,45 @@ def import_suite_packages(suite_name):
                     sl.append(suite_i.id)
 
             # add information about regular binary packages
-            existing_bpkgs = _register_binary_packages(session,
-                                                       repo,
-                                                       suite,
-                                                       component,
-                                                       arch,
-                                                       existing_bpkgs,
-                                                       local_repo.binary_packages(suite,
-                                                                                  component,
-                                                                                  arch),
-                                                       emitter)
+            existing_bpkgs = _register_binary_packages(
+                session,
+                repo,
+                suite,
+                component,
+                arch,
+                existing_bpkgs,
+                local_repo.binary_packages(suite, component, arch),
+                emitter,
+            )
 
             # add information about debian-installer packages
-            existing_bpkgs = _register_binary_packages(session,
-                                                       repo,
-                                                       suite,
-                                                       component,
-                                                       arch,
-                                                       existing_bpkgs,
-                                                       local_repo.installer_packages(suite,
-                                                                                     component,
-                                                                                     arch),
-                                                       emitter)
+            existing_bpkgs = _register_binary_packages(
+                session,
+                repo,
+                suite,
+                component,
+                arch,
+                existing_bpkgs,
+                local_repo.installer_packages(suite, component, arch),
+                emitter,
+            )
             session.commit()
 
             for old_bpkg_uuid, suites in existing_bpkgs.items():
                 suites_count = len(suites)
                 if suite.id in suites:
-                    rc = session.query(binpkg_suite_assoc_table) \
-                                .filter(binpkg_suite_assoc_table.c.suite_id == suite.id) \
-                                .filter(binpkg_suite_assoc_table.c.bin_package_uuid == old_bpkg_uuid) \
-                                .delete(synchronize_session=False)
+                    rc = (
+                        session.query(binpkg_suite_assoc_table)
+                        .filter(binpkg_suite_assoc_table.c.suite_id == suite.id)
+                        .filter(binpkg_suite_assoc_table.c.bin_package_uuid == old_bpkg_uuid)
+                        .delete(synchronize_session=False)
+                    )
                     if rc > 0:
                         suites_count -= 1
                 if suites_count <= 0:
                     # delete the old package, we don't need it anymore if it is in no suites
-                    session.query(ArchiveFile) \
-                        .filter(ArchiveFile.binpkg_id == old_bpkg_uuid).delete()
-                    session.query(BinaryPackage) \
-                        .filter(BinaryPackage.uuid == old_bpkg_uuid).delete()
+                    session.query(ArchiveFile).filter(ArchiveFile.binpkg_id == old_bpkg_uuid).delete()
+                    session.query(BinaryPackage).filter(BinaryPackage.uuid == old_bpkg_uuid).delete()
 
                     # NOTE: We do not emit messages for removed binary packages, as they are usually
                     # deleted with their source package (unless we have an arch-specific removal) and we
@@ -340,7 +361,7 @@ def import_suite_packages(suite_name):
 
 
 def command_repo(options):
-    ''' Import repository data '''
+    '''Import repository data'''
 
     suite_names = []
     if options.suite:
@@ -348,8 +369,9 @@ def command_repo(options):
     else:
         log.debug('Importing data from all mutable suites.')
         with session_scope() as session:
-            suite_names = [r[0] for r in session.query(ArchiveSuite.name)
-                           .filter(ArchiveSuite.frozen == False).all()]  # noqa
+            suite_names = [
+                r[0] for r in session.query(ArchiveSuite.name).filter(ArchiveSuite.frozen == False).all()  # noqa
+            ]
 
     # TODO: Optimize this so we can run it in parallel, as well as skip
     # imports if they are not needed
@@ -359,18 +381,23 @@ def command_repo(options):
 
 
 def create_parser(formatter_class=None):
-    ''' Create DataImport CLI argument parser '''
+    '''Create DataImport CLI argument parser'''
 
     parser = ArgumentParser(description='Import existing static data into the Laniakea database')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose',
-                        help='Enable debug messages.')
-    parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of Laniakea itself.')
-    parser.add_argument('--config', action='store', dest='config_fname', default=None,
-                        help='Location of the base configuration file to use.')
+    parser.add_argument('--verbose', action='store_true', dest='verbose', help='Enable debug messages.')
+    parser.add_argument(
+        '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
+    )
+    parser.add_argument(
+        '--config',
+        action='store',
+        dest='config_fname',
+        default=None,
+        help='Location of the base configuration file to use.',
+    )
 
     sp = subparsers.add_parser('repo', help='Import repository data for a specific suite.')
     sp.add_argument('suite', type=str, help='The suite to import data for.', nargs='?')
@@ -382,6 +409,7 @@ def create_parser(formatter_class=None):
 def check_print_version(options):
     if options.show_version:
         from laniakea import __version__
+
         print(__version__)
         sys.exit(0)
 
@@ -389,6 +417,7 @@ def check_print_version(options):
 def check_verbose(options):
     if options.verbose:
         from laniakea.logging import set_verbose
+
         set_verbose(True)
 
 

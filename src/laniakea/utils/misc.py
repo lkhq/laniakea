@@ -64,7 +64,7 @@ def stringify(item):
 
 
 def is_remote_url(uri):
-    ''' Check if string contains a remote URI. '''
+    '''Check if string contains a remote URI.'''
 
     uriregex = re.compile('^(https?|ftps?)://')
     return uriregex.match(uri) is not None
@@ -100,9 +100,11 @@ def open_compressed(fname, mode='rb'):
     f = None
     if lower_fname.endswith('.xz'):
         import lzma
+
         f = lzma.open(fname, mode=mode)
     elif lower_fname.endswith('.gz'):
         import gzip
+
         f = gzip.open(fname, mode=mode)
     else:
         raise Exception('Can not decompress file (compression type not recognized): {}'.format(fname))
@@ -114,7 +116,7 @@ def open_compressed(fname, mode='rb'):
 
 
 def split_strip(s, sep):
-    ''' Split a string, removing empty segments from the result and stripping the individual parts '''
+    '''Split a string, removing empty segments from the result and stripping the individual parts'''
     res = []
     for part in s.split(sep):
         if part:

@@ -4,14 +4,14 @@
 #
 # SPDX-License-Identifier: MIT OR LGPL-3.0+
 
-import contextlib
-import json
 import os
 import re
-import subprocess
+import json
 import time
-import timeit
 import uuid
+import timeit
+import contextlib
+import subprocess
 
 import attr
 import pytest
@@ -28,11 +28,7 @@ def execute(command, success_codes=(0,)):
         command = error.cmd
 
     if status not in success_codes:
-        raise Exception(
-            'Command {} returned {}: """{}""".'.format(
-                command, status, output.decode("utf-8")
-            )
-        )
+        raise Exception('Command {} returned {}: """{}""".'.format(command, status, output.decode("utf-8")))
     return output
 
 
@@ -103,9 +99,7 @@ class Services:
         if not host_port:
             print('podman-compose ps output:', output.decode('utf-8'))
             print('podman inspect output:', data)
-            raise ValueError(
-                'Could not detect port for "%s:%d".' % (service, container_port)
-            )
+            raise ValueError('Could not detect port for "%s:%d".' % (service, container_port))
         host_port = int(host_port.strip())
 
         # Store it in cache in case we request it multiple times.
@@ -207,18 +201,14 @@ def get_cleanup_command():
 @pytest.fixture(scope="session")
 def podman_cleanup():
     """Get the podman_compose command to be executed for test clean-up actions.
-     Override this fixture in your tests if you need to change clean-up actions."""
+    Override this fixture in your tests if you need to change clean-up actions."""
 
     return get_cleanup_command()
 
 
 @contextlib.contextmanager
-def get_podman_services(
-    podman_compose_file, podman_compose_project_name, podman_cleanup
-):
-    podman_compose = PodmanComposeExecutor(
-        podman_compose_file, podman_compose_project_name
-    )
+def get_podman_services(podman_compose_file, podman_compose_project_name, podman_cleanup):
+    podman_compose = PodmanComposeExecutor(podman_compose_file, podman_compose_project_name)
 
     # Spawn containers.
     podman_compose.execute("up --build -d")
@@ -236,9 +226,7 @@ def podman_services(podman_compose_file, podman_compose_project_name, podman_cle
     """Start all services from a podman compose file (`podman-compose up`).
     After test are finished, shutdown all services (`podman-compose down`)."""
 
-    with get_podman_services(
-        podman_compose_file, podman_compose_project_name, podman_cleanup
-    ) as podman_service:
+    with get_podman_services(podman_compose_file, podman_compose_project_name, podman_cleanup) as podman_service:
         yield podman_service
 
 

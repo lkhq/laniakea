@@ -4,11 +4,11 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import logging as log
-import signal
 import sys
+import signal
+import logging as log
 from argparse import ArgumentParser
-from multiprocessing import Process, Queue
+from multiprocessing import Queue, Process
 
 __mainfile = None
 server_processes: list[Process] = []
@@ -67,6 +67,7 @@ def run_server(options):
 
     if options.verbose:
         from laniakea.logging import set_verbose
+
         set_verbose(True)
 
     lconf = LocalConfig()
@@ -80,33 +81,30 @@ def run_server(options):
     if publish_endpoints:
         log.info('Creating event stream publisher.')
         pub_queue = Queue()
-        spub = Process(target=run_events_publisher_server,
-                       args=(publish_endpoints,
-                             pub_queue),
-                       name='EventsPublisher',
-                       daemon=True)
+        spub = Process(
+            target=run_events_publisher_server, args=(publish_endpoints, pub_queue), name='EventsPublisher', daemon=True
+        )
         spub.start()
         server_processes.append(spub)
 
         # spawn processes that handle event stream submissions
         log.info('Creating event stream receivers ({}).'.format(len(lconf.lighthouse.endpoints_submit)))
         for i, submit_endpoint in enumerate(lconf.lighthouse.endpoints_submit):
-            p = Process(target=run_events_receiver_server,
-                        args=(submit_endpoint,
-                              pub_queue),
-                        name='EventsServer-{}'.format(i),
-                        daemon=True)
+            p = Process(
+                target=run_events_receiver_server,
+                args=(submit_endpoint, pub_queue),
+                name='EventsServer-{}'.format(i),
+                daemon=True,
+            )
             p.start()
             server_processes.append(p)
 
     # spawn processes to serve job requests
     log.info('Creating job handlers.')
     for i, jobs_endpoint in enumerate(lconf.lighthouse.endpoints_jobs):
-        p = Process(target=run_jobs_server,
-                    args=(jobs_endpoint,
-                          pub_queue),
-                    name='JobsServer-{}'.format(i),
-                    daemon=True)
+        p = Process(
+            target=run_jobs_server, args=(jobs_endpoint, pub_queue), name='JobsServer-{}'.format(i), daemon=True
+        )
         p.start()
         server_processes.append(p)
 
@@ -136,22 +134,28 @@ def run_server(options):
 def check_print_version(options):
     if options.show_version:
         from laniakea import __version__
+
         print(__version__)
         sys.exit(0)
 
 
 def create_parser():
-    ''' Create Lighthouse CLI argument parser '''
+    '''Create Lighthouse CLI argument parser'''
 
     parser = ArgumentParser(description='Message relay and job assignment')
 
     # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose',
-                        help='Enable debug messages.')
-    parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of Laniakea itself.')
-    parser.add_argument('--config', action='store', dest='config_fname', default=None,
-                        help='Location of the base configuration file to use.')
+    parser.add_argument('--verbose', action='store_true', dest='verbose', help='Enable debug messages.')
+    parser.add_argument(
+        '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
+    )
+    parser.add_argument(
+        '--config',
+        action='store',
+        dest='config_fname',
+        default=None,
+        help='Location of the base configuration file to use.',
+    )
 
     parser.set_defaults(func=run_server)
 

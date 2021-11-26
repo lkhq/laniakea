@@ -10,22 +10,21 @@ import sys
 import click
 
 from laniakea import LocalConfig
-from laniakea.db import FlatpakRepository, config_get_distro_tag, session_scope
+from laniakea.db import FlatpakRepository, session_scope, config_get_distro_tag
 from laniakea.flatpak_util import FlatpakUtil
 
-from .utils import (input_list, input_str, print_error_exit, print_header,
-                    print_note)
+from .utils import input_str, input_list, print_note, print_header, print_error_exit
 
 
 @click.group()
 def flatpak():
-    ''' Configure settings for Flatpak repositories. '''
+    '''Configure settings for Flatpak repositories.'''
     pass
 
 
 @flatpak.command()
 def add_repo():
-    ''' Create new Flatpak repository. '''
+    '''Create new Flatpak repository.'''
 
     print_header('Add new Flatpak repository')
     lconf = LocalConfig()
@@ -44,7 +43,9 @@ def add_repo():
 
         collection_id = None
         while True:
-            collection_id = input_str('Set collection-id (a globally unique reverse DNS value to identify the collection of Flatpaks in this repository)')
+            collection_id = input_str(
+                'Set collection-id (a globally unique reverse DNS value to identify the collection of Flatpaks in this repository)'
+            )
             if len(collection_id.split('.')) < 3:
                 print_note('Please enter a rDNS ID!')
             else:

@@ -14,8 +14,13 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 from argparse import ArgumentParser
 
-from laniakea.db import (ArchiveRepository, ArchiveSuite, DebcheckIssue,
-                         PackageType, session_scope)
+from laniakea.db import (
+    PackageType,
+    ArchiveSuite,
+    DebcheckIssue,
+    ArchiveRepository,
+    session_scope,
+)
 from laniakea.debcheck import Debcheck
 
 
@@ -24,19 +29,15 @@ def _create_debcheck(session, suite_name):
     # the "multiple repositories" feature
     repo_name = 'master'
 
-    repo = session.query(ArchiveRepository) \
-        .filter(ArchiveRepository.name == repo_name).one()
+    repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
 
     scan_suites = []
     if suite_name:
         # we only scan a specific suite
-        suite = session.query(ArchiveSuite) \
-                       .filter(ArchiveSuite.name == suite_name).one()
+        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one()
         scan_suites = [suite]
     else:
-        scan_suites = session.query(ArchiveSuite) \
-                             .filter(ArchiveSuite.frozen == False) \
-                             .all()  # noqa: E712
+        scan_suites = session.query(ArchiveSuite).filter(ArchiveSuite.frozen == False).all()  # noqa: E712
 
     return Debcheck(repo), repo, scan_suites
 
@@ -46,10 +47,9 @@ def _update_debcheck_issues(session, repo, suite, new_issues, package_type):
     # remove old entries
     for issue in new_issues:
         session.expunge(issue)
-    session.query(DebcheckIssue) \
-        .filter(DebcheckIssue.package_type == package_type) \
-        .filter(DebcheckIssue.repo_id == repo.id) \
-        .filter(DebcheckIssue.suite_id == suite.id).delete()
+    session.query(DebcheckIssue).filter(DebcheckIssue.package_type == package_type).filter(
+        DebcheckIssue.repo_id == repo.id
+    ).filter(DebcheckIssue.suite_id == suite.id).delete()
 
     # add new entries
     for issue in new_issues:
@@ -61,7 +61,7 @@ def _update_debcheck_issues(session, repo, suite, new_issues, package_type):
 
 
 def command_sources(options):
-    ''' Check source packages '''
+    '''Check source packages'''
 
     with session_scope() as session:
         debcheck, repo, scan_suites = _create_debcheck(session, options.suite)
@@ -72,7 +72,7 @@ def command_sources(options):
 
 
 def command_binaries(options):
-    ''' Check binary packages '''
+    '''Check binary packages'''
 
     with session_scope() as session:
         debcheck, repo, scan_suites = _create_debcheck(session, options.suite)
@@ -83,16 +83,16 @@ def command_binaries(options):
 
 
 def create_parser(formatter_class=None):
-    ''' Create DataImport CLI argument parser '''
+    '''Create DataImport CLI argument parser'''
 
     parser = ArgumentParser(description='Import existing static data into the Laniakea database')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose',
-                        help='Enable debug messages.')
-    parser.add_argument('--version', action='store_true', dest='show_version',
-                        help='Display the version of Laniakea itself.')
+    parser.add_argument('--verbose', action='store_true', dest='verbose', help='Enable debug messages.')
+    parser.add_argument(
+        '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
+    )
 
     sp = subparsers.add_parser('binaries', help='Analyze issues in binary packages.')
     sp.add_argument('suite', type=str, help='The suite to check.', nargs='?')
@@ -108,6 +108,7 @@ def create_parser(formatter_class=None):
 def check_print_version(options):
     if options.show_version:
         from laniakea import __version__
+
         print(__version__)
         sys.exit(0)
 
@@ -115,6 +116,7 @@ def check_print_version(options):
 def check_verbose(options):
     if options.verbose:
         from laniakea.logging import set_verbose
+
         set_verbose(True)
 
 

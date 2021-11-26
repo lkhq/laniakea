@@ -7,9 +7,9 @@
 import enum
 from uuid import uuid4
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, BYTEA
+from sqlalchemy import Enum, Text, Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import ARRAY, BYTEA
 
 from .base import UUID, Base, DebVersion
 
@@ -18,6 +18,7 @@ class FlatpakRepository(Base):
     '''
     A Flatpak repository.
     '''
+
     __tablename__ = 'flatpak_repositories'
 
     id = Column(Integer, primary_key=True)
@@ -45,6 +46,7 @@ class FlatpakRefKind(enum.IntEnum):
     '''
     Kind of a Flatpak Ref.
     '''
+
     UNKNOWN = enum.auto()
     APP = enum.auto()
     RUNTIME = enum.auto()
@@ -61,6 +63,7 @@ class FlatpakRef(Base):
     '''
     Flatpak object/app/runtime reference.
     '''
+
     __tablename__ = 'flatpak_refs'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
