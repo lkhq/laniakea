@@ -4,19 +4,16 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import sys
-
 import click
 
-from laniakea.db import session_scope, session_factory
+from laniakea.db import session_factory
 
-from .utils import input_str, input_bool, input_list, print_note, print_header
+from .utils import input_str, print_header
 
 
 @click.group()
 def core():
     '''Elemental functions affecting all of Laniakea.'''
-    pass
 
 
 @core.command()
@@ -44,7 +41,6 @@ def db_upgrade():
 @core.command()
 def configure_all():
     '''Configure all basic settings in one go.'''
-    from laniakea.db import ArchiveSuite, ArchiveRepository
     from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     db_init()
@@ -55,7 +51,8 @@ def configure_all():
 
     config_set_distro_tag(
         input_str(
-            'Distribution version tag (commonly found in package versions, e.g. \'tanglu\' for OS \'Tanglu\' with versions like \'1.0-0tanglu1\''
+            'Distribution version tag (commonly found in package versions, '
+            'e.g. \'tanglu\' for OS \'Tanglu\' with versions like \'1.0-0tanglu1\''
         )
     )
     session.commit()

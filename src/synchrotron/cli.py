@@ -42,10 +42,10 @@ def command_autosync(options):
         sync_sources = session.query(SynchrotronSource).all()
         autosyncs = (
             session.query(SynchrotronConfig)
-            .filter(SynchrotronConfig.sync_enabled == True)
-            .filter(SynchrotronConfig.sync_auto_enabled == True)
+            .filter(SynchrotronConfig.sync_enabled == True)  # noqa: E712
+            .filter(SynchrotronConfig.sync_auto_enabled == True)  # noqa: E712
             .all()
-        )  # noqa: E712
+        )
 
         for autosync in autosyncs:
             log.info(

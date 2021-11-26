@@ -4,8 +4,6 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import sys
-
 import click
 
 from .utils import input_str, print_header
@@ -14,7 +12,6 @@ from .utils import input_str, print_header
 @click.group()
 def planter():
     '''Configure settings for Planter (seed packages)'''
-    pass
 
 
 @planter.command()

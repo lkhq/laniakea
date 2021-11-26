@@ -132,7 +132,7 @@ class Repository:
         else:
             self._repo_entity = ArchiveRepository(self._name)
 
-        self._inrelease: dict[str, Repository.InReleaseData] = {}
+        self._inrelease: dict[str, Repository.InReleaseData] = {}  # pylint: disable=used-before-assignment
 
     @property
     def base_dir(self) -> str:

@@ -158,7 +158,8 @@ def install_service_keyfile(options):
     target_keyfile = lconf.secret_curve_keyfile_for_module(service)
     if os.path.isfile(target_keyfile) and not options.force:
         print(
-            'We already have a secret key for this service on the current machine. You can override the existing one by specifying "--force".'
+            'We already have a secret key for this service on the current machine. '
+            'You can override the existing one by specifying "--force".'
         )
         sys.exit(2)
 

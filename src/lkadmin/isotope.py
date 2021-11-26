@@ -25,7 +25,6 @@ from .utils import input_str, input_list, print_done, print_note, print_header
 @click.group()
 def isotope():
     '''Configure disk image build recipes.'''
-    pass
 
 
 @isotope.command()

@@ -40,10 +40,10 @@ class JobWorker:
             # FIXME: We need much better ways to select the right suite to synchronize with
             incoming_suite = (
                 session.query(ArchiveSuite)
-                .filter(ArchiveSuite.accept_uploads == True)
+                .filter(ArchiveSuite.accept_uploads == True)  # noqa: E712
                 .order_by(ArchiveSuite.name)
                 .first()
-            )  # noqa: E712
+            )
             self._default_incoming_suite_name = incoming_suite.name
 
     def _emit_event(self, subject, data):

@@ -70,14 +70,23 @@ def message_prestyle_event_data(data):
 #
 
 templates_jobs = {
-    '_lk.jobs.job-assigned': '''Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> on architecture {job_architecture} to <em>{client_name}</em>''',
-    '_lk.jobs.job-accepted': 'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was '
-    + green('accepted')
-    + ' by <em>{client_name}</em>',
-    '_lk.jobs.job-rejected': 'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was '
-    + red('rejected')
-    + ' by <em>{client_name}</em>',
-    '_lk.jobs.job-finished': '''Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> finished with result <em>{result}</em>''',
+    '_lk.jobs.job-assigned': (
+        'Assigned {job_kind} job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> '
+        'on architecture {job_architecture} to <em>{client_name}</em>'
+    ),
+    '_lk.jobs.job-accepted': (
+        'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was '
+        + green('accepted')
+        + ' by <em>{client_name}</em>'
+    ),
+    '_lk.jobs.job-rejected': (
+        'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was '
+        + red('rejected')
+        + ' by <em>{client_name}</em>'
+    ),
+    '_lk.jobs.job-finished': (
+        'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> finished with result <em>{result}</em>'
+    ),
 }
 
 #
@@ -98,14 +107,14 @@ def pretty_package_imported(tag, data):
 templates_synchrotron = {
     '_lk.synchrotron.src-package-imported': pretty_package_imported,
     '_lk.synchrotron.new-autosync-issue': (
-        'New automatic synchronization issue for '
-        + red('<b>{name}</b>')
-        + ' from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> '
-        '(source: {version_src}, destination: {version_dest}). Type: {kind}'
+        'New automatic synchronization issue for ' + red('<b>{name}</b>') + ' from {src_os} '
+        '<em>{suite_src}</em> → <em>{suite_dest}</em> (source: {version_src}, '
+        'destination: {version_dest}). Type: {kind}'
     ),
-    '_lk.synchrotron.resolved-autosync-issue': 'The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} <em>{suite_src}</em> → <em>{suite_dest}</em> was '
-    + green('resolved')
-    + '.',
+    '_lk.synchrotron.resolved-autosync-issue': (
+        'The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} '
+        '<em>{suite_src}</em> → <em>{suite_dest}</em> was ' + green('resolved') + '.'
+    ),
 }
 
 

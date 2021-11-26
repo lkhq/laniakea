@@ -4,8 +4,6 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import sys
-
 import click
 
 from .utils import input_str, print_note, print_header
@@ -14,7 +12,6 @@ from .utils import input_str, print_note, print_header
 @click.group()
 def ariadne():
     '''Adjust package autobuilder settings.'''
-    pass
 
 
 @ariadne.command()

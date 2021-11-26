@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import sys
 
 import click
 
@@ -19,7 +18,6 @@ from .utils import input_str, input_list, print_note, print_header, print_error_
 @click.group()
 def flatpak():
     '''Configure settings for Flatpak repositories.'''
-    pass
 
 
 @flatpak.command()

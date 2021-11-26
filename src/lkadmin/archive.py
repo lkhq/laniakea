@@ -18,20 +18,12 @@ from laniakea.db import (
     session_scope,
 )
 
-from .utils import (
-    ClickAliasedGroup,
-    input_str,
-    input_list,
-    print_note,
-    print_header,
-    print_error_exit,
-)
+from .utils import ClickAliasedGroup, input_str, input_list, print_error_exit
 
 
 @click.group(cls=ClickAliasedGroup)
 def archive():
     '''Configure package archive settings.'''
-    pass
 
 
 def _add_repo(name: str, origin: str, is_debug: bool = False, debug_for: str = None):

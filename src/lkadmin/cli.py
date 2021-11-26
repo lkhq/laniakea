@@ -83,4 +83,4 @@ def run(mainfile, args):
     __mainfile = mainfile
 
     _register_commands()
-    cli()
+    cli()  # pylint: disable=no-value-for-parameter

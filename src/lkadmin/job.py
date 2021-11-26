@@ -18,7 +18,6 @@ from .utils import print_note
 @click.group()
 def job():
     '''Manage the Spark job queue.'''
-    pass
 
 
 @job.command()

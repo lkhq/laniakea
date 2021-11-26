@@ -406,9 +406,7 @@ class SpearsEngine:
                 f.write('')
 
         # there is no support for Piuparts yet, but Britney crashes without these files
-        piupats_dummy_json = (
-            '{"_id": "Piuparts Package Test Results Summary", ' '"_version": "1.0", ' '"packages": {}}\n'
-        )
+        piupats_dummy_json = '{"_id": "Piuparts Package Test Results Summary", "_version": "1.0", "packages": {}}\n'
         for suite in suites_source:
             piuparts_file_u = os.path.join(mi_wspace, 'state', 'piuparts-summary-{}.json'.format(suite.name))
             if not os.path.isfile(piuparts_file_u):

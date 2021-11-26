@@ -23,7 +23,7 @@ from sqlalchemy import (
     SmallInteger,
     UniqueConstraint,
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import cast, func
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import CHAR, JSON, TEXT, ARRAY, JSONB

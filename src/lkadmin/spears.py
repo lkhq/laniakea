@@ -4,26 +4,16 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import sys
-
 import click
 
 from laniakea.db import session_factory
 
-from .utils import (
-    input_int,
-    input_str,
-    input_bool,
-    input_list,
-    print_header,
-    print_error_exit,
-)
+from .utils import input_int, input_str, input_bool, input_list, print_header
 
 
 @click.group()
 def spears():
     '''Configure automatic package migration.'''
-    pass
 
 
 @spears.command()

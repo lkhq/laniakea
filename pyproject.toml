@@ -115,6 +115,7 @@ multi_line_output = 3
 skip_gitignore = true
 length_sort = true
 atomic = true
+skip_glob = ["tests/test_data/*"]
 
 [tool.black]
 target-version = ['py39']

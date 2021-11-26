@@ -4,8 +4,6 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import sys
-
 import click
 
 from laniakea.db import (
@@ -29,7 +27,6 @@ from .utils import (
 @click.group()
 def synchrotron():
     '''Adjust package synchronization settings.'''
-    pass
 
 
 @synchrotron.command()

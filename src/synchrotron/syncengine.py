@@ -206,7 +206,8 @@ class SyncEngine:
                     bpkg = src_bpkg_map[bin_i.name]
                     if bin_i.version != bpkg.source_version:
                         log.debug(
-                            'Not syncing binary package \'{}\': Version number \'{}\' does not match source package version \'{}\'.'.format(
+                            'Not syncing binary package \'{}\': '
+                            'Version number \'{}\' does not match source package version \'{}\'.'.format(
                                 bpkg.name, bin_i.version, bpkg.source_version
                             )
                         )
@@ -216,7 +217,8 @@ class SyncEngine:
                     if ebpkg:
                         if version_compare(ebpkg.version, bpkg.version) >= 0:
                             log.debug(
-                                'Not syncing binary package \'{}/{}\': Existing binary package with bigger/equal version \'{}\' found.'.format(
+                                'Not syncing binary package \'{}/{}\': '
+                                'Existing binary package with bigger/equal version \'{}\' found.'.format(
                                     bpkg.name, bpkg.version, ebpkg.version
                                 )
                             )
@@ -231,7 +233,8 @@ class SyncEngine:
                         if version_compare(spkg.version, ebpkg.version) >= 0:
                             if re.match(r'(.*)b([0-9]+)', ebpkg.version):
                                 log.debug(
-                                    'Not syncing binary package \'{}/{}\': Existing binary package with rebuild upload \'{}\' found.'.format(
+                                    'Not syncing binary package \'{}/{}\': '
+                                    'Existing binary package with rebuild upload \'{}\' found.'.format(
                                         bpkg.name, bpkg.version, ebpkg.version
                                     )
                                 )
