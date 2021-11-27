@@ -6,6 +6,7 @@
 
 import os
 import sys
+import subprocess
 
 import pytest
 
@@ -19,7 +20,7 @@ set_verbose(True)
 
 
 @pytest.fixture(scope='session')
-def samplesdir():
+def samples_dir():
     '''
     Fixture responsible for returning the location of static
     test data the test may use.
@@ -46,7 +47,7 @@ def sourcesdir():
 
 
 @pytest.fixture(scope='session', autouse=True)
-def localconfig(samplesdir):
+def localconfig(samples_dir):
     '''
     Retrieve a Laniakea LocalConfig object which is set
     up for testing.
@@ -60,12 +61,12 @@ def localconfig(samplesdir):
         rmtree(test_aux_data_dir)
     os.makedirs(test_aux_data_dir)
 
-    config_tmpl_fname = os.path.join(samplesdir, 'config', 'base-config.toml')
+    config_tmpl_fname = os.path.join(samples_dir, 'config', 'base-config.toml')
     with open(config_tmpl_fname, 'r') as f:
         config_toml = toml.load(f)
 
     config_toml['CurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
-    config_toml['Archive']['path'] = os.path.join(samplesdir, 'samplerepo', 'dummy')
+    config_toml['Archive']['path'] = os.path.join(samples_dir, 'samplerepo', 'dummy')
 
     config_fname = os.path.join(test_aux_data_dir, 'base-config.toml')
     with open(config_fname, 'w') as f:
@@ -90,11 +91,11 @@ def localconfig(samplesdir):
 
     # add the trusted keyring with test keys
     conf._trusted_gpg_keyrings = []
-    conf._trusted_gpg_keyrings.append(os.path.join(samplesdir, 'gpg', 'keyrings', 'keyring.gpg'))
-    conf._trusted_gpg_keyrings.append(os.path.join(samplesdir, 'gpg', 'keyrings', 'other-keyring.gpg'))
+    conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'keyring.gpg'))
+    conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'other-keyring.gpg'))
 
     # set our GPG secret keyring dir
-    conf._secret_gpg_home_dir = os.path.join(samplesdir, 'gpg', 'home')
+    conf._secret_gpg_home_dir = os.path.join(samples_dir, 'gpg', 'home')
 
     return conf
 
@@ -109,8 +110,99 @@ def pgsql_test_available(session_scope):
     return True
 
 
+@pytest.fixture(scope='session')
+def postgresql_container():
+    """Create & run a PostgreSQL container"""
+    import json
+    import time
+    import timeit
+
+    from . import source_root
+
+    LKPG_IMAGE_TAG = 'lktest_postgres'
+    LKPG_CONTAINER_NAME = 'lktest_postgres'
+    LKPG_IP = 5432
+
+    class PGSQLContainerInfo:
+        container_name: str
+        host_ip: str
+        pg_host_port: int
+
+        def wait_until_responsive(self, check, timeout, pause, clock=timeit.default_timer):
+            """Wait until a service is responsive."""
+
+            ref = clock()
+            now = ref
+            while (now - ref) < timeout:
+                if check():
+                    return
+                time.sleep(pause)
+                now = clock()
+
+            raise Exception("Timeout reached while waiting on service!")
+
+    tests_dir = os.path.join(source_root, 'tests')
+    # ensure any cold container is stopped
+    subprocess.run(['podman', 'stop', LKPG_CONTAINER_NAME], check=False)
+
+    # build image
+    subprocess.run(
+        [
+            'podman',
+            'build',
+            '-t',
+            LKPG_IMAGE_TAG,
+            '-f',
+            os.path.join(tests_dir, 'containers', 'postgres', 'Dockerfile'),
+        ],
+        check=True,
+    )
+
+    # run temporary database container
+    subprocess.run(
+        [
+            'podman',
+            'run',
+            '-d',
+            '-p',
+            str(LKPG_IP),
+            '--name',
+            LKPG_CONTAINER_NAME,
+            '--rm',
+            'lktest_postgres',
+        ],
+        check=True,
+    )
+
+    # get host IP
+    proc = subprocess.run(['podman', 'inspect', LKPG_CONTAINER_NAME], check=True, capture_output=True)
+
+    data = json.loads(proc.stdout)[0]
+    ports = data['NetworkSettings']['Ports']
+    port_data = ports.get('{}/tcp'.format(LKPG_IP), ports.get('{}/udp'.format(LKPG_IP)))
+    if not port_data:
+        raise Exception('Unable to set up PostgreSQL test container: Could not find port settings')
+
+    info = PGSQLContainerInfo()
+    info.container_name = LKPG_CONTAINER_NAME
+    host_port = port_data[0]['HostPort']
+    host_ip = port_data[0]['HostIp']
+    if not host_port:
+        raise ValueError('Could not detect host port for "%s:%d".' % (LKPG_CONTAINER_NAME, LKPG_IP))
+    info.pg_host_port = int(host_port.strip())
+
+    if not host_ip:
+        host_ip = '0.0.0.0'
+    info.host_ip = host_ip
+
+    yield info
+
+    # tear down container again
+    subprocess.run(['podman', 'stop', LKPG_CONTAINER_NAME], check=True)
+
+
 @pytest.fixture(scope='class')
-def database(localconfig, podman_ip, podman_services):
+def database(localconfig, postgresql_container):
     '''
     Retrieve a pristine, empty Laniakea database connection.
     This will wipe the global database, so tests using this can
@@ -129,7 +221,8 @@ def database(localconfig, podman_ip, podman_services):
     from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     # get IP of our database container
-    db_port = podman_services.port_for('postgres', 5432)
+    db_port = postgresql_container.pg_host_port
+    podman_ip = postgresql_container.host_ip
 
     # update database URL to use scratch database in our container
     pgdb_url = 'postgresql://lkdbuser_test:notReallySecret@{}:{}/laniakea_unittest'.format(podman_ip, db_port)
@@ -148,7 +241,9 @@ def database(localconfig, podman_ip, podman_services):
     db = Database(localconfig)
 
     # wait for the database to become available
-    podman_services.wait_until_responsive(timeout=60.0, pause=0.5, check=lambda: pgsql_test_available(session_scope))
+    postgresql_container.wait_until_responsive(
+        timeout=60.0, pause=0.5, check=lambda: pgsql_test_available(session_scope)
+    )
 
     # clear database tables so test function has a pristine database to work with
     with session_scope() as session:
