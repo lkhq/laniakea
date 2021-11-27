@@ -6,6 +6,7 @@
 
 import os
 import sys
+import shutil
 import subprocess
 
 import pytest
@@ -76,6 +77,7 @@ def localconfig(samples_dir):
     conf = LocalConfig.instance
     assert conf.cache_dir == '/var/tmp/laniakea'
     assert conf.workspace == '/tmp/test-lkws/'
+    shutil.rmtree(conf.workspace)
 
     assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_unittest'
     assert conf.lighthouse.endpoints_jobs == ['tcp://*:5570']
@@ -210,14 +212,7 @@ def database(localconfig, postgresql_container):
     '''
     import toml
 
-    from laniakea.db import (
-        Database,
-        ArchiveSuite,
-        ArchiveComponent,
-        ArchiveRepository,
-        ArchiveArchitecture,
-        session_scope,
-    )
+    from laniakea.db import Database, session_scope
     from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     # get IP of our database container
@@ -254,53 +249,6 @@ def database(localconfig, postgresql_container):
     # add core configuration data to the database
     config_set_project_name('Test Project')
     config_set_distro_tag('test')
-    with session_scope() as session:
-        # master repository, currently the only one we support
-        repo = ArchiveRepository('master')
-        session.add(repo)
-
-        # components
-        acpt_main = ArchiveComponent('main')
-        acpt_contrib = ArchiveComponent('contrib')
-        acpt_nonfree = ArchiveComponent('non-free')
-        acpt_contrib.parent_component = acpt_main
-        acpt_nonfree.parent_component = acpt_main
-
-        all_components = [acpt_main, acpt_contrib, acpt_nonfree]
-        session.add_all(all_components)
-
-        # architectures
-        arch_all = ArchiveArchitecture('all')
-        arch_amd64 = ArchiveArchitecture('amd64')
-        arch_arm64 = ArchiveArchitecture('arm64')
-
-        all_architectures = [arch_all, arch_amd64, arch_arm64]
-        session.add_all(all_architectures)
-
-        # add 'unstable' suite
-        suite_us = ArchiveSuite('unstable')
-        suite_us.repos = [repo]
-        suite_us.components = all_components
-        suite_us.architectures = all_architectures
-        suite_us.accept_uploads = True
-        session.add(suite_us)
-
-        # add 'testing' suite
-        suite_te = ArchiveSuite('testing')
-        suite_te.repos = [repo]
-        suite_te.components = all_components
-        suite_te.architectures = all_architectures
-        suite_te.devel_target = True
-        session.add(suite_te)
-
-        # add 'experimental' suite
-        suite_ex = ArchiveSuite('experimental')
-        suite_ex.repos = [repo]
-        suite_ex.components = all_components
-        suite_ex.architectures = [arch_all, arch_amd64]
-        suite_ex.accept_uploads = True
-        suite_ex.parent = suite_us
-        session.add(suite_ex)
 
     return db
 
@@ -309,7 +257,6 @@ def generate_curve_keys_for_module(sourcesdir, localconfig, mod):
     '''
     Generate new CurveZMQ keys for use by Lighthouse.
     '''
-    import subprocess
 
     sec_dest_fname = localconfig.secret_curve_keyfile_for_module(mod)
     if os.path.isfile(sec_dest_fname):
@@ -345,7 +292,6 @@ def generate_curve_keys_for_module(sourcesdir, localconfig, mod):
 @pytest.fixture
 def make_curve_trusted_key(sourcesdir, localconfig):
     def _make_curve_trusted_key(name):
-        import subprocess
 
         pub_dest_fname = os.path.join(localconfig.trusted_curve_keys_dir, '{}.key'.format(name))
         sec_dest_fname = os.path.join(localconfig.trusted_curve_keys_dir, '..', '{}.key_secret'.format(name))
@@ -398,7 +344,6 @@ class LighthouseServer:
 
         def start(self):
             import time
-            import subprocess
 
             # ensure we are not running anymore, in case we were before
             self.terminate()
@@ -487,9 +432,21 @@ def import_package_data(request, sourcesdir, localconfig, database):
     This will wipe the global database, so tests using this can
     never run in parallel.
     '''
-    import subprocess
 
     dataimport_exe = os.path.join(sourcesdir, 'dataimport', 'dataimport.py')
     suite_name = getattr(request.module, 'dataimport_suite', 'unstable')
 
     subprocess.run([dataimport_exe, '--config', localconfig.fname, 'repo', suite_name], check=True)
+
+
+@pytest.fixture(scope='session')
+def package_samples(samples_dir):
+    '''
+    Fixture responsible for building a set of test packages and cleaning them up once we
+    are done with running tests.
+    '''
+
+    pkg_dir = os.path.join(samples_dir, 'packages')
+    subprocess.run(['make'], cwd=pkg_dir, check=True)
+    yield pkg_dir
+    subprocess.run(['make', 'clean'], cwd=pkg_dir, check=True)

@@ -368,7 +368,7 @@ class ArchiveQueueNewEntry(Base):
 
     id = Column(Integer, primary_key=True)
 
-    package_uuid = Column(Integer, ForeignKey('archive_pkgs_source.uuid'))
+    package_uuid = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
     package = relationship('SourcePackage')
 
     destination_id = Column(Integer, ForeignKey('archive_suites.id'))

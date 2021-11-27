@@ -135,7 +135,7 @@ class LocalConfig:
                     self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
 
             # ZCurve / Message signing
-            self._curve_keys_basedir = cdata.get('CurveKeysDir', '/etc/laniakea/keys/curve/')
+            self._curve_keys_basedir = cdata.get('CurveKeysDir', os.path.join(self._workspace, 'keys', 'curve'))
 
             # Trusted GPG keyrings
             self._trusted_gpg_keyrings = []
@@ -144,7 +144,14 @@ class LocalConfig:
                 self._trusted_gpg_keyrings = glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))
 
             # Secret GPG Keyring dir
-            self._secret_gpg_home_dir = cdata.get('SecretGPGHome', '/etc/laniakea/keys/gpg/s3kr1t/')
+            self._secret_gpg_home_dir = cdata.get(
+                'SecretGPGHome', os.path.join(self._workspace, 'keys', 'archive', 's3kr1t')
+            )
+
+            # Uploader GPG home dir
+            self._uploaders_keyring_dir = cdata.get(
+                'UploadersGPGHome', os.path.join(self._workspace, 'keys', 'uploaders')
+            )
 
         @property
         def workspace(self) -> str:
@@ -233,6 +240,10 @@ class LocalConfig:
         @property
         def secret_gpg_home_dir(self) -> str:
             return self._secret_gpg_home_dir
+
+        @property
+        def uploaders_keyring_dir(self) -> str:
+            return self._uploaders_keyring_dir
 
     def __init__(self, fname=None):
         if not LocalConfig.instance:

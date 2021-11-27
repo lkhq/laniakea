@@ -10,6 +10,8 @@ import fcntl
 import select
 import datetime
 import subprocess
+from typing import List, Union
+from pathlib import Path
 
 import apt_pkg
 
@@ -333,3 +335,33 @@ def sign(
     args.append('--clearsign' if inline else '--detach-sign')
 
     subprocess.check_call(args, stdin=infile, stdout=outfile)
+
+
+def import_keyfile(gpghome: Union[Path, str], fname: Union[Path, str]) -> List[str]:
+    """Import a GPG (public) keyfile into the keyring set by :gpghome"""
+
+    args = [
+        '/usr/bin/gpg',
+        '--no-default-keyring',
+        '--homedir',
+        str(gpghome),
+        '--no-tty',
+        '--batch',
+        '--status-fd=1',
+        '--import',
+        str(fname),
+    ]
+
+    proc = subprocess.run(args, capture_output=True, check=False)
+    if proc.returncode != 0:
+        raise GpgException('Unable to import key: {!r}{!r}'.format(proc.stderr, proc.stdout))
+
+    key_fingerprints = []
+    for line in str(proc.stdout, 'utf-8').splitlines():
+        if line.startswith('[GNUPG:] IMPORT_OK'):
+            parts = line.split(' ')
+            key_fingerprints.append(parts[3])
+    if not key_fingerprints:
+        raise GpgException('Imported key, but unable to determine fingerprint of the new key.:')
+
+    return key_fingerprints
