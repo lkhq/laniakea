@@ -44,9 +44,9 @@ uploader_repo_assoc_table = Table(
 
 
 class ArchiveConfig(Base):
-    '''
+    """
     General archive configuration that applies to all repositories and suites.
-    '''
+    """
 
     __tablename__ = 'archive_config'
 
@@ -65,10 +65,10 @@ class ArchiveConfig(Base):
 
 
 class ArchiveRepository(Base):
-    '''
+    """
     A system architecture software can be compiled for.
     Usually associated with an :ArchiveSuite
-    '''
+    """
 
     __tablename__ = 'archive_repositories'
 
@@ -155,9 +155,9 @@ swcpt_binpkg_assoc_table = Table(
 
 
 class ArchiveUploader(Base):
-    '''
+    """
     Entities who are permitted to upload data to archive repositories.
-    '''
+    """
 
     __tablename__ = 'archive_uploaders'
 
@@ -181,9 +181,9 @@ class ArchiveUploader(Base):
 
 
 class ArchiveSuite(Base):
-    '''
+    """
     Information about suite in a distribution repository.
-    '''
+    """
 
     __tablename__ = 'archive_suites'
 
@@ -241,10 +241,10 @@ class ArchiveSuite(Base):
 
 
 class ArchiveRepoSuiteSettings(Base):
-    '''
+    """
     Settings that are specific to a suite in a particular repository, but
     will not apply to the suite globally.
-    '''
+    """
 
     __tablename__ = 'archive_repo_suite_settings'
     __table_args__ = (UniqueConstraint('repo_id', 'suite_id', name='_repo_suite_uc'),)
@@ -291,9 +291,9 @@ class ArchiveRepoSuiteSettings(Base):
 
 
 class ArchiveComponent(Base):
-    '''
+    """
     Information about an archive component within a suite.
-    '''
+    """
 
     __tablename__ = 'archive_components'
 
@@ -319,10 +319,10 @@ class ArchiveComponent(Base):
 
 
 class ArchiveArchitecture(Base):
-    '''
+    """
     A system architecture software can be compiled for.
     Usually associated with an :ArchiveSuite
-    '''
+    """
 
     __tablename__ = 'archive_architectures'
 
@@ -342,10 +342,10 @@ class ArchiveArchitecture(Base):
 
 
 class ArchiveSection(Base):
-    '''
+    """
     Known sections in the archive that packages are sorted into.
     See https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections for reference.
-    '''
+    """
 
     __tablename__ = 'archive_sections'
 
@@ -359,10 +359,28 @@ class ArchiveSection(Base):
         self.summary = summary
 
 
+class ArchiveQueueNewEntry(Base):
+    """
+    Queue for package NEW processing.
+    """
+
+    __tablename__ = 'archive_queue_new'
+
+    id = Column(Integer, primary_key=True)
+
+    package_uuid = Column(Integer, ForeignKey('archive_pkgs_source.uuid'))
+    package = relationship('SourcePackage')
+
+    destination_id = Column(Integer, ForeignKey('archive_suites.id'))
+    destination = relationship('ArchiveSuite')
+
+    comment = Column(Text(), nullable=True)
+
+
 class PackageType(enum.IntEnum):
-    '''
+    """
     Type of the package.
-    '''
+    """
 
     UNKNOWN = 0
     SOURCE = enum.auto()
@@ -370,9 +388,9 @@ class PackageType(enum.IntEnum):
 
 
 class DebType(enum.IntEnum):
-    '''
+    """
     Type of the Debian package.
-    '''
+    """
 
     UNKNOWN = 0
     DEB = enum.auto()
@@ -387,9 +405,9 @@ class DebType(enum.IntEnum):
 
 
 def debtype_from_string(s):
-    '''
+    """
     Convert the text representation into the enumerated type.
-    '''
+    """
     if s == 'deb':
         return DebType.DEB
     elif s == 'udeb':
@@ -398,9 +416,9 @@ def debtype_from_string(s):
 
 
 class PackagePriority(enum.IntEnum):
-    '''
+    """
     Priority of a Debian package.
-    '''
+    """
 
     UNKNOWN = 0
     REQUIRED = enum.auto()
@@ -411,9 +429,9 @@ class PackagePriority(enum.IntEnum):
 
 
 def packagepriority_from_string(s):
-    '''
+    """
     Convert the text representation into the enumerated type.
-    '''
+    """
     if s == 'optional':
         return PackagePriority.OPTIONAL
     elif s == 'extra':
@@ -428,9 +446,9 @@ def packagepriority_from_string(s):
 
 
 class VersionPriority(enum.IntEnum):
-    '''
+    """
     Priority of a package upload.
-    '''
+    """
 
     LOW = 0
     MEDIUM = enum.auto()
@@ -453,10 +471,10 @@ class VersionPriority(enum.IntEnum):
 
 
 class PackageInfo:
-    '''
+    """
     Basic package information, used by
     :SourcePackage to refer to binary packages.
-    '''
+    """
 
     deb_type = DebType.DEB
     name = None
@@ -467,9 +485,9 @@ class PackageInfo:
 
 
 class ArchiveFile(Base):
-    '''
+    """
     A file in the archive.
-    '''
+    """
 
     __tablename__ = 'archive_files'
 
@@ -496,9 +514,9 @@ class ArchiveFile(Base):
 
 
 class SourcePackage(Base):
-    '''
+    """
     Data of a source package.
-    '''
+    """
 
     __tablename__ = 'archive_pkgs_source'
 
@@ -625,9 +643,9 @@ class SourcePackage(Base):
 
 
 class ArchiveVersionMemory(Base):
-    '''
+    """
     Remember the highest version number for a source package that a repository has seen.
-    '''
+    """
 
     __tablename__ = 'archive_pkg_version_memory'
     __table_args__ = (UniqueConstraint('pkgname', 'repo_id', name='_pkgname_repo_uc'),)
@@ -643,9 +661,9 @@ class ArchiveVersionMemory(Base):
 
 
 class PackageOverride(Base):
-    '''
+    """
     Overridable "archive organization" data of a binary package.
-    '''
+    """
 
     __tablename__ = 'archive_pkg_overrides'
 
@@ -667,9 +685,9 @@ class PackageOverride(Base):
 
 
 class BinaryPackage(Base):
-    '''
+    """
     Data of a binary package.
-    '''
+    """
 
     __tablename__ = 'archive_pkgs_binary'
 
@@ -764,10 +782,10 @@ bin_package_repo_arch_index = Index('idx_bin_package_repo_arch', BinaryPackage.r
 
 
 class SoftwareComponent(Base):
-    '''
+    """
     Description of a software component as described by the AppStream
     specification.
-    '''
+    """
 
     __tablename__ = 'archive_sw_components'
 
@@ -790,7 +808,7 @@ class SoftwareComponent(Base):
 
     supports_touch = Column(Boolean(), default=False)  # Whether this component supports touch input
 
-    categories = Column(ARRAY(String(256)))  # Categories this component is in
+    categories = Column(ARRAY(String(100)))  # Categories this component is in
 
     pkgs_binary = relationship(
         'BinaryPackage',
@@ -815,9 +833,9 @@ class SoftwareComponent(Base):
     cpt = None
 
     def update_uuid(self):
-        '''
+        """
         Update the unique identifier for this component.
-        '''
+        """
         if not self.gcid and not self.xml:
             raise Exception(
                 'Global component ID is not set for this component, and no XML data was found for it. Can not create UUID.'
@@ -827,10 +845,10 @@ class SoftwareComponent(Base):
         return self.uuid
 
     def load(self, context=None):
-        '''
+        """
         Load the actual AppStream component from stored XML data.
         An existing AppStream Context instance can be reused.
-        '''
+        """
 
         # return the AppStream component if we already have it
         if self.cpt:
@@ -857,12 +875,12 @@ class SoftwareComponent(Base):
 
 
 def get_archive_sections():
-    '''
+    """
     Retrieve a list of dictionaries describing the archive
     sections that are currently supported.
     This function does read a local data file, instead of information
     from the database.
-    '''
+    """
     from ..localconfig import get_data_file
 
     with open(get_data_file('archive-sections.json'), 'r') as f:
