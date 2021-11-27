@@ -78,6 +78,7 @@ def localconfig(samples_dir):
     assert conf.cache_dir == '/var/tmp/laniakea'
     assert conf.workspace == '/tmp/test-lkws/'
     shutil.rmtree(conf.workspace)
+    os.makedirs(conf.workspace, exist_ok=True)
 
     assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_unittest'
     assert conf.lighthouse.endpoints_jobs == ['tcp://*:5570']
@@ -133,13 +134,13 @@ def postgresql_container():
         def wait_until_responsive(self, check, timeout, pause, clock=timeit.default_timer):
             """Wait until a service is responsive."""
 
-            ref = clock()
+            ref = time.process_time()
             now = ref
             while (now - ref) < timeout:
                 if check():
                     return
                 time.sleep(pause)
-                now = clock()
+                now = time.process_time()
 
             raise Exception("Timeout reached while waiting on service!")
 
