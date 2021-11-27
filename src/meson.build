@@ -19,6 +19,11 @@ if (get_option('clitools'))
     subdir('lkadmin')
 endif
 
+# Archive management cli tool
+if (get_option('clitools'))
+    subdir('lkarchive')
+endif
+
 # Key management cli tool
 if (get_option('clitools'))
     subdir('keytool')
