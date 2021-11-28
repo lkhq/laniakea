@@ -57,9 +57,7 @@ def localconfig(samples_dir):
 
     test_aux_data_dir = os.path.join('/tmp', 'test-lkaux')
     if os.path.isdir(test_aux_data_dir):
-        from shutil import rmtree
-
-        rmtree(test_aux_data_dir)
+        shutil.rmtree(test_aux_data_dir)
     os.makedirs(test_aux_data_dir)
 
     config_tmpl_fname = os.path.join(samples_dir, 'config', 'base-config.toml')
@@ -77,7 +75,8 @@ def localconfig(samples_dir):
     conf = LocalConfig.instance
     assert conf.cache_dir == '/var/tmp/laniakea'
     assert conf.workspace == '/tmp/test-lkws/'
-    shutil.rmtree(conf.workspace)
+    if os.path.isdir(conf.workspace):
+        shutil.rmtree(conf.workspace)
     os.makedirs(conf.workspace, exist_ok=True)
 
     assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_unittest'

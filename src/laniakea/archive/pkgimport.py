@@ -13,12 +13,14 @@ from apt_pkg import Hashes
 from debian.deb822 import Sources
 
 from laniakea.db import (
+    PackageInfo,
     SourcePackage,
     ArchiveComponent,
     ArchiveQueueNewEntry,
     ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
 )
+from laniakea.logging import log
 from laniakea.archive.utils import (
     check_overrides_source,
     checksums_list_to_file,
@@ -46,8 +48,8 @@ class PackageImporter:
         p = subprocess.run(['apt-ftparchive', 'sources', dsc_fname], capture_output=True, check=True, encoding='utf-8')
         src_tf = Sources(p.stdout)
 
-        pkgname = src_tf['Package']
-        version = src_tf['Version']
+        pkgname = src_tf.pop('Package')
+        version = src_tf.pop('Version')
 
         result = (
             self._session.query(ArchiveVersionMemory.highest_version)
@@ -65,24 +67,37 @@ class PackageImporter:
             )
 
         spkg = SourcePackage(pkgname, version, self._rss.repo)
-        spkg.format_version = src_tf['Format']
-        spkg.architectures = src_tf['Architecture'].split(' ')
-        spkg.maintainer = src_tf['Maintainer']
-        spkg.uploaders = src_tf.get('Uploaders', '').split(', ')
+        spkg.format_version = src_tf.pop('Format')
+        spkg.architectures = src_tf.pop('Architecture').split(' ')
+        spkg.maintainer = src_tf.pop('Maintainer')
+        spkg.uploaders = src_tf.pop('Uploaders', '').split(', ')
 
-        spkg.build_depends = src_tf.get('Build-Depends', '').split(', ')
-        spkg.build_depends_indep = src_tf.get('Build-Depends-Indep', '').split(', ')
-        spkg.build_conflicts = src_tf.get('Build-Conflicts', '').split(', ')
-        spkg.build_conflicts_indep = src_tf.get('Build-Conflicts-Indep', '').split(', ')
-        spkg.expected_binaries = parse_package_list_str(src_tf['Package-List'])
+        spkg.build_depends = src_tf.pop('Build-Depends', '').split(', ')
+        spkg.build_depends_indep = src_tf.pop('Build-Depends-Indep', '').split(', ')
+        spkg.build_conflicts = src_tf.pop('Build-Conflicts', '').split(', ')
+        spkg.build_conflicts_indep = src_tf.pop('Build-Conflicts-Indep', '').split(', ')
+        if 'Package-List' in src_tf:
+            spkg.expected_binaries = parse_package_list_str(src_tf.pop('Package-List'))
+            src_tf.pop('Binary')
+        else:
+            log.warning(
+                'Source package dsc file `{}/{}` had no `Package-List` '
+                '- falling back to parsing `Binaries`.'.format(pkgname, version)
+            )
+            binary_stubs = []
+            for b in src_tf.pop('Binary').split(', '):
+                pi = PackageInfo()
+                pi.name = b
+                binary_stubs.append(pi)
+            spkg.expected_binaries = binary_stubs
 
         component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()
         spkg.component = component
 
-        files = checksums_list_to_file(src_tf['Files'], 'md5')
-        files = checksums_list_to_file(src_tf['Checksums-Sha1'], 'sha1', files)
-        files = checksums_list_to_file(src_tf['Checksums-Sha256'], 'sha256', files)
-        files = checksums_list_to_file(src_tf.get('Checksums-Sha512', None), 'sha512', files)
+        files = checksums_list_to_file(src_tf.pop('Files'), 'md5')
+        files = checksums_list_to_file(src_tf.pop('Checksums-Sha1'), 'sha1', files)
+        files = checksums_list_to_file(src_tf.pop('Checksums-Sha256'), 'sha256', files)
+        files = checksums_list_to_file(src_tf.pop('Checksums-Sha512', None), 'sha512', files)
 
         for file in files.values():
             file.srcpkg = spkg
@@ -120,7 +135,6 @@ class PackageImporter:
             self._session.add(file)
 
         missing_overrides = check_overrides_source(self._session, self._rss, spkg)
-        print(missing_overrides)
         if skip_new:
             # if we are supposed to skip NEW, we just register the overrides and add the package
             # to its designated suite
@@ -136,5 +150,12 @@ class PackageImporter:
             else:
                 # no missing overrides, the package is good to go
                 spkg.suites.append(self._rss.suite)
+
+        # drop directory key, we don't need it
+        src_tf.pop('Directory')
+
+        # store any remaining fields as extra data
+        log.debug('Extra data fields for `{}/{}`: {}'.format(pkgname, version, dict(src_tf)))
+        spkg.extra_data = dict(src_tf)
 
         self._session.add(spkg)
