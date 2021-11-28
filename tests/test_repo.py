@@ -128,9 +128,9 @@ def validate_bin_packages(bpkgs):
     assert found
 
 
-def test_repo_local(samplesdir, localconfig):
+def test_repo_local(samples_dir, localconfig):
     keyrings = localconfig.trusted_gpg_keyrings
-    repo_location = os.path.join(samplesdir, 'samplerepo', 'dummy')
+    repo_location = os.path.join(samples_dir, 'samplerepo', 'dummy')
 
     suite = ArchiveSuite('testing')
     component = ArchiveComponent('main')

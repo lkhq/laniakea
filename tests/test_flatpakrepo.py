@@ -10,7 +10,7 @@ from laniakea.db import FlatpakRepository
 from laniakea.flatpak_util import FlatpakUtil
 
 
-def test_flatpak_init_repo(localconfig, samplesdir):
+def test_flatpak_init_repo(localconfig, samples_dir):
     '''Check if we can create an empty Flatpak repo'''
 
     repo = FlatpakRepository('laniakea_test')
