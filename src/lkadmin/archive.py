@@ -276,6 +276,10 @@ def _add_suite(
             if component not in suite.components:
                 suite.components.append(component)
 
+        # always add the "all" architecture
+        suite.architectures.append(session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == 'all').one())
+
+        # add the other architectures
         for aname in arch_names:
             arch = session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == aname).one_or_none()
             if not arch:
@@ -283,6 +287,7 @@ def _add_suite(
             if arch not in suite.architectures:
                 suite.architectures.append(arch)
 
+        # add suite parents
         for pname in parent_names:
             parent = session.query(ArchiveSuite).filter(ArchiveSuite.name == pname).one_or_none()
             if not parent:

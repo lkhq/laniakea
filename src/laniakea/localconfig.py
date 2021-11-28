@@ -107,6 +107,7 @@ class LocalConfig:
 
             self._master_repo_name = carchive.get('master_repo_name', 'master')
             self._archive_root_dir = carchive.get('path', '/nonexistent')
+            self._archive_queue_dir = carchive.get('queue_path', os.path.join(self._workspace, 'archive-queues'))
             self._archive_url = carchive.get('url', '#')
             self._archive_appstream_media_url = carchive.get(
                 'appstream_media_url', 'https://appstream.debian.org/media/pool'
@@ -173,6 +174,10 @@ class LocalConfig:
         @property
         def archive_root_dir(self) -> str:
             return self._archive_root_dir
+
+        @property
+        def archive_queue_dir(self) -> str:
+            return self._archive_queue_dir
 
         @property
         def archive_flatpak_root_dir(self) -> str:

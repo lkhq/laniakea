@@ -4,10 +4,12 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import os
 import enum
 import json
 import uuid
-from typing import List
+from typing import List, Union
+from pathlib import Path
 from datetime import datetime
 
 from sqlalchemy import (
@@ -90,6 +92,18 @@ class ArchiveRepository(Base):
 
     def __init__(self, name):
         self.name = name
+
+    def get_root_dir(self) -> str:
+        """Get the absolute path to the repository's root directory"""
+        from laniakea import LocalConfig
+
+        return os.path.join(LocalConfig().archive_root_dir, self.name)
+
+    def get_new_queue_dir(self) -> str:
+        """Get the absolute path to the repository's root directory"""
+        from laniakea import LocalConfig
+
+        return os.path.join(LocalConfig().archive_queue_dir, self.name, 'new')
 
 
 suite_component_assoc_table = Table(
@@ -492,10 +506,14 @@ class ArchiveFile(Base):
     """
 
     __tablename__ = 'archive_files'
+    __table_args__ = (UniqueConstraint('repo_id', 'fname', name='_repo_fname_uc'),)
 
     id = Column(Integer, primary_key=True)
 
-    fname = Column(Text())
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
+    repo = relationship('ArchiveRepository')
+
+    fname = Column(Text(), nullable=False)
     size = Column(Integer())  # the size of the file
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this file was created
 
@@ -508,6 +526,11 @@ class ArchiveFile(Base):
     binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_binary.uuid'), nullable=True)
     binpkg = relationship('BinaryPackage', back_populates='bin_file')
     srcpkg = relationship('SourcePackage', back_populates='files')
+
+    def __init__(self, fname: Union[Path, str], repo: ArchiveRepository = None):
+        self.fname = str(fname)
+        if repo:
+            self.repo = repo
 
     def make_url(self, urlbase):
         if urlbase[-1] == '/':
@@ -566,10 +589,10 @@ class SourcePackage(Base):
     build_conflicts = Column(ARRAY(Text()))
     build_conflicts_indep = Column(ARRAY(Text()))
 
+    directory = Column(Text(), nullable=False)  # pool directory name for the sources
     files = relationship('ArchiveFile', back_populates='srcpkg', cascade='all, delete, delete-orphan')
-    directory = Column(Text())
 
-    binaries = relationship('BinaryPackage', back_populates='source')
+    binaries = relationship('BinaryPackage', back_populates='source', uselist=True)
 
     _expected_binaries_json = Column('expected_binaries', JSON)
     # Additional key-value metadata that may be specific to this package
@@ -693,6 +716,8 @@ class PackageOverride(Base):
     section_id = Column(Integer, ForeignKey('archive_sections.id'))
     section = relationship('ArchiveSection')  # Section of the package
 
+    package = relationship('BinaryPackage', back_populates='override')
+
     def __init__(self, pkgname: str):
         self.pkgname = pkgname
 
@@ -727,12 +752,16 @@ class BinaryPackage(Base):
     source_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
     source = relationship('SourcePackage', back_populates='binaries')
 
+    override_id = Column(Integer, ForeignKey('archive_pkg_overrides.id'))
+    override = relationship('PackageOverride', back_populates='package')  # Override data for this binary
+
     time_added = Column(DateTime(), nullable=True)  # Time when this package was added to the archive
     time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive
     time_deleted = Column(DateTime(), nullable=True)  # Time when this package was deleted from the archive
 
     size_installed = Column(Integer())  # Size of the installed package
 
+    summary = Column(String(200))
     description = Column(Text())
     description_md5 = Column(CHAR(32))
 
@@ -767,6 +796,12 @@ class BinaryPackage(Base):
     __ts_vector__ = create_tsvector(cast(func.coalesce(name, ''), TEXT), cast(func.coalesce(description, ''), TEXT))
 
     __table_args__ = (Index('idx_bin_package_fts', __ts_vector__, postgresql_using='gin'),)
+
+    def __init__(self, name: str, version: str, repo: ArchiveRepository = None):
+        self.name = name
+        self.version = version
+        if repo:
+            self.repo = repo
 
     @staticmethod
     def generate_uuid(repo_name, name, version, arch_name):

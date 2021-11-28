@@ -7,12 +7,15 @@
 import os
 from typing import Dict, List
 
+from laniakea import LocalConfig
 from laniakea.db import (
     ArchiveFile,
     PackageInfo,
+    ArchiveSuite,
     SourcePackage,
     ArchiveSection,
     PackageOverride,
+    ArchiveRepository,
     ArchiveRepoSuiteSettings,
     debtype_from_string,
     packagepriority_from_string,
@@ -32,17 +35,17 @@ def checksums_list_to_file(cslist, checksum: str, files=None, *, base_dir=None) 
 
         af = files.get(basename)
         if not af:
-            af = ArchiveFile()
+            if not base_dir:
+                af = ArchiveFile(basename)
+            else:
+                af = ArchiveFile(os.path.join(base_dir, basename))
+
         if checksum == 'md5':
             af.md5sum = fdata['md5sum']
         else:
             setattr(af, checksum + 'sum', fdata[checksum])
         af.size = fdata['size']
 
-        if not base_dir:
-            af.fname = basename
-        else:
-            af.fname = os.path.join(base_dir, basename)
         files[basename] = af
 
     return files
@@ -126,3 +129,27 @@ def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides
         override.section = section
         override.essential = pi.essential
         override.priority = pi.priority
+
+
+def pool_dir_from_name(source_pkg_name: str):
+    """Create a pool location string from a source package name"""
+    if source_pkg_name[:3] == "lib":
+        return os.path.join('pool', source_pkg_name[:4], source_pkg_name)
+    else:
+        return os.path.join('pool', source_pkg_name[:1], source_pkg_name)
+
+
+def dists_dir_for_repo_suite(repo: ArchiveRepository, suite: ArchiveSuite):
+    """Get dists/ directory for the given suite and repository."""
+    return os.path.join(LocalConfig().archive_root_dir, repo.name, 'dists', suite.name)
+
+
+def split_epoch(version: str):
+    """Split epoch from a version string and return it separately"""
+    parts = version.partition(':')
+    if not parts[2]:
+        # no epoch present
+        return None, parts[0]
+    else:
+        # return epoch and version
+        return parts[0], parts[2]

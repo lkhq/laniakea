@@ -42,7 +42,7 @@ def parse_checksums_list(data, base_dir=None):
         if len(parts) != 3:
             continue
 
-        af = ArchiveFile()
+        af = ArchiveFile('')
         af.sha256sum = parts[0]
         af.size = int(parts[1])
         if not base_dir:
@@ -326,11 +326,9 @@ class Repository:
                     )
                 )
 
-            pkg = BinaryPackage()
+            pkg = BinaryPackage(pkgname, pkgversion)
             pkg.repo = self._repo_entity
-            pkg.name = pkgname
             pkg.component = component
-            pkg.version = pkgversion
             if suite not in pkg.suites:
                 pkg.suites.append(suite)
 
@@ -361,8 +359,7 @@ class Repository:
 
             pkg.priority = packagepriority_from_string(e['Priority'])
 
-            pkg.bin_file = ArchiveFile()
-            pkg.bin_file.fname = e['Filename']
+            pkg.bin_file = ArchiveFile(e['Filename'])
             pkg.bin_file.size = int(e.get('Size', '0'))
             pkg.bin_file.sha256sum = e['SHA256']
 

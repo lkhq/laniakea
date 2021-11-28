@@ -88,7 +88,12 @@ class Database:
         def _update_static_data(self):
             import json
 
-            from .archive import ArchiveConfig, ArchiveSection, ArchiveRepository
+            from .archive import (
+                ArchiveConfig,
+                ArchiveSection,
+                ArchiveRepository,
+                ArchiveArchitecture,
+            )
             from ..localconfig import get_data_file
 
             log.info('Updating static database data.')
@@ -144,6 +149,13 @@ class Database:
                     aconfig.primary_repo = master_repo
                     aconfig.archive_url = self._lconf.archive_url
                     session.add(aconfig)
+
+                # arch:all architecture
+                arch_all = session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == 'all').one_or_none()
+                if not arch_all:
+                    arch_all = ArchiveArchitecture('all')
+                    arch_all.summary = 'Architecture independent binaries'
+                    session.add(arch_all)
 
         def downgrade(self, revision):
             '''Upgrade database schema to the newest revision'''

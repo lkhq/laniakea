@@ -56,16 +56,20 @@ def localconfig(samples_dir):
     import toml
 
     test_aux_data_dir = os.path.join('/tmp', 'test-lkaux')
+    test_archive_dir = os.path.join('/tmp', 'test-lkarchive')
     if os.path.isdir(test_aux_data_dir):
         shutil.rmtree(test_aux_data_dir)
     os.makedirs(test_aux_data_dir)
+    if os.path.isdir(test_archive_dir):
+        shutil.rmtree(test_archive_dir)
+    os.makedirs(test_archive_dir)
 
     config_tmpl_fname = os.path.join(samples_dir, 'config', 'base-config.toml')
     with open(config_tmpl_fname, 'r') as f:
         config_toml = toml.load(f)
 
     config_toml['CurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
-    config_toml['Archive']['path'] = os.path.join(samples_dir, 'samplerepo', 'dummy')
+    config_toml['Archive']['path'] = test_archive_dir
 
     config_fname = os.path.join(test_aux_data_dir, 'base-config.toml')
     with open(config_fname, 'w') as f:

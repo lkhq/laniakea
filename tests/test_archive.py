@@ -18,9 +18,13 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.archive import PackageImporter, import_key_file_for_uploader
+from laniakea.archive.utils import pool_dir_from_name
 
-# def test_packages(package_samples):
-#    pass
+
+def test_utils():
+    """Test smaller utility functions"""
+    assert pool_dir_from_name('pkgname') == 'pool/p/pkgname'
+    assert pool_dir_from_name('libthing') == 'pool/libt/libthing'
 
 
 class TestArchive:
@@ -104,8 +108,12 @@ class TestArchive:
                 )
                 .one()
             )
+
+            # import a source package directly
             pi = PackageImporter(session, rss)
+            pi.keep_source_packages = True
             pi.import_source(os.path.join(package_samples, 'package_0.1-1.dsc'), 'main', skip_new=True)
+            session.commit()
             # verify
             assert (
                 session.query(SourcePackage)
@@ -116,3 +124,6 @@ class TestArchive:
                 )
                 .one()
             )
+
+            # import the corresponding binary package (overrides should be present, so this should work)
+            pi.import_binary(os.path.join(package_samples, 'package_0.1-1_all.deb'), 'main')
