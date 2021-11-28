@@ -145,7 +145,7 @@ def postgresql_container():
             raise Exception("Timeout reached while waiting on service!")
 
     tests_dir = os.path.join(source_root, 'tests')
-    # ensure any cold container is stopped
+    # ensure any previous test container is stopped
     subprocess.run(['podman', 'stop', LKPG_CONTAINER_NAME], check=False)
 
     # build image
@@ -201,7 +201,8 @@ def postgresql_container():
     yield info
 
     # tear down container again
-    subprocess.run(['podman', 'stop', LKPG_CONTAINER_NAME], check=True)
+    if os.environ.get('LK_TEST_NO_CLEAN', '0') == '0':
+        subprocess.run(['podman', 'stop', LKPG_CONTAINER_NAME], check=True)
 
 
 @pytest.fixture(scope='class')

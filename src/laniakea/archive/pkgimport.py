@@ -12,8 +12,19 @@ from pathlib import Path
 from apt_pkg import Hashes
 from debian.deb822 import Sources
 
-from laniakea.db import SourcePackage, ArchiveVersionMemory, ArchiveRepoSuiteSettings
-from laniakea.archive.utils import checksums_list_to_file, parse_package_list_str
+from laniakea.db import (
+    SourcePackage,
+    ArchiveComponent,
+    ArchiveQueueNewEntry,
+    ArchiveVersionMemory,
+    ArchiveRepoSuiteSettings,
+)
+from laniakea.archive.utils import (
+    check_overrides_source,
+    checksums_list_to_file,
+    parse_package_list_str,
+    register_package_overrides,
+)
 
 
 class ArchiveImportError(Exception):
@@ -65,6 +76,9 @@ class PackageImporter:
         spkg.build_conflicts_indep = src_tf.get('Build-Conflicts-Indep', '').split(', ')
         spkg.expected_binaries = parse_package_list_str(src_tf['Package-List'])
 
+        component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()
+        spkg.component = component
+
         files = checksums_list_to_file(src_tf['Files'], 'md5')
         files = checksums_list_to_file(src_tf['Checksums-Sha1'], 'sha1', files)
         files = checksums_list_to_file(src_tf['Checksums-Sha256'], 'sha256', files)
@@ -104,5 +118,23 @@ class PackageImporter:
                 raise ArchiveImportError('An insufficient amount of hashes was validated for "{}" - this is a bug.')
 
             self._session.add(file)
+
+        missing_overrides = check_overrides_source(self._session, self._rss, spkg)
+        print(missing_overrides)
+        if skip_new:
+            # if we are supposed to skip NEW, we just register the overrides and add the package
+            # to its designated suite
+            register_package_overrides(self._session, self._rss, missing_overrides)
+            spkg.suites.append(self._rss.suite)
+        else:
+            if missing_overrides:
+                # add to NEW queue
+                nq_entry = ArchiveQueueNewEntry()
+                nq_entry.package = spkg
+                nq_entry.destination = self._rss.suite
+                self._session.add(nq_entry)
+            else:
+                # no missing overrides, the package is good to go
+                spkg.suites.append(self._rss.suite)
 
         self._session.add(spkg)

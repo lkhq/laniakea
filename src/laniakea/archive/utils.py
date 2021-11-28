@@ -5,11 +5,15 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-from typing import Dict
+from typing import Dict, List
 
 from laniakea.db import (
     ArchiveFile,
     PackageInfo,
+    SourcePackage,
+    ArchiveSection,
+    PackageOverride,
+    ArchiveRepoSuiteSettings,
     debtype_from_string,
     packagepriority_from_string,
 )
@@ -75,3 +79,50 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
 
         res.append(pi)
     return res
+
+
+def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage) -> List[PackageInfo]:
+    """Test if overrides for the binary package of a source packages are present.
+    returns: List of packaging infos for missing overrides
+
+    :param session: SQLAlchemy session
+    :param rss: RepoSuiteSettings to check the override in
+    :param spkg: Source package to check
+    :return: List of missing overrides, or None
+    """
+    missing = []
+    for bin in spkg.expected_binaries:
+        res = (
+            session.query(PackageOverride.id)
+            .filter(PackageOverride.repo_suite_id == rss.id, PackageOverride.pkgname == bin.name)
+            .first()
+        )
+        if res is not None:
+            # override exists
+            continue
+        missing.append(bin)
+    return missing
+
+
+def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides: List[PackageInfo]):
+    """Add selected overrides to the repository-suite combination.
+
+    :param session: SQLAlchemy session
+    :param rss: RepoSuiteSettings to add the overrides to.
+    :param overrides: List of overrides to add.
+    """
+
+    for pi in overrides:
+        override = (
+            session.query(PackageOverride)
+            .filter(PackageOverride.repo_suite_id == rss.id, PackageOverride.pkgname == pi.name)
+            .one_or_none()
+        )
+        if not override:
+            override = PackageOverride(pi.name)
+            override.repo_suite = rss
+            session.add(override)
+        section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one()
+        override.section = section
+        override.essential = pi.essential
+        override.priority = pi.priority

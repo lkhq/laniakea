@@ -7,6 +7,7 @@
 import enum
 import json
 import uuid
+from typing import List
 from datetime import datetime
 
 from sqlalchemy import (
@@ -476,12 +477,13 @@ class PackageInfo:
     :SourcePackage to refer to binary packages.
     """
 
-    deb_type = DebType.DEB
-    name = None
-    version = None
-    section = None
-    priority = PackagePriority.UNKNOWN
-    architectures = None
+    deb_type: DebType = DebType.DEB
+    name: str = None
+    version: str = None
+    section: str = None
+    essential: bool = False
+    priority: PackagePriority = PackagePriority.UNKNOWN
+    architectures: List[str] = None
 
 
 class ArchiveFile(Base):
@@ -529,14 +531,14 @@ class SourcePackage(Base):
     name = Column(String(200))  # Source package name
     version = Column(DebVersion())  # Version of this package
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
     repo = relationship('ArchiveRepository')
 
     suites = relationship(
         'ArchiveSuite', secondary=srcpkg_suite_assoc_table, back_populates='pkgs_source'
     )  # Suites this package is in
 
-    component_id = Column(Integer, ForeignKey('archive_components.id'))
+    component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
     component = relationship('ArchiveComponent')  # Component this package is in
 
     time_added = Column(DateTime(), default=datetime.utcnow)  # Time when this package was first seen
@@ -594,6 +596,7 @@ class SourcePackage(Base):
             info.name = e.get('name')
             info.version = e.get('version')
             info.section = e.get('section')
+            info.essential = e.get('essential', False)
             info.priority = e.get('priority', PackagePriority.UNKNOWN)
             info.architectures = e.get('architectures')
             res.append(info)
@@ -615,6 +618,8 @@ class SourcePackage(Base):
                 'priority': v.priority,
                 'architectures': v.architectures,
             }
+            if v.essential:
+                d['essential'] = True
             data.append(d)
         self._expected_binaries_json = json.dumps(data)
         self._expected_binaries = None  # Force the data to be re-loaded from JSON
@@ -679,17 +684,17 @@ class PackageOverride(Base):
 
     pkgname = Column(String(200))  # Name of the binary package
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
-    repo = relationship('ArchiveRepository')
-
-    suite_id = Column(Integer, ForeignKey('archive_suites.id'))
-    suite = relationship('ArchiveSuite')
+    repo_suite_id = Column(Integer, ForeignKey('archive_repo_suite_settings.id'))
+    repo_suite = relationship('ArchiveRepoSuiteSettings')
 
     essential = Column(Boolean(), default=False)  # Whether this package is marked as essential
     priority = Column(Enum(PackagePriority))  # Priority of the package
 
     section_id = Column(Integer, ForeignKey('archive_sections.id'))
     section = relationship('ArchiveSection')  # Section of the package
+
+    def __init__(self, pkgname: str):
+        self.pkgname = pkgname
 
 
 class BinaryPackage(Base):
