@@ -262,7 +262,9 @@ def _add_suite(
 
         if is_debug:
             suite.is_debug = is_debug
-            parent_nodebug_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == debug_suite_for).one_or_none()
+            parent_nodebug_suite = (
+                session.query(ArchiveSuite).filter(ArchiveSuite.name == debug_suite_for).one_or_none()
+            )
             if not parent_nodebug_suite:
                 print_error_exit('Non-debug parent suite with name "{}" does not exist.'.format(debug_suite_for))
             suite.debug_suite_for = parent_nodebug_suite

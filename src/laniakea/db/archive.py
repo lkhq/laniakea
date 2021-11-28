@@ -500,9 +500,10 @@ class ArchiveFile(Base):
     md5sum = Column(CHAR(32))  # the files' MD5 checksum
     sha1sum = Column(CHAR(40))  # the files' SHA1 checksum
     sha256sum = Column(CHAR(64))  # the files' SHA256 checksum
+    sha512sum = Column(CHAR(128))  # the files' SHA512 checksum
 
-    srcpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
-    binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_binary.uuid'), unique=True, nullable=True)
+    srcpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'), nullable=True)
+    binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_binary.uuid'), nullable=True)
     binpkg = relationship('BinaryPackage', back_populates='bin_file')
     srcpkg = relationship('SourcePackage', back_populates='files')
 
@@ -573,6 +574,13 @@ class SourcePackage(Base):
     extra_data = Column(MutableDict.as_mutable(JSONB))
 
     _expected_binaries = None
+
+    def __init__(self, name: str, version: str, repo: ArchiveRepository = None):
+        self.name = name
+        self.version = version
+        if repo:
+            self.repo = repo
+            self.update_uuid()
 
     @property
     def expected_binaries(self):

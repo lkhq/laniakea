@@ -448,6 +448,8 @@ def package_samples(samples_dir):
     '''
 
     pkg_dir = os.path.join(samples_dir, 'packages')
-    subprocess.run(['make'], cwd=pkg_dir, check=True)
+    if not os.path.isfile(os.path.join(pkg_dir, 'package_0.1-1_all.deb')):
+        subprocess.run(['make'], cwd=pkg_dir, check=True)
     yield pkg_dir
-    subprocess.run(['make', 'clean'], cwd=pkg_dir, check=True)
+    if os.environ.get('LK_TEST_NO_CLEAN', '0') == '0':
+        subprocess.run(['make', 'clean'], cwd=pkg_dir, check=True)

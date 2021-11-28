@@ -9,8 +9,15 @@ import subprocess
 
 import pytest
 
-from laniakea.db import ArchiveConfig, ArchiveUploader, ArchiveRepository, session_scope
-from laniakea.archive import import_key_file_for_uploader
+from laniakea.db import (
+    ArchiveConfig,
+    SourcePackage,
+    ArchiveUploader,
+    ArchiveRepository,
+    ArchiveRepoSuiteSettings,
+    session_scope,
+)
+from laniakea.archive import PackageImporter, import_key_file_for_uploader
 
 # def test_packages(package_samples):
 #    pass
@@ -87,5 +94,25 @@ class TestArchive:
             assert uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
             extra_repo.uploaders.append(uploader)
 
-    def test(self):
-        pass
+    def test_package_uploads(self, package_samples):
+        with session_scope() as session:
+            rss = (
+                session.query(ArchiveRepoSuiteSettings)
+                .filter(
+                    ArchiveRepoSuiteSettings.repo.has(name='master'),
+                    ArchiveRepoSuiteSettings.suite.has(name='unstable'),
+                )
+                .one()
+            )
+            pi = PackageImporter(session, rss)
+            pi.import_source(os.path.join(package_samples, 'package_0.1-1.dsc'), 'main', skip_new=True)
+            # verify
+            assert (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'package',
+                    SourcePackage.version == '0.1-1',
+                )
+                .one()
+            )

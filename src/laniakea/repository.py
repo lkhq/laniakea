@@ -23,13 +23,13 @@ from laniakea.db import (
     ArchiveComponent,
     ArchiveRepository,
     ArchiveArchitecture,
-    debtype_from_string,
     packagepriority_from_string,
 )
 from laniakea.utils import split_strip, download_file, is_remote_url
 from laniakea.logging import log
 from laniakea.utils.gpg import SignedFile
 from laniakea.localconfig import LocalConfig
+from laniakea.archive.utils import parse_package_list_str
 
 
 def parse_checksums_list(data, base_dir=None):
@@ -53,39 +53,6 @@ def parse_checksums_list(data, base_dir=None):
         files.append(af)
 
     return files
-
-
-def parse_package_list_str(pkg_list_raw, default_version=None):
-    '''
-    Parse a "Package-List" field and return its information in
-    PackageInfo data structures.
-    See https://www.debian.org/doc/debian-policy/ch-controlfields.html#package-list
-    '''
-
-    res = []
-
-    for line in pkg_list_raw.split('\n'):
-        parts = split_strip(line, ' ')
-        if len(parts) < 4:
-            continue
-
-        pi = PackageInfo()
-        pi.name = parts[0]
-        pi.version = default_version
-        pi.deb_type = debtype_from_string(parts[1])
-        pi.section = parts[2]
-        pi.priority = packagepriority_from_string(parts[3])
-
-        if len(parts) > 4:
-            # we have additional data
-            raw_vals = split_strip(parts[4], ' ')
-            for v in raw_vals:
-                if v.startswith('arch='):
-                    # handle architectures
-                    pi.architectures = v[5:].split(',')
-
-        res.append(pi)
-    return res
 
 
 def version_revision(version: str, full_for_native: bool = True) -> str:
@@ -282,14 +249,12 @@ class Repository:
                         'Found invalid block (no Package and Version fields) in Sources file "{}".'.format(index_fname)
                     )
 
-                pkg = SourcePackage()
+                pkg = SourcePackage(pkgname, pkgversion)
                 pkg.repo = self._repo_entity
-                pkg.name = pkgname
                 pkg.component = component
                 if suite not in pkg.suites:
                     pkg.suites.append(suite)
 
-                pkg.version = pkgversion
                 pkg.architectures = split_strip(e['Architecture'], ' ')
                 pkg.standards_version = e.get('Standards-Version', '0~notset')
                 pkg.format_version = e['Format']
