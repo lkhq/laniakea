@@ -200,7 +200,7 @@ class ArchiveSuite(Base):
 
     debug_suite_id = Column(Integer, ForeignKey('archive_suites.id'))
     debug_suite = relationship('ArchiveSuite', back_populates='debug_suite_for')
-    debug_suite_for = relationship('ArchiveSuite', back_populates='debug_suite', remote_side=[id], uselist=True)
+    debug_suite_for = relationship('ArchiveSuite', back_populates='debug_suite', remote_side=[id])
 
     repo_settings = relationship('ArchiveRepoSuiteSettings', back_populates='suite')
 

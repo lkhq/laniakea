@@ -31,7 +31,8 @@ def _add_repo(name: str, origin: str, is_debug: bool = False, debug_for: str = N
 
     if is_debug and not debug_for:
         raise ValueError(
-            'Repo "{}" is marked as debug repo, but no repo name that it contains debug symbols for was given. '
+            'Repo "{}" is marked as debug repo, but no repo name that it contains '
+            'debug symbols for was given.'.format(name)
         )
 
     name = name.lower()
@@ -54,7 +55,6 @@ def _add_repo(name: str, origin: str, is_debug: bool = False, debug_for: str = N
 @click.option('--origin', prompt=True, type=str, default='', help='Repository origin, e.g. "Debian Project"')
 @click.option(
     '--is-debug',
-    'is_human',
     prompt=True,
     default=False,
     is_flag=True,
@@ -67,7 +67,7 @@ def repo_add(name: str, origin: str, is_debug: bool = False, debug_for_repo: str
     '''Create a new repository.'''
 
     if is_debug and not debug_for_repo:
-        debug_for_repo = input_str('Name of the suite this debug suite contains symbols for')
+        debug_for_repo = input_str('Name of the repository this debug repo contains symbols for')
 
     _add_repo(name, origin, is_debug, debug_for_repo)
 
@@ -215,7 +215,17 @@ def uploader_add(
     )
 
 
-def _add_suite(name, alias, summary, version, arch_names=None, component_names=None, parent_names=None):
+def _add_suite(
+    name,
+    alias,
+    summary,
+    version,
+    arch_names=None,
+    component_names=None,
+    parent_names=None,
+    is_debug=False,
+    debug_suite_for=None,
+):
     '''Register a new suite with the archive.'''
 
     name = name.lower()
@@ -235,6 +245,12 @@ def _add_suite(name, alias, summary, version, arch_names=None, component_names=N
     if not parent_names:
         parent_names = []
 
+    if is_debug and not debug_suite_for:
+        raise ValueError(
+            'Suite "{}" is marked as debug suite, but no name of the suite '
+            'that it contains debug symbols for was given. '.format(name)
+        )
+
     with session_scope() as session:
         suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == name).one_or_none()
         if not suite:
@@ -243,6 +259,13 @@ def _add_suite(name, alias, summary, version, arch_names=None, component_names=N
         suite.alias = alias
         suite.summary = summary
         suite.version = version
+
+        if is_debug:
+            suite.is_debug = is_debug
+            parent_nodebug_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == debug_suite_for).one_or_none()
+            if not parent_nodebug_suite:
+                print_error_exit('Non-debug parent suite with name "{}" does not exist.'.format(debug_suite_for))
+            suite.debug_suite_for = parent_nodebug_suite
 
         for cname in component_names:
             component = session.query(ArchiveComponent).filter(ArchiveComponent.name == cname).one_or_none()
@@ -274,7 +297,27 @@ def _add_suite(name, alias, summary, version, arch_names=None, component_names=N
 @click.option('--arch', 'arch_names', multiple=True, type=str, help='Architectures this suite can contain')
 @click.option('--component', 'component_names', multiple=True, type=str, help='Components this suite contains')
 @click.option('--parent', 'parent_names', multiple=True, type=str, help='Parent suite names')
-def suite_add(name, alias, summary, version, arch_names=None, component_names=None, parent_names=None):
+@click.option(
+    '--is-debug',
+    prompt=True,
+    default=False,
+    is_flag=True,
+    help='Whether this suite contains only debug symbol packages.',
+)
+@click.option(
+    '--debug-suite-for', type=str, default=None, help='Suite name this repository contains debug symbols for.'
+)
+def suite_add(
+    name,
+    alias,
+    summary,
+    version,
+    arch_names=None,
+    component_names=None,
+    parent_names=None,
+    is_debug: bool = False,
+    debug_suite_for: str = None,
+):
     '''Register a new suite with the archive.'''
 
     if not arch_names:
@@ -283,8 +326,10 @@ def suite_add(name, alias, summary, version, arch_names=None, component_names=No
         component_names = input_list('Archive Components')
     if not parent_names:
         parent_names = input_list('Suite Parents', allow_empty=True)
+    if is_debug and not debug_suite_for:
+        debug_suite_for = input_str('Name of the suite this debug suite contains symbols for')
 
-    _add_suite(name, alias, summary, version, arch_names, component_names, parent_names)
+    _add_suite(name, alias, summary, version, arch_names, component_names, parent_names, is_debug, debug_suite_for)
 
 
 def _add_suite_to_repo(

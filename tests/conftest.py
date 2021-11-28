@@ -35,7 +35,7 @@ def samples_dir():
 
 
 @pytest.fixture(scope='session')
-def sourcesdir():
+def sources_dir():
     '''
     Return the location of Laniakea's sources root directory.
     '''
@@ -254,7 +254,7 @@ def database(localconfig, postgresql_container):
     return db
 
 
-def generate_curve_keys_for_module(sourcesdir, localconfig, mod):
+def generate_curve_keys_for_module(sources_dir, localconfig, mod):
     '''
     Generate new CurveZMQ keys for use by Lighthouse.
     '''
@@ -262,7 +262,7 @@ def generate_curve_keys_for_module(sourcesdir, localconfig, mod):
     sec_dest_fname = localconfig.secret_curve_keyfile_for_module(mod)
     if os.path.isfile(sec_dest_fname):
         return
-    keytool_exe = os.path.join(sourcesdir, 'keytool', 'keytool.py')
+    keytool_exe = os.path.join(sources_dir, 'keytool', 'keytool.py')
 
     key_id = 'test-{}_{}'.format(mod, random_string(4))
     tmp_path = '/tmp'
@@ -291,14 +291,14 @@ def generate_curve_keys_for_module(sourcesdir, localconfig, mod):
 
 
 @pytest.fixture
-def make_curve_trusted_key(sourcesdir, localconfig):
+def make_curve_trusted_key(sources_dir, localconfig):
     def _make_curve_trusted_key(name):
 
         pub_dest_fname = os.path.join(localconfig.trusted_curve_keys_dir, '{}.key'.format(name))
         sec_dest_fname = os.path.join(localconfig.trusted_curve_keys_dir, '..', '{}.key_secret'.format(name))
         if os.path.isfile(sec_dest_fname) and os.path.isfile(pub_dest_fname):
             return sec_dest_fname
-        keytool_exe = os.path.join(sourcesdir, 'keytool', 'keytool.py')
+        keytool_exe = os.path.join(sources_dir, 'keytool', 'keytool.py')
 
         key_id = name.replace(' ', '_')
         tmp_path = '/tmp'
@@ -338,8 +338,8 @@ class LighthouseServer:
     instance = None
 
     class __LhServer:
-        def __init__(self, sourcesdir, lconf):
-            self._sources_dir = sourcesdir
+        def __init__(self, sources_dir, lconf):
+            self._sources_dir = sources_dir
             self._lconf = lconf
             self._pipe = None
 
@@ -369,21 +369,21 @@ class LighthouseServer:
                 pytest.fail('Lighthouse failed to terminate in time')
             self._pipe = None
 
-    def __init__(self, sourcesdir, lconf):
+    def __init__(self, sources_dir, lconf):
         if not LighthouseServer.instance:
-            LighthouseServer.instance = LighthouseServer.__LhServer(sourcesdir, lconf)
+            LighthouseServer.instance = LighthouseServer.__LhServer(sources_dir, lconf)
 
     def __getattr__(self, name):
         return getattr(self.instance, name)
 
 
 @pytest.fixture(scope='class')
-def lighthouse_server(request, sourcesdir, localconfig, database):
+def lighthouse_server(request, sources_dir, localconfig, database):
     '''
     Spawn a Lighthouse server to communicate with.
     '''
 
-    lhs = LighthouseServer(sourcesdir, localconfig)
+    lhs = LighthouseServer(sources_dir, localconfig)
     yield lhs
     lhs.terminate()
 
@@ -427,14 +427,14 @@ def new_zmq_curve_socket(request):
 
 
 @pytest.fixture(scope='class')
-def import_package_data(request, sourcesdir, localconfig, database):
+def import_package_data(request, sources_dir, localconfig, database):
     '''
     Retrieve a pristine, empty Laniakea database connection.
     This will wipe the global database, so tests using this can
     never run in parallel.
     '''
 
-    dataimport_exe = os.path.join(sourcesdir, 'dataimport', 'dataimport.py')
+    dataimport_exe = os.path.join(sources_dir, 'dataimport', 'dataimport.py')
     suite_name = getattr(request.module, 'dataimport_suite', 'unstable')
 
     subprocess.run([dataimport_exe, '--config', localconfig.fname, 'repo', suite_name], check=True)

@@ -1,0 +1,79 @@
+[[Repositories]]
+name = "master"
+origin = "ACME Inc."
+
+[[Repositories]]
+name = "master-debug"
+origin = "ACME Inc."
+is_debug = true
+debug_for = 'master'
+
+[[Repositories]]
+name = "extra"
+origin = "ACME Inc."
+
+[[Components]]
+name = "main"
+summary = "Supported Packages"
+
+[[Components]]
+name = "non-free"
+summary = "Unsuported, Closed-Source Packages"
+
+[[Architectures]]
+name = "amd64"
+summary = "AMD x86-64 architecture"
+
+[[Architectures]]
+name = "arm64"
+summary = "64-Bit ARM"
+
+[[Suites]]
+name = "unstable"
+alias = ""
+summary = "Development Suite"
+version = "2.0"
+arch_names = ["amd64", "arm64"]
+component_names = ["main", "non-free"]
+
+[[Suites]]
+name = "unstable-debug"
+alias = ""
+summary = "Development Suite (Debug Symbols)"
+version = "2.0"
+arch_names = ["amd64", "arm64"]
+component_names = ["main", "non-free"]
+is_debug = true
+debug_suite_for = "unstable"
+
+[[Suites]]
+name = "stable"
+alias = ""
+summary = "Stable 1.0 Release"
+version = "1.0"
+arch_names = ["amd64", "arm64"]
+component_names = ["main", "non-free"]
+
+[[RepoSuiteSettings]]
+repo_name = "master"
+suite_name = "unstable"
+signingkeys = ["DEADBEEF"]
+announce_emails = []
+
+[[RepoSuiteSettings]]
+repo_name = "master-debug"
+suite_name = "unstable-debug"
+signingkeys = ["DEADBEEF"]
+announce_emails = []
+
+[[RepoSuiteSettings]]
+repo_name = "master"
+suite_name = "stable"
+signingkeys = ["DEADBEEF"]
+announce_emails = []
+
+[[RepoSuiteSettings]]
+repo_name = "extra"
+suite_name = "unstable"
+signingkeys = ["DEADBEEF"]
+announce_emails = []

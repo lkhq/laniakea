@@ -14,12 +14,15 @@ __mainfile = None
 @click.group(invoke_without_command=True)
 @click.option('--verbose', envvar='VERBOSE', default=False, is_flag=True, help='Enable debug messages.')
 @click.option('--version', default=False, is_flag=True, help='Display the version of Laniakea itself.')
+@click.option('--config', 'config_fname', default=None, type=str, help='Override the basic configuration used.')
 @click.pass_context
-def cli(ctx, verbose, version):
+def cli(ctx, verbose, version, config_fname):
     '''Administer a Laniakea instance.
 
     This utility allows you to perform a lot of administrative actions for
     Laniakea directly from the command-line.'''
+    from laniakea import LocalConfig
+
     if verbose:
         from laniakea.logging import set_verbose
 
@@ -29,6 +32,9 @@ def cli(ctx, verbose, version):
 
         print(__version__)
         sys.exit(0)
+    if config_fname:
+        LocalConfig(config_fname)
+
     if ctx.invoked_subcommand is None:
         click.echo('No subcommand was provided. Can not continue.')
         sys.exit(1)
