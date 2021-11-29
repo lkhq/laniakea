@@ -22,6 +22,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     meson \
     systemd \
     postgresql-client \
+    apt-utils \
     libappstream-dev \
     gir1.2-appstream-1.0 \
     ostree \
