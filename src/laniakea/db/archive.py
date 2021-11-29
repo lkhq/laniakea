@@ -350,7 +350,7 @@ class ArchiveArchitecture(Base):
         'ArchiveSuite', secondary=suite_arch_assoc_table, back_populates='architectures'
     )  # Suites that contain this architecture
 
-    pkgs_binary = relationship('BinaryPackage', back_populates='architecture')
+    pkgs_binary = relationship('BinaryPackage', back_populates='architecture', cascade=None)
 
     def __init__(self, name):
         self.name = name
@@ -747,7 +747,7 @@ class BinaryPackage(Base):
 
     architecture_id = Column(Integer, ForeignKey('archive_architectures.id'))
     # Architecture this binary was built for
-    architecture = relationship('ArchiveArchitecture', back_populates='pkgs_binary')
+    architecture = relationship('ArchiveArchitecture', back_populates='pkgs_binary', cascade=None)
 
     source_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
     source = relationship('SourcePackage', back_populates='binaries')
@@ -755,7 +755,7 @@ class BinaryPackage(Base):
     override_id = Column(Integer, ForeignKey('archive_pkg_overrides.id'))
     override = relationship('PackageOverride', back_populates='package')  # Override data for this binary
 
-    time_added = Column(DateTime(), nullable=True)  # Time when this package was added to the archive
+    time_added = Column(DateTime(), default=datetime.utcnow)  # Time when this package was added to the archive
     time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive
     time_deleted = Column(DateTime(), nullable=True)  # Time when this package was deleted from the archive
 

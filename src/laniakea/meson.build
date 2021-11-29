@@ -5,3 +5,8 @@ install_subdir('.', install_dir: 'lib/laniakea/laniakea',
     exclude_files: ['meson.build'],
     strip_directory: true
 )
+
+apt_ftparchive_exe = find_program('apt-ftparchive', required: false)
+if not apt_ftparchive_exe.found()
+    error('Unable to find `apt-ftparchive`. Please install `apt-utils` to continue.')
+endif

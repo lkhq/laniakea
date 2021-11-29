@@ -55,6 +55,9 @@ def localconfig(samples_dir):
     '''
     import toml
 
+    # enable verbose logging for tests
+    set_verbose(True)
+
     test_aux_data_dir = os.path.join('/tmp', 'test-lkaux')
     test_archive_dir = os.path.join('/tmp', 'test-lkarchive')
     if os.path.isdir(test_aux_data_dir):

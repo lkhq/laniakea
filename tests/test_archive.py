@@ -11,13 +11,18 @@ import pytest
 
 from laniakea.db import (
     ArchiveConfig,
+    BinaryPackage,
     SourcePackage,
     ArchiveUploader,
     ArchiveRepository,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
-from laniakea.archive import PackageImporter, import_key_file_for_uploader
+from laniakea.archive import (
+    PackageImporter,
+    ArchiveImportError,
+    import_key_file_for_uploader,
+)
 from laniakea.archive.utils import pool_dir_from_name
 
 
@@ -33,6 +38,8 @@ class TestArchive:
 
         gpg_dir = os.path.join(samples_dir, 'packages', 'gpg')
         self._lconf = localconfig
+        self._archive_root = self._lconf.archive_root_dir
+        self._queue_root = self._lconf.archive_queue_dir
 
         lkadmin_exe = os.path.join(sources_dir, 'lkadmin', 'lk-admin.py')
         subprocess.run(
@@ -124,6 +131,88 @@ class TestArchive:
                 )
                 .one()
             )
+            assert not os.path.isfile(
+                os.path.join(self._archive_root, 'master', 'pool', 's', 'snowman', 'package_0.1-1.dsc')
+            )
 
             # import the corresponding binary package (overrides should be present, so this should work)
             pi.import_binary(os.path.join(package_samples, 'package_0.1-1_all.deb'), 'main')
+            # verify
+            assert (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'package',
+                    BinaryPackage.version == '0.1-1',
+                )
+                .one()
+            )
+            assert os.path.isfile(
+                os.path.join(self._archive_root, 'master', 'pool', 'p', 'package', 'package_0.1-1_all.deb')
+            )
+
+            # try importing a binary that does not have overrides set
+            with pytest.raises(ArchiveImportError) as einfo:
+                pi.import_binary(os.path.join(package_samples, 'snowman_0.1-1_all.deb'), 'main')
+            assert 'Could not find corresponding source package.' in str(einfo.value)
+            session.commit()
+            assert (
+                not session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'snowman',
+                    BinaryPackage.version == '0.1-1',
+                )
+                .first()
+            )
+            assert not os.path.isfile(
+                os.path.join(self._archive_root, 'master', 'pool', 's', 'snowman', 'snowman_0.1-1_all.deb')
+            )
+
+            # add source package to NEW
+            pi.import_source(os.path.join(package_samples, 'snowman_0.1-1.dsc'), 'main', skip_new=False)
+            session.commit()
+            assert os.path.isfile(
+                os.path.join(self._queue_root, 'master', 'new', 'pool', 's', 'snowman', 'snowman_0.1-1.dsc')
+            )
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'snowman',
+                    SourcePackage.version == '0.1-1',
+                )
+                .one()
+            )
+            # package must not be in any suites
+            assert not spkg.suites
+
+            # try importing that binary again
+            pi.import_binary(os.path.join(package_samples, 'snowman_0.1-1_all.deb'), 'main')
+            assert os.path.isfile(
+                os.path.join(self._queue_root, 'master', 'new', 'pool', 's', 'snowman', 'snowman_0.1-1_all.deb')
+            )
+            assert (
+                not session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'snowman',
+                    BinaryPackage.version == '0.1-1',
+                )
+                .first()
+            )
+            session.commit()
+
+            # importing two packages which are already in NEW should work
+            pi.import_source(os.path.join(package_samples, 'snowman_0.1-1.dsc'), 'main', skip_new=False)
+            pi.import_binary(os.path.join(package_samples, 'snowman_0.1-1_all.deb'), 'main')
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'snowman',
+                    SourcePackage.version == '0.1-1',
+                )
+                .one()
+            )
+            assert not spkg.suites
