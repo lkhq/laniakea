@@ -5,6 +5,7 @@ ConditionPathExists=/etc/laniakea/mirk.toml
 
 [Service]
 Restart=on-failure
+RestartSec=15
 
 #ProtectSystem=full
 #ProtectHome=true
