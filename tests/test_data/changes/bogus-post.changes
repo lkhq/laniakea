@@ -1,0 +1,41 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Format: 1.7
+Date: Tue,  9 Sep 2003 01:16:01 +0100
+Source: gawk
+Binary: gawk
+Architecture: source i386
+Version: 1:3.1.3-2
+Distribution: unstable
+Urgency: low
+Maintainer: James Troup <james@nocrew.org>
+Changed-By: James Troup <james@nocrew.org>
+Description: 
+ gawk       - GNU awk, a pattern scanning and processing language
+Closes: 204699 204701
+Changes: 
+ gawk (1:3.1.3-2) unstable; urgency=low
+ .
+   * debian/control (Standards-Version): bump to 3.6.1.0.
+ .
+   * 02_fix-ascii.dpatch: new patch from upstream to fix [[:ascii:]].
+     Thanks to <vle@gmx.net> for reporting the bug and forwarding it
+     upstream.  Closes: #204701
+ .
+   * 03_fix-high-char-ranges.dpatch: new patch from upstream to fix
+     [\x80-\xff].  Thanks to <vle@gmx.net> for reporting the bug and
+     forwarding it upstream.  Closes: #204699
+Files: 
+ 0e6542c48bcc9d9586fc8ebe4e7242a4 561 interpreters optional gawk_3.1.3-2.dsc
+ 50a29dce4a2c6e2ac38069eb7c41d9c4 8302 interpreters optional gawk_3.1.3-2.diff.gz
+ 5a255c7b421ac699804212e10205f22d 871114 interpreters optional gawk_3.1.3-2_i386.deb
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.6 (GNU/Linux)
+
+iEYEARECAAYFAj9dHWsACgkQgD/uEicUG7DUnACglndvU4LCA0/k36Qp873N0Sau
+fCwAoMdgIOUBcUfMqXvVnxdW03ev5bNB
+=O7Gh
+-----END PGP SIGNATURE-----
+You: have been 0wned

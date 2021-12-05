@@ -14,6 +14,7 @@ from laniakea.utils.misc import (
     is_remote_url,
     random_string,
     open_compressed,
+    check_filename_safe,
     get_dir_shorthand_for_uuid,
 )
 from laniakea.utils.arches import arch_matches, any_arch_matches
@@ -46,4 +47,5 @@ __all__ = [
     'encode_base64',
     'decode_base64',
     'json_compact_dump',
+    'check_filename_safe',
 ]

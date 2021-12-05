@@ -6,6 +6,7 @@
 
 import os
 import re
+from typing import Union
 from contextlib import contextmanager
 
 import requests
@@ -122,3 +123,24 @@ def split_strip(s, sep):
         if part:
             res.append(part.strip())
     return res
+
+
+# Match safe filenames
+re_file_safe = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.~+-]*$')
+
+# Match safe filenames, including slashes
+re_file_safe_slash = re.compile(r'^[a-zA-Z0-9][/a-zA-Z0-9_.~+-]*$')
+
+
+def check_filename_safe(fname: Union[os.PathLike, str]) -> bool:
+    """Check if a filename contains only safe characters"""
+    if not re_file_safe.match(str(fname)):
+        return False
+    return True
+
+
+def check_filepath_safe(path: Union[os.PathLike, str]) -> bool:
+    """Check if a filename contains only safe characters"""
+    if not re_file_safe_slash.match(str(path)):
+        return False
+    return True

@@ -23,6 +23,7 @@ from laniakea.archive import (
     ArchiveImportError,
     import_key_file_for_uploader,
 )
+from laniakea.utils.gpg import GpgException
 from laniakea.archive.utils import pool_dir_from_name
 
 
@@ -30,6 +31,30 @@ def test_utils():
     """Test smaller utility functions"""
     assert pool_dir_from_name('pkgname') == 'pool/p/pkgname'
     assert pool_dir_from_name('libthing') == 'pool/libt/libthing'
+
+
+class TestParseChanges:
+    @pytest.fixture(autouse=True)
+    def setup(self, samples_dir, sources_dir, database):
+        self._changes_dir = os.path.join(samples_dir, 'changes')
+
+    def parse(self, filename, **kwargs):
+        from laniakea.archive.changes import parse_changes
+
+        return parse_changes(os.path.join(self._changes_dir, filename), require_signature=False, **kwargs)
+
+    def test_parse_changes(self, samples_dir):
+        with pytest.raises(GpgException) as einfo:
+            self.parse('1.changes')
+        assert 'No data.' in str(einfo.value)
+
+        changes = self.parse('2.changes')
+        binaries = changes.changes['binary']
+        assert 'krb5-ftpd' in binaries.split()
+
+        for filename in ('valid', 'bogus-pre', 'bogus-post'):
+            changes = self.parse('{}.changes'.format(filename))
+            assert not changes.changes.get('you')
 
 
 class TestArchive:

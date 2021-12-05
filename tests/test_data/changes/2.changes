@@ -1,0 +1,54 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+
+Format: 1.7
+Date: Fri, 20 Apr 2001 02:47:21 -0400
+Source: krb5
+Binary: krb5-kdc krb5-doc krb5-rsh-server libkrb5-dev libkrb53 krb5-ftpd
+ krb5-clients krb5-user libkadm54 krb5-telnetd krb5-admin-server
+Architecture: m68k
+Version: 1.2.2-4
+Distribution: unstable
+Urgency: low
+Maintainer: buildd m68k user account <buildd@ax.westfalen.de>
+Changed-By: Sam Hartman <hartmans@debian.org>
+Description: 
+ krb5-admin-server - Mit Kerberos master server (kadmind)
+ krb5-clients - Secure replacements for ftp, telnet and rsh using MIT Kerberos
+ krb5-ftpd  - Secure FTP server supporting MIT Kerberos
+ krb5-kdc   - Mit Kerberos key server (KDC)
+ krb5-rsh-server - Secure replacements for rshd and rlogind  using MIT Kerberos
+ krb5-telnetd - Secure telnet server supporting MIT Kerberos
+ krb5-user  - Basic programs to authenticate using MIT Kerberos
+ libkadm54  - MIT Kerberos administration runtime libraries
+ libkrb5-dev - Headers and development libraries for MIT Kerberos
+ libkrb53   - MIT Kerberos runtime libraries
+Closes: 94407
+Changes: 
+ krb5 (1.2.2-4) unstable; urgency=low
+ .
+   * Fix shared libraries to build with gcc not ld to properly include
+     -lgcc symbols, closes: #94407
+Files: 
+ 563dac1cdd3ba922f9301fe074fbfc80 65836 non-us/main optional libkadm54_1.2.2-4_m68k.deb
+ bb620f589c17ab0ebea1aa6e10ca52ad 272198 non-us/main optional libkrb53_1.2.2-4_m68k.deb
+ 40af6e64b3030a179e0de25bd95c95e9 143264 non-us/main optional krb5-user_1.2.2-4_m68k.deb
+ ffe4e5e7b2cab162dc608d56278276cf 141870 non-us/main optional krb5-clients_1.2.2-4_m68k.deb
+ 4fe01d1acb4b82ce0b8b72652a9a15ae 54592 non-us/main optional krb5-rsh-server_1.2.2-4_m68k.deb
+ b3c8c617ea72008a33b869b75d2485bf 41292 non-us/main optional krb5-ftpd_1.2.2-4_m68k.deb
+ 5908f8f60fe536d7bfc1ef3fdd9d74cc 42090 non-us/main optional krb5-telnetd_1.2.2-4_m68k.deb
+ 650ea769009a312396e56503d0059ebc 160236 non-us/main optional krb5-kdc_1.2.2-4_m68k.deb
+ 399c9de4e9d7d0b0f5626793808a4391 160392 non-us/main optional krb5-admin-server_1.2.2-4_m68k.deb
+ 6f962fe530c3187e986268b4e4d27de9 398662 non-us/main optional libkrb5-dev_1.2.2-4_m68k.deb
+
+-----BEGIN PGP SIGNATURE-----
+Version: 2.6.3i
+Charset: noconv
+
+iQCVAwUBOvVPPm547I3m3eHJAQHyaQP+M7RXVEqZ2/xHiPzaPcZRJ4q7o0zbMaU8
+qG/Mi6kuR1EhRNMjMH4Cp6ctbhRDHK5FR/8v7UkOd+ETDAhiw7eqJnLC60EZxZ/H
+CiOs8JklAXDERkQ3i7EYybv46Gxx91pIs2nE4xVKnG16d/wFELWMBLY6skF1B2/g
+zZju3cuFCCE=
+=Vm59
+-----END PGP SIGNATURE-----
+
+

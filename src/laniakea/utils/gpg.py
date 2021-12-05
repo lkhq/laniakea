@@ -10,7 +10,7 @@ import fcntl
 import select
 import datetime
 import subprocess
-from typing import List, Union
+from typing import List, Union, Optional
 from pathlib import Path
 
 import apt_pkg
@@ -65,13 +65,16 @@ class SignedFile:
       primary_fingerprint - fingerprint of the primary key associated to the key used for signing
     '''
 
-    def __init__(self, data, keyrings, require_signature=True, gpg='/usr/bin/gpg'):
+    def __init__(self, data, keyrings: Optional[List[str]], *, require_signature=True, gpg='/usr/bin/gpg'):
         '''
         @param data: byte-string containing the message
         @param keyrings: sequence of keyrings
         @param require_signature: if True (the default), will raise an exception if no valid signature was found
         @param gpg: location of the gpg binary
         '''
+        if not keyrings:
+            keyrings = []
+
         self.gpg = gpg
         self.keyrings = keyrings
 
@@ -79,9 +82,9 @@ class SignedFile:
         self.expired = False
         self.invalid = False
         self.weak_signature = False
-        self.fingerprints = []
-        self.primary_fingerprints = []
-        self.signature_ids = []
+        self.fingerprints: List[str] = []
+        self.primary_fingerprints: List[str] = []
+        self.signature_ids: List[str] = []
 
         self._verify(data, require_signature)
 

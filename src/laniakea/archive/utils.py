@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2020-2021 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2018, Ansgar Burchardt <ansgar@debian.org>
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
 from typing import Dict, List
+
+import apt_pkg
 
 from laniakea import LocalConfig
 from laniakea.db import (
@@ -153,3 +156,26 @@ def split_epoch(version: str):
     else:
         # return epoch and version
         return parts[0], parts[2]
+
+
+class AptVersion:
+    def __init__(self, version):
+        self.version = version
+
+    def __str__(self):
+        return str(self.version)
+
+    def __eq__(self, other):
+        return apt_pkg.version_compare(self.version, other.version) == 0
+
+    def __lt__(self, other):
+        return apt_pkg.version_compare(self.version, other.version) < 0
+
+    def __le__(self, other):
+        return apt_pkg.version_compare(self.version, other.version) <= 0
+
+    def __gt__(self, other):
+        return apt_pkg.version_compare(self.version, other.version) > 0
+
+    def __ge__(self, other):
+        return apt_pkg.version_compare(self.version, other.version) >= 0

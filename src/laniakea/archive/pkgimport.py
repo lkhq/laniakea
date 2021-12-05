@@ -41,6 +41,10 @@ class ArchiveImportError(Exception):
     """Import of a package into the archive failed."""
 
 
+class UploadException(Exception):
+    pass
+
+
 def pop_split(d, key, s):
     """Pop value from dict :d with key :key and split with :s"""
     value = d.pop(key, None)
