@@ -1,6 +1,6 @@
 Source: snowman
 Section: misc
-Priority: extra
+Priority: optional
 Maintainer: Snowman ☃ <snowman@example.com>
 Build-Depends: debhelper-compat (= 12)
 Rules-Requires-Root: no

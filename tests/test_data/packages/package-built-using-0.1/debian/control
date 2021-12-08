@@ -1,6 +1,6 @@
 Source: package-built-using
 Section: misc
-Priority: extra
+Priority: optional
 Maintainer: A Maintainer <maint@example.com>
 Build-Depends: debhelper-compat (= 12)
 Rules-Requires-Root: no

@@ -1,6 +1,6 @@
 Source: grave
 Section: misc
-Priority: extra
+Priority: optional
 Maintainer: Développeur <developpeur@example.com>
 Build-Depends: debhelper-compat (= 12)
 Rules-Requires-Root: no

@@ -1,6 +1,6 @@
 Source: package
 Section: misc
-Priority: extra
+Priority: optional
 Maintainer: A Maintainer <maint@example.com>
 Uploaders: An Uploader <uploader@example.com>
 Build-Depends: debhelper-compat (= 12)
