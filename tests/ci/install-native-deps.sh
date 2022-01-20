@@ -50,7 +50,6 @@ eatmydata apt-get install -yq --no-install-recommends \
     python3-yaml \
     python3-systemd \
     python3-flask \
-    python3-flask-script \
     python3-flask-restful \
     python3-pytest-flask \
     python3-humanize \
