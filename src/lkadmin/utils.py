@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2016-2021 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
 # Copyright (C) 2019-2021 Robbin Bonthond <robbin@bonthond.com>
 #
 # SPDX-License-Identifier: LGPL-3.0+

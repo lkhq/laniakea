@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2021-2022 Matthias Klumpp <matthias@tenstral.net>
 # Copyright (C) 2017 pytest-docker contributors
 #
 # SPDX-License-Identifier: MIT OR LGPL-3.0+

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2020-2021 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2020-2022 Matthias Klumpp <matthias@tenstral.net>
 # Copyright (C) 2018, Ansgar Burchardt <ansgar@debian.org>
 #
 # SPDX-License-Identifier: LGPL-3.0+

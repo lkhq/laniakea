@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2019-2021 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2019-2022 Matthias Klumpp <matthias@tenstral.net>
 # Copyright (C) 2014-2015 OpenMarket Ltd
 #
 # SPDX-License-Identifier: LGPL-3.0+ AND Apache-2.0

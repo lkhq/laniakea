@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2012, Ansgar Burchardt <ansgar@debian.org>
-# Copyright (C) 2020-2021 Matthias Klumpp <mak@debian.org>
+# Copyright (C) 2020-2022 Matthias Klumpp <mak@debian.org>
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
@@ -362,14 +362,14 @@ def parse_changes(filename, *, keyrings=None, require_signature=True) -> Changes
         'Files',
     )
 
-    missingfields = []
+    missing_fields = []
     for keyword in must_keywords:
         if keyword.lower() not in changes.changes:
-            missingfields.append(keyword)
+            missing_fields.append(keyword)
 
-            if len(missingfields):
+            if len(missing_fields):
                 raise ParseChangesError(
-                    "Missing mandatory field(s) in changes file (policy 5.5): {}".format(missingfields)
+                    "Missing mandatory field(s) in changes file (policy 5.5): {}".format(missing_fields)
                 )
 
     return changes
