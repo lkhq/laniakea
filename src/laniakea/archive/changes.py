@@ -15,8 +15,7 @@ import apt_pkg
 from laniakea.db import ArchiveFile
 from laniakea.utils import check_filename_safe
 from laniakea.utils.gpg import SignedFile
-from laniakea.archive.utils import AptVersion
-from laniakea.archive.pkgimport import UploadException
+from laniakea.archive.utils import AptVersion, UploadException
 
 __all__ = [
     'InvalidChangesException',
@@ -233,7 +232,7 @@ class Changes:
         if self._source is None:
             source_files = []
             for f in self.files.values():
-                if re_file_dsc.match(f.filename) or re_file_source.match(f.filename):
+                if re_file_dsc.match(f.fname) or re_file_source.match(f.fname):
                     source_files.append(f)
             if len(source_files) > 0:
                 self._source = SourceInfo(self.directory, source_files)
@@ -255,7 +254,7 @@ class Changes:
         if self._binaries is None:
             binaries = []
             for f in self.files.values():
-                if re_file_binary.match(f.filename):
+                if re_file_binary.match(f.fname):
                     binaries.append(BinaryInfo(self.directory, f))
             self._binaries = binaries
         return self._binaries
@@ -269,14 +268,14 @@ class Changes:
             if f.section == 'byhand' or f.section[:4] == 'raw-':
                 byhand.append(f)
                 continue
-            if re_file_dsc.match(f.filename) or re_file_source.match(f.filename) or re_file_binary.match(f.filename):
+            if re_file_dsc.match(f.fname) or re_file_source.match(f.fname) or re_file_binary.match(f.fname):
                 continue
-            if re_file_buildinfo.match(f.filename):
+            if re_file_buildinfo.match(f.fname):
                 continue
 
             raise InvalidChangesException(
                 "{0}: {1} looks like a byhand package, but is in section {2}".format(
-                    self.filename, f.filename, f.section
+                    self.fname, f.fname, f.section
                 )
             )
 
@@ -288,7 +287,7 @@ class Changes:
         buildinfo = []
 
         for f in self.files.values():
-            if re_file_buildinfo.match(f.filename):
+            if re_file_buildinfo.match(f.fname):
                 buildinfo.append(f)
 
         return buildinfo

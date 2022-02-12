@@ -26,6 +26,12 @@ from laniakea.db import (
 from laniakea.utils import split_strip
 
 
+class UploadException(Exception):
+    """Issue while processing an upload"""
+
+    pass
+
+
 def checksums_list_to_file(cslist, checksum: str, files=None, *, base_dir=None) -> Dict[str, ArchiveFile]:
     """Convert a list of checkums (from a Sources, Packages or .dsc file) to ArchiveFile objects."""
 

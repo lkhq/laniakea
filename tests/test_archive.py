@@ -19,6 +19,7 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.archive import (
+    UploadHandler,
     PackageImporter,
     ArchiveImportError,
     import_key_file_for_uploader,
@@ -51,6 +52,9 @@ class TestParseChanges:
         changes = self.parse('2.changes')
         binaries = changes.changes['binary']
         assert 'krb5-ftpd' in binaries.split()
+        assert changes.source_name == 'krb5'
+        assert changes.distributions == ['unstable']
+        assert changes.architectures == ['m68k']
 
         for filename in ('valid', 'bogus-pre', 'bogus-post'):
             changes = self.parse('{}.changes'.format(filename))
@@ -241,3 +245,8 @@ class TestArchive:
                 .one()
             )
             assert not spkg.suites
+
+            # test processing an actual upload from a changes file
+            repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
+            uh = UploadHandler(session, repo)
+            uh.process_changes(os.path.join(package_samples, 'package_0.2-1_amd64.changes'))

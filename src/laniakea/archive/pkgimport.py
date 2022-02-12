@@ -6,21 +6,24 @@
 
 import os
 import shutil
+import typing as T
 import hashlib
 import subprocess
-from typing import Union
 
 from apt_pkg import Hashes
 from debian.deb822 import Sources, Packages
 
+from laniakea import LocalConfig
 from laniakea.db import (
     DebType,
     ArchiveFile,
     PackageInfo,
     BinaryPackage,
     SourcePackage,
+    ArchiveUploader,
     PackageOverride,
     ArchiveComponent,
+    ArchiveRepository,
     ArchiveArchitecture,
     ArchiveQueueNewEntry,
     ArchiveVersionMemory,
@@ -28,6 +31,7 @@ from laniakea.db import (
 )
 from laniakea.logging import log
 from laniakea.archive.utils import (
+    UploadException,
     split_epoch,
     pool_dir_from_name,
     check_overrides_source,
@@ -35,14 +39,11 @@ from laniakea.archive.utils import (
     parse_package_list_str,
     register_package_overrides,
 )
+from laniakea.archive.changes import parse_changes
 
 
 class ArchiveImportError(Exception):
     """Import of a package into the archive failed."""
-
-
-class UploadException(Exception):
-    pass
 
 
 def pop_split(d, key, s):
@@ -54,7 +55,10 @@ def pop_split(d, key, s):
 
 
 class PackageImporter:
-    """Imports packages into the archive."""
+    """
+    Imports packages into the archive directly,
+    without performing any policy/permission checks.
+    """
 
     def __init__(self, session, repo_suite_settings: ArchiveRepoSuiteSettings):
         self._session = session
@@ -75,7 +79,7 @@ class PackageImporter:
         if not self.keep_source_packages:
             os.unlink(src)
 
-    def _verify_hashes(self, file: ArchiveFile, local_fname: Union[os.PathLike, str]):
+    def _verify_hashes(self, file: ArchiveFile, local_fname: T.Union[os.PathLike, str]):
         """Verifies all known hashes of :file"""
         hashes_checked = 0
         with open(local_fname, 'rb') as f:
@@ -107,7 +111,9 @@ class PackageImporter:
         if hashes_checked < 4:
             raise ArchiveImportError('An insufficient amount of hashes was validated for "{}" - this is a bug.')
 
-    def import_source(self, dsc_fname: Union[os.PathLike, str], component_name: str = None, *, skip_new: bool = False):
+    def import_source(
+        self, dsc_fname: T.Union[os.PathLike, str], component_name: str = None, *, skip_new: bool = False
+    ):
         """Import a source package into the given suite or its NEW queue.
 
         :param dsc_fname: Path to a source package to import
@@ -272,7 +278,7 @@ class PackageImporter:
                 )
             )
 
-    def import_binary(self, deb_fname: Union[os.PathLike, str], component_name: str = None):
+    def import_binary(self, deb_fname: T.Union[os.PathLike, str], component_name: str = None):
         """Import a binary package into the given suite or its NEW queue.
 
         :param deb_fname: Path to a deb/udeb package to import
@@ -448,3 +454,64 @@ class PackageImporter:
         log.info(
             'Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, self._rss.repo.name, self._rss.suite.name)
         )
+
+
+class UploadHandler:
+    """
+    Verifies an upload and admits it to the archive if basic checks pass.
+    """
+
+    def __init__(self, session, repo: ArchiveRepository):
+        self._session = session
+        self._repo = repo
+
+        self._lconf = LocalConfig()
+
+    def process_changes(self, fname: T.Union[os.PathLike, str]) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
+        """
+        Verify and import an upload by its .changes file.
+        The caller should make sure the changes file is loaded from a safe location.
+        :param fname: Path to the .changes file
+        :return: A tuple of a boolean indication whether the changes file was processed successfully,
+        the archive uploader this upload belongs to, and an optional string explaining the error reason in case of a failure.
+
+        In case of irrecoverable issues (when no uploader can be determined or the signature is missing or invalid)
+        an exception is thrown.
+        """
+        from glob import glob
+
+        changes = parse_changes(
+            fname,
+            keyrings=list(glob(os.path.join(self._lconf.uploaders_keyring_dir, 'pubring.kbx'))),
+            require_signature=True,
+        )
+
+        uploader: T.Optional[ArchiveUploader] = (
+            self._session.query(ArchiveUploader)
+            .filter(ArchiveUploader.pgp_fingerprints.any(changes.primary_fingerprint))
+            .one_or_none()
+        )
+        if not uploader:
+            raise UploadException(
+                'Unable to find registered uploader for fingerprint "{}" for "{}"'.format(
+                    changes.primary_fingerprint, os.path.basename(fname)
+                )
+            )
+
+        if changes.weak_signature:
+            return (
+                False,
+                uploader,
+                'The GPG signature on {} is weak, please sign the upload with a stronger key.'.format(
+                    os.path.basename(fname)
+                ),
+            )
+
+        print(uploader.email)
+        print(changes.binaries)
+        print(changes.source)
+        print(changes.buildinfo_files)
+        print(changes.distributions)
+        print(changes.changes.get('Version'))
+
+        return True, uploader, None
