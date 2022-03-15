@@ -39,7 +39,7 @@ from laniakea.archive.utils import (
     parse_package_list_str,
     register_package_overrides,
 )
-from laniakea.archive.changes import parse_changes
+from laniakea.archive.changes import InvalidChangesException, parse_changes
 
 
 class ArchiveImportError(Exception):
@@ -52,6 +52,31 @@ def pop_split(d, key, s):
     if not value:
         return []
     return value.split(s)
+
+
+def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkgname: str, version: str):
+    """
+    Mark package as published. Currently, this only updates the version memory.
+
+    :param session: SQLAlchemy session
+    :param rss: RepoSuite settings for this package
+    :param pkgname: Package name
+    :param version: Package version
+    """
+    vmem = (
+        session.query(ArchiveVersionMemory)
+        .filter(ArchiveVersionMemory.repo_id == rss.repo_id, ArchiveVersionMemory.pkgname == pkgname)
+        .one_or_none()
+    )
+
+    if vmem:
+        vmem.highest_version = version
+    else:
+        vmem = ArchiveVersionMemory()
+        vmem.repo = rss.repo
+        vmem.pkgname = pkgname
+        vmem.highest_version = version
+        session.add(vmem)
 
 
 class PackageImporter:
@@ -112,7 +137,12 @@ class PackageImporter:
             raise ArchiveImportError('An insufficient amount of hashes was validated for "{}" - this is a bug.')
 
     def import_source(
-        self, dsc_fname: T.Union[os.PathLike, str], component_name: str = None, *, skip_new: bool = False
+        self,
+        dsc_fname: T.Union[os.PathLike, str],
+        component_name: str = None,
+        *,
+        skip_new: bool = False,
+        always_new: bool = False,
     ):
         """Import a source package into the given suite or its NEW queue.
 
@@ -121,6 +151,7 @@ class PackageImporter:
         :param skip_new: True if the NEW queue should be skipped and overrides be added automatically.
         """
 
+        log.info('Attempting import of source: {}', dsc_fname)
         dsc_dir = os.path.dirname(dsc_fname)
 
         p = subprocess.run(
@@ -223,7 +254,7 @@ class PackageImporter:
             spkg.suites.append(self._rss.suite)
             is_new = False
         else:
-            if missing_overrides:
+            if missing_overrides or always_new:
                 # add to NEW queue (update entry or create new one)
                 if not nq_entry:
                     nq_entry = ArchiveQueueNewEntry()
@@ -272,6 +303,7 @@ class PackageImporter:
                 )
             )
         else:
+            package_mark_published(self._session, self._rss, spkg.name, spkg.version)
             log.info(
                 'Added source `{}/{}` to {}/{}.'.format(
                     spkg.name, spkg.version, self._rss.repo.name, self._rss.suite.name
@@ -285,6 +317,7 @@ class PackageImporter:
         :param component_name: Name of the archive component to import into.
         """
 
+        log.info('Attempting import of binary: {}', deb_fname)
         pkg_type = DebType.DEB
         if os.path.splitext(deb_fname)[1] == '.udeb':
             pkg_type = DebType.UDEB
@@ -451,6 +484,8 @@ class PackageImporter:
 
         self._session.add(af)
         self._session.add(bpkg)
+
+        package_mark_published(self._session, self._rss, bpkg.name, bpkg.version)
         log.info(
             'Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, self._rss.repo.name, self._rss.suite.name)
         )
@@ -467,16 +502,18 @@ class UploadHandler:
 
         self._lconf = LocalConfig()
 
+        self.keep_source_packages = False
+
     def process_changes(self, fname: T.Union[os.PathLike, str]) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
         """
         Verify and import an upload by its .changes file.
-        The caller should make sure the changes file is loaded from a safe location.
+        The caller should make sure the changes file is located at a safe location.
         :param fname: Path to the .changes file
         :return: A tuple of a boolean indication whether the changes file was processed successfully,
         the archive uploader this upload belongs to, and an optional string explaining the error reason in case of a failure.
 
         In case of irrecoverable issues (when no uploader can be determined or the signature is missing or invalid)
-        an exception is thrown.
+        an exception is thrown, otherwise a tuple consisting of the status, uploader and error message (if any) is returned.
         """
         from glob import glob
 
@@ -507,11 +544,117 @@ class UploadHandler:
                 ),
             )
 
-        print(uploader.email)
-        print(changes.binaries)
-        print(changes.source)
-        print(changes.buildinfo_files)
-        print(changes.distributions)
-        print(changes.changes.get('Version'))
+        if len(changes.distributions) != 1:
+            return (
+                False,
+                uploader,
+                (
+                    'Invalid amount of distributions set in this changes file. '
+                    'We currently can only handle exactly one target (got {}).'
+                ).format(str(changes.distributions)),
+            )
+        suite_name = changes.distributions[0]
+
+        if changes.sourceful and not uploader.allow_source_uploads:
+            return (
+                False,
+                uploader,
+                'This uploader is not permitted to make sourceful uploads.'.format(str(changes.distributions)),
+            )
+
+        # fetch the repository-suite config for this package
+        rss = (
+            self._session.query(ArchiveRepoSuiteSettings)
+            .filter(
+                ArchiveRepoSuiteSettings.repo.has(id=self._repo.id),
+                ArchiveRepoSuiteSettings.suite.has(name=suite_name),
+            )
+            .one()
+        )
+
+        result = (
+            self._session.query(ArchiveVersionMemory.highest_version)
+            .filter(
+                ArchiveVersionMemory.repo_id == rss.repo_id,
+                ArchiveVersionMemory.pkgname == changes.source_name,
+                ArchiveVersionMemory.highest_version >= changes.changes['Version'],
+            )
+            .one_or_none()
+        )
+        if result:
+            return (
+                False,
+                uploader,
+                'We have already seen higher or equal version "{}" of source package "{}" in repository "{}" before.'.format(
+                    result[0], changes.source_name, self._repo.name
+                ),
+            )
+
+        # FIXME: We should maybe also preemptively check the binaries and their versions here, rather
+        # than possibly uncleanly failing at a later stage.
+        # At the moment there is a chance that we partially import the package, if any kind of failure
+        # happens at a later stage.
+
+        try:
+            files = changes.files
+        except InvalidChangesException as e:
+            return (
+                False,
+                uploader,
+                'This changes file was invalid: {}.'.format(str(e)),
+            )
+
+        if not uploader.allow_binary_uploads:
+            for file in files.values():
+                if file.fname.endswith(('.deb', '.udeb')):
+                    return (
+                        False,
+                        uploader,
+                        'This uploader is not allowed to upload binaries. Please upload a source-only package!.',
+                    )
+
+        pi = PackageImporter(self._session, rss)
+        pi.keep_source_packages = self.keep_source_packages
+        dsc_dir = os.path.dirname(fname)
+
+        # import source package
+        for file in files.values():
+            if file.fname.endswith('.dsc'):
+                if '/' in file.fname:
+                    return (
+                        False,
+                        uploader,
+                        'Invalid source package filename: {}'.format(str(file.fname)),
+                    )
+                try:
+                    pi.import_source(
+                        os.path.join(dsc_dir, file.fname), file.component, always_new=uploader.always_review
+                    )
+                except Exception as e:
+                    return (
+                        False,
+                        uploader,
+                        'Failed to import source package: {}'.format(str(e)),
+                    )
+                # there should only be one source package per changes file
+                break
+
+        # import binary packages
+        for file in files.values():
+            if file.fname.endswith(('.deb', '.udeb')):
+                if '/' in file.fname:
+                    return (
+                        False,
+                        uploader,
+                        'Invalid binary package filename: {}'.format(str(file.fname)),
+                    )
+                try:
+                    pi.import_binary(os.path.join(dsc_dir, file.fname), file.component)
+                except Exception as e:
+                    return (
+                        False,
+                        uploader,
+                        'Failed to import binary package: {}'.format(str(e)),
+                    )
 
         return True, uploader, None

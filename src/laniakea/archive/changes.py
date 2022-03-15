@@ -7,12 +7,11 @@
 
 import os
 import re
+import typing as T
 import functools
-from typing import Any, Dict, List, Union, Optional
 
 import apt_pkg
 
-from laniakea.db import ArchiveFile
 from laniakea.utils import check_filename_safe
 from laniakea.utils.gpg import SignedFile
 from laniakea.archive.utils import AptVersion, UploadException
@@ -59,8 +58,28 @@ re_field_source = re.compile(r'^(?P<package>[a-z0-9][a-z0-9.+-]+)(?:\s*\((?P<ver
 re_file_binary = re.compile(_re_file_prefix + r'_(?P<architecture>[a-z0-9-]+)\.(?P<type>u?deb)$')
 
 
+class ChangesFileEntry:
+    """
+    A file referenced by a changes file
+    """
+
+    fname: str
+    size: int  # the size of the file
+
+    md5sum: str  # the files' MD5 checksum
+    sha1sum: str  # the files' SHA1 checksum
+    sha256sum: str  # the files' SHA256 checksum
+    sha512sum: str  # the files' SHA512 checksum
+
+    component: str  # Archive component (main, non-free, etc.)
+    section: str  # Archive section
+
+    def __init__(self, fname: T.Union[os.PathLike, str]):
+        self.fname = str(fname)
+
+
 def parse_file_list(
-    control: Union[apt_pkg.TagSection, Dict[Any, Any]],
+    control: T.Union[apt_pkg.TagSection, T.Dict[T.Any, T.Any]],
     has_priority_and_section,
     fields=('Files', 'Checksums-Sha1', 'Checksums-Sha256'),
 ):
@@ -70,7 +89,7 @@ def parse_file_list(
     :param has_priority_and_section: Files field include section and priority (as in .changes)
     :param fields:
     :raise InvalidChangesException: missing fields or other grave errors
-    :return: dict mapping filenames to :ArchiveFile objects
+    :return: dict mapping filenames to :ChangesFileEntry objects
     """
     entries = {}
 
@@ -131,13 +150,21 @@ def parse_file_list(
         if not check_filename_safe(filename):
             raise InvalidChangesException("References file with unsafe filename {}.".format(filename))
 
-        file = ArchiveFile(filename)
+        file = ChangesFileEntry(filename)
         file.size = entry['size']
         file.md5sum = entry['md5sum']
         file.sha1sum = entry['sha1sum']
         file.sha256sum = entry['sha256sum']
         if 'sha512sum' in entry:
             file.sha512sum = entry['sha512sum']
+
+        parts = entry['section'].split('/', 1)
+        if len(parts) == 1:
+            file.component = 'main'
+            file.section = entry['section']
+        else:
+            file.component = parts[0]
+            file.section = parts[1]
         files[filename] = file
 
     return files
@@ -163,7 +190,7 @@ class BinaryInfo:
 class Changes:
     """Representation of a .changes file"""
 
-    def __init__(self, fname: Union[os.PathLike, str], keyrings, require_signature=True):
+    def __init__(self, fname: T.Union[os.PathLike, str], keyrings, require_signature=True):
         filename = os.path.basename(fname)
         directory = os.path.abspath(os.path.dirname(fname))
         if not check_filename_safe(filename):
@@ -182,9 +209,9 @@ class Changes:
         self.changes = apt_pkg.TagSection(self.signature.contents)
         """dict to access fields of the .changes file"""
 
-        self._binaries: Optional[List[BinaryInfo]] = None
-        self._source: Optional[SourceInfo] = None
-        self._files: Optional[Dict[str, ArchiveFile]] = None
+        self._binaries: T.Optional[T.List[BinaryInfo]] = None
+        self._source: T.Optional[SourceInfo] = None
+        self._files: T.Optional[T.Dict[str, ChangesFileEntry]] = None
         self._keyrings = keyrings
         self._require_signature = require_signature
 
@@ -217,17 +244,17 @@ class Changes:
         return self.signature.contents_sha1
 
     @property
-    def architectures(self) -> List[str]:
+    def architectures(self) -> T.List[str]:
         """list of architectures included in the upload"""
         return self.changes.get('Architecture', '').split()
 
     @property
-    def distributions(self) -> List[str]:
+    def distributions(self) -> T.List[str]:
         """list of target distributions for the upload"""
         return self.changes['Distribution'].split()
 
     @property
-    def source(self) -> Optional[SourceInfo]:
+    def source(self) -> T.Optional[SourceInfo]:
         """Included source or None"""
         if self._source is None:
             source_files = []
@@ -249,7 +276,7 @@ class Changes:
         return re_field_source.match(self.changes['Source']).group('package')
 
     @property
-    def binaries(self) -> Optional[List[BinaryInfo]]:
+    def binaries(self) -> T.Optional[T.List[BinaryInfo]]:
         """included binary packages"""
         if self._binaries is None:
             binaries = []
@@ -260,7 +287,7 @@ class Changes:
         return self._binaries
 
     @property
-    def byhand_files(self) -> List[ArchiveFile]:
+    def byhand_files(self) -> T.List[ChangesFileEntry]:
         """included byhand files"""
         byhand = []
 
@@ -280,7 +307,7 @@ class Changes:
         return byhand
 
     @property
-    def buildinfo_files(self) -> List[ArchiveFile]:
+    def buildinfo_files(self) -> T.List[ChangesFileEntry]:
         """included buildinfo files"""
         buildinfo = []
 
@@ -291,18 +318,18 @@ class Changes:
         return buildinfo
 
     @property
-    def binary_names(self) -> List[str]:
+    def binary_names(self) -> T.List[str]:
         """names of included binary packages"""
         return self.changes.get('Binary', '').split()
 
     @property
-    def closed_bugs(self) -> List[str]:
+    def closed_bugs(self) -> T.List[str]:
         """bugs closed by this upload"""
         return self.changes.get('Closes', '').split()
 
     @property
-    def files(self) -> Dict[str, ArchiveFile]:
-        """dict mapping filenames to :ArchiveFile objects"""
+    def files(self) -> T.Dict[str, ChangesFileEntry]:
+        """dict mapping filenames to :ChangesFileEntry objects"""
         if self._files is None:
             self._files = parse_file_list(self.changes, True)
         return self._files

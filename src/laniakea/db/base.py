@@ -29,6 +29,8 @@ Base: Any = declarative_base()
 # reflection
 # pylint: disable=abstract-method,no-init
 class DebVersion(UserDefinedType):
+    cache_ok = True
+
     def get_col_spec(self):
         return 'DEBVERSION'
 

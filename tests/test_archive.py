@@ -10,6 +10,7 @@ import subprocess
 import pytest
 
 from laniakea.db import (
+    ArchiveSuite,
     ArchiveConfig,
     BinaryPackage,
     SourcePackage,
@@ -249,4 +250,67 @@ class TestArchive:
             # test processing an actual upload from a changes file
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
             uh = UploadHandler(session, repo)
-            uh.process_changes(os.path.join(package_samples, 'package_0.2-1_amd64.changes'))
+            uh.keep_source_packages = True
+
+            success, uploader, error = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_amd64.changes'))
+            assert error == None
+            assert success
+            assert uploader.email == 'snowman@example.com'
+            assert uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
+
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'package',
+                    SourcePackage.version == '0.2-1',
+                    SourcePackage.component.has(name='main'),
+                    SourcePackage.suites.any(ArchiveSuite.name == 'unstable'),
+                )
+                .one_or_none()
+            )
+            assert spkg
+
+            # try to import the same thing again and watch it fail
+            success, uploader, error = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_amd64.changes'))
+            assert (
+                error
+                == 'We have already seen higher or equal version "0.2-1" of source package "package" in repository "master" before.'
+            )
+            assert not success
+            assert uploader.email == 'snowman@example.com'
+            assert uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
+
+            # try importing a non-free package, this thing should end up in NEW
+            success, uploader, error = uh.process_changes(
+                os.path.join(package_samples, 'nonfree-package_0.1-1_amd64.changes')
+            )
+            assert error == None
+            assert success
+            assert uploader.email == 'maint@example.com'
+            assert uploader.pgp_fingerprints == ['993C2870F54D83789E55323C13D986C3912E851C']
+
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'nonfree-package',
+                    SourcePackage.version == '0.1-1',
+                    SourcePackage.component.has(name='non-free'),
+                    ~SourcePackage.suites.any(),
+                )
+                .one_or_none()
+            )
+            assert spkg  # should be registered, but should not have suite associations
+
+            bpkg = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'nonfree-package',
+                    BinaryPackage.version == '0.1-1',
+                    BinaryPackage.component.has(name='non-free'),
+                )
+                .one_or_none()
+            )
+            assert not bpkg  # should not be in here, will be in NEW instead
