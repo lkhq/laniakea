@@ -135,6 +135,18 @@ class TestArchive:
             assert uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
             extra_repo.uploaders.append(uploader)
 
+        # use
+        yield
+
+        # cleanup
+        with session_scope() as session:
+            uploader = session.query(ArchiveUploader).filter(ArchiveUploader.email == 'maint@example.com').one()
+            session.delete(uploader)
+            uploader = session.query(ArchiveUploader).filter(ArchiveUploader.email == 'developpeur@example.com').one()
+            session.delete(uploader)
+            uploader = session.query(ArchiveUploader).filter(ArchiveUploader.email == 'snowman@example.com').one()
+            session.delete(uploader)
+
     def test_package_uploads(self, package_samples):
         with session_scope() as session:
             rss = (
@@ -314,3 +326,10 @@ class TestArchive:
                 .one_or_none()
             )
             assert not bpkg  # should not be in here, will be in NEW instead
+
+    def test_publish(self):
+        from lkarchive.publish import publish_repo_dists
+
+        with session_scope() as session:
+            repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
+            publish_repo_dists(session, repo)

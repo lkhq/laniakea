@@ -294,6 +294,8 @@ class ArchiveRepoSuiteSettings(Base):
     signingkeys = Column(ARRAY(String(64)))  # Keys packages uploaded to this suite will be signed with
     announce_emails = Column(ARRAY(Text()))  # E-Mail addresses that changes to this repository should be announced at
 
+    changes_pending = Column(Boolean(), default=True)  # whether the suite in this repository has unpublished changes
+
     def __init__(self, repo: ArchiveRepository, suite: ArchiveSuite):
         if repo.is_debug != suite.is_debug:
             raise ValueError(
