@@ -8,7 +8,7 @@ import os
 import enum
 import json
 import uuid
-from typing import List, Union
+import typing as T
 from pathlib import Path
 from datetime import datetime
 
@@ -445,7 +445,7 @@ class PackagePriority(enum.IntEnum):
     EXTRA = enum.auto()
 
 
-def packagepriority_from_string(s):
+def packagepriority_from_string(s) -> PackagePriority:
     """
     Convert the text representation into the enumerated type.
     """
@@ -460,6 +460,23 @@ def packagepriority_from_string(s):
     elif s == 'required':
         return PackagePriority.REQUIRED
     return PackagePriority.UNKNOWN
+
+
+def packagepriority_to_string(prio: PackagePriority) -> T.Optional[str]:
+    """
+    Convert the text representation into the enumerated type.
+    """
+    if prio == PackagePriority.OPTIONAL:
+        return 'optional'
+    if prio == PackagePriority.EXTRA:
+        return 'extra'
+    if prio == PackagePriority.STANDARD:
+        return 'standard'
+    if prio == PackagePriority.IMPORTANT:
+        return 'important'
+    if prio == PackagePriority.REQUIRED:
+        return 'required'
+    return None
 
 
 class VersionPriority(enum.IntEnum):
@@ -499,7 +516,7 @@ class PackageInfo:
     section: str = None
     essential: bool = False
     priority: PackagePriority = PackagePriority.UNKNOWN
-    architectures: List[str] = None
+    architectures: T.List[str] = None
 
 
 class ArchiveFile(Base):
@@ -529,7 +546,7 @@ class ArchiveFile(Base):
     binpkg = relationship('BinaryPackage', back_populates='bin_file')
     srcpkg = relationship('SourcePackage', back_populates='files')
 
-    def __init__(self, fname: Union[Path, str], repo: ArchiveRepository = None):
+    def __init__(self, fname: T.Union[Path, str], repo: ArchiveRepository = None):
         self.fname = str(fname)
         if repo:
             self.repo = repo
