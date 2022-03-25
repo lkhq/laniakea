@@ -10,12 +10,14 @@ import click
 from laniakea import LocalConfig
 from laniakea.db import (
     ArchiveSuite,
+    DbgSymPolicy,
     ArchiveUploader,
     ArchiveComponent,
     ArchiveRepository,
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
     session_scope,
+    dbgsympolicy_from_string,
 )
 
 from .utils import ClickAliasedGroup, input_str, input_list, print_error_exit
@@ -223,7 +225,7 @@ def _add_suite(
     arch_names=None,
     component_names=None,
     parent_names=None,
-    is_debug=False,
+    dbgsym_policy='no-debug',
     debug_suite_for=None,
 ):
     '''Register a new suite with the archive.'''
@@ -245,7 +247,11 @@ def _add_suite(
     if not parent_names:
         parent_names = []
 
-    if is_debug and not debug_suite_for:
+    dbg_policy = dbgsympolicy_from_string(dbgsym_policy)
+    if dbg_policy == DbgSymPolicy.INVALID:
+        raise ValueError('The value "{}" for dbgsym_policy was invalid!'.format(dbgsym_policy))
+
+    if dbg_policy == DbgSymPolicy.ONLY_DEBUG and not debug_suite_for:
         raise ValueError(
             'Suite "{}" is marked as debug suite, but no name of the suite '
             'that it contains debug symbols for was given. '.format(name)
@@ -259,9 +265,9 @@ def _add_suite(
         suite.alias = alias
         suite.summary = summary
         suite.version = version
+        suite.dbgsym_policy = dbg_policy
 
-        if is_debug:
-            suite.is_debug = is_debug
+        if dbg_policy == DbgSymPolicy.ONLY_DEBUG:
             parent_nodebug_suite = (
                 session.query(ArchiveSuite).filter(ArchiveSuite.name == debug_suite_for).one_or_none()
             )

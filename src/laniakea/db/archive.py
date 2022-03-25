@@ -195,6 +195,39 @@ class ArchiveUploader(Base):
         self.email = email
 
 
+class DbgSymPolicy(enum.IntEnum):
+    """
+    Policy for debug symbol handling for suites.
+    """
+
+    INVALID = 0
+    NO_DEBUG = enum.auto()  # no debug symbols must be present in this suite (they may be moved to a separate suite)
+    ONLY_DEBUG = enum.auto()  # this suite may only contain debug symbol packages
+    DEBUG_ALLOWED = enum.auto()  # this suite may contain both regular and debug symbol packages
+
+    def __str__(self):
+        if self.value == self.NO_DEBUG:
+            return 'no-debug'
+        elif self.value == self.ONLY_DEBUG:
+            return 'only-debug'
+        elif self.value == self.DEBUG_ALLOWED:
+            return 'debug-allowed'
+        return 'invalid'
+
+
+def dbgsympolicy_from_string(s) -> DbgSymPolicy:
+    """
+    Convert the text representation into the enumerated type.
+    """
+    if s == 'no-debug':
+        return DbgSymPolicy.NO_DEBUG
+    elif s == 'only-debug':
+        return DbgSymPolicy.ONLY_DEBUG
+    elif s == 'debug-allowed':
+        return DbgSymPolicy.DEBUG_ALLOWED
+    return DbgSymPolicy.INVALID
+
+
 class ArchiveSuite(Base):
     """
     Information about suite in a distribution repository.
@@ -208,7 +241,9 @@ class ArchiveSuite(Base):
     alias = Column(String(128), unique=True, nullable=True)  # Alternative name of the suite, e.g. "unstable"
     summary = Column(String(200), nullable=True)  # Short description string for this suite
     version = Column(String(64), nullable=True)  # Version string applicable for this suite
-    is_debug = Column(Boolean(), default=False)  # True in case this suite contains only debug symbol packages
+    dbgsym_policy = Column(
+        Enum(DbgSymPolicy), default=DbgSymPolicy.NO_DEBUG
+    )  # Set how debug symbol packages should be handled for this suite
 
     architectures = relationship('ArchiveArchitecture', secondary=suite_arch_assoc_table, back_populates='suites')
     components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
@@ -297,10 +332,10 @@ class ArchiveRepoSuiteSettings(Base):
     changes_pending = Column(Boolean(), default=True)  # whether the suite in this repository has unpublished changes
 
     def __init__(self, repo: ArchiveRepository, suite: ArchiveSuite):
-        if repo.is_debug != suite.is_debug:
+        if repo.is_debug and suite.dbgsym_policy != DbgSymPolicy.ONLY_DEBUG:
             raise ValueError(
-                'Debug-Type values of suite and repository do not match: Suite is debug={}, while repo is debug={}'.format(
-                    suite.is_debug, repo.is_debug
+                'Debug-Type values of suite and repository do not fit: Suite is debug={}, while repo is debug={}'.format(
+                    str(suite.dbgsym_policy), repo.is_debug
                 )
             )
         self.repo_id = repo.id
@@ -444,6 +479,19 @@ class PackagePriority(enum.IntEnum):
     OPTIONAL = enum.auto()
     EXTRA = enum.auto()
 
+    def __str__(self):
+        if self.value == self.OPTIONAL:
+            return 'optional'
+        if self.value == self.EXTRA:
+            return 'extra'
+        if self.value == self.STANDARD:
+            return 'standard'
+        if self.value == self.IMPORTANT:
+            return 'important'
+        if self.value == self.REQUIRED:
+            return 'required'
+        return 'invalid'
+
 
 def packagepriority_from_string(s) -> PackagePriority:
     """
@@ -460,23 +508,6 @@ def packagepriority_from_string(s) -> PackagePriority:
     elif s == 'required':
         return PackagePriority.REQUIRED
     return PackagePriority.UNKNOWN
-
-
-def packagepriority_to_string(prio: PackagePriority) -> T.Optional[str]:
-    """
-    Convert the text representation into the enumerated type.
-    """
-    if prio == PackagePriority.OPTIONAL:
-        return 'optional'
-    if prio == PackagePriority.EXTRA:
-        return 'extra'
-    if prio == PackagePriority.STANDARD:
-        return 'standard'
-    if prio == PackagePriority.IMPORTANT:
-        return 'important'
-    if prio == PackagePriority.REQUIRED:
-        return 'required'
-    return None
 
 
 class VersionPriority(enum.IntEnum):

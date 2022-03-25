@@ -24,7 +24,6 @@ from laniakea.db import (
     ArchiveRepository,
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
-    packagepriority_to_string,
 )
 from laniakea.utils import process_file_lock
 from laniakea.logging import log
@@ -193,7 +192,7 @@ def generate_packages_index(
         set_deb822_value(entry, 'Architecture', arch.name)
         set_deb822_value(entry, 'Multi-Arch', bpkg.multi_arch)
         set_deb822_value(entry, 'Section', bpkg.override.section.name)
-        set_deb822_value(entry, 'Priority', packagepriority_to_string(bpkg.override.priority))
+        set_deb822_value(entry, 'Priority', str(bpkg.override.priority))
         set_deb822_value(entry, 'Pre-Depends', ', '.join(bpkg.pre_depends))
         set_deb822_value(entry, 'Depends', ', '.join(bpkg.depends))
         set_deb822_value(entry, 'Replaces', ', '.join(bpkg.replaces))

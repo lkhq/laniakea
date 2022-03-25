@@ -43,7 +43,7 @@ summary = "Development Suite (Debug Symbols)"
 version = "2.0"
 arch_names = ["amd64", "arm64"]
 component_names = ["main", "non-free"]
-is_debug = true
+dbgsym_policy = "only-debug"
 debug_suite_for = "unstable"
 
 [[Suites]]
