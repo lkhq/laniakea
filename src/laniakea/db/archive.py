@@ -330,6 +330,7 @@ class ArchiveRepoSuiteSettings(Base):
     announce_emails = Column(ARRAY(Text()))  # E-Mail addresses that changes to this repository should be announced at
 
     changes_pending = Column(Boolean(), default=True)  # whether the suite in this repository has unpublished changes
+    time_published = Column(DateTime(), default=datetime.utcfromtimestamp(0))  # Time when this repo/suite configuration was last published
 
     def __init__(self, repo: ArchiveRepository, suite: ArchiveSuite):
         if repo.is_debug and suite.dbgsym_policy != DbgSymPolicy.ONLY_DEBUG:
