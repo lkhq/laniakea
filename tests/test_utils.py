@@ -4,6 +4,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import tempfile
+from pathlib import Path
+
 import pytest
 
 
@@ -49,3 +52,61 @@ def test_is_remote_url():
     assert is_remote_url('https://example.org')
     assert not is_remote_url('/srv/mirror')
     assert not is_remote_url('file:///srv/test')
+
+
+def test_renameat2():
+    import laniakea.utils.renameat2 as renameat2
+
+    # test exchange
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        apple_path = tmp.joinpath("apple")
+        with open(apple_path, "w") as apple_out:
+            apple_out.write("apple")
+
+        orange_path = tmp.joinpath("orange")
+        with open(orange_path, "w") as apple_out:
+            apple_out.write("orange")
+
+        renameat2.exchange_paths(apple_path, orange_path)
+
+        with open(apple_path) as apple_in:
+            assert apple_in.read() == "orange"
+
+        with open(orange_path) as orange_in:
+            assert orange_in.read() == "apple"
+
+    # test rename & replace
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        apple_path = tmp.joinpath("apple")
+        with open(apple_path, "w") as apple_out:
+            apple_out.write("apple")
+
+        orange_path = tmp.joinpath("orange")
+        with open(orange_path, "w") as apple_out:
+            apple_out.write("orange")
+
+        renameat2.rename(apple_path, orange_path, replace=True)
+
+        assert not apple_path.exists()
+
+        with open(orange_path) as orange_in:
+            assert orange_in.read() == "apple"
+
+    # test rename & no replace
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        apple_path = tmp.joinpath("apple")
+        with open(apple_path, "w") as apple_out:
+            apple_out.write("apple")
+
+        orange_path = tmp.joinpath("orange")
+        with open(orange_path, "w") as apple_out:
+            apple_out.write("orange")
+
+        with pytest.raises(OSError):
+            renameat2.rename(apple_path, orange_path, replace=False)
+
+        assert apple_path.exists()
+        assert orange_path.exists()

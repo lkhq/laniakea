@@ -15,6 +15,7 @@ from sqlalchemy import and_, func
 from debian.deb822 import Deb822
 
 import laniakea.typing as T
+import laniakea.utils.renameat2 as renameat2
 from laniakea import LocalConfig
 from laniakea.db import (
     ArchiveSuite,
@@ -259,11 +260,13 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
             write_compressed_files(suite_component_dists_arch_dir, 'Packages', res)
             write_release_file_for_arch(suite_component_dists_arch_dir, rss, component, arch.name)
 
-    # mark changes as live
-    # FIXME: TODO: Implement this using renameat2 for atomic directory replacement
+    # mark changes as live, atomically replace old location by swapping the paths,
+    # then deleting the old one.
     if os.path.isdir(repo_dists_dir):
-        shutil.rmtree(repo_dists_dir)
-    os.rename(temp_dists_dir, repo_dists_dir)
+        renameat2.exchange_paths(temp_dists_dir, repo_dists_dir)
+        shutil.rmtree(temp_dists_dir)
+    else:
+        os.rename(temp_dists_dir, repo_dists_dir)
 
 
 def publish_repo_dists(session, repo: ArchiveRepository, *, force: bool = False):

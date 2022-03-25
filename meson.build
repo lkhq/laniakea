@@ -33,6 +33,10 @@ run_target ('update-requirements',
     command: [pymod_check_exe, ['--write-requirements']]
 )
 
+if build_machine.system() != 'linux'
+    error('Laniakea needs Linux and GLibc to work properly, as it relies on system calls like renameat2 to function properly.')
+endif
+
 #
 # Lanikaea Modules
 #
