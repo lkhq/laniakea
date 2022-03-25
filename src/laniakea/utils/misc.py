@@ -6,6 +6,7 @@
 
 import os
 import re
+import fcntl
 from typing import Union
 from contextlib import contextmanager
 
@@ -144,3 +145,61 @@ def check_filepath_safe(path: Union[os.PathLike, str]) -> bool:
     if not re_file_safe_slash.match(str(path)):
         return False
     return True
+
+
+class ProcessFileLock:
+    """
+    Simple wy to prevent multiple processes from executing the same code via a file lock.
+    """
+
+    def __init__(self, name: str):
+        """
+        :param name: Unique name of the lock.
+        """
+        self._name = name
+        self._lock_file_fd = -1
+        self._lock_dir = os.path.join('/usr/user', str(os.geteuid()))
+        if not os.path.isdir(self._lock_dir):
+            self._lock_dir = '/tmp'  # may also be /var/lock
+
+    @property
+    def lock_filename(self) -> str:
+        return os.path.join(self._lock_dir, 'laniakea_' + self._name + '.lock')
+
+    def acquire(self, raise_error=True) -> bool:
+        """
+        Try to acquire a lockfile with the given name, useful to ensure only one process is executing a critical
+        section at a time.
+        :param raise_error: True if we should raise an error, instead of just returning False if lock can't be acquired.
+        :return: True if lock was acquired.
+        """
+        fd = os.open(self.lock_filename, os.O_RDWR | os.O_CREAT)
+        try:
+            fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError:
+            # another instance is running
+            self._lock_file_fd = -1
+            os.close(fd)
+            if raise_error:
+                raise Exception('Unable to acquire lock "{}": Another instance is running!'.format(lock_fname))
+            return False
+        self._lock_file_fd = fd
+        return True
+
+    def release(self):
+        """Release an acquired lock. Does nothing if no lock was taken."""
+        if self._lock_file_fd <= 0:
+            return
+        fcntl.lockf(self._lock_file_fd, fcntl.LOCK_UN)
+        os.close(self._lock_file_fd)
+        self._lock_file_fd = -1
+
+
+@contextmanager
+def process_file_lock(name: str, *, raise_error=True):
+    flock = ProcessFileLock(name)
+    flock.acquire(raise_error)
+    try:
+        yield flock
+    finally:
+        flock.release()

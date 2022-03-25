@@ -5,8 +5,8 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import lzma
 import shutil
-import typing as T
 import hashlib
 import subprocess
 
@@ -14,6 +14,7 @@ from apt_pkg import Hashes
 from sqlalchemy import and_, func
 from debian.deb822 import Deb822
 
+import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import (
     ArchiveSuite,
@@ -25,12 +26,44 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     packagepriority_to_string,
 )
+from laniakea.utils import process_file_lock
 from laniakea.logging import log
 
 
 def set_deb822_value(entry: Deb822, key: str, value: str):
     if value:
         entry[key] = value
+
+
+def write_compressed_files(root_path: T.Union[str, os.PathLike], basename: str, data: str):
+    """
+    Write archive metadata file and compress it with all supported / applicable
+    algorithms. Currently, we only support LZMA.
+    :param root_path: Root directory of the metadata files.
+    :param basename: Base name of the metadata file, e.g. "Packages"
+    :param data: Data the file should contain (usually UTF-8 text)
+    """
+
+    with lzma.open(os.path.join(root_path, basename + '.xz'), 'w') as f:
+        f.write(data.encode('utf-8'))
+
+
+def write_release_file_for_arch(
+    root_path: T.PathUnion, rss: ArchiveRepoSuiteSettings, component: ArchiveComponent, arch_name: str
+):
+    """
+    Write Release data to the selected path based on information from :param rss
+    """
+
+    entry = Deb822()
+    set_deb822_value(entry, 'Archive', rss.suite.name)
+    set_deb822_value(entry, 'Origin', rss.repo.origin_name)
+    set_deb822_value(entry, 'Version', rss.suite.version)
+    set_deb822_value(entry, 'Component', component.name)
+    entry['Architecture'] = arch_name
+
+    with open(os.path.join(root_path, 'Release'), 'w', encoding='utf-8') as f:
+        f.write(entry.dump())
 
 
 def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite, component: ArchiveComponent):
@@ -46,7 +79,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
     smv_subq = (
         session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
         .group_by(SourcePackage.name)
-        .subquery('t2')
+        .subquery()
     )
 
     # get the latest source packages for this configuration
@@ -118,7 +151,7 @@ def generate_packages_index(
     mv_subq = (
         session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
         .group_by(BinaryPackage.name)
-        .subquery('t2')
+        .subquery()
     )
 
     # get the latest binary packages for this configuration
@@ -172,8 +205,8 @@ def generate_packages_index(
         set_deb822_value(entry, 'Breaks', ', '.join(bpkg.breaks))
         set_deb822_value(entry, 'Built-Using', ', '.join(bpkg.built_using))
         set_deb822_value(entry, 'Installed-Size', str(bpkg.size_installed))
-        set_deb822_value(entry, 'Filename', bpkg.bin_file.fname)
         set_deb822_value(entry, 'Size', str(bpkg.bin_file.size))
+        set_deb822_value(entry, 'Filename', bpkg.bin_file.fname)
         set_deb822_value(entry, 'SHA256', bpkg.bin_file.sha256sum)
         if bpkg.phased_update_percentage < 100:
             set_deb822_value(entry, '"Phased-Update-Percentage"', str(bpkg.phased_update_percentage))
@@ -194,19 +227,44 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
     # global variables
     lconf = LocalConfig()
     archive_root_dir = lconf.archive_root_dir
-    suite_dist_dir = os.path.join(archive_root_dir, rss.repo.name, 'dists', rss.suite.name)
+    repo_dists_dir = os.path.join(archive_root_dir, rss.repo.name, 'dists')
+    temp_dists_dir = os.path.join(archive_root_dir, rss.repo.name, 'zzz-meta')
+    suite_temp_dist_dir = os.path.join(temp_dists_dir, rss.suite.name)
 
+    # remove possible remnants of an older publish operation
+    if os.path.isdir(temp_dists_dir):
+        shutil.rmtree(temp_dists_dir)
+
+    # copy old directory tree to our temporary location for editing
+    if os.path.isdir(repo_dists_dir):
+        shutil.copytree(repo_dists_dir, temp_dists_dir, symlinks=True, ignore_dangling_symlinks=True)
+    os.makedirs(suite_temp_dist_dir, exist_ok=True)
+
+    # update metadata
     for component in rss.suite.components:
-        suite_component_dists_dir = os.path.join(suite_dist_dir, component.name)
+        suite_component_dists_dir = os.path.join(suite_temp_dist_dir, component.name)
+        suite_component_dists_sources_dir = os.path.join(suite_component_dists_dir, 'source')
+        os.makedirs(suite_component_dists_sources_dir, exist_ok=True)
 
         # generate Sources
         res = generate_sources_index(session, rss.repo, rss.suite, component)
-        print(res)
+        write_compressed_files(suite_component_dists_sources_dir, 'Sources', res)
+        write_release_file_for_arch(suite_component_dists_sources_dir, rss, component, 'source')
 
         # generate Packages
         for arch in rss.suite.architectures:
+            suite_component_dists_arch_dir = os.path.join(suite_component_dists_dir, 'binary-' + arch.name)
+            os.makedirs(suite_component_dists_arch_dir, exist_ok=True)
+
             res = generate_packages_index(session, rss.repo, rss.suite, component, arch)
-            print(res)
+            write_compressed_files(suite_component_dists_arch_dir, 'Packages', res)
+            write_release_file_for_arch(suite_component_dists_arch_dir, rss, component, arch.name)
+
+    # mark changes as live
+    # FIXME: TODO: Implement this using renameat2 for atomic directory replacement
+    if os.path.isdir(repo_dists_dir):
+        shutil.rmtree(repo_dists_dir)
+    os.rename(temp_dists_dir, repo_dists_dir)
 
 
 def publish_repo_dists(session, repo: ArchiveRepository, *, force: bool = False):
@@ -217,5 +275,6 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, force: bool = False)
     :return:
     """
 
-    for rss in repo.suite_settings:
-        publish_suite_dists(session, rss, force=force)
+    with process_file_lock(repo.name):
+        for rss in repo.suite_settings:
+            publish_suite_dists(session, rss, force=force)

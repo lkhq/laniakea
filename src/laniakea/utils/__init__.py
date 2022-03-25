@@ -14,6 +14,7 @@ from laniakea.utils.misc import (
     is_remote_url,
     random_string,
     open_compressed,
+    process_file_lock,
     check_filename_safe,
     get_dir_shorthand_for_uuid,
 )
@@ -48,4 +49,5 @@ __all__ = [
     'decode_base64',
     'json_compact_dump',
     'check_filename_safe',
+    'process_file_lock',
 ]
