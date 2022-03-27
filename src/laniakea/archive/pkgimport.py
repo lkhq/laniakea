@@ -304,11 +304,13 @@ class PackageImporter:
             )
         else:
             package_mark_published(self._session, self._rss, spkg.name, spkg.version)
+            self._rss.changes_pending = True
             log.info(
                 'Added source `{}/{}` to {}/{}.'.format(
                     spkg.name, spkg.version, self._rss.repo.name, self._rss.suite.name
                 )
             )
+            self._session.flush()
 
     def import_binary(self, deb_fname: T.Union[os.PathLike, str], component_name: str = None):
         """Import a binary package into the given suite or its NEW queue.
@@ -486,9 +488,11 @@ class PackageImporter:
         self._session.add(bpkg)
 
         package_mark_published(self._session, self._rss, bpkg.name, bpkg.version)
+        self._rss.changes_pending = True
         log.info(
             'Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, self._rss.repo.name, self._rss.suite.name)
         )
+        self._session.flush()
 
 
 class UploadHandler:

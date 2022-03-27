@@ -298,7 +298,16 @@ def generate_i18n_template_data(
 
 
 def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool = False):
-    if not rss.changes_pending and not force:
+
+    # we must never touch a frozen suite
+    if rss.frozen:
+        log.debug('Not publishing frozen suite %s/%s', rss.repo.name, rss.suite.name)
+        return
+
+    # update the suite data if forced, explicitly marked as changes pending or if we published the suite
+    # for the last time about a week ago (6 days to give admins some time to fix issues before the old
+    # data expires about 2 days later)
+    if not rss.changes_pending and not force and not rss.time_published < datetime.utcnow() - timedelta(days=6):
         log.info('Not updating %s/%s: No pending changes.', rss.repo.name, rss.suite.name)
         return
 
@@ -359,8 +368,9 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
     set_deb822_value(entry, 'Version', rss.suite.version)
     set_deb822_value(entry, 'Codename', rss.suite.alias)
     set_deb822_value(entry, 'Label', rss.suite.summary)
-    entry['Date'] = datetime_to_rfc2822_string(datetime.now())
-    entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.now() + timedelta(days=7))
+    entry['Date'] = datetime_to_rfc2822_string(datetime.utcnow())
+    if not rss.frozen:
+        entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.utcnow() + timedelta(days=8))
     entry['Acquire-By-Hash'] = 'no'  # FIXME: We need to implement this, then change this line to allow by-hash
     entry['Architectures'] = ' '.join(sorted([a.name for a in rss.suite.architectures]))
     entry['Components'] = ' '.join(sorted([c.name for c in rss.suite.components]))
@@ -402,15 +412,27 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
     else:
         os.rename(temp_dists_dir, repo_dists_dir)
 
+    # all changes have been applied. This is a bit of a race-condition,
+    # as some stuff may have been accepted while we are publishing data,
+    # but this is usually something we can ignore on high-volume suites,
+    # and we will also ensure that a suite gets published at least once
+    # every week
+    rss.changes_pending = False
 
-def publish_repo_dists(session, repo: ArchiveRepository, *, force: bool = False):
+
+def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Optional[str] = None, force: bool = False):
     """
     Publish dists/ data for all (modified) suites in a repository.
-    :param session:
-    :param repo:
+    :param session: SQLAlchemy session
+    :param repo: Repository to publish
+    :param suite_name: Name of the suite to publish, or None to publish all.
     :return:
     """
 
     with process_file_lock(repo.name):
         for rss in repo.suite_settings:
+            if suite_name:
+                # skip any suites that we shouldn't process
+                if rss.suite.name != suite_name:
+                    continue
             publish_suite_dists(session, rss, force=force)
