@@ -96,7 +96,7 @@ def write_release_file_for_arch(
     return finfo
 
 
-def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite, component: ArchiveComponent):
+def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite, component: ArchiveComponent) -> str:
     """
     Generate Sources index data for the given repo/suite/component.
     :param session: Active SQLAlchemy session
@@ -168,7 +168,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
 
 def generate_packages_index(
     session, repo: ArchiveRepository, suite: ArchiveSuite, component: ArchiveComponent, arch: ArchiveArchitecture
-) -> T.Tuple[str, str]:
+) -> str:
     """
     Generate Packages index data for the given repo/suite/component/arch.
     :param session: Active SQLAlchemy session
@@ -245,13 +245,56 @@ def generate_packages_index(
         for key, value in bpkg.extra_data.items():
             set_deb822_value(entry, key, value)
 
-        # create i18n template
-        i18n_entry = Deb822()
-        i18n_entry['Package'] = bpkg.name
-
+        # add package metadata
         entries.append(entry.dump())
 
     return '\n'.join(entries)
+
+
+def generate_i18n_template_data(
+    session, repo: ArchiveRepository, suite: ArchiveSuite, component: ArchiveComponent
+) -> str:
+    """
+     Generate i18n translation template data for the given repo/suite/component.
+    :param session: Active SQLAlchemy session
+    :param repo: Repository to generate data for
+    :param suite: Suite to generate data for
+    :param component: Component to generate data for
+    :return:
+    """
+
+    mv_subq = (
+        session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
+        .group_by(BinaryPackage.name)
+        .subquery()
+    )
+
+    # get the latest binary packages, ignoring the architecture (so we will select only one at random)
+    # TODO: We can radically simplify this with a deducated SQL query that doesn't fetch the whole BinaryPackage object
+    bpkgs = (
+        session.query(BinaryPackage)
+        .join(
+            mv_subq,
+            and_(
+                BinaryPackage.repo_id == repo.id,
+                BinaryPackage.suites.any(id=suite.id),
+                BinaryPackage.component_id == component.id,
+                BinaryPackage.version == mv_subq.c.max_version,
+            ),
+        )
+        .order_by(BinaryPackage.name)
+        .distinct(BinaryPackage.name)
+    )
+
+    i18n_entries = []
+    for bpkg in bpkgs:
+        i18n_entry = Deb822()
+        i18n_entry['Package'] = bpkg.name
+        i18n_entry['Description-md5'] = bpkg.description_md5
+        i18n_entry['Description-en'] = bpkg.description
+        i18n_entries.append(i18n_entry.dump())
+
+    return '\n'.join(i18n_entries)
 
 
 def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool = False):
@@ -295,11 +338,18 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
             suite_component_dists_arch_dir = os.path.join(suite_temp_dist_dir, dists_arch_subdir)
             os.makedirs(suite_component_dists_arch_dir, exist_ok=True)
 
-            res = generate_packages_index(session, rss.repo, rss.suite, component, arch)
-            meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_arch_subdir, 'Packages', res))
+            pkg_data = generate_packages_index(session, rss.repo, rss.suite, component, arch)
+            meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_arch_subdir, 'Packages', pkg_data))
             meta_files.append(
                 write_release_file_for_arch(suite_temp_dist_dir, dists_arch_subdir, rss, component, arch.name)
             )
+
+        # create i19n template data
+        dists_i18n_subdir = os.path.join(component.name, 'i18n')
+        suite_component_dists_i18n_dir = os.path.join(suite_temp_dist_dir, dists_i18n_subdir)
+        os.makedirs(suite_component_dists_i18n_dir, exist_ok=True)
+        i18n_data = generate_i18n_template_data(session, rss.repo, rss.suite, component)
+        meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_i18n_subdir, 'Translation-en', i18n_data))
 
     # write root release file
     root_rel_fname = os.path.join(suite_temp_dist_dir, 'Release')
