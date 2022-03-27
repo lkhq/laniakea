@@ -104,7 +104,7 @@ def localconfig(samples_dir):
     conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'other-keyring.gpg'))
 
     # set our GPG secret keyring dir
-    conf._secret_gpg_home_dir = os.path.join(samples_dir, 'gpg', 'home')
+    conf._secret_gpg_home_dir = os.path.join(samples_dir, 'gpg', 'secret-home')
 
     return conf
 

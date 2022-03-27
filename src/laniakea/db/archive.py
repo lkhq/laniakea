@@ -326,7 +326,9 @@ class ArchiveRepoSuiteSettings(Base):
     valid_time = Column(Integer, default=604800)  # time in seconds how long the suite index should be considered valid
     # delay before a package is available to 100% of all users (0 to disable phased updates)
     phased_update_delay = Column(Integer, default=0)
-    signingkeys = Column(ARRAY(String(64)))  # Keys packages uploaded to this suite will be signed with
+    signingkeys = Column(
+        ARRAY(String(64))
+    )  # Fingerprints of GPG keys the suite will be signed with in the respective repo
     announce_emails = Column(ARRAY(Text()))  # E-Mail addresses that changes to this repository should be announced at
 
     changes_pending = Column(Boolean(), default=True)  # whether the suite in this repository has unpublished changes

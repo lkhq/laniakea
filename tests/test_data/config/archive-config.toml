@@ -57,23 +57,23 @@ component_names = ["main", "non-free"]
 [[RepoSuiteSettings]]
 repo_name = "master"
 suite_name = "unstable"
-signingkeys = ["DEADBEEF"]
+signingkeys = ["8BB746C63FF5346326C19ABDEFD8BD07D224478F"]
 announce_emails = []
 
 [[RepoSuiteSettings]]
 repo_name = "master-debug"
 suite_name = "unstable-debug"
-signingkeys = ["DEADBEEF"]
+signingkeys = ["8BB746C63FF5346326C19ABDEFD8BD07D224478F"]
 announce_emails = []
 
 [[RepoSuiteSettings]]
 repo_name = "master"
 suite_name = "stable"
-signingkeys = ["DEADBEEF"]
+signingkeys = ["8BB746C63FF5346326C19ABDEFD8BD07D224478F"]
 announce_emails = []
 
 [[RepoSuiteSettings]]
 repo_name = "extra"
 suite_name = "unstable"
-signingkeys = ["DEADBEEF"]
+signingkeys = ["8BB746C63FF5346326C19ABDEFD8BD07D224478F"]
 announce_emails = []

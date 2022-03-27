@@ -15,6 +15,8 @@ from pathlib import Path
 
 import apt_pkg
 
+from laniakea.logging import log
+
 try:
     _MAXFD = os.sysconf('SC_OPEN_MAX')
 except Exception:
@@ -337,6 +339,7 @@ def sign(
 
     args.append('--clearsign' if inline else '--detach-sign')
 
+    log.debug('Calling GPG: %s', ' '.join(args))
     subprocess.check_call(args, stdin=infile, stdout=outfile)
 
 

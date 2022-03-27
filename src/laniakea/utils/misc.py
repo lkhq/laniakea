@@ -8,6 +8,7 @@ import os
 import re
 import fcntl
 from typing import Union
+from datetime import datetime
 from contextlib import contextmanager
 
 import requests
@@ -145,6 +146,13 @@ def check_filepath_safe(path: Union[os.PathLike, str]) -> bool:
     if not re_file_safe_slash.match(str(path)):
         return False
     return True
+
+
+def datetime_to_rfc2822_string(dt: datetime):
+    """Convert a datetime object into an RFC2822 date string."""
+    from email import utils
+
+    return utils.format_datetime(dt)
 
 
 class ProcessFileLock:

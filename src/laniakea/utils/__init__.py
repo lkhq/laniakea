@@ -16,6 +16,7 @@ from laniakea.utils.misc import (
     open_compressed,
     process_file_lock,
     check_filename_safe,
+    datetime_to_rfc2822_string,
     get_dir_shorthand_for_uuid,
 )
 from laniakea.utils.arches import arch_matches, any_arch_matches
@@ -32,6 +33,7 @@ __all__ = [
     'arch_matches',
     'any_arch_matches',
     'Changes',
+    'datetime_to_rfc2822_string',
     'get_dir_shorthand_for_uuid',
     'random_string',
     'run_command',

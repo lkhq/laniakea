@@ -8,9 +8,9 @@ import os
 import lzma
 import shutil
 import hashlib
-import subprocess
+import functools
+from datetime import datetime, timedelta
 
-from apt_pkg import Hashes
 from sqlalchemy import and_, func
 from debian.deb822 import Deb822
 
@@ -26,8 +26,23 @@ from laniakea.db import (
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
 )
-from laniakea.utils import process_file_lock
+from laniakea.utils import process_file_lock, datetime_to_rfc2822_string
 from laniakea.logging import log
+from laniakea.utils.gpg import sign
+
+
+@functools.total_ordering
+class RepoFileInfo:
+    def __init__(self, fname: T.PathUnion, size: int, sha256sum: str):
+        self.fname = fname
+        self.size = size
+        self.sha256sum = sha256sum
+
+    def __lt__(self, other):
+        return self.fname < other.fname
+
+    def __eq__(self, other):
+        return self.fname == other.fname
 
 
 def set_deb822_value(entry: Deb822, key: str, value: str):
@@ -35,35 +50,50 @@ def set_deb822_value(entry: Deb822, key: str, value: str):
         entry[key] = value
 
 
-def write_compressed_files(root_path: T.Union[str, os.PathLike], basename: str, data: str):
+def write_compressed_files(root_path: T.PathUnion, subdir: str, basename: str, data: str) -> T.List[RepoFileInfo]:
     """
     Write archive metadata file and compress it with all supported / applicable
     algorithms. Currently, we only support LZMA.
-    :param root_path: Root directory of the metadata files.
+    :param root_path: Root directory of the repository.
+    :param subdir: Subdirectory within the repository.
     :param basename: Base name of the metadata file, e.g. "Packages"
     :param data: Data the file should contain (usually UTF-8 text)
     """
 
-    with lzma.open(os.path.join(root_path, basename + '.xz'), 'w') as f:
-        f.write(data.encode('utf-8'))
+    finfos = []
+    data_bytes = data.encode('utf-8')
+    repo_fname = os.path.join(subdir, basename)
+    finfos.append(RepoFileInfo(repo_fname, len(data_bytes), hashlib.sha256(data_bytes).hexdigest()))
+
+    fname_xz = os.path.join(root_path, repo_fname + '.xz')
+    with lzma.open(fname_xz, 'w') as f:
+        f.write(data_bytes)
+    with open(fname_xz, 'rb') as f:
+        xz_bytes = f.read()
+        finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), hashlib.sha256(xz_bytes).hexdigest()))
+
+    return finfos
 
 
 def write_release_file_for_arch(
-    root_path: T.PathUnion, rss: ArchiveRepoSuiteSettings, component: ArchiveComponent, arch_name: str
-):
+    root_path: T.PathUnion, subdir: str, rss: ArchiveRepoSuiteSettings, component: ArchiveComponent, arch_name: str
+) -> RepoFileInfo:
     """
     Write Release data to the selected path based on information from :param rss
     """
 
     entry = Deb822()
-    set_deb822_value(entry, 'Archive', rss.suite.name)
     set_deb822_value(entry, 'Origin', rss.repo.origin_name)
+    set_deb822_value(entry, 'Archive', rss.suite.name)
     set_deb822_value(entry, 'Version', rss.suite.version)
     set_deb822_value(entry, 'Component', component.name)
     entry['Architecture'] = arch_name
 
-    with open(os.path.join(root_path, 'Release'), 'w', encoding='utf-8') as f:
-        f.write(entry.dump())
+    with open(os.path.join(root_path, subdir, 'Release'), 'wb') as f:
+        data = entry.dump().encode('utf-8')
+        finfo = RepoFileInfo(os.path.join(subdir, 'Release'), len(data), hashlib.sha256(data).hexdigest())
+        f.write(data)
+    return finfo
 
 
 def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite, component: ArchiveComponent):
@@ -138,7 +168,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
 
 def generate_packages_index(
     session, repo: ArchiveRepository, suite: ArchiveSuite, component: ArchiveComponent, arch: ArchiveArchitecture
-):
+) -> T.Tuple[str, str]:
     """
     Generate Packages index data for the given repo/suite/component/arch.
     :param session: Active SQLAlchemy session
@@ -172,6 +202,7 @@ def generate_packages_index(
     )
 
     entries = []
+    i18n_entries = []
     for bpkg in bpkgs:
         # write sources file
         entry = Deb822()
@@ -183,7 +214,7 @@ def generate_packages_index(
             else:
                 source_info = bpkg.source.name + ' (' + bpkg.source.version + ')'
 
-        set_deb822_value(entry, 'Package', bpkg.name)
+        entry['Package'] = bpkg.name
         set_deb822_value(entry, 'Source', source_info)
         set_deb822_value(entry, 'Version', bpkg.version)
         set_deb822_value(entry, 'Maintainer', bpkg.maintainer)
@@ -214,6 +245,10 @@ def generate_packages_index(
         for key, value in bpkg.extra_data.items():
             set_deb822_value(entry, key, value)
 
+        # create i18n template
+        i18n_entry = Deb822()
+        i18n_entry['Package'] = bpkg.name
+
         entries.append(entry.dump())
 
     return '\n'.join(entries)
@@ -241,24 +276,73 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
     os.makedirs(suite_temp_dist_dir, exist_ok=True)
 
     # update metadata
+    meta_files = []
     for component in rss.suite.components:
-        suite_component_dists_dir = os.path.join(suite_temp_dist_dir, component.name)
-        suite_component_dists_sources_dir = os.path.join(suite_component_dists_dir, 'source')
+        dists_sources_subdir = os.path.join(component.name, 'source')
+        suite_component_dists_sources_dir = os.path.join(suite_temp_dist_dir, dists_sources_subdir)
         os.makedirs(suite_component_dists_sources_dir, exist_ok=True)
 
         # generate Sources
         res = generate_sources_index(session, rss.repo, rss.suite, component)
-        write_compressed_files(suite_component_dists_sources_dir, 'Sources', res)
-        write_release_file_for_arch(suite_component_dists_sources_dir, rss, component, 'source')
+        meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_sources_subdir, 'Sources', res))
+        meta_files.append(
+            write_release_file_for_arch(suite_temp_dist_dir, dists_sources_subdir, rss, component, 'source')
+        )
 
         # generate Packages
         for arch in rss.suite.architectures:
-            suite_component_dists_arch_dir = os.path.join(suite_component_dists_dir, 'binary-' + arch.name)
+            dists_arch_subdir = os.path.join(component.name, 'binary-' + arch.name)
+            suite_component_dists_arch_dir = os.path.join(suite_temp_dist_dir, dists_arch_subdir)
             os.makedirs(suite_component_dists_arch_dir, exist_ok=True)
 
             res = generate_packages_index(session, rss.repo, rss.suite, component, arch)
-            write_compressed_files(suite_component_dists_arch_dir, 'Packages', res)
-            write_release_file_for_arch(suite_component_dists_arch_dir, rss, component, arch.name)
+            meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_arch_subdir, 'Packages', res))
+            meta_files.append(
+                write_release_file_for_arch(suite_temp_dist_dir, dists_arch_subdir, rss, component, arch.name)
+            )
+
+    # write root release file
+    root_rel_fname = os.path.join(suite_temp_dist_dir, 'Release')
+    entry = Deb822()
+    set_deb822_value(entry, 'Origin', rss.repo.origin_name)
+    set_deb822_value(entry, 'Suite', rss.suite.name)
+    set_deb822_value(entry, 'Version', rss.suite.version)
+    set_deb822_value(entry, 'Codename', rss.suite.alias)
+    set_deb822_value(entry, 'Label', rss.suite.summary)
+    entry['Date'] = datetime_to_rfc2822_string(datetime.now())
+    entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.now() + timedelta(days=7))
+    entry['Acquire-By-Hash'] = 'no'  # FIXME: We need to implement this, then change this line to allow by-hash
+    entry['Architectures'] = ' '.join(sorted([a.name for a in rss.suite.architectures]))
+    entry['Components'] = ' '.join(sorted([c.name for c in rss.suite.components]))
+
+    metafile_data = [f' {f.sha256sum} {f.size: >8} {f.fname}' for f in sorted(meta_files)]
+    entry['SHA256'] = '\n' + '\n'.join(metafile_data)
+
+    with open(os.path.join(root_rel_fname), 'w', encoding='utf-8') as f:
+        f.write(entry.dump())
+
+    # sign our changes
+    root_relsigned_il_fname = os.path.join(suite_temp_dist_dir, 'InRelease')
+    root_relsigned_dt_fname = os.path.join(suite_temp_dist_dir, 'Release.gpg')
+    with open(root_rel_fname, 'rb') as rel_f:
+        # inline signature
+        with open(root_relsigned_il_fname, 'wb') as signed_f:
+            sign(
+                rel_f,
+                signed_f,
+                rss.signingkeys,
+                inline=True,
+                homedir=lconf.secret_gpg_home_dir,
+            )
+        # detached signature
+        with open(root_relsigned_dt_fname, 'wb') as signed_f:
+            sign(
+                rel_f,
+                signed_f,
+                rss.signingkeys,
+                inline=False,
+                homedir=lconf.secret_gpg_home_dir,
+            )
 
     # mark changes as live, atomically replace old location by swapping the paths,
     # then deleting the old one.
