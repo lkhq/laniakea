@@ -20,10 +20,10 @@ from laniakea.db import (
     ArchiveSuite,
     BinaryPackage,
     SourcePackage,
+    PackagePriority,
     ArchiveComponent,
     ArchiveRepository,
     ArchiveArchitecture,
-    packagepriority_from_string,
 )
 from laniakea.utils import split_strip, download_file, is_remote_url
 from laniakea.logging import log
@@ -357,7 +357,7 @@ class Repository:
             pkg.description = e['Description']
             pkg.description_md5 = e.get('Description-md5')
 
-            pkg.priority = packagepriority_from_string(e['Priority'])
+            pkg.priority = PackagePriority.from_string(e['Priority'])
 
             pkg.bin_file = ArchiveFile(e['Filename'])
             pkg.bin_file.size = int(e.get('Size', '0'))

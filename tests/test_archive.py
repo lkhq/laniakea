@@ -10,6 +10,7 @@ import subprocess
 import pytest
 
 from laniakea.db import (
+    NewPolicy,
     ArchiveSuite,
     ArchiveConfig,
     BinaryPackage,
@@ -161,7 +162,7 @@ class TestArchive:
             # import a source package directly
             pi = PackageImporter(session, rss)
             pi.keep_source_packages = True
-            pi.import_source(os.path.join(package_samples, 'package_0.1-1.dsc'), 'main', skip_new=True)
+            pi.import_source(os.path.join(package_samples, 'package_0.1-1.dsc'), 'main', new_policy=NewPolicy.NEVER_NEW)
             session.commit()
             # verify
             assert (
@@ -212,7 +213,7 @@ class TestArchive:
             )
 
             # add source package to NEW
-            pi.import_source(os.path.join(package_samples, 'snowman_0.1-1.dsc'), 'main', skip_new=False)
+            pi.import_source(os.path.join(package_samples, 'snowman_0.1-1.dsc'), 'main')
             session.commit()
             assert os.path.isfile(
                 os.path.join(self._queue_root, 'master', 'new', 'pool', 's', 'snowman', 'snowman_0.1-1.dsc')
@@ -246,7 +247,9 @@ class TestArchive:
             session.commit()
 
             # importing two packages which are already in NEW should work
-            pi.import_source(os.path.join(package_samples, 'snowman_0.1-1.dsc'), 'main', skip_new=False)
+            pi.import_source(
+                os.path.join(package_samples, 'snowman_0.1-1.dsc'), 'main', new_policy=NewPolicy.ALWAYS_NEW
+            )
             pi.import_binary(os.path.join(package_samples, 'snowman_0.1-1_all.deb'), 'main')
             spkg = (
                 session.query(SourcePackage)

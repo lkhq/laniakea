@@ -16,6 +16,7 @@ from debian.deb822 import Sources, Packages
 from laniakea import LocalConfig
 from laniakea.db import (
     DebType,
+    NewPolicy,
     ArchiveFile,
     PackageInfo,
     BinaryPackage,
@@ -141,8 +142,7 @@ class PackageImporter:
         dsc_fname: T.Union[os.PathLike, str],
         component_name: str = None,
         *,
-        skip_new: bool = False,
-        always_new: bool = False,
+        new_policy: NewPolicy = NewPolicy.DEFAULT,
     ):
         """Import a source package into the given suite or its NEW queue.
 
@@ -247,14 +247,14 @@ class PackageImporter:
             files_todo.append(file)
 
         missing_overrides = check_overrides_source(self._session, self._rss, spkg)
-        if skip_new:
+        if new_policy == NewPolicy.NEVER_NEW:
             # if we are supposed to skip NEW, we just register the overrides and add the package
             # to its designated suite
             register_package_overrides(self._session, self._rss, missing_overrides)
             spkg.suites.append(self._rss.suite)
             is_new = False
         else:
-            if missing_overrides or always_new:
+            if missing_overrides or new_policy == NewPolicy.ALWAYS_NEW:
                 # add to NEW queue (update entry or create new one)
                 if not nq_entry:
                     nq_entry = ArchiveQueueNewEntry()
@@ -631,9 +631,11 @@ class UploadHandler:
                         'Invalid source package filename: {}'.format(str(file.fname)),
                     )
                 try:
-                    pi.import_source(
-                        os.path.join(dsc_dir, file.fname), file.component, always_new=uploader.always_review
-                    )
+                    new_policy = rss.new_policy
+                    # uploader policy beats suite policy
+                    if uploader.always_review:
+                        new_policy = NewPolicy.ALWAYS_NEW
+                    pi.import_source(os.path.join(dsc_dir, file.fname), file.component, new_policy=new_policy)
                 except Exception as e:
                     return (
                         False,

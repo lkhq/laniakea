@@ -12,16 +12,16 @@ import apt_pkg
 
 from laniakea import LocalConfig
 from laniakea.db import (
+    DebType,
     ArchiveFile,
     PackageInfo,
     ArchiveSuite,
     SourcePackage,
     ArchiveSection,
     PackageOverride,
+    PackagePriority,
     ArchiveRepository,
     ArchiveRepoSuiteSettings,
-    debtype_from_string,
-    packagepriority_from_string,
 )
 from laniakea.utils import split_strip
 
@@ -77,9 +77,9 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
         pi = PackageInfo()
         pi.name = parts[0]
         pi.version = default_version
-        pi.deb_type = debtype_from_string(parts[1])
+        pi.deb_type = DebType.from_string(parts[1])
         pi.section = parts[2]
-        pi.priority = packagepriority_from_string(parts[3])
+        pi.priority = PackagePriority.from_string(parts[3])
 
         if len(parts) > 4:
             # we have additional data

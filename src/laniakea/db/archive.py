@@ -214,18 +214,51 @@ class DbgSymPolicy(enum.IntEnum):
             return 'debug-allowed'
         return 'invalid'
 
+    @staticmethod
+    def from_string(s: str) -> 'DbgSymPolicy':
+        """
+        Convert the text representation into the enumerated type.
+        """
+        if s == 'no-debug':
+            return DbgSymPolicy.NO_DEBUG
+        elif s == 'only-debug':
+            return DbgSymPolicy.ONLY_DEBUG
+        elif s == 'debug-allowed':
+            return DbgSymPolicy.DEBUG_ALLOWED
+        return DbgSymPolicy.INVALID
 
-def dbgsympolicy_from_string(s) -> DbgSymPolicy:
+
+class NewPolicy(enum.IntEnum):
     """
-    Convert the text representation into the enumerated type.
+    Policy for how new packages are processed.
     """
-    if s == 'no-debug':
-        return DbgSymPolicy.NO_DEBUG
-    elif s == 'only-debug':
-        return DbgSymPolicy.ONLY_DEBUG
-    elif s == 'debug-allowed':
-        return DbgSymPolicy.DEBUG_ALLOWED
-    return DbgSymPolicy.INVALID
+
+    INVALID = 0
+    DEFAULT = enum.auto()  # default policy: only new source packages end up in the NEW queue
+    ALWAYS_NEW = enum.auto()  # every single human upload ends up in the NEW queue for review
+    NEVER_NEW = enum.auto()  # no package will end up in NEW, everything will be auto-accepted.
+
+    def __str__(self):
+        if self.value == self.DEFAULT:
+            return 'default'
+        elif self.value == self.ALWAYS_NEW:
+            return 'always-new'
+        elif self.value == self.NEVER_NEW:
+            return 'never-new'
+        return 'invalid'
+
+    @staticmethod
+    def from_string(s: str) -> 'NewPolicy':
+        """
+        Convert the text representation into the enumerated type.
+        """
+        if s == 'default':
+            return NewPolicy.DEFAULT
+        elif s == 'always-new':
+            return NewPolicy.ALWAYS_NEW
+        elif s == 'never-new':
+            return NewPolicy.NEVER_NEW
+        return NewPolicy.INVALID
 
 
 class ArchiveSuite(Base):
@@ -311,6 +344,9 @@ class ArchiveRepoSuiteSettings(Base):
     suite_summary = Column(String(200), nullable=True)
     # Whether new packages can arrive in this suite via regular uploads ("unstable", "staging", ...)
     accept_uploads = Column(Boolean(), default=True)
+
+    new_policy = Column(Enum(NewPolicy), default=NewPolicy.DEFAULT)  # Policy how new packages should be processed
+
     # Whether this is a development target suite ("testing", "green", ...)
     devel_target = Column(Boolean(), default=False)
     frozen = Column(Boolean(), default=False)  # Whether the suite is frozen and immutable for changes
@@ -460,16 +496,16 @@ class DebType(enum.IntEnum):
             return 'udeb'
         return 'unknown'
 
-
-def debtype_from_string(s):
-    """
-    Convert the text representation into the enumerated type.
-    """
-    if s == 'deb':
-        return DebType.DEB
-    elif s == 'udeb':
-        return DebType.UDEB
-    return DebType.UNKNOWN
+    @staticmethod
+    def from_string(s: str) -> 'DebType':
+        """
+        Convert the text representation into the enumerated type.
+        """
+        if s == 'deb':
+            return DebType.DEB
+        elif s == 'udeb':
+            return DebType.UDEB
+        return DebType.UNKNOWN
 
 
 class PackagePriority(enum.IntEnum):
@@ -497,22 +533,22 @@ class PackagePriority(enum.IntEnum):
             return 'required'
         return 'invalid'
 
-
-def packagepriority_from_string(s) -> PackagePriority:
-    """
-    Convert the text representation into the enumerated type.
-    """
-    if s == 'optional':
-        return PackagePriority.OPTIONAL
-    elif s == 'extra':
-        return PackagePriority.EXTRA
-    elif s == 'standard':
-        return PackagePriority.STANDARD
-    elif s == 'important':
-        return PackagePriority.IMPORTANT
-    elif s == 'required':
-        return PackagePriority.REQUIRED
-    return PackagePriority.UNKNOWN
+    @staticmethod
+    def from_string(s: str) -> 'PackagePriority':
+        """
+        Convert the text representation into the enumerated type.
+        """
+        if s == 'optional':
+            return PackagePriority.OPTIONAL
+        elif s == 'extra':
+            return PackagePriority.EXTRA
+        elif s == 'standard':
+            return PackagePriority.STANDARD
+        elif s == 'important':
+            return PackagePriority.IMPORTANT
+        elif s == 'required':
+            return PackagePriority.REQUIRED
+        return PackagePriority.UNKNOWN
 
 
 class VersionPriority(enum.IntEnum):

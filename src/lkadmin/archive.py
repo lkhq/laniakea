@@ -9,6 +9,7 @@ import click
 
 from laniakea import LocalConfig
 from laniakea.db import (
+    NewPolicy,
     ArchiveSuite,
     DbgSymPolicy,
     ArchiveUploader,
@@ -17,7 +18,6 @@ from laniakea.db import (
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
     session_scope,
-    dbgsympolicy_from_string,
 )
 
 from .utils import ClickAliasedGroup, input_str, input_list, print_error_exit
@@ -226,6 +226,7 @@ def _add_suite(
     component_names=None,
     parent_names=None,
     dbgsym_policy='no-debug',
+    new_policy='default',
     debug_suite_for=None,
 ):
     '''Register a new suite with the archive.'''
@@ -247,7 +248,11 @@ def _add_suite(
     if not parent_names:
         parent_names = []
 
-    dbg_policy = dbgsympolicy_from_string(dbgsym_policy)
+    new_policy_en = NewPolicy.from_string(new_policy)
+    if new_policy_en == NewPolicy.INVALID:
+        raise ValueError('The value "{}" for new_policy was invalid!'.format(new_policy))
+
+    dbg_policy = DbgSymPolicy.from_string(dbgsym_policy)
     if dbg_policy == DbgSymPolicy.INVALID:
         raise ValueError('The value "{}" for dbgsym_policy was invalid!'.format(dbgsym_policy))
 
@@ -265,6 +270,7 @@ def _add_suite(
         suite.alias = alias
         suite.summary = summary
         suite.version = version
+        suite.new_policy = new_policy_en
         suite.dbgsym_policy = dbg_policy
 
         if dbg_policy == DbgSymPolicy.ONLY_DEBUG:
