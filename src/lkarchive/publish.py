@@ -5,12 +5,14 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import sys
 import lzma
 import shutil
 import hashlib
 import functools
 from datetime import datetime, timedelta
 
+import click
 from sqlalchemy import and_, func
 from debian.deb822 import Deb822
 
@@ -25,6 +27,7 @@ from laniakea.db import (
     ArchiveRepository,
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
+    session_scope,
 )
 from laniakea.utils import process_file_lock, datetime_to_rfc2822_string
 from laniakea.logging import log
@@ -311,7 +314,9 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
         log.info('Not updating %s/%s: No pending changes.', rss.repo.name, rss.suite.name)
         return
 
-    # global variables
+    log.info('Publishing: %s/%s', rss.repo.name, rss.suite.name)
+
+    # global settings
     lconf = LocalConfig()
     archive_root_dir = lconf.archive_root_dir
     repo_dists_dir = os.path.join(archive_root_dir, rss.repo.name, 'dists')
@@ -436,3 +441,44 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
                 if rss.suite.name != suite_name:
                     continue
             publish_suite_dists(session, rss, force=force)
+
+
+@click.command()
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set all repositories will be processed',
+)
+@click.option(
+    '--suite',
+    '-s',
+    'suite_name',
+    default=None,
+    help='Name of the suite to act on, if not set all suites will be processed',
+)
+@click.option(
+    '--force',
+    default=False,
+    is_flag=True,
+    help='Whether to force publication even if it is not yet needed.',
+)
+def publish(repo_name: T.Optional[str] = None, suite_name: T.Optional[str] = None, *, force: bool = False):
+    """Publish repository metadata that clients can use."""
+
+    with session_scope() as session:
+        if repo_name:
+            repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one_or_none()
+            if not repo:
+                click.echo('Unable to find repository with name {}!'.format(repo_name), err=True)
+                sys.exit(1)
+            repos = [repo]
+        else:
+            repos = session.query(ArchiveRepository).all()
+
+        for repo in repos:
+            try:
+                publish_repo_dists(session, repo, suite_name=suite_name, force=force)
+            except Exception as e:
+                click.echo('Error while publishing repository {}: {}'.format(repo.name, str(e)), err=True)
+                sys.exit(5)

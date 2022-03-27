@@ -37,7 +37,11 @@ def cli(ctx, verbose, version):
 
 
 def _register_commands():
-    '''Register lk-admin subcommands.'''
+    '''Register lk-archive subcommands.'''
+
+    from publish import publish
+
+    cli.add_command(publish)
 
 
 def run(mainfile, args):
