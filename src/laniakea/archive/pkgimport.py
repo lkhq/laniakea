@@ -11,6 +11,7 @@ import hashlib
 import subprocess
 
 from apt_pkg import Hashes
+from sqlalchemy import exists
 from debian.deb822 import Sources, Packages
 
 from laniakea import LocalConfig
@@ -45,6 +46,10 @@ from laniakea.archive.changes import InvalidChangesException, parse_changes
 
 class ArchiveImportError(Exception):
     """Import of a package into the archive failed."""
+
+
+class ArchivePackageExistsError(Exception):
+    """Import of a package into the archive failed because it already existed."""
 
 
 def pop_split(d, key, s):
@@ -94,7 +99,16 @@ class PackageImporter:
         self._repo_newqueue_root = self._rss.repo.get_new_queue_dir()
         os.makedirs(self._repo_newqueue_root, exist_ok=True)
 
-        self.keep_source_packages = False
+        self._keep_source_packages = False
+
+    @property
+    def keep_source_packages(self) -> bool:
+        """True if source packages should be moved after import, otherwise they are kept in their original location."""
+        return self._keep_source_packages
+
+    @keep_source_packages.setter
+    def keep_source_packages(self, v: bool):
+        self._keep_source_packages = v
 
     def _copy_or_move(self, src, dst, *, override: bool = False):
         os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -151,7 +165,7 @@ class PackageImporter:
         :param skip_new: True if the NEW queue should be skipped and overrides be added automatically.
         """
 
-        log.info('Attempting import of source: {}', dsc_fname)
+        log.info('Attempting import of source: %s', dsc_fname)
         dsc_dir = os.path.dirname(dsc_fname)
 
         p = subprocess.run(
@@ -193,6 +207,15 @@ class PackageImporter:
         )
         if nq_entry:
             spkg = nq_entry.package
+        else:
+            # check if the package already exists
+            ret = self._session.query(
+                exists().where(SourcePackage.name == pkgname, SourcePackage.version == version)
+            ).scalar()
+            if ret:
+                raise ArchivePackageExistsError(
+                    'Can not import source package {}/{}: Already exists.'.format(pkgname, version)
+                )
 
         spkg.format_version = src_tf.pop('Format')
         spkg.architectures = pop_split(src_tf, 'Architecture', ' ')
@@ -319,7 +342,7 @@ class PackageImporter:
         :param component_name: Name of the archive component to import into.
         """
 
-        log.info('Attempting import of binary: {}', deb_fname)
+        log.info('Attempting import of binary: %s', deb_fname)
         pkg_type = DebType.DEB
         if os.path.splitext(deb_fname)[1] == '.udeb':
             pkg_type = DebType.UDEB
@@ -336,13 +359,24 @@ class PackageImporter:
 
         pkgname = bin_tf.pop('Package')
         version = bin_tf.pop('Version')
+        pkgarch = bin_tf.pop('Architecture')
+
+        # check if the package already exists
+        ret = self._session.query(
+            exists().where(
+                BinaryPackage.name == pkgname,
+                BinaryPackage.version == version,
+                BinaryPackage.architecture.has(name=pkgarch),
+            )
+        ).scalar()
+        if ret:
+            raise ArchivePackageExistsError(
+                'Can not import binary package {}/{}/{}: Already exists.'.format(pkgname, version, pkgarch)
+            )
+
         bpkg = BinaryPackage(pkgname, version, self._rss.repo)
 
-        bpkg.architecture = (
-            self._session.query(ArchiveArchitecture)
-            .filter(ArchiveArchitecture.name == bin_tf.pop('Architecture'))
-            .one()
-        )
+        bpkg.architecture = self._session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == pkgarch).one()
         bpkg.update_uuid()
 
         bpkg.maintainer = bin_tf.pop('Maintainer')

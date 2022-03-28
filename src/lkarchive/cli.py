@@ -43,6 +43,18 @@ def _register_commands():
 
     cli.add_command(publish)
 
+    from import_pkg import import_pkg
+
+    cli.add_command(import_pkg)
+
+    from list_pkg import list
+
+    cli.add_command(list)
+
+    from process_new import process_new
+
+    cli.add_command(process_new)
+
 
 def run(mainfile, args):
     if len(args) == 0:
