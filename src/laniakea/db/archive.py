@@ -195,7 +195,7 @@ class ArchiveUploader(Base):
         self.email = email
 
 
-class DbgSymPolicy(enum.IntEnum):
+class DbgSymPolicy(enum.Enum):
     """
     Policy for debug symbol handling for suites.
     """
@@ -205,7 +205,7 @@ class DbgSymPolicy(enum.IntEnum):
     ONLY_DEBUG = enum.auto()  # this suite may only contain debug symbol packages
     DEBUG_ALLOWED = enum.auto()  # this suite may contain both regular and debug symbol packages
 
-    def __str__(self):
+    def to_string(self):
         if self.value == self.NO_DEBUG:
             return 'no-debug'
         elif self.value == self.ONLY_DEBUG:
@@ -213,6 +213,9 @@ class DbgSymPolicy(enum.IntEnum):
         elif self.value == self.DEBUG_ALLOWED:
             return 'debug-allowed'
         return 'invalid'
+
+    def __str__(self):
+        return self.to_string()
 
     @staticmethod
     def from_string(s: str) -> 'DbgSymPolicy':
@@ -228,7 +231,7 @@ class DbgSymPolicy(enum.IntEnum):
         return DbgSymPolicy.INVALID
 
 
-class NewPolicy(enum.IntEnum):
+class NewPolicy(enum.Enum):
     """
     Policy for how new packages are processed.
     """
@@ -238,7 +241,7 @@ class NewPolicy(enum.IntEnum):
     ALWAYS_NEW = enum.auto()  # every single human upload ends up in the NEW queue for review
     NEVER_NEW = enum.auto()  # no package will end up in NEW, everything will be auto-accepted.
 
-    def __str__(self):
+    def to_string(self):
         if self.value == self.DEFAULT:
             return 'default'
         elif self.value == self.ALWAYS_NEW:
@@ -246,6 +249,9 @@ class NewPolicy(enum.IntEnum):
         elif self.value == self.NEVER_NEW:
             return 'never-new'
         return 'invalid'
+
+    def __str__(self):
+        return self.to_string()
 
     @staticmethod
     def from_string(s: str) -> 'NewPolicy':
@@ -470,7 +476,7 @@ class ArchiveQueueNewEntry(Base):
     comment = Column(Text(), nullable=True)
 
 
-class PackageType(enum.IntEnum):
+class PackageType(enum.Enum):
     """
     Type of the package.
     """
@@ -489,12 +495,16 @@ class DebType(enum.IntEnum):
     DEB = enum.auto()
     UDEB = enum.auto()
 
-    def __str__(self):
-        if self.value == self.DEB:
+    @staticmethod
+    def to_string(e):
+        if e == DebType.DEB:
             return 'deb'
-        elif self.value == self.UDEB:
+        elif e == DebType.UDEB:
             return 'udeb'
         return 'unknown'
+
+    def __str__(self):
+        return DebType.to_string(self)
 
     @staticmethod
     def from_string(s: str) -> 'DebType':
@@ -520,18 +530,22 @@ class PackagePriority(enum.IntEnum):
     OPTIONAL = enum.auto()
     EXTRA = enum.auto()
 
-    def __str__(self):
-        if self.value == self.OPTIONAL:
+    @staticmethod
+    def to_string(e):
+        if e == PackagePriority.OPTIONAL:
             return 'optional'
-        if self.value == self.EXTRA:
+        if e == PackagePriority.EXTRA:
             return 'extra'
-        if self.value == self.STANDARD:
+        if e == PackagePriority.STANDARD:
             return 'standard'
-        if self.value == self.IMPORTANT:
+        if e == PackagePriority.IMPORTANT:
             return 'important'
-        if self.value == self.REQUIRED:
+        if e == PackagePriority.REQUIRED:
             return 'required'
         return 'invalid'
+
+    def __str__(self):
+        return PackagePriority.to_string(self)
 
     @staticmethod
     def from_string(s: str) -> 'PackagePriority':
@@ -551,7 +565,7 @@ class PackagePriority(enum.IntEnum):
         return PackagePriority.UNKNOWN
 
 
-class VersionPriority(enum.IntEnum):
+class VersionPriority(enum.Enum):
     """
     Priority of a package upload.
     """
@@ -562,7 +576,7 @@ class VersionPriority(enum.IntEnum):
     CRITICAL = enum.auto()
     EMERGENCY = enum.auto()
 
-    def __str__(self):
+    def to_string(self):
         if self.value == self.LOW:
             return 'low'
         elif self.value == self.MEDIUM:
@@ -574,6 +588,9 @@ class VersionPriority(enum.IntEnum):
         elif self.value == self.EMERGENCY:
             return 'emergency'
         return 'unknown'
+
+    def __str__(self):
+        return self.to_string()
 
 
 class PackageInfo:
