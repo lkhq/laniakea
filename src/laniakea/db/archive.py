@@ -602,6 +602,7 @@ class PackageInfo:
     deb_type: DebType = DebType.DEB
     name: str = None
     version: str = None
+    component: str = 'main'
     section: str = None
     essential: bool = False
     priority: PackagePriority = PackagePriority.UNKNOWN
@@ -716,6 +717,13 @@ class SourcePackage(Base):
             self.update_uuid()
 
     @property
+    def dsc_file(self) -> T.Optional[ArchiveFile]:
+        for f in self.files:
+            if f.fname.endswith('.dsc'):
+                return f
+        return None
+
+    @property
     def expected_binaries(self):
         if self._expected_binaries is not None:
             return self._expected_binaries
@@ -820,6 +828,9 @@ class PackageOverride(Base):
 
     essential = Column(Boolean(), default=False)  # Whether this package is marked as essential
     priority = Column(Enum(PackagePriority))  # Priority of the package
+
+    component_id = Column(Integer, ForeignKey('archive_components.id'))
+    component = relationship('ArchiveComponent')  # Component this override is for
 
     section_id = Column(Integer, ForeignKey('archive_sections.id'))
     section = relationship('ArchiveSection')  # Section of the package

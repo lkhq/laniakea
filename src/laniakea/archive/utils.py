@@ -20,7 +20,9 @@ from laniakea.db import (
     ArchiveSection,
     PackageOverride,
     PackagePriority,
+    ArchiveComponent,
     ArchiveRepository,
+    ArchiveQueueNewEntry,
     ArchiveRepoSuiteSettings,
 )
 from laniakea.utils import split_strip
@@ -79,6 +81,8 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
         pi.version = default_version
         pi.deb_type = DebType.from_string(parts[1])
         pi.section = parts[2]
+        if '/' in pi.section:
+            pi.component, pi.section = pi.section.split('/', 2)
         pi.priority = PackagePriority.from_string(parts[3])
 
         if len(parts) > 4:
@@ -133,19 +137,20 @@ def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides
         if not override:
             override = PackageOverride(pi.name)
             override.repo_suite = rss
+            override.pkgname = pi.name
             session.add(override)
-        section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one()
-        override.section = section
+        override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one()
+        override.section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one()
         override.essential = pi.essential
         override.priority = pi.priority
 
 
-def pool_dir_from_name(source_pkg_name: str):
+def pool_dir_from_name_component(source_pkg_name: str, component_name: str):
     """Create a pool location string from a source package name"""
     if source_pkg_name[:3] == "lib":
-        return os.path.join('pool', source_pkg_name[:4], source_pkg_name)
+        return os.path.join('pool', component_name, source_pkg_name[:4], source_pkg_name)
     else:
-        return os.path.join('pool', source_pkg_name[:1], source_pkg_name)
+        return os.path.join('pool', component_name, source_pkg_name[:1], source_pkg_name)
 
 
 def dists_dir_for_repo_suite(repo: ArchiveRepository, suite: ArchiveSuite):
@@ -162,6 +167,21 @@ def split_epoch(version: str):
     else:
         # return epoch and version
         return parts[0], parts[2]
+
+
+def find_package_in_new_queue(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
+    """Find a source package in the NEW queue for a given repo-suite configuration."""
+    nq_entry = (
+        session.query(ArchiveQueueNewEntry)
+        .filter(
+            ArchiveQueueNewEntry.destination_id == rss.suite_id,
+            ArchiveQueueNewEntry.package.has(name=spkg.name),
+            ArchiveQueueNewEntry.package.has(version=spkg.version),
+            ArchiveQueueNewEntry.package.has(repo_id=rss.repo_id),
+        )
+        .one_or_none()
+    )
+    return nq_entry
 
 
 class AptVersion:

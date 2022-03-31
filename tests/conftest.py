@@ -13,7 +13,7 @@ import pytest
 
 from laniakea import LocalConfig
 from laniakea.db import LkModule
-from laniakea.utils import random_string
+from laniakea.utils import run_command, random_string
 from laniakea.logging import set_verbose
 
 # unconditionally enable verbose mode
@@ -460,3 +460,12 @@ def package_samples(samples_dir):
     yield pkg_dir
     if os.environ.get('LK_TEST_NO_CLEAN', '0') == '0':
         subprocess.run(['make', 'clean'], cwd=pkg_dir, check=True)
+
+
+@pytest.fixture(scope='session')
+def host_deb_arch():
+    out, err, ret = run_command(['dpkg', '--print-architecture'])
+    assert ret == 0
+    arch = out.strip()
+    assert arch
+    yield arch

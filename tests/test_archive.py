@@ -17,6 +17,7 @@ from laniakea.db import (
     SourcePackage,
     ArchiveUploader,
     ArchiveRepository,
+    ArchiveQueueNewEntry,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
@@ -27,13 +28,18 @@ from laniakea.archive import (
     import_key_file_for_uploader,
 )
 from laniakea.utils.gpg import GpgException
-from laniakea.archive.utils import pool_dir_from_name
+from lkarchive.process_new import newqueue_accept, newqueue_reject
+from laniakea.archive.utils import (
+    check_overrides_source,
+    find_package_in_new_queue,
+    pool_dir_from_name_component,
+)
 
 
 def test_utils():
     """Test smaller utility functions"""
-    assert pool_dir_from_name('pkgname') == 'pool/p/pkgname'
-    assert pool_dir_from_name('libthing') == 'pool/libt/libthing'
+    assert pool_dir_from_name_component('pkgname', 'main') == 'pool/main/p/pkgname'
+    assert pool_dir_from_name_component('libthing', 'main') == 'pool/main/libt/libthing'
 
 
 class TestParseChanges:
@@ -65,12 +71,13 @@ class TestParseChanges:
 
 class TestArchive:
     @pytest.fixture(autouse=True)
-    def setup(self, localconfig, samples_dir, sources_dir, database):
+    def setup(self, localconfig, samples_dir, sources_dir, database, host_deb_arch):
 
         gpg_dir = os.path.join(samples_dir, 'packages', 'gpg')
         self._lconf = localconfig
         self._archive_root = self._lconf.archive_root_dir
         self._queue_root = self._lconf.archive_queue_dir
+        self._host_arch = host_deb_arch
 
         lkadmin_exe = os.path.join(sources_dir, 'lkadmin', 'lk-admin.py')
         subprocess.run(
@@ -171,11 +178,12 @@ class TestArchive:
                     SourcePackage.repo_id == rss.repo_id,
                     SourcePackage.name == 'package',
                     SourcePackage.version == '0.1-1',
+                    SourcePackage.suites.any(ArchiveSuite.name == rss.suite.name),
                 )
                 .one()
             )
-            assert not os.path.isfile(
-                os.path.join(self._archive_root, 'master', 'pool', 's', 'snowman', 'package_0.1-1.dsc')
+            assert os.path.isfile(
+                os.path.join(self._archive_root, 'master', 'pool', 'main', 'p', 'package', 'package_0.1-1.dsc')
             )
 
             # import the corresponding binary package (overrides should be present, so this should work)
@@ -191,7 +199,7 @@ class TestArchive:
                 .one()
             )
             assert os.path.isfile(
-                os.path.join(self._archive_root, 'master', 'pool', 'p', 'package', 'package_0.1-1_all.deb')
+                os.path.join(self._archive_root, 'master', 'pool', 'main', 'p', 'package', 'package_0.1-1_all.deb')
             )
 
             # try importing a binary that does not have overrides set
@@ -216,7 +224,7 @@ class TestArchive:
             pi.import_source(os.path.join(package_samples, 'snowman_0.1-1.dsc'), 'main')
             session.commit()
             assert os.path.isfile(
-                os.path.join(self._queue_root, 'master', 'new', 'pool', 's', 'snowman', 'snowman_0.1-1.dsc')
+                os.path.join(self._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
             )
             spkg = (
                 session.query(SourcePackage)
@@ -233,7 +241,7 @@ class TestArchive:
             # try importing that binary again
             pi.import_binary(os.path.join(package_samples, 'snowman_0.1-1_all.deb'), 'main')
             assert os.path.isfile(
-                os.path.join(self._queue_root, 'master', 'new', 'pool', 's', 'snowman', 'snowman_0.1-1_all.deb')
+                os.path.join(self._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1_all.deb')
             )
             assert (
                 not session.query(BinaryPackage)
@@ -261,13 +269,37 @@ class TestArchive:
                 .one()
             )
             assert not spkg.suites
+            nq_entry = find_package_in_new_queue(session, rss, spkg)
+            assert nq_entry
+
+            # accept the package from the NEW queue
+            missing_overrides = check_overrides_source(session, rss, spkg)
+            assert len(missing_overrides) == 1
+            newqueue_accept(session, rss, spkg, missing_overrides)
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.suites.any(ArchiveSuite.name == rss.suite.name),
+                    SourcePackage.name == 'snowman',
+                    SourcePackage.version == '0.1-1',
+                )
+                .one_or_none()
+            )
+            assert spkg
+            assert not os.path.isfile(
+                os.path.join(self._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
+            )
+            assert os.path.join(self._archive_root, 'master', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
 
             # test processing an actual upload from a changes file
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
             uh = UploadHandler(session, repo)
             uh.keep_source_packages = True
 
-            success, uploader, error = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_amd64.changes'))
+            success, uploader, error = uh.process_changes(
+                os.path.join(package_samples, 'package_0.2-1_%s.changes' % self._host_arch)
+            )
             assert error == None
             assert success
             assert uploader.email == 'snowman@example.com'
@@ -287,7 +319,9 @@ class TestArchive:
             assert spkg
 
             # try to import the same thing again and watch it fail
-            success, uploader, error = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_amd64.changes'))
+            success, uploader, error = uh.process_changes(
+                os.path.join(package_samples, 'package_0.2-1_%s.changes' % self._host_arch)
+            )
             assert (
                 error
                 == 'We have already seen higher or equal version "0.2-1" of source package "package" in repository "master" before.'
@@ -298,7 +332,7 @@ class TestArchive:
 
             # try importing a non-free package, this thing should end up in NEW
             success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'nonfree-package_0.1-1_amd64.changes')
+                os.path.join(package_samples, 'nonfree-package_0.1-1_%s.changes' % self._host_arch)
             )
             assert error == None
             assert success
@@ -318,6 +352,11 @@ class TestArchive:
             )
             assert spkg  # should be registered, but should not have suite associations
 
+            nonfreepkg_pool_subdir = os.path.join(
+                'pool', 'non-free', 'n', 'nonfree-package', 'nonfree-package_0.1-1.dsc'
+            )
+            assert os.path.isfile(os.path.join(self._queue_root, 'master', 'new', nonfreepkg_pool_subdir))
+
             bpkg = (
                 session.query(BinaryPackage)
                 .filter(
@@ -329,6 +368,157 @@ class TestArchive:
                 .one_or_none()
             )
             assert not bpkg  # should not be in here, will be in NEW instead
+            assert os.path.isfile(
+                os.path.join(
+                    self._queue_root,
+                    'master',
+                    'new',
+                    'pool',
+                    'non-free',
+                    'n',
+                    'nonfree-package',
+                    'nonfree-package_0.1-1_all.deb',
+                )
+            )
+
+            # accept the non-free package from the NEW queue
+            missing_overrides = check_overrides_source(session, rss, spkg)
+            assert len(missing_overrides) == 1
+            newqueue_accept(session, rss, spkg, missing_overrides)
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.suites.any(ArchiveSuite.name == rss.suite.name),
+                    SourcePackage.name == 'nonfree-package',
+                    SourcePackage.version == '0.1-1',
+                )
+                .one_or_none()
+            )
+            assert spkg
+            assert not os.path.isfile(os.path.join(self._queue_root, 'master', 'new', nonfreepkg_pool_subdir))
+            assert os.path.join(self._archive_root, 'master', nonfreepkg_pool_subdir)
+
+            # process another upload, and reject it
+            success, uploader, error = uh.process_changes(
+                os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % self._host_arch)
+            )
+            assert error == None
+            assert success
+            assert uploader.email == 'maint@example.com'
+            assert uploader.pgp_fingerprints == ['993C2870F54D83789E55323C13D986C3912E851C']
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'pkgnew',
+                    SourcePackage.version == '0.1-1',
+                    SourcePackage.component.has(name='main'),
+                    ~SourcePackage.suites.any(),
+                )
+                .one_or_none()
+            )
+            assert spkg
+
+            pkg_pool_subdir = os.path.join('pool', 'main', 'p', 'pkgnew', 'pkgnew_0.1-1.dsc')
+            assert os.path.isfile(os.path.join(self._queue_root, 'master', 'new', pkg_pool_subdir))
+            assert not os.path.isfile(os.path.join(self._archive_root, 'master', pkg_pool_subdir))
+
+            newqueue_reject(session, rss, spkg)
+            assert not os.path.isfile(os.path.join(self._queue_root, 'master', 'new', pkg_pool_subdir))
+            assert not os.path.isfile(os.path.join(self._archive_root, 'master', pkg_pool_subdir))
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'pkgnew',
+                    SourcePackage.version == '0.1-1',
+                    SourcePackage.component.has(name='main'),
+                    ~SourcePackage.suites.any(),
+                )
+                .one_or_none()
+            )
+            assert not spkg
+
+            # process two uploads adding multiple versions
+            # pkgnew 0.1-1
+            success, _, error = uh.process_changes(
+                os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % self._host_arch)
+            )
+            assert error == None
+            assert success
+            spkg = (
+                session.query(SourcePackage)
+                .filter(SourcePackage.name == 'pkgnew', SourcePackage.version == '0.1-1')
+                .one()
+            )
+            missing_overrides = check_overrides_source(session, rss, spkg)
+            assert len(missing_overrides) == 4
+            newqueue_accept(session, rss, spkg, missing_overrides)
+            session.flush()
+
+            # pkgnew 0.1-2
+            success, _, error = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-2_source.changes'))
+            assert error == None
+            assert success
+            spkg = (
+                session.query(SourcePackage)
+                .filter(SourcePackage.name == 'pkgnew', SourcePackage.version == '0.1-2')
+                .one()
+            )
+            missing_overrides = check_overrides_source(session, rss, spkg)
+            # this package has 4 new binary packages
+            assert len(missing_overrides) == 4
+            newqueue_accept(session, rss, spkg, missing_overrides)
+
+            # add the missing binaries
+            success, _, error = uh.process_changes(
+                os.path.join(package_samples, 'pkgnew_0.1-2_%s.changes' % self._host_arch)
+            )
+            assert error == None
+            assert success
+            bpkg = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'pkg-any1',
+                    BinaryPackage.version == '0.1-2',
+                    BinaryPackage.component.has(name='main'),
+                    SourcePackage.suites.any(ArchiveSuite.name == rss.suite.name),
+                )
+                .one_or_none()
+            )
+            assert bpkg
+
+            # pkgnew 0.1-3
+            success, _, error = uh.process_changes(
+                os.path.join(package_samples, 'pkgnew_0.1-3_%s.changes' % self._host_arch)
+            )
+            assert error == None
+            assert success
+            spkg = (
+                session.query(SourcePackage)
+                .filter(SourcePackage.name == 'pkgnew', SourcePackage.version == '0.1-3')
+                .one()
+            )
+            missing_overrides = check_overrides_source(session, rss, spkg)
+            assert len(missing_overrides) == 0
+            bpkg = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'pkg-all3',
+                    BinaryPackage.version == '0.1-3',
+                    BinaryPackage.component.has(name='main'),
+                    SourcePackage.suites.any(ArchiveSuite.name == rss.suite.name),
+                )
+                .one_or_none()
+            )
+            assert bpkg
+
+        # the NEW queue should be completely empty now, for all suites and repos
+        queue_entries_count = session.query(ArchiveQueueNewEntry).count()
+        assert queue_entries_count == 0
 
     def test_publish(self):
         from lkarchive.publish import publish_repo_dists

@@ -4,8 +4,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-
+import os
 import sys
+import shutil
 
 import rich
 import click
@@ -23,7 +24,68 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     session_scope,
 )
-from laniakea.archive.utils import check_overrides_source, register_package_overrides
+from laniakea.archive import PackageImporter
+from laniakea.archive.utils import (
+    check_overrides_source,
+    find_package_in_new_queue,
+    register_package_overrides,
+)
+from laniakea.archive.changes import parse_changes
+
+
+def newqueue_accept(
+    session,
+    rss: ArchiveRepoSuiteSettings,
+    spkg: SourcePackage,
+    overrides: T.List[PackageInfo],
+    *,
+    include_binaries: bool = False,
+):
+    """Accept a selected package into its target suite, applying the selected overrides"""
+    from glob import glob
+
+    dsc_file = spkg.dsc_file
+    if not dsc_file:
+        raise ValueError('Source package {}/{} has no registered dsc file.'.format(spkg.name, spkg.version))
+
+    register_package_overrides(session, rss, overrides)
+    session.commit()
+    spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
+    spkg_fname = os.path.join(rss.repo.get_new_queue_dir(), dsc_file.fname)
+    pi = PackageImporter(session, rss)
+    pi.import_source(spkg_fname, spkg.component.name, error_if_new=True)
+    session.commit()
+
+    if include_binaries:
+        for bpkg_fname in glob(os.path.join(spkg_queue_dir, '*.deb')):
+            pi.import_binary(bpkg_fname, spkg.component.name)
+        for bpkg_fname in glob(os.path.join(spkg_queue_dir, '*.udeb')):
+            pi.import_binary(bpkg_fname, spkg.component.name)
+    shutil.rmtree(spkg_queue_dir)
+
+
+def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
+    """Reject a selected package from the NEW queue"""
+    from glob import glob
+
+    dsc_file = spkg.dsc_file
+    if not dsc_file:
+        raise ValueError('Source package {}/{} has no registered dsc file.'.format(spkg.name, spkg.version))
+
+    # TODO: Don't completely delete the package and maybe just move it to the morgue
+    spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
+
+    nq_entry = find_package_in_new_queue(session, rss, spkg)
+    if not nq_entry:
+        raise ValueError('Unable to find NEW queue entry for package {}/{}!'.format(spkg.name, spkg.version))
+
+    shutil.rmtree(spkg_queue_dir)
+    session.delete(nq_entry)
+    for file in spkg.files:
+        session.delete(file)
+    spkg.files = []
+    session.delete(spkg)
+    session.flush()
 
 
 def _process_new(repo_name: T.Optional[str] = None):
@@ -56,6 +118,15 @@ def _process_new(repo_name: T.Optional[str] = None):
 
             for entry in queue_entries:
                 spkg = entry.package
+
+                changes_fname = os.path.join(
+                    rss.repo.get_new_queue_dir(), spkg.directory, '{}_{}.changes'.format(spkg.name, spkg.version)
+                )
+                changes_found = os.path.isfile(changes_fname)
+                changes = None
+                if changes_found:
+                    changes = parse_changes(changes_fname, require_signature=False)
+
                 rich.print('[bold]Package:[/bold]', spkg.name)
                 rich.print('[bold]Version:[/bold]', spkg.version)
                 rich.print('[bold]Repository:[/bold]', spkg.repo.name)
@@ -64,6 +135,8 @@ def _process_new(repo_name: T.Optional[str] = None):
                 rich.print('[bold]Maintainer:[/bold]', spkg.maintainer)
                 if spkg.uploaders:
                     rich.print('[bold]Uploaders:[/bold]', [u for u in spkg.uploaders])
+                if changes_found:
+                    rich.print('[bold]Changed By:[/bold]', changes.changes['Changed-By'])
                 rich.print('[bold]New Overrides:[/bold]')
 
                 missing_overrides = check_overrides_source(session, rss, spkg)
@@ -75,21 +148,32 @@ def _process_new(repo_name: T.Optional[str] = None):
                 for override in missing_overrides:
                     table.add_row(
                         override.name,
-                        override.section,
+                        override.section
+                        if override.component == 'main'
+                        else override.component + '/' + override.section,
                         PackagePriority.to_string(override.priority),
                         '[bold red]yes[/bold red]' if override.essential else 'no',
                     )
                 console.print(table)
+                if not changes_found:
+                    rich.print('[orange1]No changes file found for this upload![/orange1]')
                 choice = Prompt.ask(
                     'Accept and add the overrides?', choices=['accept', 'reject', 'skip'], default='skip'
                 )
+
+                # TODO: Allow user to edit overrides and to send a reject message
                 if choice == 'skip':
                     rich.print()
                     continue
-
-
-def newqueue_accept(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, overrides: T.List[PackageInfo]):
-    register_package_overrides(session, rss, overrides)
+                elif choice == 'accept':
+                    newqueue_accept(session, rss, spkg, missing_overrides)
+                    rich.print(
+                        '[green]ACCEPTED[/green] {} {} -> {}'.format(spkg.name, spkg.version, entry.destination.name)
+                    )
+                elif choice == 'reject':
+                    newqueue_reject(session, rss, spkg)
+                    rich.print('[red]REJECTED[/red] {} {}'.format(spkg.name, spkg.version))
+                rich.print()
 
 
 @click.command()

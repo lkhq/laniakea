@@ -9,6 +9,7 @@ import shutil
 import typing as T
 import hashlib
 import subprocess
+from collections import namedtuple
 
 from apt_pkg import Hashes
 from sqlalchemy import exists
@@ -35,17 +36,21 @@ from laniakea.logging import log
 from laniakea.archive.utils import (
     UploadException,
     split_epoch,
-    pool_dir_from_name,
     check_overrides_source,
     checksums_list_to_file,
     parse_package_list_str,
     register_package_overrides,
+    pool_dir_from_name_component,
 )
 from laniakea.archive.changes import InvalidChangesException, parse_changes
 
 
 class ArchiveImportError(Exception):
     """Import of a package into the archive failed."""
+
+
+class ArchiveImportNewError(Exception):
+    """Import of a package into the archive ended in a queue unexpectedly."""
 
 
 class ArchivePackageExistsError(Exception):
@@ -151,13 +156,17 @@ class PackageImporter:
         if hashes_checked < 4:
             raise ArchiveImportError('An insufficient amount of hashes was validated for "{}" - this is a bug.')
 
+    # result tuple of import_source
+    ImportSourceResult = namedtuple('ImportSourceResult', 'pkg is_new')
+
     def import_source(
         self,
         dsc_fname: T.Union[os.PathLike, str],
         component_name: str = None,
         *,
         new_policy: NewPolicy = NewPolicy.DEFAULT,
-    ):
+        error_if_new: bool = False,
+    ) -> ImportSourceResult:
         """Import a source package into the given suite or its NEW queue.
 
         :param dsc_fname: Path to a source package to import
@@ -238,44 +247,83 @@ class PackageImporter:
             for b in pop_split(src_tf, 'Binary', ', '):
                 pi = PackageInfo()
                 pi.name = b
+                pi.component = spkg.component.name
                 binary_stubs.append(pi)
             spkg.expected_binaries = binary_stubs
 
-        spkg.directory = pool_dir_from_name(pkgname)
+        spkg.directory = pool_dir_from_name_component(pkgname, spkg.component.name)
         files = checksums_list_to_file(src_tf.pop('Files'), 'md5')
         files = checksums_list_to_file(src_tf.pop('Checksums-Sha1'), 'sha1', files)
         files = checksums_list_to_file(src_tf.pop('Checksums-Sha256'), 'sha256', files)
         files = checksums_list_to_file(src_tf.pop('Checksums-Sha512', None), 'sha512', files)
 
+        missing_overrides = check_overrides_source(self._session, self._rss, spkg)
+        if new_policy == NewPolicy.NEVER_NEW:
+            is_new = False
+        elif new_policy == NewPolicy.ALWAYS_NEW:
+            is_new = True
+        else:
+            is_new = len(missing_overrides) != 0
+
         # remove any old file entries, in case we are updating
         # a package that is placed in NEW
-        if spkg.files:
+        if is_new and spkg.files:
             for file in spkg.files:
-                fname_full = os.path.join(self._repo_newqueue_root, file.fname)
-                if os.path.isfile(fname_full):
-                    os.unlink(fname_full)
                 self._session.delete(file)
             spkg.files = []
             self._session.flush()
 
         files_todo = []
-        for file in files.values():
-            spkg.files.append(file)
+        for new_file in files.values():
             # ensure the files hashes are correct
-            self._verify_hashes(file, os.path.join(dsc_dir, file.fname))
+            self._verify_hashes(new_file, os.path.join(dsc_dir, new_file.fname))
 
-            pool_fname = os.path.join(spkg.directory, file.fname)
-            file.fname = pool_fname
-            file.repo = self._rss.repo
-            files_todo.append(file)
+            pool_fname = os.path.join(spkg.directory, new_file.fname)
 
-        missing_overrides = check_overrides_source(self._session, self._rss, spkg)
-        if new_policy == NewPolicy.NEVER_NEW:
+            afile = (
+                self._session.query(ArchiveFile)
+                .filter(
+                    ArchiveFile.repo_id == self._rss.repo_id,
+                    ArchiveFile.fname == pool_fname,
+                )
+                .one_or_none()
+            )
+            if afile:
+                # we have an existing registered file!
+                if afile.sha1sum != new_file.sha1sum:
+                    raise ArchiveImportError(
+                        'File {} does not match SHA1 checksum of file in archive: {} != {}'.format(
+                            new_file.fname, new_file.sha1sum, afile.sha1sum
+                        )
+                    )
+                if afile.sha256sum != new_file.sha256sum:
+                    raise ArchiveImportError(
+                        'File {} does not match SHA256 checksum of file in archive: {} != {}'.format(
+                            new_file.fname, new_file.sha256sum, afile.sha256sum
+                        )
+                    )
+                if afile.sha512sum != new_file.sha512sum:
+                    raise ArchiveImportError(
+                        'File {} does not match SHA256 checksum of file in archive: {} != {}'.format(
+                            new_file.fname, new_file.sha512sum, afile.sha512sum
+                        )
+                    )
+                if is_new:
+                    files_todo.append(afile)
+            else:
+                # we have a new file!
+                afile = new_file
+                afile.fname = pool_fname
+                files_todo.append(afile)
+
+            spkg.files.append(afile)
+            afile.repo = self._rss.repo
+
+        if missing_overrides and new_policy == NewPolicy.NEVER_NEW:
             # if we are supposed to skip NEW, we just register the overrides and add the package
             # to its designated suite
             register_package_overrides(self._session, self._rss, missing_overrides)
             spkg.suites.append(self._rss.suite)
-            is_new = False
         else:
             if missing_overrides or new_policy == NewPolicy.ALWAYS_NEW:
                 # add to NEW queue (update entry or create new one)
@@ -285,11 +333,22 @@ class PackageImporter:
 
                 nq_entry.package = spkg
                 nq_entry.destination = self._rss.suite
-                is_new = True
+                if error_if_new:
+                    raise ArchiveImportNewError('Package `{}/{}` is NEW'.format(pkgname, version))
             else:
                 # no missing overrides, the package is good to go
                 spkg.suites.append(self._rss.suite)
                 is_new = False
+
+        if is_new:
+            # we just delete the existing queue directory contents
+            # FIXME: This means the last-processed upload "wins", while it should
+            # actually be the latest upload that gets moved into the cache and processed
+            # We will need to do some sorting in advance here to avoid this condition
+            old_newq_dir = os.path.join(self._repo_newqueue_root, spkg.directory)
+            if os.path.isdir(old_newq_dir):
+                log.debug('Removing old package contents from NEW queue: %s', old_newq_dir)
+                shutil.rmtree(old_newq_dir)
 
         for file in files_todo:
             if is_new:
@@ -333,7 +392,8 @@ class PackageImporter:
                     spkg.name, spkg.version, self._rss.repo.name, self._rss.suite.name
                 )
             )
-            self._session.flush()
+            self._session.commit()
+        return spkg, is_new
 
     def import_binary(self, deb_fname: T.Union[os.PathLike, str], component_name: str = None):
         """Import a binary package into the given suite or its NEW queue.
@@ -430,7 +490,7 @@ class PackageImporter:
             self._session.expunge(bpkg)
             is_new = True
 
-        pool_dir = pool_dir_from_name(bpkg.source.name)
+        pool_dir = pool_dir_from_name_component(bpkg.source.name, bpkg.source.component.name)
         deb_basename = '{}_{}_{}.{}'.format(
             bpkg.name, split_epoch(bpkg.version)[1], bpkg.architecture.name, str(pkg_type)
         )
@@ -526,7 +586,7 @@ class PackageImporter:
         log.info(
             'Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, self._rss.repo.name, self._rss.suite.name)
         )
-        self._session.flush()
+        self._session.commit()
 
 
 class UploadHandler:
@@ -619,7 +679,7 @@ class UploadHandler:
             )
             .one_or_none()
         )
-        if result:
+        if changes.sourceful and result:
             return (
                 False,
                 uploader,
@@ -669,7 +729,16 @@ class UploadHandler:
                     # uploader policy beats suite policy
                     if uploader.always_review:
                         new_policy = NewPolicy.ALWAYS_NEW
-                    pi.import_source(os.path.join(dsc_dir, file.fname), file.component, new_policy=new_policy)
+                    spkg, is_new = pi.import_source(
+                        os.path.join(dsc_dir, file.fname), file.component, new_policy=new_policy
+                    )
+                    if is_new:
+                        spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
+                        shutil.copy(
+                            fname, os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version))
+                        )
+                    if not self.keep_source_packages:
+                        os.unlink(fname)
                 except Exception as e:
                     return (
                         False,

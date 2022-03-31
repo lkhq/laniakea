@@ -108,6 +108,14 @@ ignored-modules = [
     'mautrix.types'
 ]
 
+[tool.pytest.ini_options]
+minversion = "6.0"
+log_cli = true
+log_cli_level = "INFO"
+testpaths = [
+    "tests",
+]
+
 [tool.isort]
 py_version = 39
 profile = "black"
