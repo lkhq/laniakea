@@ -25,6 +25,7 @@ from laniakea.archive import (
     UploadHandler,
     PackageImporter,
     ArchiveImportError,
+    remove_source_package,
     import_key_file_for_uploader,
 )
 from laniakea.utils.gpg import GpgException
@@ -519,6 +520,85 @@ class TestArchive:
         # the NEW queue should be completely empty now, for all suites and repos
         queue_entries_count = session.query(ArchiveQueueNewEntry).count()
         assert queue_entries_count == 0
+
+    def test_package_delete(self, package_samples):
+        with session_scope() as session:
+            rss = (
+                session.query(ArchiveRepoSuiteSettings)
+                .filter(
+                    ArchiveRepoSuiteSettings.repo.has(name='master'),
+                    ArchiveRepoSuiteSettings.suite.has(name='unstable'),
+                )
+                .one()
+            )
+            repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
+            uh = UploadHandler(session, repo)
+            uh.keep_source_packages = True
+
+            # add package and verify that is exists in the archive
+            success, uploader, error = uh.process_changes(
+                os.path.join(package_samples, 'grave_0.1-1_%s.changes' % self._host_arch)
+            )
+            assert error == None
+            assert success
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'grave',
+                    SourcePackage.version == '0.1-1',
+                    SourcePackage.component.has(name='main'),
+                )
+                .one_or_none()
+            )
+            assert spkg
+            missing_overrides = check_overrides_source(session, rss, spkg)
+            assert len(missing_overrides) == 1
+            assert spkg.suites == []
+            newqueue_accept(session, rss, spkg, missing_overrides, include_binaries=True)
+            assert spkg.suites[0].name == 'unstable'
+            assert os.path.isfile(os.path.join(self._archive_root, 'master', spkg.directory, 'grave_0.1-1.dsc'))
+            bpkg = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'grave',
+                    BinaryPackage.version == '0.1-1',
+                    BinaryPackage.component.has(name='main'),
+                    BinaryPackage.suites.any(ArchiveSuite.name == rss.suite.name),
+                )
+                .one_or_none()
+            )
+            assert bpkg
+            assert os.path.isfile(os.path.join(self._archive_root, 'master', spkg.directory, 'grave_0.1-1_all.deb'))
+
+            # now delete the package again and check that it is gone
+            spkg_directory = spkg.directory
+            remove_source_package(session, rss, spkg)
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'grave',
+                    SourcePackage.version == '0.1-1',
+                    SourcePackage.component.has(name='main'),
+                )
+                .one_or_none()
+            )
+            assert not spkg
+            bpkg = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'grave',
+                    BinaryPackage.version == '0.1-1',
+                    BinaryPackage.component.has(name='main'),
+                    BinaryPackage.suites.any(ArchiveSuite.name == rss.suite.name),
+                )
+                .one_or_none()
+            )
+            assert not bpkg
+            assert not os.path.isdir(os.path.join(self._archive_root, 'master', spkg_directory))
 
     def test_publish(self):
         from lkarchive.publish import publish_repo_dists

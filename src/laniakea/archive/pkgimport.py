@@ -6,15 +6,16 @@
 
 import os
 import shutil
-import typing as T
 import hashlib
 import subprocess
+from datetime import datetime
 from collections import namedtuple
 
 from apt_pkg import Hashes
 from sqlalchemy import exists
 from debian.deb822 import Sources, Packages
 
+import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import (
     DebType,
@@ -42,7 +43,11 @@ from laniakea.archive.utils import (
     register_package_overrides,
     pool_dir_from_name_component,
 )
-from laniakea.archive.changes import InvalidChangesException, parse_changes
+from laniakea.archive.changes import (
+    InvalidChangesException,
+    re_file_orig,
+    parse_changes,
+)
 
 
 class ArchiveImportError(Exception):
@@ -121,8 +126,11 @@ class PackageImporter:
             if os.path.isfile(dst):
                 os.unlink(dst)
         shutil.copy(src, dst)
-        if not self.keep_source_packages:
+        if self.keep_source_packages:
+            log.debug('Copied package file: %s -> %s', src, dst)
+        else:
             os.unlink(src)
+            log.debug('Moved package file: %s -> %s', src, dst)
 
     def _verify_hashes(self, file: ArchiveFile, local_fname: T.Union[os.PathLike, str]):
         """Verifies all known hashes of :file"""
@@ -180,6 +188,8 @@ class PackageImporter:
         p = subprocess.run(
             ['apt-ftparchive', '-q', 'sources', dsc_fname], capture_output=True, check=True, encoding='utf-8'
         )
+        if p.returncode != 0:
+            raise ArchiveImportError('Failed to extract source package information: {}'.format(p.stderr))
         src_tf = Sources(p.stdout)
 
         pkgname = src_tf.pop('Package')
@@ -225,6 +235,7 @@ class PackageImporter:
                 raise ArchivePackageExistsError(
                     'Can not import source package {}/{}: Already exists.'.format(pkgname, version)
                 )
+            spkg.time_added = datetime.utcnow()
 
         spkg.format_version = src_tf.pop('Format')
         spkg.architectures = pop_split(src_tf, 'Architecture', ' ')
@@ -264,13 +275,20 @@ class PackageImporter:
             is_new = True
         else:
             is_new = len(missing_overrides) != 0
+        was_new = True if nq_entry and not is_new else False
 
         # remove any old file entries, in case we are updating
         # a package that is placed in NEW
-        if is_new and spkg.files:
+        if nq_entry and spkg.files:
             for file in spkg.files:
-                self._session.delete(file)
-            spkg.files = []
+                other_owner = (
+                    self._session.query(SourcePackage.uuid)
+                    .filter(SourcePackage.files.any(id=file.id), SourcePackage.uuid != spkg.uuid)
+                    .first()
+                )
+                if not other_owner:
+                    self._session.delete(file)
+            spkg.files.clear()
             self._session.flush()
 
         files_todo = []
@@ -279,7 +297,7 @@ class PackageImporter:
             self._verify_hashes(new_file, os.path.join(dsc_dir, new_file.fname))
 
             pool_fname = os.path.join(spkg.directory, new_file.fname)
-
+            self._session.flush()
             afile = (
                 self._session.query(ArchiveFile)
                 .filter(
@@ -308,16 +326,23 @@ class PackageImporter:
                             new_file.fname, new_file.sha512sum, afile.sha512sum
                         )
                     )
+
                 if is_new:
+                    # file will be in NEW or is moving out of NEW, so we always need to copy/move it,
+                    # unless it is a preexisting orig.tar.* file (possibly registered to another
+                    #  source package version), in which case we will skip it
+                    files_todo.append(afile)
+                elif was_new and not re_file_orig.match(os.path.basename(afile.fname)):
                     files_todo.append(afile)
             else:
                 # we have a new file!
                 afile = new_file
+                afile.repo = self._rss.repo
                 afile.fname = pool_fname
                 files_todo.append(afile)
+                self._session.add(afile)
 
             spkg.files.append(afile)
-            afile.repo = self._rss.repo
 
         if missing_overrides and new_policy == NewPolicy.NEVER_NEW:
             # if we are supposed to skip NEW, we just register the overrides and add the package
@@ -338,7 +363,6 @@ class PackageImporter:
             else:
                 # no missing overrides, the package is good to go
                 spkg.suites.append(self._rss.suite)
-                is_new = False
 
         if is_new:
             # we just delete the existing queue directory contents
@@ -358,7 +382,7 @@ class PackageImporter:
                 # move package to the archive pool
                 pool_fname_full = os.path.join(self._repo_root, file.fname)
 
-            if os.path.exists(pool_fname_full):
+            if not is_new and os.path.exists(pool_fname_full):
                 raise ArchiveImportError(
                     'Destination source file `{}` already exists. Can not continue'.format(file.fname)
                 )
@@ -386,6 +410,7 @@ class PackageImporter:
             )
         else:
             package_mark_published(self._session, self._rss, spkg.name, spkg.version)
+            spkg.time_published = datetime.utcnow()
             self._rss.changes_pending = True
             log.info(
                 'Added source `{}/{}` to {}/{}.'.format(
@@ -442,6 +467,7 @@ class PackageImporter:
         bpkg.maintainer = bin_tf.pop('Maintainer')
         bpkg.homepage = bin_tf.pop('Homepage', None)
         bpkg.size_installed = bin_tf.pop('Installed-Size')
+        bpkg.time_added = datetime.utcnow()
 
         source_info_raw = bin_tf.pop('Source', '')
         if not source_info_raw:
@@ -521,7 +547,7 @@ class PackageImporter:
         else:
             pool_fname_full = os.path.join(self._repo_root, af.fname)
 
-        af.binpkg = bpkg
+        bpkg.bin_file = af
         bpkg.description = bin_tf.pop('Description')
         bpkg.summary = bpkg.description.split('\n', 1)[0].strip()
         bpkg.description_md5 = hashlib.md5(bpkg.description.encode('utf-8')).hexdigest()
@@ -582,6 +608,7 @@ class PackageImporter:
         self._session.add(bpkg)
 
         package_mark_published(self._session, self._rss, bpkg.name, bpkg.version)
+        bpkg.time_published = datetime.utcnow()
         self._rss.changes_pending = True
         log.info(
             'Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, self._rss.repo.name, self._rss.suite.name)

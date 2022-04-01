@@ -47,9 +47,10 @@ def _register_commands():
 
     cli.add_command(import_pkg)
 
-    from list_pkg import list
+    import manage_pkg as mgr
 
-    cli.add_command(list)
+    cli.add_command(mgr.list)
+    cli.add_command(mgr.remove)
 
     from process_new import process_new
 

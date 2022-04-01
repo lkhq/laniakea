@@ -31,11 +31,15 @@ class ParseChangesError(UploadException):
     "Exception raised for errors in parsing a changes file."
 
 
-orig_source_ext_re = r"orig(?:-[a-zA-Z0-9-]+)?\.tar\.(?:gz|bz2|xz)(?:\.asc)?"
-file_source_ext_re = "(" + orig_source_ext_re + r"|(?:debian\.)?tar\.(?:gz|bz2|xz)|diff\.gz)"
+orig_source_ext_re = r'orig(?:-[a-zA-Z0-9-]+)?\.tar\.(?:gz|bz2|xz)(?:\.asc)?'
+file_source_ext_re = '(' + orig_source_ext_re + r'|(?:debian\.)?tar\.(?:gz|bz2|xz)|diff\.gz)'
 
 # Prefix of binary and source filenames
 _re_file_prefix = r'^(?P<package>[a-z0-9][a-z0-9.+-]+)_(?P<version>[A-Za-z0-9.~+-]+?)'
+
+# Match upstream tarball
+# Groups: package, version
+re_file_orig = re.compile(_re_file_prefix + r'\.' + orig_source_ext_re)
 
 # Match dsc files
 # Groups: package, version

@@ -133,7 +133,7 @@ srcpkg_suite_assoc_table = Table(
     Column(
         'src_package_uuid',
         UUID(as_uuid=True),
-        ForeignKey('archive_pkgs_source.uuid', ondelete='cascade'),
+        ForeignKey('archive_pkgs_source.uuid'),
         primary_key=True,
     ),
     Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'), primary_key=True),
@@ -145,10 +145,22 @@ binpkg_suite_assoc_table = Table(
     Column(
         'bin_package_uuid',
         UUID(as_uuid=True),
-        ForeignKey('archive_pkgs_binary.uuid', ondelete='cascade'),
+        ForeignKey('archive_pkgs_binary.uuid'),
         primary_key=True,
     ),
     Column('suite_id', Integer, ForeignKey('archive_suites.id', ondelete='cascade'), primary_key=True),
+)
+
+srcpkg_file_assoc_table = Table(
+    'archive_srcpkg_file_association',
+    Base.metadata,
+    Column(
+        'src_package_uuid',
+        UUID(as_uuid=True),
+        ForeignKey('archive_pkgs_source.uuid', ondelete='cascade'),
+        primary_key=True,
+    ),
+    Column('file_id', Integer, ForeignKey('archive_files.id'), primary_key=True),
 )
 
 swcpt_binpkg_assoc_table = Table(
@@ -631,10 +643,8 @@ class ArchiveFile(Base):
     sha256sum = Column(CHAR(64))  # the files' SHA256 checksum
     sha512sum = Column(CHAR(128))  # the files' SHA512 checksum
 
-    srcpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'), nullable=True)
-    binpkg_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_binary.uuid'), nullable=True)
-    binpkg = relationship('BinaryPackage', back_populates='bin_file')
-    srcpkg = relationship('SourcePackage', back_populates='files')
+    pkgs_source = relationship('SourcePackage', secondary=srcpkg_file_assoc_table, back_populates='files')
+    pkg_binary = relationship('BinaryPackage', back_populates='bin_file')
 
     def __init__(self, fname: T.Union[Path, str], repo: ArchiveRepository = None):
         self.fname = str(fname)
@@ -699,7 +709,9 @@ class SourcePackage(Base):
     build_conflicts_indep = Column(ARRAY(Text()))
 
     directory = Column(Text(), nullable=False)  # pool directory name for the sources
-    files = relationship('ArchiveFile', back_populates='srcpkg', cascade='all, delete, delete-orphan')
+    files = relationship(
+        'ArchiveFile', secondary=srcpkg_file_assoc_table, back_populates='pkgs_source'
+    )  # Files that make this source package
 
     binaries = relationship('BinaryPackage', back_populates='source', uselist=True)
 
@@ -786,6 +798,10 @@ class SourcePackage(Base):
 
         self.source_uuid = SourcePackage.generate_source_uuid(self.repo.name, self.name)
         return self.source_uuid
+
+    def mark_remove(self):
+        """Mark this source package for removal during next maintenance run."""
+        self.time_deleted = datetime.utcnow()
 
     def __str__(self):
         repo_name = '?'
@@ -909,7 +925,10 @@ class BinaryPackage(Base):
     # Additional key-value metadata that may be specific to this package
     extra_data = Column(MutableDict.as_mutable(JSONB))
 
-    bin_file = relationship('ArchiveFile', uselist=False, back_populates='binpkg', cascade='all, delete, delete-orphan')
+    bin_file_id = Column(Integer, ForeignKey('archive_files.id'))
+    bin_file = relationship(
+        'ArchiveFile', back_populates='pkg_binary', cascade='all, delete, delete-orphan', single_parent=True
+    )
     sw_cpts = relationship('SoftwareComponent', secondary=swcpt_binpkg_assoc_table, back_populates='pkgs_binary')
 
     __ts_vector__ = create_tsvector(cast(func.coalesce(name, ''), TEXT), cast(func.coalesce(description, ''), TEXT))

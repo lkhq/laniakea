@@ -1,3 +1,4 @@
+from laniakea.archive.manage import remove_source_package
 from laniakea.archive.pkgimport import (
     UploadHandler,
     PackageImporter,
@@ -10,4 +11,5 @@ __all__ = [
     'PackageImporter',
     'UploadHandler',
     'ArchiveImportError',
+    'remove_source_package',
 ]
