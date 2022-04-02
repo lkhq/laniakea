@@ -30,7 +30,12 @@ def create_parser():
     parser.add_argument(
         '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
     )
-    parser.add_argument('incoming_dir', nargs='?', default=None, help='The directory of incoming files to process.')
+    parser.add_argument(
+        '--repo', dest='repo_name', help='Act only on the repository with this name, instead of on all repositories.'
+    )
+    parser.add_argument(
+        'incoming_dir', nargs='?', default=None, help='Override the directory of incoming files to process.'
+    )
 
     return parser
 

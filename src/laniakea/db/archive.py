@@ -194,6 +194,9 @@ class ArchiveUploader(Base):
     pgp_fingerprints = Column(ARRAY(Text()))  # Fingerprints of the GnuPG keys associated with this entity
     is_human = Column(Boolean(), default=True)  # Whether this entry applies to a human person or a machine
 
+    name = Column(Text(), nullable=True)  # Full name of this uploader
+    alias = Column(Text(), nullable=True)  # Alias or nickname of this uploader
+
     allow_source_uploads = Column(Boolean(), default=True)  # Whether source uploads are permitted
     allow_binary_uploads = Column(Boolean(), default=True)  # Whether binary package uploads are permitted
     # Whether uploads of this entity should always end up in the NEW queue

@@ -11,8 +11,7 @@ from email.utils import parsedate
 
 from laniakea import LkModule
 from laniakea.db import ImageBuildRecipe
-
-from .utils import safe_rename
+from laniakea.utils import safe_rename
 
 
 def handle_isotope_upload(session, success, conf, dud, job, event_emitter):

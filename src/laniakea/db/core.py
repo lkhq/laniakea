@@ -30,10 +30,9 @@ class LkModule:
     ISOTOPE = 'isotope'  # ISO image build scheduling and data import
     # Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place
     RUBICON = 'rubicon'
-    ARCHIVE = 'archive'  # Lists packages in the database
+    ARCHIVE = 'archive'  # Package archive related things
     DATAIMPORT = 'dataimport'  # Import various data from other sources into the database
     ARIADNE = 'ariadne'  # Package autobuild scheduler
-    ARCHIVE = 'archive'  # Package archive related things
 
 
 class ConfigEntry(Base):

@@ -123,7 +123,7 @@ templates_synchrotron = {
 #
 
 
-def pretty_upload_accepted(tag, data):
+def pretty_job_upload_accepted(tag, data):
     if data.get('job_failed'):
         tmpl = (
             'Accepted upload for '
@@ -140,8 +140,8 @@ def pretty_upload_accepted(tag, data):
 
 
 templates_rubicon = {
-    '_lk.rubicon.upload-accepted': pretty_upload_accepted,
-    '_lk.rubicon.upload-rejected': '<b>Rejected</b> upload <code>{dud_filename}</code>. Reason: <code>{reason}</code>',
+    '_lk.rubicon.job-upload-accepted': pretty_job_upload_accepted,
+    '_lk.rubicon.job-upload-rejected': '<b>Rejected</b> upload <code>{dud_filename}</code>. Reason: <code>{reason}</code>',
 }
 
 

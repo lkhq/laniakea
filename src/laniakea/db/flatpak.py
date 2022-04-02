@@ -42,7 +42,7 @@ class FlatpakRepository(Base):
         self.name = name
 
 
-class FlatpakRefKind(enum.IntEnum):
+class FlatpakRefKind(enum.Enum):
     '''
     Kind of a Flatpak Ref.
     '''

@@ -13,6 +13,8 @@ from contextlib import contextmanager
 
 import requests
 
+import laniakea.typing as T
+
 
 def get_dir_shorthand_for_uuid(uuid):
     '''
@@ -153,6 +155,22 @@ def datetime_to_rfc2822_string(dt: datetime):
     from email import utils
 
     return utils.format_datetime(dt)
+
+
+def safe_rename(src: T.PathUnion, dst: T.PathUnion, *, override: bool = False):
+    '''
+    Instead of directly moving a file with rename(), copy the file
+    and then delete the original.
+    Also reset the permissions on the resulting copy.
+    '''
+
+    from shutil import copy2
+
+    if override and os.path.isfile(dst):
+        os.unlink(dst)
+    new_fname = copy2(src, dst)
+    os.chmod(new_fname, 0o755)
+    os.unlink(src)
 
 
 class ProcessFileLock:

@@ -8,6 +8,7 @@ import os
 import shutil
 import hashlib
 import subprocess
+from pathlib import Path
 from datetime import datetime
 from collections import namedtuple
 
@@ -16,7 +17,7 @@ from sqlalchemy import exists
 from debian.deb822 import Sources, Packages
 
 import laniakea.typing as T
-from laniakea import LocalConfig
+from laniakea import LkModule, LocalConfig
 from laniakea.db import (
     DebType,
     NewPolicy,
@@ -33,7 +34,9 @@ from laniakea.db import (
     ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
 )
+from laniakea.utils import safe_rename
 from laniakea.logging import log
+from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import (
     UploadException,
     split_epoch,
@@ -125,11 +128,12 @@ class PackageImporter:
         if override:
             if os.path.isfile(dst):
                 os.unlink(dst)
-        shutil.copy(src, dst)
         if self.keep_source_packages:
+            shutil.copy(src, dst)
+            os.chmod(dst, 0o755)
             log.debug('Copied package file: %s -> %s', src, dst)
         else:
-            os.unlink(src)
+            safe_rename(src, dst)
             log.debug('Moved package file: %s -> %s', src, dst)
 
     def _verify_hashes(self, file: ArchiveFile, local_fname: T.Union[os.PathLike, str]):
@@ -621,25 +625,42 @@ class UploadHandler:
     Verifies an upload and admits it to the archive if basic checks pass.
     """
 
-    def __init__(self, session, repo: ArchiveRepository):
+    def __init__(self, session, repo: ArchiveRepository, event_emitter: T.Optional[EventEmitter] = None):
         self._session = session
         self._repo = repo
+        self._emitter = event_emitter
 
         self._lconf = LocalConfig()
+        if not self._emitter:
+            self._emitter = EventEmitter(LkModule.ARCHIVE)
 
         self.keep_source_packages = False
+        self.auto_emit_reject = True
 
-    def process_changes(self, fname: T.Union[os.PathLike, str]) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
-        """
-        Verify and import an upload by its .changes file.
-        The caller should make sure the changes file is located at a safe location.
-        :param fname: Path to the .changes file
-        :return: A tuple of a boolean indication whether the changes file was processed successfully,
-        the archive uploader this upload belongs to, and an optional string explaining the error reason in case of a failure.
+    def _add_uploader_event_data(self, event_data: T.Dict[str, str], uploader: T.Optional[ArchiveUploader]):
+        """Add relevant uploader data to the event data"""
+        if not uploader:
+            return
+        event_data['uploader_email'] = uploader.email
+        if uploader.name:
+            event_data['uploader_name'] = uploader.name
+        if uploader.alias:
+            event_data['uploader_alias'] = uploader.alias
 
-        In case of irrecoverable issues (when no uploader can be determined or the signature is missing or invalid)
-        an exception is thrown, otherwise a tuple consisting of the status, uploader and error message (if any) is returned.
-        """
+    def emit_package_upload_rejected(
+        self,
+        changes_fname: T.PathUnion,
+        reason: str,
+        uploader: T.Optional[ArchiveUploader],
+    ):
+        """Emit a message-stream reject message for this package upload."""
+
+        event_data = {'repo': self._repo.name, 'upload_name': Path(changes_fname).stem, 'reason': reason}
+        self._add_uploader_event_data(event_data, uploader)
+        self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-rejected', event_data)
+
+    def _process_changes_internal(self, fname: T.PathUnion) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
+        """Version of :func:`process_changes` that will not emit message stream messages"""
         from glob import glob
 
         changes = parse_changes(
@@ -743,6 +764,8 @@ class UploadHandler:
         dsc_dir = os.path.dirname(fname)
 
         # import source package
+        is_new = False
+        spkg = None
         for file in files.values():
             if file.fname.endswith('.dsc'):
                 if '/' in file.fname:
@@ -793,4 +816,39 @@ class UploadHandler:
                         'Failed to import binary package: {}'.format(str(e)),
                     )
 
+        # looks like the package was accepted - spread the news!
+        ev_data = {
+            'repo': self._repo.name,
+            'upload_name': Path(fname).stem,
+            'is_new': is_new,
+        }
+        if spkg:
+            ev_data['source_name'] = spkg.name
+            ev_data['source_version'] = spkg.version
+        self._add_uploader_event_data(ev_data, uploader)
+        self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
+
         return True, uploader, None
+
+    def process_changes(self, fname: T.PathUnion) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
+        """
+        Verify and import an upload by its .changes file.
+        The caller should make sure the changes file is located at a safe location.
+        :param fname: Path to the .changes file
+        :return: A tuple of a boolean indication whether the changes file was processed successfully,
+        the archive uploader this upload belongs to, and an optional string explaining the error reason in case of a failure.
+
+        In case of irrecoverable issues (when no uploader can be determined or the signature is missing or invalid)
+        an exception is thrown, otherwise a tuple consisting of the status, uploader and error message (if any) is returned.
+        """
+
+        try:
+            success, uploader, error = self._process_changes_internal(fname)
+        except Exception as e:
+            if self.auto_emit_reject:
+                self.emit_package_upload_rejected(fname, str(e), None)
+            raise e
+        if not success or error:
+            if self.auto_emit_reject:
+                self.emit_package_upload_rejected(fname, error, uploader)
+        return success, uploader, error

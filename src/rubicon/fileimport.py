@@ -9,19 +9,27 @@ import sys
 import logging as log
 from glob import glob
 
+import laniakea.typing as T
 from laniakea import LkModule
-from laniakea.db import Job, JobKind, JobResult, SourcePackage, session_scope
+from laniakea.db import (
+    Job,
+    JobKind,
+    JobResult,
+    SourcePackage,
+    ArchiveRepository,
+    session_scope,
+)
 from laniakea.dud import Dud
-from laniakea.utils import random_string, get_dir_shorthand_for_uuid
+from laniakea.utils import safe_rename, random_string, get_dir_shorthand_for_uuid
 from laniakea.msgstream import EventEmitter
 
-from .utils import safe_rename
 from .rubiconfig import RubiConfig
+from .import_package import handle_package_upload
 
 
-def accept_upload(conf, dud, event_emitter):
+def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event_emitter: EventEmitter):
     '''
-    Accept the upload and move its data to the right places.
+    Accept the DUD upload and move its data to the right places.
     '''
 
     job_success = dud.get('X-Spark-Success') == 'Yes'
@@ -92,15 +100,21 @@ def accept_upload(conf, dud, event_emitter):
                 else:
                     event_emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-build-failed', event_data)
         else:
-            event_emitter.submit_event('upload-accepted', {'job_id': job_id, 'job_failed': not job_success})
+            event_emitter.submit_event('job-upload-accepted', {'job_id': job_id, 'job_failed': not job_success})
 
     # remove the upload description file from incoming
     os.remove(dud.get_dud_file())
 
-    log.info('Upload {} accepted.'.format(dud.get_filename()))
+    log.info('%s: Upload `%s` accepted.', repo.name, dud.get_filename())
 
 
-def reject_upload(conf, dud, reason='Unknown', event_emitter=None):
+def reject_dud_upload(
+    conf: RubiConfig,
+    repo: ArchiveRepository,
+    dud: Dud,
+    reason: str = 'Unknown',
+    event_emitter: T.Optional[EventEmitter] = None,
+):
     '''
     If a file has issues, we reject it and put it into the rejected queue.
     '''
@@ -127,12 +141,16 @@ def reject_upload(conf, dud, reason='Unknown', event_emitter=None):
     with open(target_fname + '.reason', 'w') as f:
         f.write(reason + '\n')
 
-    log.info('Upload {} rejected.'.format(dud.get_filename()))
+    log.info('%s: Dud upload `%s` rejected.', repo.name, dud.get_filename())
     if event_emitter:
-        event_emitter.submit_event('upload-rejected', {'dud_filename': dud.get_filename(), 'reason': reason})
+        event_emitter.submit_event(
+            'job-upload-rejected', {'dud_filename': dud.get_filename(), 'reason': reason, 'repo': repo.name}
+        )
 
 
-def import_files_from(conf, incoming_dir):
+def import_files_for(
+    session, conf: RubiConfig, repo: ArchiveRepository, incoming_dir: T.PathUnion, emitter: EventEmitter
+):
     '''
     Import files from an untrusted incoming source.
 
@@ -140,7 +158,6 @@ def import_files_from(conf, incoming_dir):
     If they could, we would be vulnerable to timing attacks here.
     '''
 
-    emitter = EventEmitter(LkModule.RUBICON)
     for dud_file in glob(os.path.join(incoming_dir, '*.dud')):
         dud = Dud(dud_file)
 
@@ -148,18 +165,45 @@ def import_files_from(conf, incoming_dir):
             dud.validate(keyrings=conf.trusted_gpg_keyrings)
         except Exception as e:
             reason = 'Signature validation failed: {}'.format(str(e))
-            reject_upload(conf, dud, reason, emitter)
+            reject_dud_upload(conf, repo, dud, reason, emitter)
             continue
 
         # if we are here, the file is good to go
-        accept_upload(conf, dud, emitter)
+        accept_dud_upload(conf, dud, emitter)
+    for changes_fname in glob(os.path.join(incoming_dir, '*.changes')):
+        handle_package_upload(session, conf, repo, changes_fname, event_emitter=emitter)
 
 
 def import_files(options):
     conf = RubiConfig()
 
-    if not options.incoming_dir:
-        print('No incoming directory set. Can not process any files.')
-        sys.exit(1)
+    incoming_dir = options.incoming_dir
+    repo_name = options.repo_name
+    if not incoming_dir:
+        incoming_dir = conf.incoming_dir
 
-    import_files_from(conf, options.incoming_dir)
+    # try to create incoming root directory if it does not exist yet
+    if not os.path.isdir(incoming_dir):
+        os.makedirs(incoming_dir, exist_ok=True)
+
+    master_repo_name = conf.common_config.master_repo_name
+    emitter = EventEmitter(LkModule.RUBICON)
+    with session_scope() as session:
+        if repo_name:
+            repos = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).all()
+            if not repos:
+                print('Unable to find repository {}!'.format(repo_name), file=sys.stderr)
+                sys.exit(1)
+        else:
+            # we process NEW in all repositories if no filter was set
+            repos = session.query(ArchiveRepository).all()
+
+        for repo in repos:
+            if repo.name == master_repo_name:
+                # for the master repository we process the root directory as well for
+                # backwards compatibility
+                import_files_for(session, conf, repo, incoming_dir, emitter=emitter)
+            repo_incoming_dir = os.path.join(incoming_dir, repo.name)
+            if not os.path.isdir(repo_incoming_dir):
+                os.makedirs(repo_incoming_dir, exist_ok=True)
+            import_files_for(session, conf, repo, repo_incoming_dir, emitter=emitter)

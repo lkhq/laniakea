@@ -9,6 +9,7 @@ from laniakea.utils.misc import (
     cd,
     listify,
     stringify,
+    safe_rename,
     split_strip,
     download_file,
     is_remote_url,
@@ -52,4 +53,5 @@ __all__ = [
     'json_compact_dump',
     'check_filename_safe',
     'process_file_lock',
+    'safe_rename',
 ]

@@ -89,18 +89,18 @@ def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage)
 
 
 def _process_new(repo_name: T.Optional[str] = None):
-    if not repo_name:
-        lconf = LocalConfig()
-        repo_name = lconf.master_repo_name
-
     console = Console()
     with session_scope() as session:
-        repo_suites = (
-            session.query(ArchiveRepoSuiteSettings).filter(ArchiveRepoSuiteSettings.repo.has(name=repo_name)).all()
-        )
-        if not repo_suites:
-            click.echo('Unable to find suites in repository {}!'.format(repo_name), err=True)
-            sys.exit(1)
+        if repo_name:
+            repo_suites = (
+                session.query(ArchiveRepoSuiteSettings).filter(ArchiveRepoSuiteSettings.repo.has(name=repo_name)).all()
+            )
+            if not repo_suites:
+                click.echo('Unable to find suites in repository {}!'.format(repo_name), err=True)
+                sys.exit(1)
+        else:
+            # we process NEW in all repositories if no filter was set
+            repo_suites = session.query(ArchiveRepoSuiteSettings).all()
 
         for rss in repo_suites:
             queue_entries = (
@@ -113,7 +113,7 @@ def _process_new(repo_name: T.Optional[str] = None):
             )
 
             if not queue_entries:
-                click.echo('Nothing in NEW for {} in {}.'.format(rss.suite.name, repo_name))
+                click.echo('Nothing in NEW for {} in {}.'.format(rss.suite.name, rss.repo.name))
                 continue
 
             for entry in queue_entries:

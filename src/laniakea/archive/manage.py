@@ -7,8 +7,8 @@
 import os
 
 import laniakea.typing as T
-from laniakea.logging import log
 from laniakea.db import BinaryPackage, SourcePackage, ArchiveRepoSuiteSettings
+from laniakea.logging import log
 
 
 class ArchiveRemoveError(Exception):
