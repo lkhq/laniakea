@@ -115,6 +115,8 @@ def architecture_add(name: str, summary: str):
 def _add_uploader(
     repo_name,
     email,
+    name,
+    alias,
     fingerprints,
     is_human,
     allow_source_uploads=True,
@@ -138,6 +140,8 @@ def _add_uploader(
         if not uploader:
             uploader = ArchiveUploader(email)
             session.add(uploader)
+        uploader.name = name
+        uploader.alias = alias
         uploader.pgp_fingerprints = fingerprints
         uploader.is_human = is_human
         uploader.allow_source_uploads = allow_source_uploads
@@ -158,6 +162,8 @@ def _add_uploader(
     help='Name of the repository this entity is allowed to upload to',
 )
 @click.option('--email', prompt=True, type=str, help='E-Mail address of the new uploader')
+@click.option('--name', prompt=True, type=str, default=None, help='Full name of the new uploader')
+@click.option('--alias', prompt=True, type=str, default=None, help='Nickname of the new uploader')
 @click.option(
     '--fingerprint', 'fingerprints', multiple=True, type=str, default=None, help='PGP fingerprint for this new uploader'
 )
@@ -191,6 +197,8 @@ def _add_uploader(
 def uploader_add(
     repo_name,
     email,
+    name,
+    alias,
     fingerprints,
     is_human,
     allow_source_uploads=True,
@@ -208,6 +216,8 @@ def uploader_add(
     _add_uploader(
         repo_name,
         email,
+        name,
+        alias,
         fingerprints,
         is_human,
         allow_source_uploads,
