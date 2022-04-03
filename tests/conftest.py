@@ -14,10 +14,6 @@ import pytest
 from laniakea import LocalConfig
 from laniakea.db import LkModule
 from laniakea.utils import run_command, random_string
-from laniakea.logging import set_verbose
-
-# unconditionally enable verbose mode
-set_verbose(True)
 
 
 @pytest.fixture(scope='session')
@@ -54,6 +50,8 @@ def localconfig(samples_dir):
     up for testing.
     '''
     import toml
+
+    from laniakea.logging import set_verbose
 
     # enable verbose logging for tests
     set_verbose(True)

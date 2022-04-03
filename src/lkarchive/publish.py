@@ -112,7 +112,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
     smv_subq = (
         session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
         .group_by(SourcePackage.name)
-        .subquery()
+        .subquery('smv_subq')
     )
 
     # get the latest source packages for this configuration
@@ -121,6 +121,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
         .join(
             smv_subq,
             and_(
+                SourcePackage.name == smv_subq.c.name,
                 SourcePackage.repo_id == repo.id,
                 SourcePackage.suites.any(id=suite.id),
                 SourcePackage.component_id == component.id,
@@ -181,23 +182,24 @@ def generate_packages_index(
     :return:
     """
 
-    mv_subq = (
+    bmv_subq = (
         session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
         .group_by(BinaryPackage.name)
-        .subquery()
+        .subquery('bmv_subq')
     )
 
     # get the latest binary packages for this configuration
     bpkgs = (
         session.query(BinaryPackage)
         .join(
-            mv_subq,
+            bmv_subq,
             and_(
+                BinaryPackage.name == bmv_subq.c.name,
                 BinaryPackage.repo_id == repo.id,
                 BinaryPackage.suites.any(id=suite.id),
                 BinaryPackage.component_id == component.id,
                 BinaryPackage.architecture_id == arch.id,
-                BinaryPackage.version == mv_subq.c.max_version,
+                BinaryPackage.version == bmv_subq.c.max_version,
             ),
         )
         .order_by(BinaryPackage.name)
@@ -205,7 +207,6 @@ def generate_packages_index(
     )
 
     entries = []
-    i18n_entries = []
     for bpkg in bpkgs:
         # write sources file
         entry = Deb822()
@@ -266,35 +267,36 @@ def generate_i18n_template_data(
     :return:
     """
 
-    mv_subq = (
+    bmv_subq = (
         session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
         .group_by(BinaryPackage.name)
-        .subquery()
+        .subquery('bmv_subq')
     )
 
     # get the latest binary packages, ignoring the architecture (so we will select only one at random)
-    # TODO: We can radically simplify this with a deducated SQL query that doesn't fetch the whole BinaryPackage object
-    bpkgs = (
-        session.query(BinaryPackage)
+    i18n_data = (
+        session.query(BinaryPackage.name, BinaryPackage.description_md5, BinaryPackage.description)
         .join(
-            mv_subq,
+            bmv_subq,
             and_(
+                BinaryPackage.name == bmv_subq.c.name,
                 BinaryPackage.repo_id == repo.id,
                 BinaryPackage.suites.any(id=suite.id),
                 BinaryPackage.component_id == component.id,
-                BinaryPackage.version == mv_subq.c.max_version,
+                BinaryPackage.version == bmv_subq.c.max_version,
             ),
         )
         .order_by(BinaryPackage.name)
         .distinct(BinaryPackage.name)
+        .all()
     )
 
     i18n_entries = []
-    for bpkg in bpkgs:
+    for pkgname, description_md5, description in i18n_data:
         i18n_entry = Deb822()
-        i18n_entry['Package'] = bpkg.name
-        i18n_entry['Description-md5'] = bpkg.description_md5
-        i18n_entry['Description-en'] = bpkg.description
+        i18n_entry['Package'] = pkgname
+        i18n_entry['Description-md5'] = description_md5
+        i18n_entry['Description-en'] = description
         i18n_entries.append(i18n_entry.dump())
 
     return '\n'.join(i18n_entries)
