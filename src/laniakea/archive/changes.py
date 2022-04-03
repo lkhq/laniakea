@@ -14,52 +14,32 @@ import apt_pkg
 
 from laniakea.utils import check_filename_safe
 from laniakea.utils.gpg import SignedFile
-from laniakea.archive.utils import AptVersion, UploadException
+from laniakea.archive.utils import (
+    AptVersion,
+    UploadError,
+    re_file_dsc,
+    re_file_binary,
+    re_file_source,
+    re_file_buildinfo,
+)
 
 __all__ = [
-    'InvalidChangesException',
+    'InvalidChangesError',
     'Changes',
     'parse_changes',
 ]
-
-
-class InvalidChangesException(UploadException):
-    pass
-
-
-class ParseChangesError(UploadException):
-    "Exception raised for errors in parsing a changes file."
-
-
-orig_source_ext_re = r'orig(?:-[a-zA-Z0-9-]+)?\.tar\.(?:gz|bz2|xz)(?:\.asc)?'
-file_source_ext_re = '(' + orig_source_ext_re + r'|(?:debian\.)?tar\.(?:gz|bz2|xz)|diff\.gz)'
-
-# Prefix of binary and source filenames
-_re_file_prefix = r'^(?P<package>[a-z0-9][a-z0-9.+-]+)_(?P<version>[A-Za-z0-9.~+-]+?)'
-
-# Match upstream tarball
-# Groups: package, version
-re_file_orig = re.compile(_re_file_prefix + r'\.' + orig_source_ext_re)
-
-# Match dsc files
-# Groups: package, version
-re_file_dsc = re.compile(_re_file_prefix + r'\.dsc$')
-
-# Match other source files
-# Groups: package, version
-re_file_source = re.compile(_re_file_prefix + r'\.' + file_source_ext_re)
-
-# Match buildinfo file
-# Groups: package, version, suffix
-re_file_buildinfo = re.compile(_re_file_prefix + r'_(?P<suffix>[a-zA-Z0-9+-]+)\.buildinfo$')
 
 # Match source field
 # Groups: package, version
 re_field_source = re.compile(r'^(?P<package>[a-z0-9][a-z0-9.+-]+)(?:\s*\((?P<version>[A-Za-z0-9.:~+-]+)\))?$')
 
-# Match binary packages
-# Groups: package, version, architecture, type
-re_file_binary = re.compile(_re_file_prefix + r'_(?P<architecture>[a-z0-9-]+)\.(?P<type>u?deb)$')
+
+class InvalidChangesError(UploadError):
+    pass
+
+
+class ParseChangesError(UploadError):
+    "Exception raised for errors in parsing a changes file."
 
 
 class ChangesFileEntry:
@@ -67,16 +47,16 @@ class ChangesFileEntry:
     A file referenced by a changes file
     """
 
-    fname: str
-    size: int  # the size of the file
+    fname: T.Optional[str] = None
+    size: int = 0  # the size of the file
 
-    md5sum: str  # the files' MD5 checksum
-    sha1sum: str  # the files' SHA1 checksum
-    sha256sum: str  # the files' SHA256 checksum
-    sha512sum: str  # the files' SHA512 checksum
+    md5sum: T.Optional[str] = None  # the files' MD5 checksum
+    sha1sum: T.Optional[str] = None  # the files' SHA1 checksum
+    sha256sum: T.Optional[str] = None  # the files' SHA256 checksum
+    sha512sum: T.Optional[str] = None  # the files' SHA512 checksum
 
-    component: str  # Archive component (main, non-free, etc.)
-    section: str  # Archive section
+    component: T.Optional[str] = None  # Archive component (main, non-free, etc.)
+    section: T.Optional[str] = None  # Archive section
 
     def __init__(self, fname: T.Union[os.PathLike, str]):
         self.fname = str(fname)
@@ -92,7 +72,7 @@ def parse_file_list(
     :param control: control file to take fields from
     :param has_priority_and_section: Files field include section and priority (as in .changes)
     :param fields:
-    :raise InvalidChangesException: missing fields or other grave errors
+    :raise InvalidChangesError: missing fields or other grave errors
     :return: dict mapping filenames to :ChangesFileEntry objects
     """
     entries = {}
@@ -116,11 +96,9 @@ def parse_file_list(
         (sha1sum, size, filename) = line.split()
         entry = entries.get(filename, None)
         if entry is None:
-            raise InvalidChangesException(
-                '{0} is listed in {1}, but not in {2}.'.format(filename, fields[1], fields[0])
-            )
+            raise InvalidChangesError('{0} is listed in {1}, but not in {2}.'.format(filename, fields[1], fields[0]))
         if entry is not None and entry.get('size', None) != int(size):
-            raise InvalidChangesException(
+            raise InvalidChangesError(
                 'Size for {0} in {1} and {2} fields differ.'.format(filename, fields[0], fields[1])
             )
         entry['sha1sum'] = sha1sum
@@ -131,11 +109,9 @@ def parse_file_list(
         (sha256sum, size, filename) = line.split()
         entry = entries.get(filename, None)
         if entry is None:
-            raise InvalidChangesException(
-                '{0} is listed in {1}, but not in {2}.'.format(filename, fields[2], fields[0])
-            )
+            raise InvalidChangesError('{0} is listed in {1}, but not in {2}.'.format(filename, fields[2], fields[0]))
         if entry is not None and entry.get('size', None) != int(size):
-            raise InvalidChangesException(
+            raise InvalidChangesError(
                 'Size for {0} in {1} and {2} fields differ.'.format(filename, fields[0], fields[2])
             )
         entry['sha256sum'] = sha256sum
@@ -144,15 +120,15 @@ def parse_file_list(
     for entry in entries.values():
         filename = str(entry['filename'])
         if 'size' not in entry:
-            raise InvalidChangesException('No size for {0}.'.format(filename))
+            raise InvalidChangesError('No size for {0}.'.format(filename))
         if 'md5sum' not in entry:
-            raise InvalidChangesException('No md5sum for {0}.'.format(filename))
+            raise InvalidChangesError('No md5sum for {0}.'.format(filename))
         if 'sha1sum' not in entry:
-            raise InvalidChangesException('No sha1sum for {0}.'.format(filename))
+            raise InvalidChangesError('No sha1sum for {0}.'.format(filename))
         if 'sha256sum' not in entry:
-            raise InvalidChangesException('No sha256sum for {0}.'.format(filename))
+            raise InvalidChangesError('No sha256sum for {0}.'.format(filename))
         if not check_filename_safe(filename):
-            raise InvalidChangesException("References file with unsafe filename {}.".format(filename))
+            raise InvalidChangesError("References file with unsafe filename {}.".format(filename))
 
         file = ChangesFileEntry(filename)
         file.size = entry['size']
@@ -198,7 +174,7 @@ class Changes:
         filename = os.path.basename(fname)
         directory = os.path.abspath(os.path.dirname(fname))
         if not check_filename_safe(filename):
-            raise InvalidChangesException('{0}: unsafe filename'.format(filename))
+            raise InvalidChangesError('{0}: unsafe filename'.format(filename))
 
         self.directory = str(directory)
         """directory the .changes is located in"""
@@ -304,7 +280,7 @@ class Changes:
             if re_file_buildinfo.match(f.fname):
                 continue
 
-            raise InvalidChangesException(
+            raise InvalidChangesError(
                 "{0}: {1} looks like a byhand package, but is in section {2}".format(self.fname, f.fname, f.section)
             )
 

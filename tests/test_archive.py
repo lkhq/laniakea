@@ -31,6 +31,7 @@ from laniakea.archive import (
 from laniakea.utils.gpg import GpgException
 from lkarchive.process_new import newqueue_accept, newqueue_reject
 from laniakea.archive.utils import (
+    re_file_orig,
     check_overrides_source,
     find_package_in_new_queue,
     pool_dir_from_name_component,
@@ -400,6 +401,13 @@ class TestArchive:
             assert not os.path.isfile(os.path.join(self._queue_root, 'master', 'new', nonfreepkg_pool_subdir))
             assert os.path.join(self._archive_root, 'master', nonfreepkg_pool_subdir)
 
+            # restore previously moved orig file that may exist from a failed run
+            # if we are not regenerating the sample directory
+            pkgnew_orig_fname = os.path.join(package_samples, 'pkgnew_0.1.orig.tar.gz')
+            pkgnew_orig_moved_fname = os.path.join(package_samples, '_moved-pkgnew_0.1.orig.tar.gz')
+            if os.path.isfile(pkgnew_orig_moved_fname):
+                os.rename(pkgnew_orig_moved_fname, pkgnew_orig_fname)
+
             # process another upload, and reject it
             success, uploader, error = uh.process_changes(
                 os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % self._host_arch)
@@ -492,6 +500,9 @@ class TestArchive:
             assert bpkg
 
             # pkgnew 0.1-3
+            # we try to import this wothout imferring the orig.tar file from the upload directory, so we need
+            # to move it out of the way temporarily
+            os.rename(pkgnew_orig_fname, pkgnew_orig_moved_fname)
             success, _, error = uh.process_changes(
                 os.path.join(package_samples, 'pkgnew_0.1-3_%s.changes' % self._host_arch)
             )
@@ -516,6 +527,19 @@ class TestArchive:
                 .one_or_none()
             )
             assert bpkg
+            # verify the orig files from the previous package have been registered with this one
+            has_orig_tar = False
+            has_dsc = False
+            for file in spkg.files:
+                if file.fname.endswith('dsc'):
+                    has_dsc = True
+                elif re_file_orig.match(os.path.basename(file.fname)):
+                    has_orig_tar = True
+            assert has_dsc
+            assert has_orig_tar
+
+            # move orig tarball back
+            os.rename(pkgnew_orig_moved_fname, pkgnew_orig_fname)
 
         # the NEW queue should be completely empty now, for all suites and repos
         queue_entries_count = session.query(ArchiveQueueNewEntry).count()

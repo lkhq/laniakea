@@ -7,6 +7,7 @@
 import os
 import shutil
 import hashlib
+import tempfile
 import subprocess
 from pathlib import Path
 from datetime import datetime
@@ -38,8 +39,10 @@ from laniakea.utils import safe_rename
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import (
-    UploadException,
+    UploadError,
+    is_deb_file,
     split_epoch,
+    re_file_orig,
     check_overrides_source,
     checksums_list_to_file,
     parse_package_list_str,
@@ -47,8 +50,9 @@ from laniakea.archive.utils import (
     pool_dir_from_name_component,
 )
 from laniakea.archive.changes import (
-    InvalidChangesException,
-    re_file_orig,
+    Changes,
+    ChangesFileEntry,
+    InvalidChangesError,
     parse_changes,
 )
 
@@ -57,12 +61,16 @@ class ArchiveImportError(Exception):
     """Import of a package into the archive failed."""
 
 
-class ArchiveImportNewError(Exception):
+class ArchiveImportNewError(ArchiveImportError):
     """Import of a package into the archive ended in a queue unexpectedly."""
 
 
-class ArchivePackageExistsError(Exception):
+class ArchivePackageExistsError(ArchiveImportError):
     """Import of a package into the archive failed because it already existed."""
+
+
+class HashVerifyError(Exception):
+    """Hash verification failed."""
 
 
 def pop_split(d, key, s):
@@ -96,6 +104,40 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkgname: str,
         vmem.pkgname = pkgname
         vmem.highest_version = version
         session.add(vmem)
+
+
+def verify_hashes(file: T.Union[ChangesFileEntry, ArchiveFile], local_fname: T.Union[os.PathLike, str]):
+    """Verifies all known hashes of :file"""
+    hashes_checked = 0
+    with open(local_fname, 'rb') as f:
+        # pylint: disable=not-an-iterable
+        for hash in Hashes(f).hashes:  # type: ignore
+            if hash.hashtype == 'MD5Sum':
+                hash_okay = file.md5sum == hash.hashvalue
+            elif hash.hashtype == 'SHA1':
+                hash_okay = file.sha1sum == hash.hashvalue
+            elif hash.hashtype == 'SHA256':
+                hash_okay = file.sha256sum == hash.hashvalue
+            elif hash.hashtype == 'SHA512':
+                if file.sha512sum is not None:
+                    hash_okay = file.sha512sum == hash.hashvalue
+            elif hash.hashtype == 'Checksum-FileSize':
+                hash_okay = int(file.size) == int(hash.hashvalue)
+            else:
+                raise HashVerifyError(
+                    'Unknown hash type "{}" - Laniakea likely needs to be adjusted to a new APT version.'.format(
+                        hash.hashtype
+                    )
+                )
+            if not hash_okay:
+                raise HashVerifyError(
+                    '{} checksum validation of "{}" failed (expected {}).'.format(
+                        hash.hashtype, file.fname, hash.hashvalue
+                    )
+                )
+            hashes_checked += 1
+    if hashes_checked < 4:
+        raise HashVerifyError('An insufficient amount of hashes was validated for "{}" - this is a bug.')
 
 
 class PackageImporter:
@@ -136,38 +178,6 @@ class PackageImporter:
             safe_rename(src, dst)
             log.debug('Moved package file: %s -> %s', src, dst)
 
-    def _verify_hashes(self, file: ArchiveFile, local_fname: T.Union[os.PathLike, str]):
-        """Verifies all known hashes of :file"""
-        hashes_checked = 0
-        with open(local_fname, 'rb') as f:
-            # pylint: disable=not-an-iterable
-            for hash in Hashes(f).hashes:  # type: ignore
-                if hash.hashtype == 'MD5Sum':
-                    hash_okay = file.md5sum == hash.hashvalue
-                elif hash.hashtype == 'SHA1':
-                    hash_okay = file.sha1sum == hash.hashvalue
-                elif hash.hashtype == 'SHA256':
-                    hash_okay = file.sha256sum == hash.hashvalue
-                elif hash.hashtype == 'SHA512':
-                    hash_okay = file.sha512sum == hash.hashvalue
-                elif hash.hashtype == 'Checksum-FileSize':
-                    hash_okay = file.size == hash.hashvalue
-                else:
-                    raise ArchiveImportError(
-                        'Unknown hash type "{}" - Laniakea likely needs to be adjusted to a new APT version.'.format(
-                            hash.hashtype
-                        )
-                    )
-                if not hash_okay:
-                    raise ArchiveImportError(
-                        '{} checksum validation of "{}" failed (expected {}).'.format(
-                            hash.hashtype, file.fname, hash.hashvalue
-                        )
-                    )
-                hashes_checked += 1
-        if hashes_checked < 4:
-            raise ArchiveImportError('An insufficient amount of hashes was validated for "{}" - this is a bug.')
-
     # result tuple of import_source
     ImportSourceResult = namedtuple('ImportSourceResult', 'pkg is_new')
 
@@ -189,12 +199,19 @@ class PackageImporter:
         log.info('Attempting import of source: %s', dsc_fname)
         dsc_dir = os.path.dirname(dsc_fname)
 
+        aftp_env = {'LANG': 'C.UTF-8', 'PATH': os.environ['PATH']}
         p = subprocess.run(
-            ['apt-ftparchive', '-q', 'sources', dsc_fname], capture_output=True, check=True, encoding='utf-8'
+            ['apt-ftparchive', '-q', 'sources', dsc_fname],
+            capture_output=True,
+            check=True,
+            encoding='utf-8',
+            env=aftp_env,
         )
         if p.returncode != 0:
             raise ArchiveImportError('Failed to extract source package information: {}'.format(p.stderr))
         src_tf = Sources(p.stdout)
+        if 'Package' not in src_tf:
+            raise ArchiveImportError('Unable to gather valid source package information: {}'.format(p.stderr))
 
         pkgname = src_tf.pop('Package')
         version = src_tf.pop('Version')
@@ -298,7 +315,7 @@ class PackageImporter:
         files_todo = []
         for new_file in files.values():
             # ensure the files hashes are correct
-            self._verify_hashes(new_file, os.path.join(dsc_dir, new_file.fname))
+            verify_hashes(new_file, os.path.join(dsc_dir, new_file.fname))
 
             pool_fname = os.path.join(spkg.directory, new_file.fname)
             self._session.flush()
@@ -436,13 +453,24 @@ class PackageImporter:
         if os.path.splitext(deb_fname)[1] == '.udeb':
             pkg_type = DebType.UDEB
 
+        aftp_env = {'LANG': 'C.UTF-8', 'PATH': os.environ['PATH']}
         p = subprocess.run(
-            ['apt-ftparchive', '-q', 'packages', deb_fname], capture_output=True, check=True, encoding='utf-8'
+            ['apt-ftparchive', '-q', 'packages', deb_fname],
+            capture_output=True,
+            check=True,
+            encoding='utf-8',
+            env=aftp_env,
         )
         bin_tf = Packages(p.stdout)
+        if 'Package' not in bin_tf:
+            raise ArchiveImportError('Unable to gather valid binary package information: {}'.format(p.stderr))
 
         p = subprocess.run(
-            ['apt-ftparchive', '-q', 'contents', deb_fname], capture_output=True, check=True, encoding='utf-8'
+            ['apt-ftparchive', '-q', 'contents', deb_fname],
+            capture_output=True,
+            check=True,
+            encoding='utf-8',
+            env=aftp_env,
         )
         filelist_raw = p.stdout.splitlines()
 
@@ -534,7 +562,7 @@ class PackageImporter:
         af.sha512sum = bin_tf.pop('SHA512', None)
 
         # ensure checksums match
-        self._verify_hashes(af, deb_fname)
+        verify_hashes(af, deb_fname)
         if is_new:
             # if this binary belongs to a package in the NEW queue, we don't register it and just move the binary
             # alongside the source package
@@ -675,7 +703,7 @@ class UploadHandler:
             .one_or_none()
         )
         if not uploader:
-            raise UploadException(
+            raise UploadError(
                 'Unable to find registered uploader for fingerprint "{}" for "{}"'.format(
                     changes.primary_fingerprint, os.path.basename(fname)
                 )
@@ -743,7 +771,7 @@ class UploadHandler:
 
         try:
             files = changes.files
-        except InvalidChangesException as e:
+        except InvalidChangesError as e:
             return (
                 False,
                 uploader,
@@ -752,16 +780,78 @@ class UploadHandler:
 
         if not uploader.allow_binary_uploads:
             for file in files.values():
-                if file.fname.endswith(('.deb', '.udeb')):
+                if is_deb_file(file.fname):
                     return (
                         False,
                         uploader,
                         'This uploader is not allowed to upload binaries. Please upload a source-only package!.',
                     )
 
+        # create a temporary scratch location to copy the files of this upload to.
+        with tempfile.TemporaryDirectory(prefix='lk-pkgupload_') as tmp_dir:
+            hash_issues = []
+            for file in files.values():
+                fname_src = os.path.join(changes.directory, os.path.basename(file.fname))
+                fname_dst = os.path.join(tmp_dir, os.path.basename(file.fname))
+
+                # move or copy file
+                if self.keep_source_packages:
+                    shutil.copy(fname_src, fname_dst)
+                    os.chmod(fname_dst, 0o755)
+                else:
+                    safe_rename(fname_src, fname_dst)
+
+                # verify checksum
+                # validate hashes mentioned in the changes file
+                try:
+                    verify_hashes(file, fname_src)
+                except HashVerifyError as e:
+                    hash_issues.append(e)
+
+            # copy the changes file itself
+            changes_fname_dst = os.path.join(tmp_dir, changes.filename)
+            if self.keep_source_packages:
+                shutil.copy(fname, changes_fname_dst)
+                os.chmod(fname_dst, 0o755)
+            else:
+                safe_rename(fname, changes_fname_dst)
+
+            # fail here (after the data has been moved out of the way or copied)
+            # in case there were any hash issues found
+            if hash_issues:
+                return (
+                    False,
+                    uploader,
+                    'Upload failed due to a checksum issue: {}'.format('\n'.join([str(e) for e in hash_issues])),
+                )
+
+            # adjust for moved changes file
+            changes.directory = tmp_dir
+
+            # actually perform final checks and import the package into the archive
+            try:
+                self._import_trusted_changes(rss, changes, files, uploader)
+            except (ArchiveImportError or UploadError) as e:
+                return False, uploader, str(e)
+
+        # if we are here, everything went fine and the package is in the archive or NEW now
+        return True, uploader, None
+
+    def _import_trusted_changes(
+        self,
+        rss: ArchiveRepoSuiteSettings,
+        changes: Changes,
+        files: T.Dict[str, ChangesFileEntry],
+        uploader: ArchiveUploader,
+    ) -> None:
+        """This function will import changes from a trusted source.
+        We assume that the upload is residing in a temporary scratch space that we can modify and that can not be
+        modified by any other party.
+        This function is only to be called internally.
+        """
+
         pi = PackageImporter(self._session, rss)
         pi.keep_source_packages = self.keep_source_packages
-        dsc_dir = os.path.dirname(fname)
 
         # import source package
         is_new = False
@@ -769,57 +859,97 @@ class UploadHandler:
         for file in files.values():
             if file.fname.endswith('.dsc'):
                 if '/' in file.fname:
-                    return (
-                        False,
-                        uploader,
-                        'Invalid source package filename: {}'.format(str(file.fname)),
-                    )
+                    raise UploadError('Invalid source package filename: {}'.format(str(file.fname)))
+
+                # check for orig tarball
+                has_orig_tar = False
+                for f in files.values():
+                    if re_file_orig.match(os.path.basename(f.fname)):
+                        has_orig_tar = True
+
+                if not has_orig_tar:
+                    # We have no orig.tar.* file - this may be okay if we already have the same upstream version in
+                    # the archive which provides this file, so let's look for it!
+                    # In case this is a native package, the dsc file will not have an orig reference and we will just
+                    # skip this section automatically.
+                    with open(os.path.join(changes.directory, file.fname), 'r') as f:
+                        dsc = Sources(f)
+                        dsc_files = checksums_list_to_file(dsc.get('Checksums-Sha1'), 'sha1')
+                        dsc_files = checksums_list_to_file(dsc.get('Checksums-Sha256'), 'sha256', dsc_files)
+                    for dscf_basename, dsc_f in dsc_files.items():
+                        if re_file_orig.match(dscf_basename):
+                            orig_poolname = os.path.join(
+                                pool_dir_from_name_component(dsc.get('Source'), file.component), dscf_basename
+                            )
+                            afile_orig = (
+                                self._session.query(ArchiveFile)
+                                .filter(
+                                    ArchiveFile.fname == orig_poolname,
+                                    ArchiveFile.sha1sum == dsc_f.sha1sum,
+                                    ArchiveFile.sha256sum == dsc_f.sha256sum,
+                                )
+                                .one_or_none()
+                            )
+                            if not afile_orig:
+                                afile_orig_nocs = (
+                                    self._session.query(ArchiveFile)
+                                    .filter(ArchiveFile.fname == orig_poolname)
+                                    .one_or_none()
+                                )
+                                if afile_orig_nocs:
+                                    raise UploadError(
+                                        'Referenced upstream source checksums for `{}` do not match the ones of the version found in the archive.'.format(
+                                            dscf_basename
+                                        )
+                                    )
+                                else:
+                                    raise UploadError(
+                                        'Unable to find upstream source `{}`. Please include it in the upload.'.format(
+                                            dscf_basename
+                                        )
+                                    )
+                            else:
+                                # copy to our scratch dir so apt-ftparchive will find this file later.
+                                # we will also verify the checksum again for this file
+                                # TODO: We should maybe use a symlink here, or a hardlink and only copy if the file is on a different disk
+                                shutil.copy(
+                                    os.path.join(rss.repo.get_root_dir(), afile_orig.fname),
+                                    os.path.join(changes.directory, dscf_basename),
+                                )
+
                 try:
                     new_policy = rss.new_policy
                     # uploader policy beats suite policy
                     if uploader.always_review:
                         new_policy = NewPolicy.ALWAYS_NEW
                     spkg, is_new = pi.import_source(
-                        os.path.join(dsc_dir, file.fname), file.component, new_policy=new_policy
+                        os.path.join(changes.directory, file.fname), file.component, new_policy=new_policy
                     )
                     if is_new:
                         spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
                         shutil.copy(
-                            fname, os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version))
+                            os.path.join(changes.directory, changes.filename),
+                            os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version)),
                         )
-                    if not self.keep_source_packages:
-                        os.unlink(fname)
                 except Exception as e:
-                    return (
-                        False,
-                        uploader,
-                        'Failed to import source package: {}'.format(str(e)),
-                    )
+                    raise UploadError('Failed to import source package: {}'.format(str(e)))
                 # there should only be one source package per changes file
                 break
 
         # import binary packages
         for file in files.values():
-            if file.fname.endswith(('.deb', '.udeb')):
+            if is_deb_file(file.fname):
                 if '/' in file.fname:
-                    return (
-                        False,
-                        uploader,
-                        'Invalid binary package filename: {}'.format(str(file.fname)),
-                    )
+                    raise UploadError('Invalid binary package filename: {}'.format(str(file.fname)))
                 try:
-                    pi.import_binary(os.path.join(dsc_dir, file.fname), file.component)
+                    pi.import_binary(os.path.join(changes.directory, file.fname), file.component)
                 except Exception as e:
-                    return (
-                        False,
-                        uploader,
-                        'Failed to import binary package: {}'.format(str(e)),
-                    )
+                    raise UploadError('Failed to import binary package: {}'.format(str(e)))
 
         # looks like the package was accepted - spread the news!
         ev_data = {
             'repo': self._repo.name,
-            'upload_name': Path(fname).stem,
+            'upload_name': Path(changes.filename).stem,
             'is_new': is_new,
         }
         if spkg:
@@ -827,8 +957,6 @@ class UploadHandler:
             ev_data['source_version'] = spkg.version
         self._add_uploader_event_data(ev_data, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
-
-        return True, uploader, None
 
     def process_changes(self, fname: T.PathUnion) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
         """

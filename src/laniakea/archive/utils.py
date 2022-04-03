@@ -6,10 +6,11 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-from typing import Dict, List
+import re
 
 import apt_pkg
 
+import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import (
     DebType,
@@ -28,13 +29,40 @@ from laniakea.db import (
 from laniakea.utils import split_strip
 
 
-class UploadException(Exception):
+class UploadError(Exception):
     """Issue while processing an upload"""
 
     pass
 
 
-def checksums_list_to_file(cslist, checksum: str, files=None, *, base_dir=None) -> Dict[str, ArchiveFile]:
+orig_source_ext_re = r'orig(?:-[a-zA-Z0-9-]+)?\.tar\.(?:gz|bz2|xz)(?:\.asc)?'
+file_source_ext_re = '(' + orig_source_ext_re + r'|(?:debian\.)?tar\.(?:gz|bz2|xz)|diff\.gz)'
+
+# Prefix of binary and source filenames
+_re_file_prefix = r'^(?P<package>[a-z0-9][a-z0-9.+-]+)_(?P<version>[A-Za-z0-9.~+-]+?)'
+
+# Match upstream tarball
+# Groups: package, version
+re_file_orig = re.compile(_re_file_prefix + r'\.' + orig_source_ext_re)
+
+# Match dsc files
+# Groups: package, version
+re_file_dsc = re.compile(_re_file_prefix + r'\.dsc$')
+
+# Match other source files
+# Groups: package, version
+re_file_source = re.compile(_re_file_prefix + r'\.' + file_source_ext_re)
+
+# Match buildinfo file
+# Groups: package, version, suffix
+re_file_buildinfo = re.compile(_re_file_prefix + r'_(?P<suffix>[a-zA-Z0-9+-]+)\.buildinfo$')
+
+# Match binary packages
+# Groups: package, version, architecture, type
+re_file_binary = re.compile(_re_file_prefix + r'_(?P<architecture>[a-z0-9-]+)\.(?P<type>u?deb)$')
+
+
+def checksums_list_to_file(cslist, checksum: str, files=None, *, base_dir=None) -> T.Dict[str, ArchiveFile]:
     """Convert a list of checkums (from a Sources, Packages or .dsc file) to ArchiveFile objects."""
 
     if not files:
@@ -97,7 +125,7 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
     return res
 
 
-def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage) -> List[PackageInfo]:
+def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage) -> T.List[PackageInfo]:
     """Test if overrides for the binary package of a source packages are present.
     returns: List of packaging infos for missing overrides
 
@@ -120,7 +148,7 @@ def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourceP
     return missing
 
 
-def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides: List[PackageInfo]):
+def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides: T.List[PackageInfo]):
     """Add selected overrides to the repository-suite combination.
 
     :param session: SQLAlchemy session
@@ -167,6 +195,18 @@ def split_epoch(version: str):
     else:
         # return epoch and version
         return parts[0], parts[2]
+
+
+def upstream_version_with_epoch(version: str):
+    """Extract the upstream package version, but keep the epoch."""
+    if '-' not in version:
+        return version
+    return version.split('-', 1)[0]
+
+
+def is_deb_file(fname: T.PathUnion):
+    """Check if the file is a Debian binary package."""
+    return str(fname).endswith(('.deb', '.udeb'))
 
 
 def find_package_in_new_queue(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
