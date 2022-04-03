@@ -12,6 +12,7 @@ python-apt>=2.2.1
 python-debian~=0.1.42
 pyzmq~=22.3.0
 requests~=2.25.1
+rich>=9.0
 systemd-python~=234.0
 toml~=0.10.2
 tornado~=6.1
