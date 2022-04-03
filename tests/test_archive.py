@@ -33,8 +33,10 @@ from lkarchive.process_new import newqueue_accept, newqueue_reject
 from laniakea.archive.utils import (
     re_file_orig,
     check_overrides_source,
+    repo_suite_settings_for,
     find_package_in_new_queue,
     pool_dir_from_name_component,
+    repo_suite_settings_for_debug,
 )
 
 
@@ -159,14 +161,7 @@ class TestArchive:
 
     def test_package_uploads(self, package_samples):
         with session_scope() as session:
-            rss = (
-                session.query(ArchiveRepoSuiteSettings)
-                .filter(
-                    ArchiveRepoSuiteSettings.repo.has(name='master'),
-                    ArchiveRepoSuiteSettings.suite.has(name='unstable'),
-                )
-                .one()
-            )
+            rss = repo_suite_settings_for(session, 'master', 'unstable')
 
             # import a source package directly
             pi = PackageImporter(session, rss)
@@ -547,14 +542,8 @@ class TestArchive:
 
     def test_package_delete(self, package_samples):
         with session_scope() as session:
-            rss = (
-                session.query(ArchiveRepoSuiteSettings)
-                .filter(
-                    ArchiveRepoSuiteSettings.repo.has(name='master'),
-                    ArchiveRepoSuiteSettings.suite.has(name='unstable'),
-                )
-                .one()
-            )
+            rss = repo_suite_settings_for(session, 'master', 'unstable')
+
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
             uh = UploadHandler(session, repo)
             uh.keep_source_packages = True
@@ -623,6 +612,67 @@ class TestArchive:
             )
             assert not bpkg
             assert not os.path.isdir(os.path.join(self._archive_root, 'master', spkg_directory))
+
+    def test_package_dbgsym_upload(self, package_samples):
+        with session_scope() as session:
+            rss = repo_suite_settings_for(session, 'master', 'unstable')
+            rss_dbg = repo_suite_settings_for_debug(session, rss)
+            assert rss_dbg
+            assert rss_dbg.repo.name == 'master-debug'
+            assert rss_dbg.suite.name == 'unstable-debug'
+
+            repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
+            uh = UploadHandler(session, repo)
+            uh.keep_source_packages = True
+
+            # add package and verify that is exists in the archive
+            success, uploader, error = uh.process_changes(
+                os.path.join(package_samples, 'main-contrib-with-debug_0.1-1_%s.changes' % self._host_arch)
+            )
+            assert error == None
+            assert success
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'main-contrib-with-debug',
+                    SourcePackage.version == '0.1-1',
+                )
+                .one_or_none()
+            )
+            assert spkg
+            missing_overrides = check_overrides_source(session, rss, spkg)
+            assert len(missing_overrides) == 2
+            assert spkg.suites == []
+            newqueue_accept(session, rss, spkg, missing_overrides, include_binaries=True)
+            assert spkg.suites[0].name == 'unstable'
+            assert spkg.component.name == 'main'
+            assert os.path.isfile(
+                os.path.join(self._archive_root, 'master', spkg.directory, 'main-contrib-with-debug_0.1-1.dsc')
+            )
+
+            # check where the debug package ended up
+            session.commit()
+            bpkg = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss_dbg.repo_id,
+                    BinaryPackage.name == 'contrib-with-debug-dbgsym',
+                    BinaryPackage.version == '0.1-1',
+                    BinaryPackage.component.has(name='contrib'),
+                    BinaryPackage.suites.any(ArchiveSuite.name == rss_dbg.suite.name),
+                )
+                .one_or_none()
+            )
+            assert bpkg
+            assert os.path.isfile(
+                os.path.join(
+                    self._archive_root,
+                    'master-debug',
+                    bpkg.directory,
+                    'contrib-with-debug-dbgsym_0.1-1_%s.deb' % self._host_arch,
+                )
+            )
 
     def test_publish(self):
         from lkarchive.publish import publish_repo_dists

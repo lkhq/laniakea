@@ -289,7 +289,7 @@ def _add_suite(
             )
             if not parent_nodebug_suite:
                 print_error_exit('Non-debug parent suite with name "{}" does not exist.'.format(debug_suite_for))
-            suite.debug_suite_for = parent_nodebug_suite
+            parent_nodebug_suite.debug_suite = suite
 
         for cname in component_names:
             component = session.query(ArchiveComponent).filter(ArchiveComponent.name == cname).one_or_none()

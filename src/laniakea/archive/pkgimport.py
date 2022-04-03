@@ -26,8 +26,10 @@ from laniakea.db import (
     PackageInfo,
     BinaryPackage,
     SourcePackage,
+    ArchiveSection,
     ArchiveUploader,
     PackageOverride,
+    PackagePriority,
     ArchiveComponent,
     ArchiveRepository,
     ArchiveArchitecture,
@@ -48,6 +50,7 @@ from laniakea.archive.utils import (
     parse_package_list_str,
     register_package_overrides,
     pool_dir_from_name_component,
+    repo_suite_settings_for_debug,
 )
 from laniakea.archive.changes import (
     Changes,
@@ -441,7 +444,7 @@ class PackageImporter:
             self._session.commit()
         return spkg, is_new
 
-    def import_binary(self, deb_fname: T.Union[os.PathLike, str], component_name: str = None):
+    def import_binary(self, deb_fname: T.Union[os.PathLike, str], component_name: T.Optional[str] = None):
         """Import a binary package into the given suite or its NEW queue.
 
         :param deb_fname: Path to a deb/udeb package to import
@@ -481,6 +484,7 @@ class PackageImporter:
         # check if the package already exists
         ret = self._session.query(
             exists().where(
+                BinaryPackage.repo_id == self._rss.repo_id,
                 BinaryPackage.name == pkgname,
                 BinaryPackage.version == version,
                 BinaryPackage.architecture.has(name=pkgarch),
@@ -491,7 +495,25 @@ class PackageImporter:
                 'Can not import binary package {}/{}/{}: Already exists.'.format(pkgname, version, pkgarch)
             )
 
-        bpkg = BinaryPackage(pkgname, version, self._rss.repo)
+        deb_rss = self._rss
+        deb_component = 'main'
+        section = bin_tf.get('Section')
+        if '/' in section:
+            deb_component, section = section.split('/')
+        is_debug_pkg = True if section == 'debug' else False
+        if is_debug_pkg:
+            deb_rss = repo_suite_settings_for_debug(self._session, self._rss)
+            if not deb_rss:
+                log.info(
+                    'Skipped import of `{}`: Not allowed or no debug-symbol location.'.format(
+                        os.path.basename(deb_fname)
+                    )
+                )
+                return
+        if not component_name:
+            component_name = deb_component
+
+        bpkg = BinaryPackage(pkgname, version, deb_rss.repo)
 
         bpkg.architecture = self._session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == pkgarch).one()
         bpkg.update_uuid()
@@ -548,13 +570,23 @@ class PackageImporter:
             self._session.expunge(bpkg)
             is_new = True
 
-        pool_dir = pool_dir_from_name_component(bpkg.source.name, bpkg.source.component.name)
+        # fetch component this binary package is in
+        component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()
+
+        # find pool location
+        if is_new:
+            # for NEW stuff, we move the binary next to the source into its component
+            pool_dir = pool_dir_from_name_component(bpkg.source.name, bpkg.source.component.name)
+        else:
+            # if we are not NEW, the binary goes into its proper place
+            pool_dir = pool_dir_from_name_component(bpkg.source.name, component.name)
         deb_basename = '{}_{}_{}.{}'.format(
             bpkg.name, split_epoch(bpkg.version)[1], bpkg.architecture.name, str(pkg_type)
         )
         pool_fname = os.path.join(pool_dir, deb_basename)
 
-        af = ArchiveFile(pool_fname, self._rss.repo)
+        # configure package file
+        af = ArchiveFile(pool_fname, deb_rss.repo)
         af.size = bin_tf.pop('Size')
         af.md5sum = bin_tf.pop('MD5sum')
         af.sha1sum = bin_tf.pop('SHA1')
@@ -577,7 +609,7 @@ class PackageImporter:
             # nothing left to do, we will not register this package with the database
             return
         else:
-            pool_fname_full = os.path.join(self._repo_root, af.fname)
+            pool_fname_full = os.path.join(deb_rss.repo.get_root_dir(), af.fname)
 
         bpkg.bin_file = af
         bpkg.description = bin_tf.pop('Description')
@@ -594,19 +626,27 @@ class PackageImporter:
         # check for override
         override = (
             self._session.query(PackageOverride)
-            .filter(PackageOverride.repo_suite_id == self._rss.id, PackageOverride.pkgname == bpkg.name)
+            .filter(PackageOverride.repo_suite_id == deb_rss.id, PackageOverride.pkgname == bpkg.name)
             .one_or_none()
         )
         if not override:
-            raise ArchiveImportError(
-                'Missing override for `{}/{}`: Please process the source package through NEW first before uploading a binary.'.format(
-                    pkgname, version
+            if is_debug_pkg:
+                # we have a debug package, so we can auto-generate a new override
+                override = PackageOverride(bpkg.name)
+                override.repo_suite = deb_rss
+                override.component = component
+                override.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
+                override.priority = PackagePriority.OPTIONAL
+            else:
+                raise ArchiveImportError(
+                    'Missing override for `{}/{}`: Please process the source package through NEW first before uploading a binary.'.format(
+                        pkgname, version
+                    )
                 )
-            )
         bpkg.override = override
 
         # add component
-        bpkg.component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()
+        bpkg.component = component
 
         # process contents list
         bpkg.contents = [line.split('\t', 1)[0] for line in filelist_raw]
@@ -626,7 +666,7 @@ class PackageImporter:
         bpkg.multi_arch = bin_tf.pop('Multi-Arch', None)
 
         # add to target suite
-        bpkg.suites.append(self._rss.suite)
+        bpkg.suites.append(deb_rss.suite)
 
         # add (custom) fields that we did no account for
         bpkg.extra_data = dict(bin_tf)
@@ -639,12 +679,10 @@ class PackageImporter:
         self._session.add(af)
         self._session.add(bpkg)
 
-        package_mark_published(self._session, self._rss, bpkg.name, bpkg.version)
+        package_mark_published(self._session, deb_rss, bpkg.name, bpkg.version)
         bpkg.time_published = datetime.utcnow()
-        self._rss.changes_pending = True
-        log.info(
-            'Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, self._rss.repo.name, self._rss.suite.name)
-        )
+        deb_rss.changes_pending = True
+        log.info('Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, deb_rss.repo.name, deb_rss.suite.name))
         self._session.commit()
 
 
@@ -830,7 +868,7 @@ class UploadHandler:
 
             # actually perform final checks and import the package into the archive
             try:
-                self._import_trusted_changes(rss, changes, files, uploader)
+                self._import_trusted_changes(rss, changes, uploader)
             except (ArchiveImportError or UploadError) as e:
                 return False, uploader, str(e)
 
@@ -841,7 +879,6 @@ class UploadHandler:
         self,
         rss: ArchiveRepoSuiteSettings,
         changes: Changes,
-        files: T.Dict[str, ChangesFileEntry],
         uploader: ArchiveUploader,
     ) -> None:
         """This function will import changes from a trusted source.
@@ -850,6 +887,8 @@ class UploadHandler:
         This function is only to be called internally.
         """
 
+        files: T.Dict[str, ChangesFileEntry] = changes.files
+
         pi = PackageImporter(self._session, rss)
         pi.keep_source_packages = self.keep_source_packages
 
@@ -857,84 +896,87 @@ class UploadHandler:
         is_new = False
         spkg = None
         for file in files.values():
-            if file.fname.endswith('.dsc'):
-                if '/' in file.fname:
-                    raise UploadError('Invalid source package filename: {}'.format(str(file.fname)))
+            # jump to the dsc file
+            if not file.fname.endswith('.dsc'):
+                continue
 
-                # check for orig tarball
-                has_orig_tar = False
-                for f in files.values():
-                    if re_file_orig.match(os.path.basename(f.fname)):
-                        has_orig_tar = True
+            if '/' in file.fname:
+                raise UploadError('Invalid source package filename: {}'.format(str(file.fname)))
 
-                if not has_orig_tar:
-                    # We have no orig.tar.* file - this may be okay if we already have the same upstream version in
-                    # the archive which provides this file, so let's look for it!
-                    # In case this is a native package, the dsc file will not have an orig reference and we will just
-                    # skip this section automatically.
-                    with open(os.path.join(changes.directory, file.fname), 'r') as f:
-                        dsc = Sources(f)
-                        dsc_files = checksums_list_to_file(dsc.get('Checksums-Sha1'), 'sha1')
-                        dsc_files = checksums_list_to_file(dsc.get('Checksums-Sha256'), 'sha256', dsc_files)
-                    for dscf_basename, dsc_f in dsc_files.items():
-                        if re_file_orig.match(dscf_basename):
-                            orig_poolname = os.path.join(
-                                pool_dir_from_name_component(dsc.get('Source'), file.component), dscf_basename
+            # check for orig tarball
+            has_orig_tar = False
+            for f in files.values():
+                if re_file_orig.match(os.path.basename(f.fname)):
+                    has_orig_tar = True
+
+            if not has_orig_tar:
+                # We have no orig.tar.* file - this may be okay if we already have the same upstream version in
+                # the archive which provides this file, so let's look for it!
+                # In case this is a native package, the dsc file will not have an orig reference and we will just
+                # skip this section automatically.
+                with open(os.path.join(changes.directory, file.fname), 'r') as f:
+                    dsc = Sources(f)
+                    dsc_files = checksums_list_to_file(dsc.get('Checksums-Sha1'), 'sha1')
+                    dsc_files = checksums_list_to_file(dsc.get('Checksums-Sha256'), 'sha256', dsc_files)
+                for dscf_basename, dsc_f in dsc_files.items():
+                    if re_file_orig.match(dscf_basename):
+                        orig_poolname = os.path.join(
+                            pool_dir_from_name_component(dsc.get('Source'), file.component), dscf_basename
+                        )
+                        afile_orig = (
+                            self._session.query(ArchiveFile)
+                            .filter(
+                                ArchiveFile.fname == orig_poolname,
+                                ArchiveFile.sha1sum == dsc_f.sha1sum,
+                                ArchiveFile.sha256sum == dsc_f.sha256sum,
                             )
-                            afile_orig = (
+                            .one_or_none()
+                        )
+                        if not afile_orig:
+                            afile_orig_nocs = (
                                 self._session.query(ArchiveFile)
-                                .filter(
-                                    ArchiveFile.fname == orig_poolname,
-                                    ArchiveFile.sha1sum == dsc_f.sha1sum,
-                                    ArchiveFile.sha256sum == dsc_f.sha256sum,
-                                )
+                                .filter(ArchiveFile.fname == orig_poolname)
                                 .one_or_none()
                             )
-                            if not afile_orig:
-                                afile_orig_nocs = (
-                                    self._session.query(ArchiveFile)
-                                    .filter(ArchiveFile.fname == orig_poolname)
-                                    .one_or_none()
+                            if afile_orig_nocs:
+                                raise UploadError(
+                                    'Referenced upstream source checksums for `{}` do not match the ones of the version found in the archive.'.format(
+                                        dscf_basename
+                                    )
                                 )
-                                if afile_orig_nocs:
-                                    raise UploadError(
-                                        'Referenced upstream source checksums for `{}` do not match the ones of the version found in the archive.'.format(
-                                            dscf_basename
-                                        )
-                                    )
-                                else:
-                                    raise UploadError(
-                                        'Unable to find upstream source `{}`. Please include it in the upload.'.format(
-                                            dscf_basename
-                                        )
-                                    )
                             else:
-                                # copy to our scratch dir so apt-ftparchive will find this file later.
-                                # we will also verify the checksum again for this file
-                                # TODO: We should maybe use a symlink here, or a hardlink and only copy if the file is on a different disk
-                                shutil.copy(
-                                    os.path.join(rss.repo.get_root_dir(), afile_orig.fname),
-                                    os.path.join(changes.directory, dscf_basename),
+                                raise UploadError(
+                                    'Unable to find upstream source `{}`. Please include it in the upload.'.format(
+                                        dscf_basename
+                                    )
                                 )
+                        else:
+                            # copy to our scratch dir so apt-ftparchive will find this file later.
+                            # we will also verify the checksum again for this file
+                            # TODO: We should maybe use a symlink here, or a hardlink and only copy if the file is on a different disk
+                            shutil.copy(
+                                os.path.join(rss.repo.get_root_dir(), afile_orig.fname),
+                                os.path.join(changes.directory, dscf_basename),
+                            )
 
-                try:
-                    new_policy = rss.new_policy
-                    # uploader policy beats suite policy
-                    if uploader.always_review:
-                        new_policy = NewPolicy.ALWAYS_NEW
-                    spkg, is_new = pi.import_source(
-                        os.path.join(changes.directory, file.fname), file.component, new_policy=new_policy
+            try:
+                new_policy = rss.new_policy
+                # uploader policy beats suite policy
+                if uploader.always_review:
+                    new_policy = NewPolicy.ALWAYS_NEW
+                spkg, is_new = pi.import_source(
+                    os.path.join(changes.directory, file.fname), file.component, new_policy=new_policy
+                )
+                if is_new:
+                    spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
+                    shutil.copy(
+                        os.path.join(changes.directory, changes.filename),
+                        os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version)),
                     )
-                    if is_new:
-                        spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
-                        shutil.copy(
-                            os.path.join(changes.directory, changes.filename),
-                            os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version)),
-                        )
-                except Exception as e:
-                    raise UploadError('Failed to import source package: {}'.format(str(e)))
-                # there should only be one source package per changes file
-                break
+            except Exception as e:
+                raise UploadError('Failed to import source package: {}'.format(str(e)))
+            # there should only be one source package per changes file
+            break
 
         # import binary packages
         for file in files.values():

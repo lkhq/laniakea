@@ -26,7 +26,7 @@ from sqlalchemy import (
     SmallInteger,
     UniqueConstraint,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import cast, func
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import CHAR, JSON, TEXT, ARRAY, JSONB
@@ -82,9 +82,8 @@ class ArchiveRepository(Base):
     is_debug = Column(Boolean(), default=False)  # If True, this repository is used for debug suites
 
     debug_repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
-    # Debug-symbol repository that belongs to this repository
-    debug_repo = relationship('ArchiveRepository', back_populates='debug_repo_for', uselist=False)
-    debug_repo_for = relationship('ArchiveRepository', back_populates='debug_repo', remote_side=[id], uselist=False)
+    # Indicates the debug-symbol repository that belongs to this repository (if any)
+    debug_repo_for = relationship('ArchiveRepository', backref=backref('debug_repo', remote_side=[id]))
 
     uploaders = relationship('ArchiveUploader', secondary=uploader_repo_assoc_table, back_populates='repos')
 
@@ -303,8 +302,7 @@ class ArchiveSuite(Base):
     components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
 
     debug_suite_id = Column(Integer, ForeignKey('archive_suites.id'))
-    debug_suite = relationship('ArchiveSuite', back_populates='debug_suite_for')
-    debug_suite_for = relationship('ArchiveSuite', back_populates='debug_suite', remote_side=[id])
+    debug_suite_for = relationship('ArchiveSuite', backref=backref('debug_suite', remote_side=[id]))
 
     repo_settings = relationship('ArchiveRepoSuiteSettings', back_populates='suite')
 
@@ -356,10 +354,10 @@ class ArchiveRepoSuiteSettings(Base):
     id = Column(Integer, primary_key=True)
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
-    repo = relationship('ArchiveRepository', back_populates='suite_settings')
+    repo: ArchiveRepository = relationship('ArchiveRepository', back_populates='suite_settings')
 
     suite_id = Column(Integer, ForeignKey('archive_suites.id'))
-    suite = relationship('ArchiveSuite', back_populates='repo_settings')
+    suite: ArchiveSuite = relationship('ArchiveSuite', back_populates='repo_settings')
 
     # Override the default suite summary text for the particular repository
     suite_summary = Column(String(200), nullable=True)
@@ -943,6 +941,12 @@ class BinaryPackage(Base):
         self.version = version
         if repo:
             self.repo = repo
+
+    @property
+    def directory(self) -> str:
+        from laniakea.archive.utils import pool_dir_from_name_component
+
+        return pool_dir_from_name_component(self.source.name, self.component.name)
 
     @staticmethod
     def generate_uuid(repo_name, name, version, arch_name):

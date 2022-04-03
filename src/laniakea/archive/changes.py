@@ -143,8 +143,7 @@ def parse_file_list(
             file.component = 'main'
             file.section = entry['section']
         else:
-            file.component = parts[0]
-            file.section = parts[1]
+            file.component, file.section = parts
         files[filename] = file
 
     return files

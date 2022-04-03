@@ -58,9 +58,9 @@ def newqueue_accept(
 
     if include_binaries:
         for bpkg_fname in glob(os.path.join(spkg_queue_dir, '*.deb')):
-            pi.import_binary(bpkg_fname, spkg.component.name)
+            pi.import_binary(bpkg_fname)
         for bpkg_fname in glob(os.path.join(spkg_queue_dir, '*.udeb')):
-            pi.import_binary(bpkg_fname, spkg.component.name)
+            pi.import_binary(bpkg_fname)
     shutil.rmtree(spkg_queue_dir)
 
 

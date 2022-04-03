@@ -17,6 +17,10 @@ name = "main"
 summary = "Supported Packages"
 
 [[Components]]
+name = "contrib"
+summary = "Free software with non-free or external dependencies"
+
+[[Components]]
 name = "non-free"
 summary = "Unsuported, Closed-Source Packages"
 
@@ -34,7 +38,7 @@ alias = ""
 summary = "Development Suite"
 version = "2.0"
 arch_names = ["amd64", "arm64"]
-component_names = ["main", "non-free"]
+component_names = ["main", "contrib", "non-free"]
 
 [[Suites]]
 name = "unstable-debug"
@@ -42,7 +46,7 @@ alias = ""
 summary = "Development Suite (Debug Symbols)"
 version = "2.0"
 arch_names = ["amd64", "arm64"]
-component_names = ["main", "non-free"]
+component_names = ["main", "contrib", "non-free"]
 dbgsym_policy = "only-debug"
 debug_suite_for = "unstable"
 
@@ -52,7 +56,7 @@ alias = ""
 summary = "Stable 1.0 Release"
 version = "1.0"
 arch_names = ["amd64", "arm64"]
-component_names = ["main", "non-free"]
+component_names = ["main"]
 
 [[RepoSuiteSettings]]
 repo_name = "master"

@@ -17,6 +17,7 @@ from laniakea.db import (
     ArchiveFile,
     PackageInfo,
     ArchiveSuite,
+    DbgSymPolicy,
     SourcePackage,
     ArchiveSection,
     PackageOverride,
@@ -31,6 +32,12 @@ from laniakea.utils import split_strip
 
 class UploadError(Exception):
     """Issue while processing an upload"""
+
+    pass
+
+
+class ArchiveIntegrityError(Exception):
+    """Something is wrong with the overall archive structure."""
 
     pass
 
@@ -148,23 +155,72 @@ def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourceP
     return missing
 
 
+def repo_suite_settings_for(session, repo_name: str, suite_name: str) -> ArchiveRepoSuiteSettings:
+    """Obtain a RepoSuiteSettings instance."""
+    return (
+        session.query(ArchiveRepoSuiteSettings)
+        .filter(
+            ArchiveRepoSuiteSettings.repo.has(name=repo_name),
+            ArchiveRepoSuiteSettings.suite.has(name=suite_name),
+        )
+        .one()
+    )
+
+
+def repo_suite_settings_for_debug(session, rss: ArchiveRepoSuiteSettings) -> T.Optional[ArchiveRepoSuiteSettings]:
+    """Obtains the repo-suite-settings for the debug archive that corresponds to the given repo-suite-settings"""
+
+    # add dbgsym to the same suite if no dedicated debug suite is set
+    debug_suite_id = rss.suite.debug_suite_id
+    debug_repo_id = rss.repo.debug_repo_id
+    if not debug_suite_id:
+        # return None for "no debugsymbs allowed at all"
+        return None if rss.suite.dbgsym_policy == DbgSymPolicy.NO_DEBUG else rss
+    if not debug_repo_id:
+        debug_repo_id = rss.repo_id
+
+    rss_dbg = (
+        session.query(ArchiveRepoSuiteSettings)
+        .filter(ArchiveRepoSuiteSettings.repo_id == debug_repo_id, ArchiveRepoSuiteSettings.suite_id == debug_suite_id)
+        .one_or_none()
+    )
+    if not rss_dbg:
+        dbg_repo = session.query(ArchiveRepository).filter(ArchiveRepository.id == debug_repo_id).one()
+        raise ArchiveIntegrityError(
+            'Unable to find configuration for debug suite location {}/{}'.format(
+                dbg_repo.name, rss.suite.debug_suite.name
+            )
+        )
+    return rss_dbg
+
+
 def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides: T.List[PackageInfo]):
-    """Add selected overrides to the repository-suite combination.
+    """Add selected overrides to the repository-suite combination they belong to.
 
     :param session: SQLAlchemy session
     :param rss: RepoSuiteSettings to add the overrides to.
     :param overrides: List of overrides to add.
     """
 
+    rss_dbg = None
     for pi in overrides:
+        real_rss = rss
+        if pi.section == 'debug':
+            # we have a debug package, which may live in a different repo/suite
+            if not rss_dbg:
+                rss_dbg = repo_suite_settings_for_debug(rss)
+            if not rss_dbg:
+                # don't add override if we will drop this dbgsym package anyway
+                return
+            real_rss = rss_dbg
         override = (
             session.query(PackageOverride)
-            .filter(PackageOverride.repo_suite_id == rss.id, PackageOverride.pkgname == pi.name)
+            .filter(PackageOverride.repo_suite_id == real_rss.id, PackageOverride.pkgname == pi.name)
             .one_or_none()
         )
         if not override:
             override = PackageOverride(pi.name)
-            override.repo_suite = rss
+            override.repo_suite = real_rss
             override.pkgname = pi.name
             session.add(override)
         override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one()
