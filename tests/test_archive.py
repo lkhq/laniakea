@@ -38,6 +38,7 @@ from laniakea.archive.utils import (
     pool_dir_from_name_component,
     repo_suite_settings_for_debug,
 )
+from laniakea.archive.manage import expire_superseded
 
 
 def test_utils():
@@ -673,6 +674,30 @@ class TestArchive:
                     'contrib-with-debug-dbgsym_0.1-1_%s.deb' % self._host_arch,
                 )
             )
+
+    def test_package_expire(self):
+        with session_scope() as session:
+            repo_suites = session.query(ArchiveRepoSuiteSettings).all()
+
+            # check that there are no packages marked for deletion
+            deleted_pkgs = (
+                session.query(SourcePackage.name, SourcePackage.version)
+                .filter(~SourcePackage.time_deleted.is_(None))
+                .all()
+            )
+            assert deleted_pkgs == []
+
+            for rss in repo_suites:
+                expire_superseded(session, rss)
+
+            # superseded versions should now be marked for removal
+            deleted_pkgs = (
+                session.query(SourcePackage.name, SourcePackage.version)
+                .filter(~SourcePackage.time_deleted.is_(None))
+                .order_by(SourcePackage.name, SourcePackage.version)
+                .all()
+            )
+            assert deleted_pkgs == [('package', '0.1-1'), ('pkgnew', '0.1-1'), ('pkgnew', '0.1-2')]
 
     def test_publish(self):
         from lkarchive.publish import publish_repo_dists

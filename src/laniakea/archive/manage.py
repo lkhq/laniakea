@@ -5,13 +5,21 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+from datetime import datetime, timedelta
+
+from sqlalchemy import and_, func
 
 import laniakea.typing as T
-from laniakea.db import BinaryPackage, SourcePackage, ArchiveRepoSuiteSettings
+from laniakea.db import (
+    ArchiveError,
+    BinaryPackage,
+    SourcePackage,
+    ArchiveRepoSuiteSettings,
+)
 from laniakea.logging import log
 
 
-class ArchiveRemoveError(Exception):
+class ArchiveRemoveError(ArchiveError):
     """Failed to remove an entity from the package archive."""
 
 
@@ -87,3 +95,77 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
         session.delete(spkg)
 
     return True
+
+
+def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
+    """Remove superseded packages from the archive.
+    This function will remove cruft packages in the selected repo/suite that have a higher version
+    available and are no longer needed to be kept around.
+
+    :param session: SQLAlchemy session
+    :param rss: The repository/suite combo to act on
+    """
+
+    if rss.frozen:
+        raise ArchiveError('Will not expire old packages in frozen suite `{}/{}`'.format(rss.repo.name, rss.suite.name))
+
+    smv_subq = (
+        session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
+        .group_by(SourcePackage.name)
+        .subquery('smv_subq')
+    )
+
+    # fetch the latest source package info
+    # we will only include source packages which actually have binaries built.
+    # TODO: this logic can be improved, e.g, we should make sure the package built on all arches
+    latest_spkg_info = (
+        session.query(SourcePackage.name, SourcePackage.version)
+        .join(
+            smv_subq,
+            and_(
+                SourcePackage.name == smv_subq.c.name,
+                SourcePackage.repo_id == rss.repo_id,
+                SourcePackage.suites.any(id=rss.suite_id),
+                SourcePackage.version == smv_subq.c.max_version,
+                SourcePackage.binaries.any(),
+            ),
+        )
+        .all()
+    )
+
+    # TODO: A lot of this loop can likely be implemented as a more efficient SQL query
+    for spkg_name, spkg_latest_ver in latest_spkg_info:
+        # now drop any lower version that we find
+        old_spkgs = (
+            session.query(SourcePackage)
+            .filter(
+                SourcePackage.name == spkg_name,
+                SourcePackage.repo_id == rss.repo_id,
+                SourcePackage.suites.any(id=rss.suite_id),
+                SourcePackage.version < spkg_latest_ver,
+                SourcePackage.time_deleted.is_(None),
+            )
+            .all()
+        )
+        if not old_spkgs:
+            continue
+        for old_spkg in old_spkgs:
+            log.info('Marking superseded package for removal: %s', str(old_spkg))
+            old_spkg.time_deleted = datetime.utcnow()
+
+    # grab all the packages that we should actively delete as they have been expired for a while
+    retention_days = 14
+    time_cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    spkgs_delete = (
+        session.query(SourcePackage)
+        .filter(
+            SourcePackage.repo_id == rss.repo_id,
+            SourcePackage.suites.any(id=rss.suite_id),
+            SourcePackage.time_deleted != None,
+            SourcePackage.time_deleted <= time_cutoff,
+        )
+        .all()
+    )
+    for spkg_rm in spkgs_delete:
+        log.info('Removing package marked for removal for %s days: %s', retention_days, str(spkg_rm))
+        remove_source_package(rss, spkg_rm)

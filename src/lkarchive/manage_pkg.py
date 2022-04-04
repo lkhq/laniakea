@@ -21,6 +21,7 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.archive import remove_source_package
+from laniakea.archive.manage import expire_superseded
 
 
 @click.command('ls')
@@ -172,3 +173,33 @@ def remove(source_pkgname: str, repo_name: T.Optional[str], suite_name: str):
         if remove_confirmed:
             for spkg in spkgs:
                 remove_source_package(session, rss, spkg)
+
+
+@click.command()
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set all repositories will be checked.',
+)
+def expire(repo_name: T.Optional[str] = None):
+    """Expire old package versions and delete them from the archive."""
+
+    with session_scope() as session:
+        if repo_name:
+            repo_suite = (
+                session.query(ArchiveRepoSuiteSettings)
+                .filter(ArchiveRepoSuiteSettings.repo.has(name=repo_name))
+                .one_or_none()
+            )
+            if not repo_suite:
+                click.echo('Unable to find suites for repository with name {}!'.format(repo_name), err=True)
+                sys.exit(1)
+            repo_suites = [repo_suite]
+        else:
+            repo_suites = session.query(ArchiveRepoSuiteSettings).all()
+
+        for rss in repo_suites:
+            if rss.frozen:
+                continue
+            expire_superseded(session, rss)

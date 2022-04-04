@@ -126,6 +126,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
                 SourcePackage.suites.any(id=suite.id),
                 SourcePackage.component_id == component.id,
                 SourcePackage.version == smv_subq.c.max_version,
+                SourcePackage.time_deleted.is_(None),
             ),
         )
         .order_by(SourcePackage.name)
@@ -200,6 +201,7 @@ def generate_packages_index(
                 BinaryPackage.component_id == component.id,
                 BinaryPackage.architecture_id == arch.id,
                 BinaryPackage.version == bmv_subq.c.max_version,
+                BinaryPackage.time_deleted.is_(None),
             ),
         )
         .order_by(BinaryPackage.name)
@@ -284,6 +286,7 @@ def generate_i18n_template_data(
                 BinaryPackage.suites.any(id=suite.id),
                 BinaryPackage.component_id == component.id,
                 BinaryPackage.version == bmv_subq.c.max_version,
+                BinaryPackage.time_deleted.is_(None),
             ),
         )
         .order_by(BinaryPackage.name)

@@ -46,6 +46,10 @@ uploader_repo_assoc_table = Table(
 )
 
 
+class ArchiveError(Exception):
+    """Some issue occurred with the package archive."""
+
+
 class ArchiveConfig(Base):
     """
     General archive configuration that applies to all repositories and suites.
