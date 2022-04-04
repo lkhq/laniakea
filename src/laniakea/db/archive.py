@@ -366,7 +366,7 @@ class ArchiveRepoSuiteSettings(Base):
     # Override the default suite summary text for the particular repository
     suite_summary = Column(String(200), nullable=True)
     # Whether new packages can arrive in this suite via regular uploads ("unstable", "staging", ...)
-    accept_uploads = Column(Boolean(), default=True)
+    accept_uploads = Column(Boolean(), default=False)
 
     new_policy = Column(Enum(NewPolicy), default=NewPolicy.DEFAULT)  # Policy how new packages should be processed
 

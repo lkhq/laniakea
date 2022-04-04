@@ -43,6 +43,12 @@ def remove_binary_package(session, rss, bpkg: BinaryPackage) -> bool:
                 bpkg.name, bpkg.version, rss.repo.name, bpkg.repo.name
             )
         )
+    if rss.frozen:
+        raise ArchiveRemoveError(
+            'Will not remove `{}/{}` from frozen `{}/{}`.'.format(
+                bpkg.name, bpkg.version, rss.repo.name, rss.suite.name
+            )
+        )
 
     log.info('Deleting orphaned binary package %s', str(bpkg))
     bin_fname_full = os.path.join(rss.repo.get_root_dir(), bpkg.bin_file.fname)
@@ -66,6 +72,12 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
         raise ArchiveRemoveError(
             'Can not remove `{}/{}` from repository `{}` as it is not a member of it (belongs to `{}` instead).'.format(
                 spkg.name, spkg.version, rss.repo.name, spkg.repo.name
+            )
+        )
+    if rss.frozen:
+        raise ArchiveRemoveError(
+            'Will not remove source `{}/{}` from frozen `{}/{}`.'.format(
+                spkg.name, spkg.version, rss.repo.name, rss.suite.name
             )
         )
 

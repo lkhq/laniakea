@@ -158,6 +158,7 @@ class PackageImporter:
         os.makedirs(self._repo_newqueue_root, exist_ok=True)
 
         self._keep_source_packages = False
+        self._ensure_not_frozen()
 
     @property
     def keep_source_packages(self) -> bool:
@@ -167,6 +168,14 @@ class PackageImporter:
     @keep_source_packages.setter
     def keep_source_packages(self, v: bool):
         self._keep_source_packages = v
+
+    def _ensure_not_frozen(self):
+        if self._rss.frozen:
+            raise ArchiveImportError(
+                'Can not import anything into frozen repo/suite `{}/{}`.'.format(
+                    self._rss.repo.name, self._rss.suite.name
+                )
+            )
 
     def _copy_or_move(self, src, dst, *, override: bool = False):
         os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -198,6 +207,7 @@ class PackageImporter:
         :param component_name: Name of the archive component to import into.
         :param skip_new: True if the NEW queue should be skipped and overrides be added automatically.
         """
+        self._ensure_not_frozen()
 
         log.info('Attempting import of source: %s', dsc_fname)
         dsc_dir = os.path.dirname(dsc_fname)
@@ -450,6 +460,7 @@ class PackageImporter:
         :param deb_fname: Path to a deb/udeb package to import
         :param component_name: Name of the archive component to import into.
         """
+        self._ensure_not_frozen()
 
         log.info('Attempting import of binary: %s', deb_fname)
         pkg_type = DebType.DEB
@@ -783,6 +794,21 @@ class UploadHandler:
             )
             .one()
         )
+
+        if rss.frozen:
+            return (
+                False,
+                uploader,
+                'Can not accept new upload for frozen suite {} of {}.'.format(rss.suite.name, rss.repo.name),
+            )
+        if not rss.accept_uploads:
+            return (
+                False,
+                uploader,
+                'Can not accept new upload for suite {} of {}: The suite does not permit uploads.'.format(
+                    rss.suite.name, rss.repo.name
+                ),
+            )
 
         result = (
             self._session.query(ArchiveVersionMemory.highest_version)

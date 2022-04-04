@@ -63,6 +63,7 @@ repo_name = "master"
 suite_name = "unstable"
 signingkeys = ["8BB746C63FF5346326C19ABDEFD8BD07D224478F"]
 announce_emails = []
+accept_uploads = true
 
 [[RepoSuiteSettings]]
 repo_name = "master-debug"
@@ -81,3 +82,4 @@ repo_name = "extra"
 suite_name = "unstable"
 signingkeys = ["8BB746C63FF5346326C19ABDEFD8BD07D224478F"]
 announce_emails = []
+accept_uploads = true
