@@ -196,7 +196,7 @@ class PackageImporter:
     def import_source(
         self,
         dsc_fname: T.Union[os.PathLike, str],
-        component_name: str = None,
+        component_name: str,
         *,
         new_policy: NewPolicy = NewPolicy.DEFAULT,
         error_if_new: bool = False,
@@ -243,6 +243,9 @@ class PackageImporter:
                 'Unable to import package "{}": '
                 'We have already seen higher version "{}" in this repository before.'.format(pkgname, result)
             )
+
+        if not component_name:
+            raise ArchiveImportError('Unable to import source package without explicit component name.')
 
         spkg = SourcePackage(pkgname, version, self._rss.repo)
         spkg.component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()

@@ -52,6 +52,7 @@ def _register_commands():
     cli.add_command(mgr.list)
     cli.add_command(mgr.remove)
     cli.add_command(mgr.expire)
+    cli.add_command(mgr.cmd_copy_package)
 
     from process_new import process_new
 

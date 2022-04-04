@@ -12,6 +12,7 @@ from sqlalchemy import and_, func
 import laniakea.typing as T
 from laniakea.db import (
     ArchiveError,
+    ArchiveSuite,
     BinaryPackage,
     SourcePackage,
     ArchiveRepoSuiteSettings,
@@ -181,3 +182,39 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
     for spkg_rm in spkgs_delete:
         log.info('Removing package marked for removal for %s days: %s', retention_days, str(spkg_rm))
         remove_source_package(rss, spkg_rm)
+
+
+def copy_package(session, spkg: SourcePackage, dest_rss: ArchiveRepoSuiteSettings):
+    """Copies a package into a destination suite.
+    It is only allowed to move a package within a repository this way - moving a package between
+    repositories is not supported and requires a new upload.
+
+    :param session: SQLAlchemy session
+    :param spkg: Source package to copy
+    :param dest_rss: Destination repository/suite
+    :raise:
+    """
+
+    if spkg.repo_id != dest_rss.repo_id:
+        raise ArchiveError('Can not directory copy a package between repositories.')
+
+    dest_suite = dest_rss.suite
+    dest_debug_suite = dest_rss.suite.debug_suite
+    if dest_suite not in spkg.suites:
+        spkg.suites.append(dest_suite)
+    for bpkg in spkg.binaries:
+        if bpkg.repo.is_debug:
+            # this package is in a debug repo and therefore a debug symbol package
+            # we need to move it to the debug suite that corresponds to the target suite
+            if not dest_debug_suite:
+                # TODO: We should roll back the already made changes here, just in case this exception is caught and
+                # the session is committed.
+                raise ArchiveError(
+                    'Can not copy binary debug package: No corresponding debug suite found for `{}`.'.format(
+                        dest_suite.name
+                    )
+                )
+            if dest_debug_suite not in bpkg.suites:
+                bpkg.suites.append(dest_debug_suite)
+        elif dest_suite not in bpkg.suites:
+            bpkg.suites.append(dest_suite)

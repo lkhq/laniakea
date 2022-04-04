@@ -1,3 +1,4 @@
+from laniakea.archive.utils import repo_suite_settings_for, find_latest_source_package
 from laniakea.archive.manage import remove_source_package
 from laniakea.archive.pkgimport import (
     UploadHandler,
@@ -12,4 +13,6 @@ __all__ = [
     'UploadHandler',
     'ArchiveImportError',
     'remove_source_package',
+    'repo_suite_settings_for',
+    'find_latest_source_package',
 ]

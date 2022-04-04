@@ -22,7 +22,9 @@ from laniakea.logging import log
 from laniakea.archive.pkgimport import PackageImporter, ArchivePackageExistsError
 
 
-def import_packages(session, rss: ArchiveRepoSuiteSettings, component_name: str, fnames: T.List[T.PathUnion]):
+def import_packages(
+    session, rss: ArchiveRepoSuiteSettings, component_name: T.Optional[str], fnames: T.List[T.PathUnion]
+):
     """Directly add packages to a repository, without any extra checks.
     Usually, a regulr upload will have a NEW review and a bunch of QA checks before being permitted into
     a repository, but occasionally a direct package import is useful too, which is what this command permits.
@@ -80,10 +82,12 @@ def import_packages(session, rss: ArchiveRepoSuiteSettings, component_name: str,
     '--component',
     '-c',
     'component_name',
-    help='Name of the suite to act on, if not set all suites will be processed',
+    help='Name of the component to import into, will be read from the package file if not set.',
 )
 @click.argument('fnames', nargs=-1, type=click.Path())
-def import_pkg(repo_name: T.Optional[str], suite_name: str, component_name: str, fnames: T.List[T.PathUnion]):
+def import_pkg(
+    repo_name: T.Optional[str], suite_name: str, component_name: T.Optional[str], fnames: T.List[T.PathUnion]
+):
     """Directly import packages into a repository, without any extra checks."""
 
     if not repo_name:

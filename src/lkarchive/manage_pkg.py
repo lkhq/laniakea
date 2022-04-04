@@ -20,8 +20,12 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     session_scope,
 )
-from laniakea.archive import remove_source_package
-from laniakea.archive.manage import expire_superseded
+from laniakea.archive import (
+    remove_source_package,
+    repo_suite_settings_for,
+    find_latest_source_package,
+)
+from laniakea.archive.manage import copy_package, expire_superseded
 
 
 @click.command('ls')
@@ -203,3 +207,68 @@ def expire(repo_name: T.Optional[str] = None):
             if rss.frozen:
                 continue
             expire_superseded(session, rss)
+
+
+@click.command('copy-package')
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set the default repository will be used.',
+)
+@click.option(
+    '--version',
+    'pkg_version',
+    default=None,
+    help='Copy an explicit version of a package.',
+)
+@click.argument('suite_from', nargs=1, required=True)
+@click.argument('suite_to', nargs=1, required=True)
+@click.argument('pkgname', nargs=1, required=True)
+def cmd_copy_package(
+    suite_from: str,
+    suite_to: str,
+    pkgname: str,
+    *,
+    pkg_version: T.Optional[str] = None,
+    repo_name: T.Optional[str] = None,
+):
+    """Copy a source package from one suite to another."""
+
+    if not repo_name:
+        lconf = LocalConfig()
+        repo_name = lconf.master_repo_name
+
+    with session_scope() as session:
+        rss_dest = repo_suite_settings_for(session, repo_name, suite_to, fail_if_missing=False)
+        if not rss_dest:
+            click.echo('Suite / repository configuration not found for {} in {}.'.format(suite_to, repo_name), err=True)
+            sys.exit(4)
+        rss_src = repo_suite_settings_for(session, repo_name, suite_from, fail_if_missing=False)
+        if not rss_dest:
+            click.echo('Suite / repository configuration not found for {} in {}.'.format(suite_to, repo_name), err=True)
+            sys.exit(4)
+
+        if pkg_version:
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.name == pkgname,
+                    SourcePackage.repo_id == rss_src.repo_id,
+                    SourcePackage.suites.any(id=rss_src.suite_id),
+                    SourcePackage.version == pkg_version,
+                    SourcePackage.time_deleted.is_(None),
+                )
+                .one_or_none()
+            )
+            if not spkg:
+                click.echo('Package {} {} was not found in {}.'.format(pkgname, pkg_version, suite_from), err=True)
+                sys.exit(4)
+        else:
+            spkg = find_latest_source_package(session, rss_src, pkgname)
+            if not spkg:
+                click.echo('Package {} was not found in {}.'.format(pkgname, suite_from), err=True)
+                sys.exit(4)
+
+        # now copy the package between suites
+        copy_package(session, spkg, rss_dest)

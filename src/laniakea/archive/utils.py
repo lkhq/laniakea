@@ -9,6 +9,7 @@ import os
 import re
 
 import apt_pkg
+from sqlalchemy import and_, func
 
 import laniakea.typing as T
 from laniakea import LocalConfig
@@ -155,16 +156,15 @@ def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourceP
     return missing
 
 
-def repo_suite_settings_for(session, repo_name: str, suite_name: str) -> ArchiveRepoSuiteSettings:
+def repo_suite_settings_for(
+    session, repo_name: str, suite_name: str, *, fail_if_missing: bool = True
+) -> T.Optional[ArchiveRepoSuiteSettings]:
     """Obtain a RepoSuiteSettings instance."""
-    return (
-        session.query(ArchiveRepoSuiteSettings)
-        .filter(
-            ArchiveRepoSuiteSettings.repo.has(name=repo_name),
-            ArchiveRepoSuiteSettings.suite.has(name=suite_name),
-        )
-        .one()
+    rss_q = session.query(ArchiveRepoSuiteSettings).filter(
+        ArchiveRepoSuiteSettings.repo.has(name=repo_name),
+        ArchiveRepoSuiteSettings.suite.has(name=suite_name),
     )
+    return rss_q.one() if fail_if_missing else rss_q.one_or_none()
 
 
 def repo_suite_settings_for_debug(session, rss: ArchiveRepoSuiteSettings) -> T.Optional[ArchiveRepoSuiteSettings]:
@@ -192,6 +192,29 @@ def repo_suite_settings_for_debug(session, rss: ArchiveRepoSuiteSettings) -> T.O
             )
         )
     return rss_dbg
+
+
+def find_latest_source_package(session, rss: ArchiveRepoSuiteSettings, pkgname: str) -> T.Optional[SourcePackage]:
+    """Find the most recent source package in a suite.
+
+    :param session: SQLAlchemy session
+    :param rss: Repo/suite to search in
+    :param pkgname: Name of the package to look for
+    :return: The source package, or None if none was found
+    """
+
+    spkg = (
+        session.query(SourcePackage)
+        .filter(
+            SourcePackage.name == pkgname,
+            SourcePackage.repo_id == rss.repo_id,
+            SourcePackage.suites.any(id=rss.suite_id),
+            SourcePackage.time_deleted.is_(None),
+        )
+        .order_by(SourcePackage.version.desc())
+        .first()
+    )
+    return spkg
 
 
 def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides: T.List[PackageInfo]):
