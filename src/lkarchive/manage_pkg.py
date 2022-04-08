@@ -25,7 +25,7 @@ from laniakea.archive import (
     repo_suite_settings_for,
     find_latest_source_package,
 )
-from laniakea.archive.manage import copy_package, expire_superseded
+from laniakea.archive.manage import expire_superseded, copy_source_package
 
 
 @click.command('ls')
@@ -271,4 +271,4 @@ def cmd_copy_package(
                 sys.exit(4)
 
         # now copy the package between suites
-        copy_package(session, spkg, rss_dest)
+        copy_source_package(session, spkg, rss_dest)

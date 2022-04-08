@@ -29,6 +29,7 @@ from laniakea.archive import (
     import_key_file_for_uploader,
 )
 from laniakea.utils.gpg import GpgException
+from lkarchive.data_import import import_heidi_result
 from lkarchive.process_new import newqueue_accept, newqueue_reject
 from laniakea.archive.utils import (
     re_file_orig,
@@ -489,7 +490,7 @@ class TestArchive:
                     BinaryPackage.name == 'pkg-any1',
                     BinaryPackage.version == '0.1-2',
                     BinaryPackage.component.has(name='main'),
-                    SourcePackage.suites.any(ArchiveSuite.name == rss.suite.name),
+                    BinaryPackage.suites.any(ArchiveSuite.name == rss.suite.name),
                 )
                 .one_or_none()
             )
@@ -518,7 +519,7 @@ class TestArchive:
                     BinaryPackage.name == 'pkg-all3',
                     BinaryPackage.version == '0.1-3',
                     BinaryPackage.component.has(name='main'),
-                    SourcePackage.suites.any(ArchiveSuite.name == rss.suite.name),
+                    BinaryPackage.suites.any(ArchiveSuite.name == rss.suite.name),
                 )
                 .one_or_none()
             )
@@ -698,6 +699,40 @@ class TestArchive:
                 .all()
             )
             assert deleted_pkgs == [('package', '0.1-1'), ('pkgnew', '0.1-1'), ('pkgnew', '0.1-2')]
+
+    def test_heidi_import(self, samples_dir):
+        # test import of Britney's Heidi report
+
+        heidi_report_fname = os.path.join(samples_dir, 'spears', 'HeidiResult')
+        import_heidi_result.callback(suite_name='stable', heidi_fname=heidi_report_fname, allow_delete=True)
+
+        with session_scope() as session:
+            rss = repo_suite_settings_for(session, 'master', 'stable')
+
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == 'pkgnew',
+                    SourcePackage.version == '0.1-3',
+                    SourcePackage.suites.any(ArchiveSuite.id == rss.suite_id),
+                )
+                .one_or_none()
+            )
+            assert spkg
+
+            bpkg = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.name == 'pkg-all3',
+                    BinaryPackage.version == '0.1-3',
+                    BinaryPackage.component.has(name='main'),
+                    BinaryPackage.suites.any(ArchiveSuite.id == rss.suite_id),
+                )
+                .one_or_none()
+            )
+            assert bpkg
 
     def test_publish(self):
         from lkarchive.publish import publish_repo_dists

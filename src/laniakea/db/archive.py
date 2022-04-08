@@ -782,11 +782,11 @@ class SourcePackage(Base):
 
     @staticmethod
     def generate_uuid(repo_name, name, version):
-        return uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}/{}'.format(repo_name, name, version))
+        return uuid.uuid5(UUID_NS_SRCPACKAGE, '{}:source/{}/{}'.format(repo_name, name, version))
 
     @staticmethod
     def generate_source_uuid(repo_name, name):
-        return uuid.uuid5(UUID_NS_SRCPACKAGE, '{}::source/{}'.format(repo_name, name))
+        return uuid.uuid5(UUID_NS_SRCPACKAGE, '{}:source/{}'.format(repo_name, name))
 
     def update_uuid(self):
         if not self.repo:
@@ -812,7 +812,7 @@ class SourcePackage(Base):
         repo_name = '?'
         if self.repo:
             repo_name = self.repo.name
-        return '{}::source/{}/{}'.format(repo_name, self.name, self.version)
+        return '{}:source/{}/{}'.format(repo_name, self.name, self.version)
 
 
 class ArchiveVersionMemory(Base):
@@ -954,7 +954,7 @@ class BinaryPackage(Base):
 
     @staticmethod
     def generate_uuid(repo_name, name, version, arch_name):
-        return uuid.uuid5(UUID_NS_BINPACKAGE, '{}::{}/{}/{}'.format(repo_name, name, version, arch_name))
+        return uuid.uuid5(UUID_NS_BINPACKAGE, '{}:{}/{}/{}'.format(repo_name, name, version, arch_name))
 
     def update_uuid(self):
         if not self.repo:
@@ -970,7 +970,7 @@ class BinaryPackage(Base):
         arch_name = 'unknown'
         if self.architecture:
             arch_name = self.architecture.name
-        return '{}::{}/{}/{}'.format(repo_name, self.name, self.version, arch_name)
+        return '{}:{}/{}/{}'.format(repo_name, self.name, self.version, arch_name)
 
 
 # index to speed up data imports, where packages belonging to a certain repository/arch combination

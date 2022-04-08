@@ -110,6 +110,44 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
     return True
 
 
+def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[BinaryPackage, SourcePackage]):
+    """Mark a package for removal from the selected suite.
+    The package will be removed from the selected repo/suite immediately, and if it is dropped from
+    the repository entirely it will be marked for garbage collection rather than being deleted instantly.
+
+    :param session: SQLAlchemy session
+    :param rss: The repo/suite to delete the package from.
+    :param pkg: The source or binary package to remove.
+    :return:
+    """
+
+    # sanity check
+    if pkg.repo_id != rss.repo_id:
+        raise ArchiveRemoveError(
+            'Can not mark `{}/{}` for removal from repository `{}` as it is not a member of it (belongs to `{}` instead).'.format(
+                pkg.name, pkg.version, rss.repo.name, pkg.repo.name
+            )
+        )
+    if rss.frozen:
+        raise ArchiveRemoveError(
+            'Will not mark package `{}/{}` for removal from frozen `{}/{}`.'.format(
+                pkg.name, pkg.version, rss.repo.name, rss.suite.name
+            )
+        )
+
+    log.info('Removing package %s from suite %s', str(pkg), rss.suite.name)
+    pkg.suites.remove(rss.suite)
+    if not pkg.suites:
+        log.info('Marking package for removal: %s', str(pkg))
+        pkg.time_deleted = datetime.utcnow()
+    if type(pkg) is SourcePackage:
+        for bpkg in pkg.binaries:
+            bpkg.suites.remove(rss.suite)
+            if not bpkg.suites:
+                log.info('Marking binary for removal: %s', str(bpkg))
+                bpkg.time_deleted = datetime.utcnow()
+
+
 def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
     """Remove superseded packages from the archive.
     This function will remove cruft packages in the selected repo/suite that have a higher version
@@ -184,14 +222,17 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
         remove_source_package(rss, spkg_rm)
 
 
-def copy_package(session, spkg: SourcePackage, dest_rss: ArchiveRepoSuiteSettings):
-    """Copies a package into a destination suite.
+def copy_source_package(
+    session, spkg: SourcePackage, dest_rss: ArchiveRepoSuiteSettings, *, include_binaries: bool = True
+):
+    """Copies a source package (and linked binaries) into a destination suite.
     It is only allowed to move a package within a repository this way - moving a package between
     repositories is not supported and requires a new upload.
 
     :param session: SQLAlchemy session
     :param spkg: Source package to copy
     :param dest_rss: Destination repository/suite
+    :param include_binaries: True if binaries built by this source package should be copied with it.
     :raise:
     """
 
@@ -199,22 +240,43 @@ def copy_package(session, spkg: SourcePackage, dest_rss: ArchiveRepoSuiteSetting
         raise ArchiveError('Can not directory copy a package between repositories.')
 
     dest_suite = dest_rss.suite
-    dest_debug_suite = dest_rss.suite.debug_suite
     if dest_suite not in spkg.suites:
         spkg.suites.append(dest_suite)
-    for bpkg in spkg.binaries:
-        if bpkg.repo.is_debug:
-            # this package is in a debug repo and therefore a debug symbol package
-            # we need to move it to the debug suite that corresponds to the target suite
-            if not dest_debug_suite:
-                # TODO: We should roll back the already made changes here, just in case this exception is caught and
-                # the session is committed.
-                raise ArchiveError(
-                    'Can not copy binary debug package: No corresponding debug suite found for `{}`.'.format(
-                        dest_suite.name
-                    )
+        log.info('Copied source package %s:%s/%s into %s', spkg.repo.name, spkg.name, spkg.version, dest_suite.name)
+    if include_binaries:
+        for bpkg in spkg.binaries:
+            copy_binary_package(session, bpkg, dest_rss)
+
+
+def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuiteSettings):
+    """Copies a binary package into a destination suite.
+    It is only allowed to move a package within a repository this way - moving a package between
+    repositories is not supported and requires a new upload.
+
+    :param session: SQLAlchemy session
+    :param bpkg: Binary package to copy
+    :param dest_rss: Destination repository/suite
+    :raise:
+    """
+
+    dest_suite = dest_rss.suite
+    dest_debug_suite = dest_suite.debug_suite
+    if bpkg.repo.is_debug:
+        # this package is in a debug repo and therefore a debug symbol package
+        # we need to move it to the debug suite that corresponds to the target suite
+        if not dest_debug_suite:
+            # TODO: We should roll back the already made changes here, just in case this exception is caught and
+            # the session is committed.
+            raise ArchiveError(
+                'Can not copy binary debug package: No corresponding debug suite found for `{}`.'.format(
+                    dest_suite.name
                 )
-            if dest_debug_suite not in bpkg.suites:
-                bpkg.suites.append(dest_debug_suite)
-        elif dest_suite not in bpkg.suites:
-            bpkg.suites.append(dest_suite)
+            )
+        if dest_debug_suite not in bpkg.suites:
+            bpkg.suites.append(dest_debug_suite)
+            log.info(
+                'Copied dbgsym package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_debug_suite.name
+            )
+    elif dest_suite not in bpkg.suites:
+        bpkg.suites.append(dest_suite)
+        log.info('Copied binary package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_suite.name)

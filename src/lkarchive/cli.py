@@ -43,9 +43,10 @@ def _register_commands():
 
     cli.add_command(publish)
 
-    from import_pkg import import_pkg
+    import data_import as dip
 
-    cli.add_command(import_pkg)
+    cli.add_command(dip.import_pkg)
+    cli.add_command(dip.import_heidi_result)
 
     import manage_pkg as mgr
 
