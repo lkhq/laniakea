@@ -7,7 +7,7 @@
 import os
 from typing import Dict, List
 
-from laniakea.db import SpearsHint, VersionPriority
+from laniakea.db import SpearsHint, ChangesUrgency
 from laniakea.logging import log
 
 
@@ -120,15 +120,15 @@ class BritneyConfig:
 
         self._new_archs_set = True
 
-    def set_delays(self, delays: Dict[VersionPriority, int]):
+    def set_delays(self, delays: Dict[ChangesUrgency, int]):
         assert not self._delays_set
 
         # ensure all priorities have a value
         for prio, days in delays.copy().items():
             delays.pop(prio)
             prio_i = int(prio)
-            delays[VersionPriority(prio_i)] = int(days)
-        for prio in VersionPriority:
+            delays[ChangesUrgency(prio_i)] = int(days)
+        for prio in ChangesUrgency:
             if prio not in delays:
                 delays[prio] = 0
 

@@ -20,7 +20,7 @@ def spears():
 def configure_all():
     '''Configure this module.'''
 
-    from laniakea.db import VersionPriority, SpearsMigrationEntry
+    from laniakea.db import ChangesUrgency, SpearsMigrationEntry
 
     print_header('Configuring settings for Spears (migrations)')
 
@@ -34,7 +34,7 @@ def configure_all():
         entry.target_suite = input_str('Migrate to suite (target name)')
 
         entry.delays = {}
-        for prio in VersionPriority:
+        for prio in ChangesUrgency:
             entry.delays[int(prio)] = input_int('Delay for packages of priority "{}" in days'.format(repr(prio)))
 
         # FIXME: We need to check for uniqueness of the migration task!

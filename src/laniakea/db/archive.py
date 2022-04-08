@@ -582,12 +582,15 @@ class PackagePriority(enum.IntEnum):
         return PackagePriority.UNKNOWN
 
 
-class VersionPriority(enum.Enum):
+class ChangesUrgency(enum.Enum):
     """
-    Priority of a package upload.
+    Urgency for how important it is to upgrade to a new package version
+    from previous ones.
+    https://www.debian.org/doc/debian-policy/ch-controlfields.html#urgency
     """
 
-    LOW = 0
+    UNKNOWN = 0
+    LOW = enum.auto()
     MEDIUM = enum.auto()
     HIGH = enum.auto()
     CRITICAL = enum.auto()
@@ -608,6 +611,23 @@ class VersionPriority(enum.Enum):
 
     def __str__(self):
         return self.to_string()
+
+    @staticmethod
+    def from_string(s: str) -> 'ChangesUrgency':
+        """
+        Convert the text representation into the enumerated type.
+        """
+        if s == 'low':
+            return ChangesUrgency.LOW
+        elif s == 'medium':
+            return ChangesUrgency.MEDIUM
+        elif s == 'high':
+            return ChangesUrgency.HIGH
+        elif s == 'critical':
+            return ChangesUrgency.CRITICAL
+        elif s == 'emergency':
+            return ChangesUrgency.EMERGENCY
+        return ChangesUrgency.UNKNOWN
 
 
 class PackageInfo:
@@ -706,6 +726,9 @@ class SourcePackage(Base):
     maintainer = Column(Text())
     original_maintainer = Column(Text())
     uploaders = Column(ARRAY(Text()))
+
+    # value for how important it is to upgrade to this package version from previous ones
+    changes_urgency = Column(Enum(ChangesUrgency), default=ChangesUrgency.MEDIUM)
 
     build_depends = Column(ARRAY(Text()))
     build_depends_indep = Column(ARRAY(Text()))

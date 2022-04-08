@@ -27,6 +27,7 @@ from laniakea.db import (
     BinaryPackage,
     SourcePackage,
     ArchiveSection,
+    ChangesUrgency,
     ArchiveUploader,
     PackageOverride,
     PackagePriority,
@@ -921,9 +922,11 @@ class UploadHandler:
         pi = PackageImporter(self._session, rss)
         pi.keep_source_packages = self.keep_source_packages
 
+        changes_urgency = ChangesUrgency.from_string(changes.changes.get('Urgency', 'low'))
+
         # import source package
         is_new = False
-        spkg = None
+        spkg: T.Optional[SourcePackage] = None
         for file in files.values():
             # jump to the dsc file
             if not file.fname.endswith('.dsc'):
@@ -996,6 +999,7 @@ class UploadHandler:
                 spkg, is_new = pi.import_source(
                     os.path.join(changes.directory, file.fname), file.component, new_policy=new_policy
                 )
+                spkg.changes_urgency = changes_urgency
                 if is_new:
                     spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
                     shutil.copy(
