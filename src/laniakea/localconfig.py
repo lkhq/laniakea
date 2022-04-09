@@ -114,6 +114,8 @@ class LocalConfig:
                 'appstream_media_url', 'https://appstream.debian.org/media/pool'
             )
 
+            self._data_import_hooks_dir = os.path.join(self._workspace, 'data-import-hooks')
+
             self._lighthouse = LocalConfig.LighthouseConfig()
             lhconf = cdata.get('Lighthouse', {})
             lhconf_endpoints = lhconf.get('endpoints', {})
@@ -189,6 +191,11 @@ class LocalConfig:
         @property
         def archive_appstream_media_url(self) -> str:
             return self._archive_appstream_media_url
+
+        @property
+        def data_import_hooks_dir(self) -> T.PathUnion:
+            """Directory with hook scripts to acquire data from external sources."""
+            return self._data_import_hooks_dir
 
         @property
         def lighthouse(self):

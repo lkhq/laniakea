@@ -21,6 +21,7 @@ base = [
     'python-debian',
     'python-apt>=2.2.1',
     'pyzmq',
+    'pebble>=4.6',
     'requests',
     'PyYAML>=5.3.1',
     'toml',

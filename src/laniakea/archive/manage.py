@@ -12,9 +12,9 @@ from sqlalchemy import and_, func
 import laniakea.typing as T
 from laniakea.db import (
     ArchiveError,
-    ArchiveSuite,
     BinaryPackage,
     SourcePackage,
+    SoftwareComponent,
     ArchiveRepoSuiteSettings,
 )
 from laniakea.logging import log
@@ -220,6 +220,10 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
     for spkg_rm in spkgs_delete:
         log.info('Removing package marked for removal for %s days: %s', retention_days, str(spkg_rm))
         remove_source_package(rss, spkg_rm)
+
+    # delete orphaned AppStream metadata
+    for cpt in session.query(SoftwareComponent).filter(~SoftwareComponent.pkgs_binary.any()).all():
+        session.delete(cpt)
 
 
 def copy_source_package(

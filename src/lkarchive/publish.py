@@ -6,13 +6,17 @@
 
 import os
 import sys
+import gzip
 import lzma
 import shutil
 import hashlib
 import functools
+from glob import iglob
+from pathlib import Path
 from datetime import datetime, timedelta
 
 import click
+from pebble import concurrent
 from sqlalchemy import and_, func
 from debian.deb822 import Deb822
 
@@ -32,6 +36,47 @@ from laniakea.db import (
 from laniakea.utils import process_file_lock, datetime_to_rfc2822_string
 from laniakea.logging import log
 from laniakea.utils.gpg import sign
+from laniakea.archive.appstream import import_appstream_data
+
+
+@concurrent.process(daemon=False)
+def retrieve_dep11_data(repo_name: str) -> T.Tuple[bool, T.Optional[str], T.Optional[T.PathUnion]]:
+    """Fetch DEP-11 data from an external source
+    This will fetch the AppStream/DEP-11 data via a hook script, validate it
+    and move it to its destination.
+    """
+    import subprocess
+
+    from .check_dep11 import check_dep11_path
+
+    lconf = LocalConfig()
+    hook_script = os.path.join(lconf.data_import_hooks_dir, 'fetch-dep11.sh')
+    if not os.path.isfile(hook_script):
+        log.info('Will not fetch DEP-11 data for %s: No hook script `%s`', repo_name, hook_script)
+        return True, None, None
+
+    dep11_tmp_target = os.path.join(lconf.cache_dir, 'import_dep11-' + repo_name)
+    if os.path.isdir(dep11_tmp_target):
+        shutil.rmtree(dep11_tmp_target)
+    os.makedirs(dep11_tmp_target, exist_ok=True)
+    env = os.environ
+    env['LK_DATA_TARGET_DIR'] = dep11_tmp_target
+    env['LK_REPO_NAME'] = repo_name
+    proc = subprocess.run(hook_script, check=False, capture_output=True, cwd=dep11_tmp_target, env=env)
+    if proc.returncode != 0:
+        return False, 'Hook script failed: {}{}'.format(proc.stdout, proc.stderr), None
+
+    if not any(os.scandir(dep11_tmp_target)):
+        log.debug('No DEP-11 data received for repository %s', repo_name)
+        return True, None, None
+
+    log.info('Validating received DEP-11 metadata for %s', repo_name)
+    success, issues = check_dep11_path(dep11_tmp_target)
+    if not success:
+        return False, 'DEP11 validation failed:\n' + str('\n'.join(issues), 'utf-8'), None
+
+    # everything went fine, we can use this data (if there is any)
+    return True, None, dep11_tmp_target
 
 
 @functools.total_ordering
@@ -74,6 +119,49 @@ def write_compressed_files(root_path: T.PathUnion, subdir: str, basename: str, d
     with open(fname_xz, 'rb') as f:
         xz_bytes = f.read()
         finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), hashlib.sha256(xz_bytes).hexdigest()))
+
+    return finfos
+
+
+def import_metadata_file(
+    root_path: T.PathUnion, subdir: str, basename: str, source_fname: T.PathUnion, *, only_gzip: bool = False
+) -> T.List[RepoFileInfo]:
+    """
+    Import a metadata file from a source, checksum it and (re)compress it with all supported / applicable
+    algorithms.
+    :param root_path: Root directory of the repository.
+    :param subdir: Subdirectory within the repository.
+    :param basename: Base name of the metadata file, e.g. "Packages"
+    :param data: Data the file should contain (usually UTF-8 text)
+    """
+
+    finfos = []
+    if source_fname.endswith('.xz'):
+        with lzma.open(source_fname, 'rb') as f:
+            data = f.read()
+    elif source_fname.endswith('.gz'):
+        with gzip.open(source_fname, 'rb') as f:
+            data = f.read()
+    else:
+        with open(source_fname, 'rb') as f:
+            data = f.read()
+    repo_fname = os.path.join(subdir, basename)
+    finfos.append(RepoFileInfo(repo_fname, len(data), hashlib.sha256(data).hexdigest()))
+
+    if only_gzip:
+        fname_gz = os.path.join(root_path, repo_fname + '.gz')
+        with gzip.open(fname_gz, 'w') as f:
+            f.write(data)
+        with open(fname_gz, 'rb') as f:
+            gz_bytes = f.read()
+            finfos.append(RepoFileInfo(repo_fname + '.xz', len(gz_bytes), hashlib.sha256(gz_bytes).hexdigest()))
+    else:
+        fname_xz = os.path.join(root_path, repo_fname + '.xz')
+        with lzma.open(fname_xz, 'w') as f:
+            f.write(data)
+        with open(fname_xz, 'rb') as f:
+            xz_bytes = f.read()
+            finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), hashlib.sha256(xz_bytes).hexdigest()))
 
     return finfos
 
@@ -305,7 +393,9 @@ def generate_i18n_template_data(
     return '\n'.join(i18n_entries)
 
 
-def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool = False):
+def publish_suite_dists(
+    session, rss: ArchiveRepoSuiteSettings, *, dep11_src_dir: T.Optional[T.PathUnion], force: bool = False
+):
 
     # we must never touch a frozen suite
     if rss.frozen:
@@ -351,8 +441,9 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
             write_release_file_for_arch(suite_temp_dist_dir, dists_sources_subdir, rss, component, 'source')
         )
 
-        # generate Packages
+        dists_dep11_subdir = os.path.join(component.name, 'dep11')
         for arch in rss.suite.architectures:
+            # generate Packages
             dists_arch_subdir = os.path.join(component.name, 'binary-' + arch.name)
             suite_component_dists_arch_dir = os.path.join(suite_temp_dist_dir, dists_arch_subdir)
             os.makedirs(suite_component_dists_arch_dir, exist_ok=True)
@@ -362,6 +453,39 @@ def publish_suite_dists(session, rss: ArchiveRepoSuiteSettings, *, force: bool =
             meta_files.append(
                 write_release_file_for_arch(suite_temp_dist_dir, dists_arch_subdir, rss, component, arch.name)
             )
+
+            # import AppStream data
+            if dep11_src_dir:
+                dep11_files = ('Components-{}.yml'.format(arch.name), 'CID-Index-{}.json'.format(arch.name))
+                for dep11_basename in dep11_files:
+                    dep11_src_fname = os.path.join(
+                        dep11_src_dir, rss.suite.name, component.name, dep11_basename + '.gz'
+                    )
+                    if not os.path.isfile(dep11_src_fname):
+                        continue
+                    os.makedirs(os.path.join(suite_temp_dist_dir, dists_dep11_subdir), exist_ok=True)
+
+                    # copy metadata and hash and register it
+                    meta_files.extend(
+                        import_metadata_file(suite_temp_dist_dir, dists_dep11_subdir, dep11_basename, dep11_src_fname)
+                    )
+                    # import metadata into the database and connect it to binary packages
+                    import_appstream_data(session, rss, component, arch)
+
+        # copy AppStream icon tarballs
+        if dep11_src_dir:
+            dep11_suite_component_src_dir = os.path.join(dep11_src_dir, rss.suite.name, component.name)
+            for icon_tar_fname in iglob(os.path.join(dep11_suite_component_src_dir, 'icons-*.tar.gz')):
+                icon_tar_fname = os.path.join(dep11_suite_component_src_dir, icon_tar_fname)
+                meta_files.extend(
+                    import_metadata_file(
+                        suite_temp_dist_dir,
+                        dists_dep11_subdir,
+                        Path(icon_tar_fname).stem,
+                        icon_tar_fname,
+                        only_gzip=True,
+                    )
+                )
 
         # create i19n template data
         dists_i18n_subdir = os.path.join(component.name, 'i18n')
@@ -440,12 +564,20 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
     """
 
     with process_file_lock(repo.name):
+        # import external data in parallel (we may be able to run more data import in parallel here in future,
+        # at the moment we just have DEP-11)
+        dep11_future = retrieve_dep11_data(repo.name)
+        success, error_msg, dep11_dir = dep11_future.result()
+        if not success:
+            raise Exception(error_msg)
+
         for rss in repo.suite_settings:
             if suite_name:
                 # skip any suites that we shouldn't process
                 if rss.suite.name != suite_name:
                     continue
-            publish_suite_dists(session, rss, force=force)
+            publish_suite_dists(session, rss, dep11_src_dir=dep11_dir, force=force)
+    log.info('Published: %s', repo.name)
 
 
 @click.command()

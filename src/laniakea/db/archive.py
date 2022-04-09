@@ -1013,10 +1013,10 @@ class SoftwareComponent(Base):
 
     kind = Column(Integer())  # The component type
 
-    cid = Column(Text())  # The component ID of this software
-    gcid = Column(Text())  # The global component ID as used by appstream-generator
+    cid = Column(Text(), nullable=False)  # The component ID of this software
+    gcid = Column(Text(), nullable=False)  # The global component ID as used by appstream-generator
 
-    name = Column(Text())  # Name of this component
+    name = Column(Text(), nullable=False)  # Name of this component
     summary = Column(Text())  # Short description of this component
     description = Column(Text())  # Description of this component
 
@@ -1040,7 +1040,7 @@ class SoftwareComponent(Base):
     flatpakref_uuid = Column(UUID(as_uuid=True), ForeignKey('flatpak_refs.uuid'))
     flatpakref = relationship('FlatpakRef')
 
-    xml = Column(Text())  # XML representation in AppStream collection XML for this component
+    _data = Column('data', JSON)  # JSON representation of AppStream's collection data for this component
 
     __ts_vector__ = create_tsvector(
         cast(func.coalesce(name, ''), TEXT),
@@ -1050,48 +1050,28 @@ class SoftwareComponent(Base):
 
     __table_args__ = (Index('idx_sw_components_fts', __ts_vector__, postgresql_using='gin'),)
 
-    cpt = None
-
     def update_uuid(self):
         """
         Update the unique identifier for this component.
         """
-        if not self.gcid and not self.xml:
-            raise Exception(
-                'Global component ID is not set for this component, and no XML data was found for it. Can not create UUID.'
-            )
+        if not self.gcid:
+            raise Exception('Global component ID is not set for this component. Can not create UUID.')
 
-        self.uuid = uuid.uuid5(UUID_NS_SWCOMPONENT, self.gcid if self.gcid else self.xml)
+        self.uuid = uuid.uuid5(UUID_NS_SWCOMPONENT, self.gcid)
         return self.uuid
 
-    def load(self, context=None):
-        """
-        Load the actual AppStream component from stored XML data.
-        An existing AppStream Context instance can be reused.
-        """
+    @property
+    def data(self) -> T.Dict[str, T.Any]:
+        return json.loads(self._data)
 
-        # return the AppStream component if we already have it
-        if self.cpt:
-            return self.cpt
-
-        # set up the context
-        if not context:
-            import gi
-
-            gi.require_version('AppStream', '1.0')
-            from gi.repository import AppStream
-
-            context = AppStream.Context()
-        context.set_style(AppStream.FormatStyle.COLLECTION)
-
-        if not self.xml:
-            raise Exception('Can not load AppStream component from empty data.')
-
-        self.cpt = AppStream.Component()
-        self.cpt.load_from_xml_data(context, self.xml)
-        self.cpt.set_active_locale('C')
-
-        return self.cpt
+    @data.setter
+    def data(self, value):
+        if type(value) is bytes or type(value) is str:
+            self._data = value
+        elif type(value) is dict:
+            self._data = json.dumps(value)
+        else:
+            raise ValueError('Can not add {} ({}) as software component data value.'.format(type(value), value))
 
 
 def get_archive_sections():
