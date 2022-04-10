@@ -50,7 +50,7 @@ def retrieve_dep11_data(repo_name: str) -> T.Tuple[bool, T.Optional[str], T.Opti
     from .check_dep11 import check_dep11_path
 
     lconf = LocalConfig()
-    hook_script = os.path.join(lconf.data_import_hooks_dir, 'fetch-dep11.sh')
+    hook_script = os.path.join(lconf.data_import_hooks_dir, 'fetch-appstream.sh')
     if not os.path.isfile(hook_script):
         log.info('Will not fetch DEP-11 data for %s: No hook script `%s`', repo_name, hook_script)
         return True, None, None
@@ -124,7 +124,12 @@ def write_compressed_files(root_path: T.PathUnion, subdir: str, basename: str, d
 
 
 def import_metadata_file(
-    root_path: T.PathUnion, subdir: str, basename: str, source_fname: T.PathUnion, *, only_gzip: bool = False
+    root_path: T.PathUnion,
+    subdir: str,
+    basename: str,
+    source_fname: T.PathUnion,
+    *,
+    only_compression: T.Optional[str] = None,
 ) -> T.List[RepoFileInfo]:
     """
     Import a metadata file from a source, checksum it and (re)compress it with all supported / applicable
@@ -148,20 +153,25 @@ def import_metadata_file(
     repo_fname = os.path.join(subdir, basename)
     finfos.append(RepoFileInfo(repo_fname, len(data), hashlib.sha256(data).hexdigest()))
 
-    if only_gzip:
-        fname_gz = os.path.join(root_path, repo_fname + '.gz')
-        with gzip.open(fname_gz, 'w') as f:
-            f.write(data)
-        with open(fname_gz, 'rb') as f:
-            gz_bytes = f.read()
-            finfos.append(RepoFileInfo(repo_fname + '.xz', len(gz_bytes), hashlib.sha256(gz_bytes).hexdigest()))
+    if only_compression:
+        use_exts = (only_compression,)
     else:
-        fname_xz = os.path.join(root_path, repo_fname + '.xz')
-        with lzma.open(fname_xz, 'w') as f:
-            f.write(data)
-        with open(fname_xz, 'rb') as f:
-            xz_bytes = f.read()
-            finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), hashlib.sha256(xz_bytes).hexdigest()))
+        use_exts = ('xz', 'gz')
+
+    for z_ext in use_exts:
+        fname_z = os.path.join(root_path, repo_fname + '.' + z_ext)
+        if z_ext == 'gz':
+            with gzip.open(fname_z, 'w') as f:
+                f.write(data)
+        elif z_ext == 'xz':
+            with lzma.open(fname_z, 'w') as f:
+                f.write(data)
+        else:
+            raise Exception('Unknown compressed file extension: ' + z_ext)
+
+        with open(fname_z, 'rb') as f:
+            z_bytes = f.read()
+            finfos.append(RepoFileInfo(repo_fname + '.' + z_ext, len(z_bytes), hashlib.sha256(z_bytes).hexdigest()))
 
     return finfos
 
@@ -458,19 +468,29 @@ def publish_suite_dists(
             if dep11_src_dir:
                 dep11_files = ('Components-{}.yml'.format(arch.name), 'CID-Index-{}.json'.format(arch.name))
                 for dep11_basename in dep11_files:
-                    dep11_src_fname = os.path.join(
-                        dep11_src_dir, rss.suite.name, component.name, dep11_basename + '.gz'
-                    )
+                    for ext in ('.gz', '.xz'):
+                        dep11_src_fname = os.path.join(
+                            dep11_src_dir, rss.suite.name, component.name, dep11_basename + ext
+                        )
+                        if os.path.isfile(dep11_src_fname):
+                            break
                     if not os.path.isfile(dep11_src_fname):
                         continue
                     os.makedirs(os.path.join(suite_temp_dist_dir, dists_dep11_subdir), exist_ok=True)
 
                     # copy metadata and hash and register it
                     meta_files.extend(
-                        import_metadata_file(suite_temp_dist_dir, dists_dep11_subdir, dep11_basename, dep11_src_fname)
+                        import_metadata_file(
+                            suite_temp_dist_dir,
+                            dists_dep11_subdir,
+                            dep11_basename,
+                            dep11_src_fname,
+                            only_compression='xz' if dep11_basename.startswith('CID-Index') else None,
+                        )
                     )
-                    # import metadata into the database and connect it to binary packages
-                    import_appstream_data(session, rss, component, arch)
+
+                # import metadata into the database and connect it to binary packages
+                import_appstream_data(session, rss, component, arch, repo_dists_dir=temp_dists_dir)
 
         # copy AppStream icon tarballs
         if dep11_src_dir:
@@ -483,7 +503,7 @@ def publish_suite_dists(
                         dists_dep11_subdir,
                         Path(icon_tar_fname).stem,
                         icon_tar_fname,
-                        only_gzip=True,
+                        only_compression='gz',
                     )
                 )
 

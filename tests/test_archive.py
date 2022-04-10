@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import shutil
 import subprocess
 
 import pytest
@@ -17,6 +18,7 @@ from laniakea.db import (
     SourcePackage,
     ArchiveUploader,
     ArchiveRepository,
+    SoftwareComponent,
     ArchiveQueueNewEntry,
     ArchiveRepoSuiteSettings,
     session_scope,
@@ -734,9 +736,34 @@ class TestArchive:
             )
             assert bpkg
 
-    def test_publish(self):
+    def test_publish(self, samples_dir):
         from lkarchive.publish import publish_repo_dists
 
+        # link the DEP-11 fetch hook to its destination
+        os.makedirs(self._lconf.data_import_hooks_dir, exist_ok=True)
+        os.symlink(
+            os.path.join(samples_dir, 'dep11', 'fetch-appstream.sh'),
+            os.path.join(self._lconf.data_import_hooks_dir, 'fetch-appstream.sh'),
+        )
+
+        # publish the "master" repository data
         with session_scope() as session:
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
             publish_repo_dists(session, repo)
+
+            # check if key files are there
+            assert os.path.isfile(os.path.join(repo.get_root_dir(), 'dists/unstable/Release'))
+            assert os.path.isfile(os.path.join(repo.get_root_dir(), 'dists/unstable/Release.gpg'))
+            assert os.path.isfile(os.path.join(repo.get_root_dir(), 'dists/unstable/InRelease'))
+            assert os.path.isfile(os.path.join(repo.get_root_dir(), 'dists/unstable/main/binary-all/Packages.xz'))
+            assert os.path.isfile(os.path.join(repo.get_root_dir(), 'dists/unstable/main/source/Sources.xz'))
+            assert os.path.isfile(
+                os.path.join(repo.get_root_dir(), 'dists/unstable/main/dep11/Components-amd64.yml.xz')
+            )
+            assert os.path.isfile(os.path.join(repo.get_root_dir(), 'dists/unstable/main/dep11/icons-64x64.tar.gz'))
+
+            # check if software components are present
+            assert session.query(SoftwareComponent).count() == 3
+            sw = session.query(SoftwareComponent).filter(SoftwareComponent.cid == 'org.freedesktop.appstream.cli').one()
+            assert len(sw.pkgs_binary) == 1
+            assert sw.pkgs_binary[0].name == 'pkg-any3'

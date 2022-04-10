@@ -17,6 +17,7 @@ import lzma
 import yaml
 from gi.repository import AppStream
 
+import laniakea.typing as T
 from laniakea.db import (
     ArchiveSuite,
     BinaryPackage,
@@ -29,7 +30,12 @@ from laniakea.logging import log
 
 
 def import_appstream_data(
-    session, rss: ArchiveRepoSuiteSettings, component: ArchiveComponent, arch: ArchiveArchitecture
+    session,
+    rss: ArchiveRepoSuiteSettings,
+    component: ArchiveComponent,
+    arch: ArchiveArchitecture,
+    *,
+    repo_dists_dir: T.Optional[T.PathUnion] = None,
 ):
     """
     Import AppStream metadata about software components and associate it with the
@@ -60,9 +66,10 @@ def import_appstream_data(
     mdata_write.set_write_header(False)
 
     suite = rss.suite
-    repo_root_dir = rss.repo.get_root_dir()
+    if not repo_dists_dir:
+        repo_dists_dir = os.path.join(rss.repo.get_root_dir(), 'dists')
 
-    dep11_dists_dir = os.path.join(repo_root_dir, 'dists', suite.name, component.name, 'dep11')
+    dep11_dists_dir = os.path.join(repo_dists_dir, suite.name, component.name, 'dep11')
     yaml_fname = os.path.join(dep11_dists_dir, 'Components-{}.yml.xz'.format(arch.name))
     if not os.path.isfile(yaml_fname):
         return
@@ -130,8 +137,8 @@ def import_appstream_data(
         # We want the whole component data in the database for quick reference,
         # but dumping the raw XML into the db, while convenient, is rather inefficient.
         # So storing JSON is a compromise.
-        mdata_write.clearComponents()
-        mdata_write.addComponent(cpt)
+        mdata_write.clear_components()
+        mdata_write.add_component(cpt)
         y_data = yaml.safe_load(mdata_write.components_to_collection(AppStream.FormatKind.YAML))
         dcpt.data = json.dumps(y_data)
 
@@ -177,5 +184,5 @@ def import_appstream_data(
         dcpt.pkgs_binary = [bin_pkg]
 
         session.add(dcpt)
-        log.debug('Added new software component \'{}\' to database'.format(dcpt.cid))
+        log.info('Added new software component \'{}\' to database'.format(dcpt.cid))
         session.commit()
