@@ -38,7 +38,7 @@ from laniakea.db import (
     ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
 )
-from laniakea.utils import safe_rename
+from laniakea.utils import safe_rename, hardlink_or_copy
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import (
@@ -944,7 +944,7 @@ class UploadHandler:
             if not has_orig_tar:
                 # We have no orig.tar.* file - this may be okay if we already have the same upstream version in
                 # the archive which provides this file, so let's look for it!
-                # In case this is a native package, the dsc file will not have an orig reference and we will just
+                # In case this is a native package, the dsc file will not have an orig reference, and we will just
                 # skip this section automatically.
                 with open(os.path.join(changes.directory, file.fname), 'r') as f:
                     dsc = Sources(f)
@@ -985,8 +985,7 @@ class UploadHandler:
                         else:
                             # copy to our scratch dir so apt-ftparchive will find this file later.
                             # we will also verify the checksum again for this file
-                            # TODO: We should maybe use a symlink here, or a hardlink and only copy if the file is on a different disk
-                            shutil.copy(
+                            hardlink_or_copy(
                                 os.path.join(rss.repo.get_root_dir(), afile_orig.fname),
                                 os.path.join(changes.directory, dscf_basename),
                             )

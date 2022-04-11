@@ -9,14 +9,11 @@ from laniakea.utils.misc import (
     cd,
     listify,
     stringify,
-    safe_rename,
     split_strip,
     download_file,
     is_remote_url,
     random_string,
-    open_compressed,
     process_file_lock,
-    check_filename_safe,
     datetime_to_rfc2822_string,
     get_dir_shorthand_for_uuid,
 )
@@ -28,6 +25,12 @@ from laniakea.utils.command import (
     run_command,
     run_forwarded,
     safe_run_forwarded,
+)
+from laniakea.utils.fileutil import (
+    safe_rename,
+    open_compressed,
+    hardlink_or_copy,
+    check_filename_safe,
 )
 
 __all__ = [
@@ -54,4 +57,5 @@ __all__ = [
     'check_filename_safe',
     'process_file_lock',
     'safe_rename',
+    'hardlink_or_copy',
 ]

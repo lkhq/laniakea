@@ -7,13 +7,10 @@
 import os
 import re
 import fcntl
-from typing import Union
 from datetime import datetime
 from contextlib import contextmanager
 
 import requests
-
-import laniakea.typing as T
 
 
 def get_dir_shorthand_for_uuid(uuid):
@@ -68,11 +65,12 @@ def stringify(item):
     return str(item)
 
 
+re_remote_url = re.compile('^(https?|ftps?)://')
+
+
 def is_remote_url(uri):
     '''Check if string contains a remote URI.'''
-
-    uriregex = re.compile('^(https?|ftps?)://')
-    return uriregex.match(uri) is not None
+    return re_remote_url.match(uri) is not None
 
 
 def download_file(url, fname, check=False, headers: dict = None, **kwargs):
@@ -95,31 +93,6 @@ def download_file(url, fname, check=False, headers: dict = None, **kwargs):
     return r.status_code
 
 
-@contextmanager
-def open_compressed(fname, mode='rb'):
-    '''
-    Open a few compressed filetypes easily.
-    '''
-
-    lower_fname = fname.lower()
-    f = None
-    if lower_fname.endswith('.xz'):
-        import lzma
-
-        f = lzma.open(fname, mode=mode)
-    elif lower_fname.endswith('.gz'):
-        import gzip
-
-        f = gzip.open(fname, mode=mode)
-    else:
-        raise Exception('Can not decompress file (compression type not recognized): {}'.format(fname))
-
-    try:
-        yield f
-    finally:
-        f.close()
-
-
 def split_strip(s, sep):
     '''Split a string, removing empty segments from the result and stripping the individual parts'''
     res = []
@@ -129,48 +102,11 @@ def split_strip(s, sep):
     return res
 
 
-# Match safe filenames
-re_file_safe = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.~+-]*$')
-
-# Match safe filenames, including slashes
-re_file_safe_slash = re.compile(r'^[a-zA-Z0-9][/a-zA-Z0-9_.~+-]*$')
-
-
-def check_filename_safe(fname: Union[os.PathLike, str]) -> bool:
-    """Check if a filename contains only safe characters"""
-    if not re_file_safe.match(str(fname)):
-        return False
-    return True
-
-
-def check_filepath_safe(path: Union[os.PathLike, str]) -> bool:
-    """Check if a filename contains only safe characters"""
-    if not re_file_safe_slash.match(str(path)):
-        return False
-    return True
-
-
 def datetime_to_rfc2822_string(dt: datetime):
     """Convert a datetime object into an RFC2822 date string."""
     from email import utils
 
     return utils.format_datetime(dt)
-
-
-def safe_rename(src: T.PathUnion, dst: T.PathUnion, *, override: bool = False):
-    '''
-    Instead of directly moving a file with rename(), copy the file
-    and then delete the original.
-    Also reset the permissions on the resulting copy.
-    '''
-
-    from shutil import copy2
-
-    if override and os.path.isfile(dst):
-        os.unlink(dst)
-    new_fname = copy2(src, dst)
-    os.chmod(new_fname, 0o755)
-    os.unlink(src)
 
 
 class ProcessFileLock:
