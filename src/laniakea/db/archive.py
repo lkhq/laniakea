@@ -717,15 +717,19 @@ class SourcePackage(Base):
 
     architectures = Column(ARRAY(String(64)))  # List of architectures this source package can be built for
 
-    standards_version = Column(String(256))
+    standards_version = Column(String(256), nullable=True)
     format_version = Column(String(64))
 
-    homepage = Column(Text())
-    vcs_browser = Column(Text())
-
     maintainer = Column(Text())
-    original_maintainer = Column(Text())
+    original_maintainer = Column(Text(), nullable=True)
     uploaders = Column(ARRAY(Text()))
+
+    homepage = Column(Text(), nullable=True)  # homepage URL of this package
+    vcs_browser = Column(Text(), nullable=True)  # VCS browser URL
+    vcs_git = Column(Text(), nullable=True)  # Git repository URL
+
+    testsuite = Column(ARRAY(String(100)))  # list of testsuite types this package contains
+    testsuite_triggers = Column(ARRAY(String(200)))  # list of package names that trigger the testsuite
 
     # value for how important it is to upgrade to this package version from previous ones
     changes_urgency = Column(Enum(ChangesUrgency), default=ChangesUrgency.MEDIUM)

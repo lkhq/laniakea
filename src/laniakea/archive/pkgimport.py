@@ -45,6 +45,7 @@ from laniakea.archive.utils import (
     UploadError,
     is_deb_file,
     split_epoch,
+    split_strip,
     re_file_orig,
     check_overrides_source,
     checksums_list_to_file,
@@ -82,7 +83,7 @@ def pop_split(d, key, s):
     value = d.pop(key, None)
     if not value:
         return []
-    return value.split(s)
+    return split_strip(value, s)
 
 
 def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkgname: str, version: str):
@@ -159,6 +160,7 @@ class PackageImporter:
         os.makedirs(self._repo_newqueue_root, exist_ok=True)
 
         self._keep_source_packages = False
+        self._prefer_hardlinks = False
         self._ensure_not_frozen()
 
     @property
@@ -169,6 +171,15 @@ class PackageImporter:
     @keep_source_packages.setter
     def keep_source_packages(self, v: bool):
         self._keep_source_packages = v
+
+    @property
+    def prefer_hardlinks(self) -> bool:
+        """If True, we will make an attempt to use hardlinks instead of copies if possible, when copying packages."""
+        return self._prefer_hardlinks
+
+    @prefer_hardlinks.setter
+    def prefer_hardlinks(self, v: bool):
+        self._prefer_hardlinks = v
 
     def _ensure_not_frozen(self):
         if self._rss.frozen:
@@ -184,7 +195,10 @@ class PackageImporter:
             if os.path.isfile(dst):
                 os.unlink(dst)
         if self.keep_source_packages:
-            shutil.copy(src, dst)
+            if self._prefer_hardlinks:
+                hardlink_or_copy(src, dst)
+            else:
+                shutil.copy(src, dst)
             os.chmod(dst, 0o755)
             log.debug('Copied package file: %s -> %s', src, dst)
         else:
@@ -201,6 +215,7 @@ class PackageImporter:
         *,
         new_policy: NewPolicy = NewPolicy.DEFAULT,
         error_if_new: bool = False,
+        ignore_existing: bool = False,
     ) -> ImportSourceResult:
         """Import a source package into the given suite or its NEW queue.
 
@@ -270,20 +285,30 @@ class PackageImporter:
                 exists().where(SourcePackage.name == pkgname, SourcePackage.version == version)
             ).scalar()
             if ret:
+                if ignore_existing:
+                    return None, False
                 raise ArchivePackageExistsError(
                     'Can not import source package {}/{}: Already exists.'.format(pkgname, version)
                 )
             spkg.time_added = datetime.utcnow()
 
         spkg.format_version = src_tf.pop('Format')
+        spkg.standards_version = src_tf.pop('Standards-Version', None)
         spkg.architectures = pop_split(src_tf, 'Architecture', ' ')
         spkg.maintainer = src_tf.pop('Maintainer')
-        spkg.uploaders = pop_split(src_tf, 'Uploaders', ', ')
+        spkg.original_maintainer = src_tf.pop('Original-Maintainer', None)
+        spkg.uploaders = pop_split(src_tf, 'Uploaders', ',')
+        spkg.homepage = src_tf.pop('Homepage', None)
+        spkg.vcs_browser = src_tf.pop('Vcs-Browser', None)
+        spkg.vcs_git = src_tf.pop('Vcs-Git', None)
 
-        spkg.build_depends = pop_split(src_tf, 'Build-Depends', ', ')
-        spkg.build_depends_indep = pop_split(src_tf, 'Build-Depends-Indep', ', ')
-        spkg.build_conflicts = pop_split(src_tf, 'Build-Conflicts', ', ')
-        spkg.build_conflicts_indep = pop_split(src_tf, 'Build-Conflicts-Indep', ', ')
+        spkg.testsuite = pop_split(src_tf, 'Testsuite', ',')
+        spkg.testsuite_triggers = pop_split(src_tf, 'Testsuite-Triggers', ',')
+
+        spkg.build_depends = pop_split(src_tf, 'Build-Depends', ',')
+        spkg.build_depends_indep = pop_split(src_tf, 'Build-Depends-Indep', ',')
+        spkg.build_conflicts = pop_split(src_tf, 'Build-Conflicts', ',')
+        spkg.build_conflicts_indep = pop_split(src_tf, 'Build-Conflicts-Indep', ',')
         if 'Package-List' in src_tf:
             spkg.expected_binaries = parse_package_list_str(src_tf.pop('Package-List'))
             src_tf.pop('Binary')
@@ -293,7 +318,7 @@ class PackageImporter:
                 '- falling back to parsing `Binaries`.'.format(pkgname, version)
             )
             binary_stubs = []
-            for b in pop_split(src_tf, 'Binary', ', '):
+            for b in pop_split(src_tf, 'Binary', ','):
                 pi = PackageInfo()
                 pi.name = b
                 pi.component = spkg.component.name
@@ -436,8 +461,10 @@ class PackageImporter:
         src_tf.pop('Directory')
 
         # store any remaining fields as extra data
-        log.debug('Extra data fields for `{}/{}`: {}'.format(pkgname, version, dict(src_tf)))
-        spkg.extra_data = dict(src_tf)
+        extra_data = dict(src_tf)
+        if extra_data:
+            log.debug('Extra data fields for `{}/{}`: {}'.format(pkgname, version, dict(src_tf)))
+            spkg.extra_data = dict(src_tf)
 
         self._session.add(spkg)
         if is_new:
@@ -666,18 +693,18 @@ class PackageImporter:
         # process contents list
         bpkg.contents = [line.split('\t', 1)[0] for line in filelist_raw]
 
-        bpkg.depends = pop_split(bin_tf, 'Depends', ', ')
-        bpkg.pre_depends = pop_split(bin_tf, 'Pre-Depends', ', ')
+        bpkg.depends = pop_split(bin_tf, 'Depends', ',')
+        bpkg.pre_depends = pop_split(bin_tf, 'Pre-Depends', ',')
 
-        bpkg.replaces = pop_split(bin_tf, 'Replaces', ', ')
-        bpkg.provides = pop_split(bin_tf, 'Provides', ', ')
-        bpkg.recommends = pop_split(bin_tf, 'Recommends', ', ')
-        bpkg.suggests = pop_split(bin_tf, 'Suggests', ', ')
-        bpkg.enhances = pop_split(bin_tf, 'Enhances', ', ')
-        bpkg.conflicts = pop_split(bin_tf, 'Conflicts', ', ')
-        bpkg.breaks = pop_split(bin_tf, 'Breaks', ', ')
+        bpkg.replaces = pop_split(bin_tf, 'Replaces', ',')
+        bpkg.provides = pop_split(bin_tf, 'Provides', ',')
+        bpkg.recommends = pop_split(bin_tf, 'Recommends', ',')
+        bpkg.suggests = pop_split(bin_tf, 'Suggests', ',')
+        bpkg.enhances = pop_split(bin_tf, 'Enhances', ',')
+        bpkg.conflicts = pop_split(bin_tf, 'Conflicts', ',')
+        bpkg.breaks = pop_split(bin_tf, 'Breaks', ',')
 
-        bpkg.built_using = pop_split(bin_tf, 'Built-Using', ', ')
+        bpkg.built_using = pop_split(bin_tf, 'Built-Using', ',')
         bpkg.multi_arch = bin_tf.pop('Multi-Arch', None)
 
         # add to target suite

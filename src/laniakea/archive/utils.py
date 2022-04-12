@@ -231,7 +231,7 @@ def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides
         if pi.section == 'debug':
             # we have a debug package, which may live in a different repo/suite
             if not rss_dbg:
-                rss_dbg = repo_suite_settings_for_debug(rss)
+                rss_dbg = repo_suite_settings_for_debug(session, rss)
             if not rss_dbg:
                 # don't add override if we will drop this dbgsym package anyway
                 return
@@ -247,7 +247,9 @@ def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides
             override.pkgname = pi.name
             session.add(override)
         override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one()
-        override.section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one()
+        override.section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one_or_none()
+        if not override.section:
+            raise ValueError('Archive section `{}` does not exist!'.format(pi.section))
         override.essential = pi.essential
         override.priority = pi.priority
 

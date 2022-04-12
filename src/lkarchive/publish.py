@@ -249,11 +249,15 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
         set_deb822_value(entry, 'Section', spkg.section)
         set_deb822_value(entry, 'Homepage', spkg.homepage)
         set_deb822_value(entry, 'Vcs-Browser', spkg.vcs_browser)
+        set_deb822_value(entry, 'Vcs-Git', spkg.vcs_git)
 
         set_deb822_value(entry, 'Build-Depends', ', '.join(spkg.build_depends))
         set_deb822_value(entry, 'Build-Depends-Indep', ', '.join(spkg.build_depends_indep))
         set_deb822_value(entry, 'Build-Conflicts', ', '.join(spkg.build_conflicts))
         set_deb822_value(entry, 'Build-Conflicts-Indep', ', '.join(spkg.build_conflicts_indep))
+
+        set_deb822_value(entry, 'Testsuite', spkg.testsuite)
+        set_deb822_value(entry, 'Testsuite-Triggers', ', '.join(spkg.testsuite_triggers))
 
         set_deb822_value(entry, 'Directory', spkg.directory)
         cs_data = []
@@ -261,8 +265,10 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
             cs_data.append('{} {} {}'.format(file.sha256sum, file.size, file.fname))
         set_deb822_value(entry, 'Checksums-Sha256', '\n ' + '\n '.join(cs_data))
 
-        for key, value in spkg.extra_data.items():
-            set_deb822_value(entry, key, value)
+        extra_data = spkg.extra_data
+        if extra_data:
+            for key, value in extra_data.items():
+                set_deb822_value(entry, key, value)
 
         entries.append(entry.dump())
 
@@ -346,8 +352,10 @@ def generate_packages_index(
         if bpkg.phased_update_percentage < 100:
             set_deb822_value(entry, '"Phased-Update-Percentage"', str(bpkg.phased_update_percentage))
 
-        for key, value in bpkg.extra_data.items():
-            set_deb822_value(entry, key, value)
+        extra_data = bpkg.extra_data
+        if extra_data:
+            for key, value in extra_data.items():
+                set_deb822_value(entry, key, value)
 
         # add package metadata
         entries.append(entry.dump())

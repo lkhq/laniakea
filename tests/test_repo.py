@@ -16,7 +16,7 @@ from laniakea.db import (
     ArchiveArchitecture,
 )
 from laniakea.utils.gpg import GpgException
-from laniakea.repository import Repository
+from laniakea.repository import RepositoryReader
 
 
 def validate_src_packages(spkgs):
@@ -136,14 +136,14 @@ def test_repo_local(samples_dir, localconfig):
     component = ArchiveComponent('main')
     arch = ArchiveArchitecture('amd64')
     arch_all = ArchiveArchitecture('all')
-    repo = Repository(repo_location, 'Dummy', trusted_keyrings=[])
+    repo = RepositoryReader(repo_location, 'Dummy', trusted_keyrings=[])
 
     # we have no keyrings set, so this should fail
     with pytest.raises(GpgException):
         src_pkgs = repo.source_packages(suite, component)
 
     # try again!
-    repo = Repository(repo_location, 'Dummy', trusted_keyrings=keyrings)
+    repo = RepositoryReader(repo_location, 'Dummy', trusted_keyrings=keyrings)
     src_pkgs = repo.source_packages(suite, component)
     bin_pkgs = repo.binary_packages(suite, component, arch)
     assert len(bin_pkgs) == 4

@@ -66,7 +66,7 @@ def version_revision(version: str, full_for_native: bool = True) -> str:
     return version[idx + 1 :]
 
 
-class Repository:
+class RepositoryReader:
     '''
     Allows reading data from a Debian repository.
     '''
@@ -99,7 +99,7 @@ class Repository:
         else:
             self._repo_entity = ArchiveRepository(self._name)
 
-        self._inrelease: dict[str, Repository.InReleaseData] = {}  # pylint: disable=used-before-assignment
+        self._inrelease: dict[str, RepositoryReader.InReleaseData] = {}  # pylint: disable=used-before-assignment
 
     @property
     def base_dir(self) -> str:
@@ -170,8 +170,12 @@ class Repository:
         irfname = self._fetch_repo_file_internal(os.path.join('dists', suite_name, 'InRelease'))
         if not irfname:
             if check:
-                raise Exception('Unable to find InRelease data for repository "{}"'.format(self.location))
-            return Repository.InReleaseData()
+                raise Exception(
+                    'Unable to find InRelease data for repository "{}" (expected `{}`)'.format(
+                        self.location, os.path.join('dists', suite_name, 'InRelease')
+                    )
+                )
+            return RepositoryReader.InReleaseData()
 
         with open(irfname, 'rb') as irf:
             contents = irf.read()
@@ -187,7 +191,7 @@ class Repository:
         contents = sf.contents
 
         section = TagSection(contents)
-        ird = Repository.InReleaseData()
+        ird = RepositoryReader.InReleaseData()
 
         files_raw = section['SHA256']
         ird.files = parse_checksums_list(files_raw)
@@ -230,7 +234,7 @@ class Repository:
 
         return index_fname
 
-    def source_packages(self, suite, component):
+    def source_packages(self, suite: ArchiveSuite, component: ArchiveComponent):
         '''Return a list of all source packages in the given suite and component.'''
         assert type(suite) is ArchiveSuite
         assert type(component) is ArchiveComponent
@@ -270,7 +274,7 @@ class Repository:
 
                 pkg.files = parse_checksums_list(e.get('Checksums-Sha256'), pkg.directory)
 
-                binaries = []
+                ex_binaries = []
                 raw_pkg_list = e.get('Package-List', None)
                 if not raw_pkg_list:
                     for bpname in e.get('Binary', '').split(','):
@@ -281,10 +285,10 @@ class Repository:
                         pi.deb_type = DebType.DEB
                         pi.name = bpname
                         pi.ver = pkg.version
-                        binaries.append(pi)
+                        ex_binaries.append(pi)
                 else:
-                    binaries = parse_package_list_str(raw_pkg_list, pkg.version)
-                pkg.binaries = binaries
+                    ex_binaries = parse_package_list_str(raw_pkg_list, pkg.version)
+                pkg.expected_binaries = ex_binaries
 
                 # do some issue-reporting
                 if not pkg.files and pkg.format_version != '1.0':

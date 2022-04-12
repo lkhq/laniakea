@@ -47,6 +47,7 @@ def _register_commands():
 
     cli.add_command(dip.import_pkg)
     cli.add_command(dip.import_heidi_result)
+    cli.add_command(dip.import_repository)
 
     import manage_pkg as mgr
 

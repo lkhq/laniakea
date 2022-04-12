@@ -10,13 +10,17 @@ import fnmatch
 
 import click
 from sqlalchemy import and_, func
+from rich.prompt import Confirm
+from rich.console import Console
 
 import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import (
     NewPolicy,
+    ArchiveSuite,
     BinaryPackage,
     SourcePackage,
+    ArchiveComponent,
     ArchiveRepository,
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
@@ -288,3 +292,119 @@ def import_heidi_result(
                     .one()
                 )
                 package_mark_delete(session, rss, bpkg)
+
+
+def _import_repo_into_suite(
+    session,
+    rss_dest: ArchiveRepoSuiteSettings,
+    target_component_name: str,
+    source_suite_name: str,
+    source_component_name: str,
+    src_repo_path: T.PathUnion,
+):
+    """Import a complete, local repository into a target."""
+    from laniakea.repository import RepositoryReader, make_newest_packages_dict
+
+    src_repo = RepositoryReader(src_repo_path, 'external')
+    src_repo.set_trusted(True)
+    src_suite = ArchiveSuite(source_suite_name)
+    src_component = ArchiveComponent(source_component_name)
+
+    pi = PackageImporter(session, rss_dest)
+    pi.keep_source_packages = True  # we must not delete the source while importing it
+    pi.prefer_hardlinks = True  # prefer hardlinks if we are on the same drive, to safe space
+
+    # import all source packages
+    for spkg_src in src_repo.source_packages(src_suite, src_component):
+        dscfile = None
+        for f in spkg_src.files:
+            # the source repository might be on a remote location, so we need to
+            # request each file to be there.
+            # (dak will fetch the files referenced in the .dsc file from the same directory)
+            if f.fname.endswith('.dsc'):
+                dscfile = src_repo.get_file(f)
+            src_repo.get_file(f)
+
+        if not dscfile:
+            log.error(
+                'Critical consistency error: Source package {} in repository {} has no .dsc file.'.format(
+                    spkg_src.name, spkg_src.base_dir
+                )
+            )
+            return False
+
+        pi.import_source(dscfile, target_component_name, new_policy=NewPolicy.NEVER_NEW, ignore_existing=True)
+
+    # import all binary packages
+    for arch in rss_dest.suite.architectures:
+        for bpkg_src in src_repo.binary_packages(src_suite, src_component, arch):
+            fname = src_repo.get_file(bpkg_src.bin_file)
+
+            # TODO: Update overrides based on source repo info
+            pi.import_binary(fname, target_component_name)
+
+
+@click.command('import-repo')
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set the default repository is used.',
+)
+@click.option(
+    '--target-suite',
+    'target_suite_name',
+    required=True,
+    help='Name of the suite to import into.',
+)
+@click.option(
+    '--target-component',
+    'target_component_name',
+    required=True,
+    help='Name of the component to import into.',
+)
+@click.option(
+    '--source-suite',
+    'source_suite',
+    required=True,
+    help='Name of the suite to import from.',
+)
+@click.option(
+    '--source-component',
+    'source_component',
+    required=True,
+    help='Name of the component to import from.',
+)
+@click.argument('src_repo_path', nargs=1, type=click.Path(), required=True)
+def import_repository(
+    repo_name: T.Optional[str],
+    target_suite_name: str,
+    target_component_name: str,
+    source_suite: str,
+    source_component: str,
+    src_repo_path: T.PathUnion,
+):
+    """Import full contents of an external repository into a destination repository, copying it."""
+
+    if not repo_name:
+        lconf = LocalConfig()
+        repo_name = lconf.master_repo_name
+
+    with session_scope() as session:
+        rss = repo_suite_settings_for(session, repo_name, target_suite_name, fail_if_missing=False)
+        if not rss:
+            click.echo(
+                'Suite / repository configuration not found for {} in {}.'.format(target_suite_name, repo_name),
+                err=True,
+            )
+            sys.exit(4)
+
+        import_confirmed = Confirm.ask(
+            'Do you really want to perform this import, overriding existing data in the destination?', default=False
+        )
+        if not import_confirmed:
+            return
+        if not _import_repo_into_suite(
+            session, rss, target_component_name, source_suite, source_component, src_repo_path
+        ):
+            sys.exit(1)

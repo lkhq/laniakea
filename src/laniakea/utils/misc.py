@@ -12,6 +12,8 @@ from contextlib import contextmanager
 
 import requests
 
+import laniakea.typing as T
+
 
 def get_dir_shorthand_for_uuid(uuid):
     '''
@@ -52,7 +54,7 @@ def listify(item):
     return item if type(item) == list else [item]
 
 
-def stringify(item):
+def stringify(item: T.Any):
     '''
     Convert anything into a string, if it isn't one already.
     Assume UTF-8 encoding if we have bytes.
@@ -93,7 +95,7 @@ def download_file(url, fname, check=False, headers: dict = None, **kwargs):
     return r.status_code
 
 
-def split_strip(s, sep):
+def split_strip(s: str, sep: str):
     '''Split a string, removing empty segments from the result and stripping the individual parts'''
     res = []
     for part in s.split(sep):
