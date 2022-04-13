@@ -249,7 +249,9 @@ def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides
         override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one()
         override.section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one_or_none()
         if not override.section:
-            raise ValueError('Archive section `{}` does not exist!'.format(pi.section))
+            raise ValueError(
+                'Archive section `{}` does not exist, even though `{}` thinks it does.'.format(pi.section, pi.name)
+            )
         override.essential = pi.essential
         override.priority = pi.priority
 

@@ -62,6 +62,8 @@ def _register_commands():
 
 
 def run(mainfile, args):
+    from rich.traceback import install
+
     if len(args) == 0:
         print('Need a subcommand to proceed!')
         sys.exit(1)
@@ -69,5 +71,6 @@ def run(mainfile, args):
     global __mainfile
     __mainfile = mainfile
 
+    install(show_locals=True, suppress=[click])
     _register_commands()
     cli()  # pylint: disable=no-value-for-parameter

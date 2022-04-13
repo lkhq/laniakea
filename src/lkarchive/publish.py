@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 import click
 from pebble import concurrent
 from sqlalchemy import and_, func
+from rich.console import Console
 from debian.deb822 import Deb822
 
 import laniakea.typing as T
@@ -47,7 +48,7 @@ def retrieve_dep11_data(repo_name: str) -> T.Tuple[bool, T.Optional[str], T.Opti
     """
     import subprocess
 
-    from .check_dep11 import check_dep11_path
+    from lkarchive.check_dep11 import check_dep11_path
 
     lconf = LocalConfig()
     hook_script = os.path.join(lconf.data_import_hooks_dir, 'fetch-appstream.sh')
@@ -256,7 +257,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
         set_deb822_value(entry, 'Build-Conflicts', ', '.join(spkg.build_conflicts))
         set_deb822_value(entry, 'Build-Conflicts-Indep', ', '.join(spkg.build_conflicts_indep))
 
-        set_deb822_value(entry, 'Testsuite', spkg.testsuite)
+        set_deb822_value(entry, 'Testsuite', ', '.join(spkg.testsuite))
         set_deb822_value(entry, 'Testsuite-Triggers', ', '.join(spkg.testsuite_triggers))
 
         set_deb822_value(entry, 'Directory', spkg.directory)
@@ -345,7 +346,8 @@ def generate_packages_index(
         set_deb822_value(entry, 'Conflicts', ', '.join(bpkg.conflicts))
         set_deb822_value(entry, 'Breaks', ', '.join(bpkg.breaks))
         set_deb822_value(entry, 'Built-Using', ', '.join(bpkg.built_using))
-        set_deb822_value(entry, 'Installed-Size', str(bpkg.size_installed))
+        if bpkg.size_installed > 0:
+            set_deb822_value(entry, 'Installed-Size', str(bpkg.size_installed))
         set_deb822_value(entry, 'Size', str(bpkg.bin_file.size))
         set_deb822_value(entry, 'Filename', bpkg.bin_file.fname)
         set_deb822_value(entry, 'SHA256', bpkg.bin_file.sha256sum)
@@ -645,5 +647,7 @@ def publish(repo_name: T.Optional[str] = None, suite_name: T.Optional[str] = Non
             try:
                 publish_repo_dists(session, repo, suite_name=suite_name, force=force)
             except Exception as e:
+                console = Console()
+                console.print_exception(max_frames=20)
                 click.echo('Error while publishing repository {}: {}'.format(repo.name, str(e)), err=True)
                 sys.exit(5)

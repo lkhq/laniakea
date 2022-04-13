@@ -13,6 +13,7 @@ from apt_pkg import (  # type: ignore[attr-defined]
     version_compare,
 )
 
+import laniakea.typing as T
 from laniakea.db import (
     DebType,
     ArchiveFile,
@@ -20,6 +21,7 @@ from laniakea.db import (
     ArchiveSuite,
     BinaryPackage,
     SourcePackage,
+    PackageOverride,
     PackagePriority,
     ArchiveComponent,
     ArchiveRepository,
@@ -234,7 +236,7 @@ class RepositoryReader:
 
         return index_fname
 
-    def source_packages(self, suite: ArchiveSuite, component: ArchiveComponent):
+    def source_packages(self, suite: ArchiveSuite, component: ArchiveComponent) -> T.List[SourcePackage]:
         '''Return a list of all source packages in the given suite and component.'''
         assert type(suite) is ArchiveSuite
         assert type(component) is ArchiveComponent
@@ -284,7 +286,11 @@ class RepositoryReader:
                         pi = PackageInfo()
                         pi.deb_type = DebType.DEB
                         pi.name = bpname
-                        pi.ver = pkg.version
+                        pi.version = pkg.version
+                        pi.component = component.name
+                        pi.section = e.get('Section')
+                        pi.essential = e.get('Essential', 'no') == 'yes'
+                        pi.priority = PackagePriority.from_string(e['Priority'])
                         ex_binaries.append(pi)
                 else:
                     ex_binaries = parse_package_list_str(raw_pkg_list, pkg.version)
@@ -324,6 +330,8 @@ class RepositoryReader:
 
             # sanity check
             if arch_name != arch.name:
+                if requested_arch_is_all and arch_name != 'all':
+                    continue
                 log.warning(
                     'Found package "{}::{}/{}" with unexpeced architecture "{}" (expected "{}")'.format(
                         self._name, pkgname, pkgversion, arch_name, arch.name
@@ -356,12 +364,15 @@ class RepositoryReader:
             pkg.pre_depends = split_strip(e.get('Pre-Depends', ''), ',')
 
             pkg.homepage = e.get('Homepage')
-            pkg.section = e['Section']
+
+            pkg.override = PackageOverride(pkg.name)
+            pkg.override.section = e['Section']
+            pkg.override.priority = PackagePriority.from_string(e['Priority'])
+            pkg.override.component = component
+            pkg.override.essential = e.get('Essential', 'no') == 'yes'
 
             pkg.description = e['Description']
             pkg.description_md5 = e.get('Description-md5')
-
-            pkg.priority = PackagePriority.from_string(e['Priority'])
 
             pkg.bin_file = ArchiveFile(e['Filename'])
             pkg.bin_file.size = int(e.get('Size', '0'))
@@ -383,7 +394,7 @@ class RepositoryReader:
 
         return pkgs
 
-    def binary_packages(self, suite, component, arch):
+    def binary_packages(self, suite, component, arch, *, shadow_arch: T.Optional[ArchiveArchitecture] = None):
         '''
         Get a list of binary package information for the given repository suite,
         component and architecture.
@@ -393,11 +404,21 @@ class RepositoryReader:
         assert type(component) is ArchiveComponent
         assert type(arch) is ArchiveArchitecture
 
+        if not shadow_arch:
+            shadow_arch = arch
+
         index_fname = self.index_file(
             suite.name, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz')
         )
         if not index_fname:
-            return []
+            if shadow_arch != arch:
+                index_fname = self.index_file(
+                    suite.name, os.path.join(component.name, 'binary-{}'.format(shadow_arch.name), 'Packages.xz')
+                )
+                if not index_fname:
+                    return []
+            else:
+                return []
 
         with TagFile(index_fname) as tf:
             return self._read_binary_packages_from_tf(tf, index_fname, suite, component, arch, DebType.DEB)

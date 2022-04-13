@@ -255,6 +255,8 @@ class PackageImporter:
             .one_or_none()
         )
         if result:
+            if ignore_existing:
+                return None, False
             raise ArchiveImportError(
                 'Unable to import package "{}": '
                 'We have already seen higher version "{}" in this repository before.'.format(pkgname, result)
@@ -282,7 +284,11 @@ class PackageImporter:
         else:
             # check if the package already exists
             ret = self._session.query(
-                exists().where(SourcePackage.name == pkgname, SourcePackage.version == version)
+                exists().where(
+                    SourcePackage.repo_id == self._rss.repo_id,
+                    SourcePackage.name == pkgname,
+                    SourcePackage.version == version,
+                )
             ).scalar()
             if ret:
                 if ignore_existing:
@@ -485,7 +491,14 @@ class PackageImporter:
             self._session.commit()
         return spkg, is_new
 
-    def import_binary(self, deb_fname: T.Union[os.PathLike, str], component_name: T.Optional[str] = None):
+    def import_binary(
+        self,
+        deb_fname: T.Union[os.PathLike, str],
+        component_name: T.Optional[str] = None,
+        *,
+        ignore_existing: bool = False,
+        override_section: T.Optional[str] = None,
+    ):
         """Import a binary package into the given suite or its NEW queue.
 
         :param deb_fname: Path to a deb/udeb package to import
@@ -523,23 +536,9 @@ class PackageImporter:
         version = bin_tf.pop('Version')
         pkgarch = bin_tf.pop('Architecture')
 
-        # check if the package already exists
-        ret = self._session.query(
-            exists().where(
-                BinaryPackage.repo_id == self._rss.repo_id,
-                BinaryPackage.name == pkgname,
-                BinaryPackage.version == version,
-                BinaryPackage.architecture.has(name=pkgarch),
-            )
-        ).scalar()
-        if ret:
-            raise ArchivePackageExistsError(
-                'Can not import binary package {}/{}/{}: Already exists.'.format(pkgname, version, pkgarch)
-            )
-
         deb_rss = self._rss
         deb_component = 'main'
-        section = bin_tf.get('Section')
+        section = override_section if override_section else bin_tf.get('Section')
         if '/' in section:
             deb_component, section = section.split('/')
         is_debug_pkg = True if section == 'debug' else False
@@ -555,14 +554,31 @@ class PackageImporter:
         if not component_name:
             component_name = deb_component
 
+        # check if the package already exists
+        ret = self._session.query(
+            exists().where(
+                BinaryPackage.repo_id == deb_rss.repo_id,
+                BinaryPackage.name == pkgname,
+                BinaryPackage.version == version,
+                BinaryPackage.architecture.has(name=pkgarch),
+            )
+        ).scalar()
+        if ret:
+            if ignore_existing:
+                return
+            raise ArchivePackageExistsError(
+                'Can not import binary package {}/{}/{}: Already exists.'.format(pkgname, version, pkgarch)
+            )
+
         bpkg = BinaryPackage(pkgname, version, deb_rss.repo)
 
         bpkg.architecture = self._session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == pkgarch).one()
         bpkg.update_uuid()
 
+        bpkg.deb_type = pkg_type
         bpkg.maintainer = bin_tf.pop('Maintainer')
         bpkg.homepage = bin_tf.pop('Homepage', None)
-        bpkg.size_installed = bin_tf.pop('Installed-Size')
+        bpkg.size_installed = int(bin_tf.pop('Installed-Size', '0'))
         bpkg.time_added = datetime.utcnow()
 
         source_info_raw = bin_tf.pop('Source', '')

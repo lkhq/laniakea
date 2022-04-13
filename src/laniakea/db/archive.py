@@ -897,7 +897,7 @@ class BinaryPackage(Base):
     __tablename__ = 'archive_pkgs_binary'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
-    deb_type = Column(Enum(DebType))  # Deb package type
+    deb_type = Column(Enum(DebType), default=DebType.DEB)  # Deb package type
 
     name = Column(String(200))  # Package name
     version = Column(DebVersion())  # Version of this package

@@ -12,6 +12,7 @@ from laniakea.db import (
     NewPolicy,
     ArchiveSuite,
     DbgSymPolicy,
+    ArchiveSection,
     ArchiveUploader,
     ArchiveComponent,
     ArchiveRepository,
@@ -19,6 +20,7 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     session_scope,
 )
+from laniakea.logging import log
 
 from .utils import ClickAliasedGroup, input_str, input_list, print_error_exit
 
@@ -475,6 +477,27 @@ def repo_add_suite(
     _add_suite_to_repo(
         repo_name, suite_name, accept_uploads, devel_target, auto_overrides, manual_accept, signingkeys, announce_emails
     )
+
+
+@archive.command()
+@click.argument('name', nargs=1)
+@click.argument('summary', nargs=1)
+def section_add(name: str, summary: str):
+    '''Register a new archive section.'''
+
+    name = name.lower().strip()
+    summary = summary.strip()
+    if not name:
+        print_error_exit('Section name "{}" is invalid!'.format(name))
+    with session_scope() as session:
+        section = session.query(ArchiveSection).filter(ArchiveSection.name == name).one_or_none()
+        if section:
+            section.summary = summary
+            log.info('Updated section `%s`.', name)
+        else:
+            section = ArchiveSection(name, summary)
+            session.add(section)
+            log.info('New section `%s` added.', name)
 
 
 @archive.command()

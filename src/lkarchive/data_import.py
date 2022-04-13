@@ -9,9 +9,10 @@ import sys
 import fnmatch
 
 import click
+from rich import print
+from rich.panel import Panel
 from sqlalchemy import and_, func
 from rich.prompt import Confirm
-from rich.console import Console
 
 import laniakea.typing as T
 from laniakea import LocalConfig
@@ -20,13 +21,15 @@ from laniakea.db import (
     ArchiveSuite,
     BinaryPackage,
     SourcePackage,
+    ArchiveSection,
+    PackageOverride,
     ArchiveComponent,
     ArchiveRepository,
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
-from laniakea.archive import repo_suite_settings_for
+from laniakea.archive import repo_suite_settings_for, repo_suite_settings_for_debug
 from laniakea.logging import log
 from laniakea.archive.manage import (
     copy_binary_package,
@@ -156,7 +159,7 @@ def import_pkg(
 )
 @click.argument('heidi_fname', nargs=1, type=click.Path(), required=True)
 def import_heidi_result(
-    suite_name: str, heidi_fname: T.List[T.PathUnion], repo_name: T.Optional[str] = None, allow_delete: bool = False
+    suite_name: str, heidi_fname: T.PathUnion, repo_name: T.Optional[str] = None, allow_delete: bool = False
 ):
     """Import a HeidiResult file from Britney to migrate packages."""
 
@@ -303,18 +306,24 @@ def _import_repo_into_suite(
     src_repo_path: T.PathUnion,
 ):
     """Import a complete, local repository into a target."""
-    from laniakea.repository import RepositoryReader, make_newest_packages_dict
+    from laniakea.repository import RepositoryReader
+    from laniakea.archive.utils import register_package_overrides
 
     src_repo = RepositoryReader(src_repo_path, 'external')
     src_repo.set_trusted(True)
     src_suite = ArchiveSuite(source_suite_name)
     src_component = ArchiveComponent(source_component_name)
 
+    rss_dest_dbg = repo_suite_settings_for_debug(session, rss_dest)
+    if not rss_dest_dbg:
+        rss_dest_dbg = rss_dest
+
     pi = PackageImporter(session, rss_dest)
     pi.keep_source_packages = True  # we must not delete the source while importing it
     pi.prefer_hardlinks = True  # prefer hardlinks if we are on the same drive, to safe space
 
     # import all source packages
+    print(Panel.fit('Importing sources'))
     for spkg_src in src_repo.source_packages(src_suite, src_component):
         dscfile = None
         for f in spkg_src.files:
@@ -333,15 +342,104 @@ def _import_repo_into_suite(
             )
             return False
 
-        pi.import_source(dscfile, target_component_name, new_policy=NewPolicy.NEVER_NEW, ignore_existing=True)
+        # we need to register overrides based on the source package info first, as
+        # the dsc file may not contain sufficient data to auto-create them
+        register_package_overrides(session, rss_dest, spkg_src.expected_binaries)
+
+        spkg_dst = (
+            session.query(SourcePackage)
+            .filter(
+                SourcePackage.repo_id == rss_dest.repo_id,
+                SourcePackage.name == spkg_src.name,
+                SourcePackage.version == spkg_src.version,
+            )
+            .one_or_none()
+        )
+
+        # now actually import the source package, or register it with our suite if needed
+        if spkg_dst:
+            if not rss_dest.suite in spkg_dst.suites:
+                spkg_dst.suites.append(rss_dest.suite)
+            log.info('Processed source: %s/%s', spkg_dst.name, spkg_dst.version)
+        else:
+            pi.import_source(dscfile, target_component_name, new_policy=NewPolicy.NEVER_NEW)
+    session.commit()
 
     # import all binary packages
     for arch in rss_dest.suite.architectures:
-        for bpkg_src in src_repo.binary_packages(src_suite, src_component, arch):
+        print(Panel.fit('Importing binaries for {}'.format(arch.name)))
+        shadow_arch = None
+        if arch.name == 'all':
+            for a in rss_dest.suite.architectures:
+                if a.name != 'all':
+                    break
+            shadow_arch = a
+            log.info('Using shadow architecture %s for arch:all', a.name)
+        for bpkg_src in src_repo.binary_packages(src_suite, src_component, arch, shadow_arch=shadow_arch):
             fname = src_repo.get_file(bpkg_src.bin_file)
 
-            # TODO: Update overrides based on source repo info
-            pi.import_binary(fname, target_component_name)
+            rss_dest_real = rss_dest
+            if bpkg_src.override.section == 'debug':
+                # we have a debug package, which may live in a different repo/suite
+                rss_dest_real = rss_dest_dbg
+
+            bpkg_dst = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss_dest_real.repo_id,
+                    BinaryPackage.name == bpkg_src.name,
+                    BinaryPackage.version == bpkg_src.version,
+                    BinaryPackage.architecture.has(name=arch.name),
+                )
+                .one_or_none()
+            )
+
+            # update override to match the source data exactly
+            # we check the non-debug primary repo-suite config (rss_dest) first
+            override = (
+                session.query(PackageOverride)
+                .filter(PackageOverride.repo_suite_id == rss_dest.id, PackageOverride.pkgname == bpkg_src.name)
+                .one_or_none()
+            )
+            if not override:
+                # check the corresponding debug suite
+                override = (
+                    session.query(PackageOverride)
+                    .filter(PackageOverride.repo_suite_id == rss_dest_dbg.id, PackageOverride.pkgname == bpkg_src.name)
+                    .one_or_none()
+                )
+                if not override:
+                    log.error(
+                        'Override missing unexpectedly: Binary package %s has no associated override in %s:%s, even though it was already imported.',
+                        bpkg_src.name,
+                        rss_dest_real.repo.name,
+                        rss_dest_real.suite.name,
+                    )
+                    return False
+            override.repo_suite = rss_dest_real
+            override.section = (
+                session.query(ArchiveSection).filter(ArchiveSection.name == bpkg_src.override.section).one_or_none()
+            )
+            if not override.section:
+                log.error(
+                    'Archive section `%s` does not exist, even though `%s` thinks it does.',
+                    bpkg_src.override.section,
+                    bpkg_src.name,
+                )
+                return False
+            override.essential = bpkg_src.override.essential
+            override.priority = bpkg_src.override.priority
+
+            # import binary package if needed
+            if bpkg_dst:
+                if not rss_dest_real.suite in bpkg_dst.suites:
+                    bpkg_dst.suites.append(rss_dest_real.suite)
+                log.info('Processed binary: %s/%s on %s', bpkg_dst.name, bpkg_dst.version, arch.name)
+            else:
+                pi.import_binary(fname, target_component_name, override_section=bpkg_src.override.section)
+
+        # commit after each architecture was processed
+        session.commit()
 
 
 @click.command('import-repo')
