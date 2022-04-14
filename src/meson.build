@@ -34,11 +34,6 @@ if (get_option('lighthouse'))
     subdir('lighthouse')
 endif
 
-# Dataimport
-if (get_option('dataimport'))
-    subdir('dataimport')
-endif
-
 # Debcheck
 if (get_option('debcheck'))
     subdir('debcheck')

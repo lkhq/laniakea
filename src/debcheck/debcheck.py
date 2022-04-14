@@ -83,7 +83,7 @@ def command_binaries(options):
 
 
 def create_parser(formatter_class=None):
-    '''Create DataImport CLI argument parser'''
+    '''Create Debcheck CLI argument parser'''
 
     parser = ArgumentParser(description='Import existing static data into the Laniakea database')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')

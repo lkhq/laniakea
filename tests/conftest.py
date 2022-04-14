@@ -439,10 +439,8 @@ def import_package_data(request, sources_dir, localconfig, database):
     never run in parallel.
     '''
 
-    dataimport_exe = os.path.join(sources_dir, 'dataimport', 'dataimport.py')
-    suite_name = getattr(request.module, 'dataimport_suite', 'unstable')
-
-    subprocess.run([dataimport_exe, '--config', localconfig.fname, 'repo', suite_name], check=True)
+    # TODO
+    # FIXME
 
 
 @pytest.fixture(scope='session')
