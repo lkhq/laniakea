@@ -306,7 +306,7 @@ def _import_repo_into_suite(
     src_repo_path: T.PathUnion,
 ):
     """Import a complete, local repository into a target."""
-    from laniakea.repository import RepositoryReader
+    from laniakea.reporeader import RepositoryReader
     from laniakea.archive.utils import register_package_overrides
 
     src_repo = RepositoryReader(src_repo_path, 'external')

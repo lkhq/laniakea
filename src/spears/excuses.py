@@ -8,19 +8,29 @@ from typing import Dict
 from datetime import datetime
 
 import yaml
+from sqlalchemy import or_
 
-from laniakea.db import SpearsExcuse, SpearsOldBinaries
+import laniakea.typing as T
+from laniakea.db import (
+    ArchiveSuite,
+    SpearsExcuse,
+    SourcePackage,
+    SpearsOldBinaries,
+    SpearsMigrationTask,
+)
 
 
 class ExcusesFile:
     '''
     Read the excuses.yml Britney output file as well as the Britney logfile
-    and create SpearsExcuse structs to be added to the database from their data.
+    and create SpearsExcuse objects to be added to the database from their data.
     '''
 
-    def __init__(self, fname_excuses: str, fname_log: str, source: str, target: str):
-        self._suite_source = source
-        self._suite_target = target
+    def __init__(self, session, fname_excuses: str, fname_log: str, mtask: SpearsMigrationTask):
+        self._session = session
+        self._mtask = mtask
+        self._suites_source = mtask.source_suites
+        self._suite_target = mtask.target_suite
 
         with open(fname_excuses, 'r') as f:
             self._excuses_data = yaml.safe_load(f)
@@ -72,22 +82,37 @@ class ExcusesFile:
         # get log data
         loginfo = self._process_log_data()
 
+        suite_from_filter = []
+        for suite in self._suites_source:
+            suite_from_filter.append(SourcePackage.suites.any(id=suite.id))
+
         ysrc = self._excuses_data['sources']
         for entry in ysrc:
             excuse = SpearsExcuse()
 
             excuse.date = datetime.utcnow()
-            excuse.suite_source = self._suite_source
-            excuse.suite_target = self._suite_target
+            excuse.migration_task = self._mtask
 
-            excuse.source_package = str(entry['source'])
-            excuse.is_candidate = bool(entry['is-candidate'])
-
-            if 'maintainer' in entry:
-                excuse.maintainer = str(entry['maintainer'])
-
+            spkg_name = str(entry['source'])
             excuse.version_new = str(entry['new-version'])
             excuse.version_old = str(entry['old-version'])
+
+            excuse.source_package = (
+                self._session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == self._mtask.repo.id,
+                    SourcePackage.name == excuse.source_package.name,
+                    SourcePackage.version == excuse.version_new,
+                    or_(*suite_from_filter),
+                )
+                .one_or_none()
+            )
+            if not excuse.source_package:
+                raise ValueError("Unable to find source package %s/%s!" % (spkg_name, excuse.version_new))
+
+            excuse.is_candidate = bool(entry['is-candidate'])
+            if 'maintainer' in entry:
+                excuse.maintainer = str(entry['maintainer'])
 
             if 'policy_info' in entry:
                 policy = entry['policy_info']

@@ -73,8 +73,7 @@ class ArchiveConfig(Base):
 
 class ArchiveRepository(Base):
     """
-    A system architecture software can be compiled for.
-    Usually associated with an :ArchiveSuite
+    A repository of packages.
     """
 
     __tablename__ = 'archive_repositories'

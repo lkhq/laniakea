@@ -16,7 +16,7 @@ from laniakea.db import (
     ArchiveArchitecture,
 )
 from laniakea.utils.gpg import GpgException
-from laniakea.repository import RepositoryReader
+from laniakea.reporeader import RepositoryReader
 
 
 def validate_src_packages(spkgs):

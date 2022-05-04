@@ -26,7 +26,7 @@ from laniakea.db import (
 from laniakea.logging import log
 from laniakea.dakbridge import DakBridge
 from laniakea.msgstream import EventEmitter
-from laniakea.repository import Repository, version_revision, make_newest_packages_dict
+from laniakea.reporeader import Repository, version_revision, make_newest_packages_dict
 
 
 class SyncEngine:

@@ -8,10 +8,23 @@ from uuid import uuid4
 from typing import Any
 from datetime import datetime
 
-from sqlalchemy import Text, Column, String, Boolean, Integer, DateTime
-from sqlalchemy.dialects.postgresql import JSON, ARRAY
+from sqlalchemy import (
+    Text,
+    Index,
+    Table,
+    Column,
+    String,
+    Boolean,
+    Integer,
+    DateTime,
+    ForeignKey,
+)
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.dialects.postgresql import JSON, ARRAY, JSONB
 
 from .base import UUID, Base, DebVersion
+from .archive import ArchiveRepoSuiteSettings
 
 
 class SpearsHint(Base):
@@ -23,8 +36,8 @@ class SpearsHint(Base):
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    # Identifier for the respective migration task, in the form of "source1+source2-to-target"
-    migration_id = Column(String(256))
+    migration_id = Column(Integer, ForeignKey('spears_migrations.id'))
+    migration_task = relationship('SpearsMigrationTask')  # Migration task this hint belongs to
 
     time = Column(DateTime(), default=datetime.utcnow)  # Time when this hint was created
     hint = Column(Text())  # A Britney hint
@@ -33,31 +46,50 @@ class SpearsHint(Base):
     user = Column(String(256))  # Person who created this hint
 
 
-class SpearsMigrationEntry(Base):
-    '''
-    Configuration specific for the Spears tool.
-    '''
+spears_migration_src_suite_assoc_table = Table(
+    'spears_migration_src_suite_association',
+    Base.metadata,
+    Column(
+        'migration_id',
+        Integer,
+        ForeignKey('spears_migrations.id'),
+        primary_key=True,
+    ),
+    Column('suite_id', Integer, ForeignKey('archive_suites.id'), primary_key=True),
+)
+
+
+class SpearsMigrationTask(Base):
+    """
+    Description of a migration task from one or multiple suites to a target.
+    """
 
     __tablename__ = 'spears_migrations'
 
-    idname = Column(Text(), primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True)
 
-    source_suites = Column(ARRAY(String(128)))  # Names of the suites packages migrate from
-    target_suite = Column(String(128))  # Name of the suite packages migrate to
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
+    repo = relationship('ArchiveRepository')  # Repository this migration task is valid for
 
-    delays = Column(JSON)  # Dictionary of VersionPriority --> int
+    source_suites = relationship(
+        'ArchiveSuite', secondary=spears_migration_src_suite_assoc_table
+    )  # The suites packages will migrate from
+    target_suite_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=False)
+    target_suite = relationship('ArchiveSuite')  # The suite packages migrate to
+
+    delays = Column(MutableDict.as_mutable(JSONB))  # Dictionary of VersionPriority --> int
 
     def source_suites_id(self):
         '''
         Get a string identifying the source suites packages are migrated from.
         '''
-        return '+'.join(sorted(self.source_suites))
+        return '+'.join(sorted([s.name for s in self.source_suites]))
 
-    def make_migration_id(self):
+    def make_migration_name(self):
         '''
         Get a unique identifier for this migration task
         '''
-        return '{}-to-{}'.format(self.source_suites_id(), self.target_suite)
+        return '{}:{}-to-{}'.format(self.repo.name, self.source_suites_id(), self.target_suite.name)
 
 
 class SpearsOldBinaries:
@@ -78,20 +110,16 @@ class SpearsExcuse(Base):
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    source_suites = Column(ARRAY(String(128)))
+    time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 
-    time = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
+    migration_id = Column(Integer, ForeignKey('spears_migrations.id'))
+    migration_task = relationship('SpearsMigrationTask')  # Migration task this excuse belongs to
 
-    # Identifier for the respective migration task, in the form of "source1+source2-to-target"
-    migration_id = Column(Text(), nullable=False)
-
-    suite_target = Column(String(128))  # Target suite of this package
-    suite_source = Column(String(128))  # Source suite of this package
-
-    is_candidate = Column(Boolean())  # True if the package is considered for migration at all
-
-    source_package = Column(Text())  # source package that is affected by this excuse
+    source_package_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
+    source_package = relationship('SourcePackage')  # source package that is affected by this excuse
     maintainer = Column(Text())  # name of the maintainer responsible for this package
+
+    is_candidate = Column(Boolean(), default=False)  # True if the package is considered for migration at all
 
     age_current = Column(Integer())  # current age of the source package upload
     age_required = Column(Integer())  # minimum required age of the upload
@@ -145,6 +173,11 @@ class SpearsExcuse(Base):
         self.old_binaries = j
 
     def make_idname(self):
-        return '{}-{}:{}-{}/{}'.format(
-            self.suite_source, self.suite_target, self.source_package, self.version_new, self.version_old
+        return '{}:{}->{}:{}-{}/{}'.format(
+            self.migration_task.repo.name,
+            self.suite_source,
+            self.suite_target,
+            self.source_package.name,
+            self.version_new,
+            self.version_old,
         )

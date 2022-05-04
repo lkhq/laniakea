@@ -12,7 +12,7 @@ import yaml
 
 from laniakea.db import PackageType, PackageIssue, DebcheckIssue, PackageConflict
 from laniakea.logging import log
-from laniakea.repository import Repository
+from laniakea.reporeader import RepositoryReader
 from laniakea.localconfig import LocalConfig
 
 

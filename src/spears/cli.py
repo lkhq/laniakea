@@ -42,7 +42,7 @@ def command_migrate(options):
 
     engine = SpearsEngine()
 
-    ret = engine.run_migration(options.suite1, options.suite2)
+    ret = engine.run_migration(options.repo_name, options.suite1, options.suite2)
     if not ret:
         sys.exit(2)
 
@@ -65,8 +65,9 @@ def create_parser():
     sp = subparsers.add_parser(
         'migrate', help='Run migration. If suites are omitted, migration is run for all targets.'
     )
-    sp.add_argument('suite1', type=str, help='The first suite.', nargs='?')
-    sp.add_argument('suite2', type=str, help='The second suite.', nargs='?')
+    sp.add_argument('--repo', dest='repo_name', help='Act only on the repository with this name.')
+    sp.add_argument('suite1', type=str, help='The source suite.', nargs='?')
+    sp.add_argument('suite2', type=str, help='The target suite.', nargs='?')
     sp.set_defaults(func=command_migrate)
 
     return parser

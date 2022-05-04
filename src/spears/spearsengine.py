@@ -9,26 +9,32 @@ from __future__ import annotations
 import os
 import lzma
 import shutil
+import subprocess
 from uuid import uuid4
 from typing import Any
 
 from apt_pkg import TagFile
-from sqlalchemy.orm import joinedload
+from sqlalchemy import or_
 
+import laniakea.typing as T
 from laniakea.db import (
     LkModule,
     SpearsHint,
     ArchiveSuite,
     SpearsExcuse,
+    SourcePackage,
+    ArchiveComponent,
     ArchiveRepository,
-    SpearsMigrationEntry,
+    ArchiveArchitecture,
+    SpearsMigrationTask,
     session_scope,
 )
 from laniakea.utils import open_compressed
+from laniakea.archive import repo_suite_settings_for
 from laniakea.logging import log
 from laniakea.dakbridge import DakBridge
 from laniakea.msgstream import EventEmitter
-from laniakea.repository import Repository
+from laniakea.reporeader import RepositoryReader
 from laniakea.localconfig import LocalConfig
 
 from .britney import Britney
@@ -48,7 +54,9 @@ class SpearsEngine:
         self._workspace = os.path.join(self._lconf.workspace, 'spears')
         os.makedirs(self._workspace, exist_ok=True)
 
-    def _get_source_suite_dists_dir(self, mi_workspace: str, source_suites: list[ArchiveSuite]):
+    def _get_source_suite_dists_dir(
+        self, mi_workspace: str, repo: ArchiveRepository, source_suites: T.List[ArchiveSuite]
+    ):
         '''
         If our source suite is a single suite, we can just use the archive's vanilla dists/
         directory as source of package information for Britney.
@@ -62,60 +70,26 @@ class SpearsEngine:
             raise Exception('Can not get source-suite dists/ directory if no source suites are selected.')
 
         if len(source_suites) == 1:
-            return os.path.join(self._lconf.archive_root_dir, 'dists', source_suites[0].name)
+            return os.path.join(repo.get_root_dir(), 'dists', source_suites[0].name)
 
         dists_dir = os.path.join(mi_workspace, 'input', 'dists', '+'.join([s.name for s in source_suites]))
         os.makedirs(dists_dir, exist_ok=True)
         return dists_dir
 
-    def _suites_from_migration_entry(self, session, mentry: SpearsMigrationEntry):
-
-        res: dict[str, Any] = {'error': False, 'from': [], 'to': None}
-
-        for suite_name in mentry.source_suites:
-            maybe_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
-            if not maybe_suite:
-                log.error(
-                    'Migration source suite "{}" does not exist. Can not create configuration.'.format(suite_name)
-                )
-                res['error'] = True
-                return res
-            res['from'].append(maybe_suite)
-
-        maybe_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == mentry.target_suite).one_or_none()
-        if not maybe_suite:
-            log.error(
-                'Migration target suite "{}" does not exist. Can not create configuration.'.format(mentry.target_suite)
-            )
-            res['error'] = True
-            return res
-        res['to'] = maybe_suite
-
-        if res['to'] in res['from']:
-            log.error('Migration target suite ({}) is contained in source suite list.'.format(res['to'].name))
-            res['error'] = True
-            return res
-
-        return res
-
-    def _get_migration_id(self, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite) -> str:
+    def _get_migration_id(self, suites_from: T.List[ArchiveSuite], suite_to: ArchiveSuite) -> str:
         return '{}-to-{}'.format('+'.join(sorted([s.name for s in suites_from])), suite_to.name)
 
-    def _get_migration_name(self, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite) -> str:
-        return '{} -> {}'.format('+'.join(sorted([s.name for s in suites_from])), suite_to.name)
+    def _get_migration_name(
+        self, repo: ArchiveRepository, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite
+    ) -> str:
+        return '{}: {} -> {}'.format(repo.name, '+'.join(sorted([s.name for s in suites_from])), suite_to.name)
 
-    def _get_migrate_workspace(self, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite) -> str:
-        return os.path.join(self._workspace, self._get_migration_id(suites_from, suite_to))
+    def _get_migrate_workspace(self, mtask: SpearsMigrationTask) -> str:
+        return os.path.join(
+            self._workspace, mtask.repo.name, self._get_migration_id(mtask.source_suites, mtask.target_suite)
+        )
 
-    def _get_local_repo(self, session, repo_name='master'):
-        repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
-        local_repo = Repository(self._lconf.archive_root_dir, repo.name, trusted_keyrings=[])
-
-        # we unconditionally trust the local repository - for now
-        local_repo.set_trusted(True)
-        return local_repo
-
-    def update_config(self):
+    def update_config(self, update_britney: bool = True):
         '''
         Update configuration and distribution
         copy of Britney
@@ -124,62 +98,63 @@ class SpearsEngine:
         log.info('Updating configuration')
 
         with session_scope() as session:
-            for mentry in session.query(SpearsMigrationEntry).all():
+            for mtask in session.query(SpearsMigrationTask).all():
 
-                si_res = self._suites_from_migration_entry(session, mentry)
-                if si_res['error']:
-                    continue
-                suites_from = si_res['from']
-                suite_to = si_res['to']
+                suites_from = mtask.source_suites
+                suite_to = mtask.target_suites
                 assert len(suites_from) >= 1
+                assert suite_to
 
-                log.info('Refreshing Britney config for "{}"'.format(self._get_migration_name(suites_from, suite_to)))
-                mi_wspace = self._get_migrate_workspace(suites_from, suite_to)
+                log.info(
+                    'Refreshing Britney config for "{}"'.format(
+                        self._get_migration_name(mtask.repo, suites_from, suite_to)
+                    )
+                )
+                mi_wspace = self._get_migrate_workspace(mtask.repo, suites_from, suite_to)
                 bc = BritneyConfig(mi_wspace)
                 bc.set_archive_paths(
-                    self._get_source_suite_dists_dir(mi_wspace, suites_from),
+                    self._get_source_suite_dists_dir(mi_wspace, mtask.repo, suites_from),
                     os.path.join(self._lconf.archive_root_dir, 'dists', suite_to.name),
                 )
                 bc.set_components([c.name for c in suite_to.components])
                 bc.set_architectures([a.name for a in suite_to.architectures])
-                bc.set_delays(mentry.delays)
+                bc.set_delays(mtask.delays)
 
-                hints = session.query(SpearsHint).filter(SpearsHint.migration_id == mentry.make_migration_id()).all()
+                hints = session.query(SpearsHint).filter(SpearsHint.migration_task == mtask).all()
                 bc.set_hints(hints)
 
                 bc.save()
 
-        log.info('Updating Britney')
-        self._britney.update_dist()
+        if update_britney:
+            log.info('Updating Britney')
+            self._britney.update_dist()
 
         return True
 
-    def _prepare_source_data(
-        self, session, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite
-    ):
-        '''
+    def _prepare_source_data(self, session, mi_wspace: str, mtask: SpearsMigrationTask):
+        """
         If there is more than one source suite, we need to give Britney an amalgamation
         of the data of the two source suites.
-        This function prepares this data.
-        '''
+        This function prepares this data in the respective workspace location.
+        """
 
         # only one suite means we can use the suite's data directly
-        if len(suites_source) <= 1:
+        if len(mtask.source_suites) <= 1:
             return
 
-        archive_root_dir = self._lconf.archive_root_dir
-        fake_dists_dir = self._get_source_suite_dists_dir(mi_wspace, suites_source)
+        repo_root_dir = mtask.repo.get_root_dir()
+        fake_dists_dir = self._get_source_suite_dists_dir(mi_wspace, mtask.repo, mtask.source_suites)
 
-        for component in suite_target.components:
-            for arch in suite_target.architectures:
+        for component in mtask.target_suite.components:
+            for arch in mtask.target_suite.architectures:
                 if arch.name == 'all':
                     continue
                 packages_files = []
 
                 for installer_dir in ['', 'debian-installer']:
-                    for suite_source in suites_source:
+                    for suite_source in mtask.source_suites:
                         pfile = os.path.join(
-                            archive_root_dir,
+                            repo_root_dir,
                             'dists',
                             suite_source.name,
                             component.name,
@@ -193,8 +168,11 @@ class SpearsEngine:
 
                     if not installer_dir and not installer_dir:
                         raise Exception(
-                            'No packages found on {}/{} in sources for migration "{}": Can not continue.'.format(
-                                component.name, arch.name, self._get_migration_id(suites_source, suite_target)
+                            'No packages found on {}/{} in sources for migration "{}:{}": Can not continue.'.format(
+                                component.name,
+                                arch.name,
+                                mtask.repo.name,
+                                self._get_migration_id(mtask.source_suites, mtask.target_suite),
                             )
                         )
 
@@ -213,10 +191,8 @@ class SpearsEngine:
                         f.write(data)
 
             sources_files = []
-            for suite_source in suites_source:
-                sfile = os.path.join(
-                    archive_root_dir, 'dists', suite_source.name, component.name, 'source', 'Sources.xz'
-                )
+            for suite_source in mtask.source_suites:
+                sfile = os.path.join(repo_root_dir, 'dists', suite_source.name, component.name, 'source', 'Sources.xz')
                 if os.path.isfile(sfile):
                     log.debug('Looking for source packages in: {}'.format(sfile))
                     sources_files.append(sfile)
@@ -224,7 +200,7 @@ class SpearsEngine:
             if not sources_files:
                 raise Exception(
                     'No source packages found in "{}" sources for migration "{}": Can not continue.'.format(
-                        component.name, self._get_migration_id(suites_source, suite_target)
+                        component.name, self._get_migration_id(mtask.source_suites, mtask.target_suite)
                     )
                 )
 
@@ -243,30 +219,28 @@ class SpearsEngine:
         # Britney needs a Release file to determine the source suites components and architectures.
         # To keep things simple, we just copy one of the source Release files.
         # TODO: Synthesize a dedicated file instead and be less lazy
-        release_file = os.path.join(archive_root_dir, 'dists', suites_source[0].name, 'Release')
+        release_file = os.path.join(repo_root_dir, 'dists', mtask.source_suites[0].name, 'Release')
         target_release_file = os.path.join(fake_dists_dir, 'Release')
         log.debug('Using Release file for fake suite: {}'.format(target_release_file))
         if os.path.join(target_release_file):
             os.remove(target_release_file)
         shutil.copyfile(release_file, target_release_file)
 
-    def _create_faux_packages(
-        self, session, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite
-    ):
-        '''
+    def _create_faux_packages(self, session, mi_wspace: str, mtask: SpearsMigrationTask):
+        """
         If we have a partial source and target suite, we need to let Britney know about the
         parent packages somehow.
         At the moment, we simply abuse the FauxPackages system for that.
-        '''
+        """
 
         # we don't support more than one source suite for this feature at the moment
-        if len(suites_source) > 1:
+        if len(mtask.source_suites) > 1:
             log.info('Not auto-generating faux packages: Multiple suites set as sources.')
             return
 
-        suite_source = suites_source[0]
+        suite_source = mtask.source_suites[0]
 
-        if suite_source.parent and suite_target.parent:
+        if suite_source.parent and mtask.target_suite.parent:
             log.info('Creating faux-packages to aid resolving of partial suites.')
         else:
             log.info('No auto-generating faux packages: No source and target suite parents, generation is unnecessary.')
@@ -277,23 +251,21 @@ class SpearsEngine:
 
         # we need repository information to only generate faux packages if a package doesn't exist
         # in our source suite(s) already
-        repo = self._get_local_repo(session)
-
-        for suite in suites_source:
-            esuite = (
-                session.query(ArchiveSuite)
-                .options(joinedload(ArchiveSuite.components))
-                .options(joinedload(ArchiveSuite.architectures))
-                .filter(ArchiveSuite.id == suite.id)
-                .one()
-            )
-            session.expunge(esuite)  # we don't want packages accidentally added to the database here
-            for component in esuite.components:
-                for arch in esuite.architectures:
+        repo_reader = RepositoryReader(self._lconf.archive_root_dir, mtask.repo.name, trusted_keyrings=[])
+        repo_reader.set_trusted(True)  # we assume the local repository data is trusted
+        for suite in mtask.source_suites:
+            suite_nodb = ArchiveSuite(suite.name, suite.alias)
+            for component in suite.components:
+                component_nodb = ArchiveComponent(component.name)
+                for arch in suite.architectures:
                     aname = arch.name
-                    for bpkg in repo.binary_packages(esuite, component, arch):
+                    # create detached entities so the local packages aren't accidentally added to the database
+                    arch_nodb = ArchiveArchitecture(arch.name)
+
+                    # fetch package information
+                    for bpkg in repo_reader.binary_packages(suite_nodb, component_nodb, arch_nodb):
                         existing_pkg_arch_set.add(aname + ':' + bpkg.name)
-                    for spkg in repo.source_packages(esuite, component):
+                    for spkg in repo_reader.source_packages(suite, component):
                         existing_pkg_arch_set.add(aname + ':' + spkg.name)
 
         archive_root_dir = self._lconf.archive_root_dir
@@ -301,14 +273,14 @@ class SpearsEngine:
 
         log.debug('Generating faux packages list')
         fauxpkg_data = {}
-        for component in suite_target.parent.components:
+        for component in mtask.target_suite.parent.components:
 
             for installer_dir in ['', 'debian-installer']:
-                for arch in suite_target.parent.architectures:
+                for arch in mtask.target_suite.parent.architectures:
                     pfile = os.path.join(
                         archive_root_dir,
                         'dists',
-                        suite_target.parent.name,
+                        mtask.target_suite.parent.name,
                         component.name,
                         installer_dir,
                         'binary-{}'.format(arch.name),
@@ -358,27 +330,24 @@ class SpearsEngine:
             for segment in fauxpkg_data.values():
                 f.write(segment + '\n\n')
 
-    def _collect_urgencies(self, mi_wspace: str):
+    def _collect_urgencies(self, session, mi_wspace: T.PathUnion, mtask: SpearsMigrationTask):
 
-        urgencies = ''
-        for subdir, dirs, files in os.walk(self._lconf.archive_urgencies_export_dir):
-            for fbasename in files:
-                fname = os.path.join(subdir, fbasename)
-                if not os.path.isfile(fname):
-                    continue
-                if not fbasename.startswith('install-urgencies'):
-                    continue
+        log.debug('Collecting urgencies for %s:%s', mtask.repo.name, mtask.target_suite.name)
+        udata = (
+            session.query(SourcePackage.name, SourcePackage.version, SourcePackage.changes_urgency).filter(
+                SourcePackage.repo_id == mtask.repo.id,
+                SourcePackage.suites.any(id=mtask.target_suite_id),
+                SourcePackage.time_deleted.is_(None),
+            )
+        ).all()
 
-                log.debug('Reading urgencies from {}'.format(fname))
-                with open(fname, 'r') as f:
-                    urgencies = urgencies + f.read()
-
-        log.info('Writing urgency policy file.')
+        log.info('Writing urgency policy file for: %s:%s', mtask.repo.name, mtask.target_suite.name)
         urgency_policy_file = os.path.join(mi_wspace, 'state', 'age-policy-urgencies')
         with open(urgency_policy_file, 'w') as f:
-            f.write(urgencies)
+            for pkgname, version, changes_urgency in udata:
+                f.write('{} {} {}\n'.format(pkgname, version, changes_urgency.to_string()))
 
-    def _setup_dates(self, mi_wspace: str):
+    def _setup_dates(self, mi_wspace: T.PathUnion):
         dates_policy_file = os.path.join(mi_wspace, 'state', 'age-policy-dates')
         if os.path.isfile(dates_policy_file):
             return
@@ -388,9 +357,9 @@ class SpearsEngine:
         with open(dates_policy_file, 'w') as f:
             f.write('\n')
 
-    def _setup_various(self, mi_wspace: str, suites_source: list[ArchiveSuite], suite_target: ArchiveSuite):
+    def _setup_various(self, mi_wspace: str, mtask: SpearsMigrationTask):
         # set up some random files which we do not use at all currently
-        for suite in suites_source:
+        for suite in mtask.source_suites:
             rcbugs_policy_file_u = os.path.join(mi_wspace, 'state', 'rc-bugs-{}'.format(suite.name))
             if not os.path.isfile(rcbugs_policy_file_u):
                 log.info('Writing RC bugs policy file (source).')
@@ -398,7 +367,7 @@ class SpearsEngine:
                 with open(rcbugs_policy_file_u, 'w') as f:
                     f.write('')
 
-        rcbugs_policy_file_t = os.path.join(mi_wspace, 'state', 'rc-bugs-{}'.format(suite_target.name))
+        rcbugs_policy_file_t = os.path.join(mi_wspace, 'state', 'rc-bugs-{}'.format(mtask.target_suite.name))
         if not os.path.isfile(rcbugs_policy_file_t):
             log.info('Writing RC bugs policy file (target).')
             # just make an empty file for now
@@ -407,7 +376,7 @@ class SpearsEngine:
 
         # there is no support for Piuparts yet, but Britney crashes without these files
         piupats_dummy_json = '{"_id": "Piuparts Package Test Results Summary", "_version": "1.0", "packages": {}}\n'
-        for suite in suites_source:
+        for suite in mtask.source_suites:
             piuparts_file_u = os.path.join(mi_wspace, 'state', 'piuparts-summary-{}.json'.format(suite.name))
             if not os.path.isfile(piuparts_file_u):
                 log.info('Writing Piuparts summary file (source).')
@@ -415,7 +384,7 @@ class SpearsEngine:
                 with open(piuparts_file_u, 'w') as f:
                     f.write(piupats_dummy_json)
 
-        piuparts_file_t = os.path.join(mi_wspace, 'state', 'piuparts-summary-{}.json'.format(suite_target.name))
+        piuparts_file_t = os.path.join(mi_wspace, 'state', 'piuparts-summary-{}.json'.format(mtask.target_suite.name))
         if not os.path.isfile(piuparts_file_t):
             log.info('Writing Piuparts summary file (target).')
             # just make an empty file for now
@@ -442,7 +411,7 @@ class SpearsEngine:
 
         return processed_result
 
-    def _retrieve_excuses(self, session, mi_wspace: str, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite):
+    def _retrieve_excuses(self, session, mi_wspace: str, mtask: SpearsMigrationTask):
 
         excuses_yaml = os.path.join(mi_wspace, 'output', 'target', 'excuses.yaml')
         log_file = os.path.join(mi_wspace, 'output', 'target', 'output.txt')
@@ -450,104 +419,84 @@ class SpearsEngine:
         if not os.path.isfile(excuses_yaml) or not os.path.isfile(log_file):
             raise Exception('Unable to find and process the excuses information. Spears data will be outdated.')
 
-        if len(suites_from) <= 1:
-            efile = ExcusesFile(excuses_yaml, log_file, suites_from[0].name, suite_to.name)
-        else:
-            efile = ExcusesFile(excuses_yaml, log_file, None, suite_to.name)
-
-        # get a unique identifier for this migration task
-        migration_id = self._get_migration_id(suites_from, suite_to)
-
-        # read repository information to match packages to their source suites before adding
-        # their excuses to the database.
-        # This is only needed for multi-source-suite combined migrations, otherwise there is only one
-        # source suites packages can originate from.
-        pkg_source_suite_map = {}
-
-        if len(suites_from) > 1:
-            # we need repository information to attribute packages to their right suites
-            repo = self._get_local_repo(session)
-
-            for suite in suites_from:
-                esuite = (
-                    session.query(ArchiveSuite)
-                    .options(joinedload(ArchiveSuite.components))
-                    .options(joinedload(ArchiveSuite.architectures))
-                    .filter(ArchiveSuite.id == suite.id)
-                    .one()
-                )
-                session.expunge(esuite)  # we don't want packages accidentally added to the database here
-                for component in esuite.components:
-                    for spkg in repo.source_packages(esuite, component):
-                        pkg_source_suite_map[spkg.name + '/' + spkg.version] = esuite.name
-
+        efile = ExcusesFile(session, excuses_yaml, log_file, mtask)
         excuses = []
         for _, excuse in efile.get_excuses().items():
-            pkid = excuse.source_package + '/' + excuse.version_new
-            suite_name = pkg_source_suite_map.get(pkid)
-            if suite_name:
-                excuse.suite_source = suite_name
-            excuse.migration_id = migration_id
+            session.expunge(excuse)  # don't add this to the database yet
             excuses.append(excuse)
 
         return excuses
 
-    def _run_migration_internal(self, session, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite):
+    def _run_migration_internal(self, session, mtask: SpearsMigrationTask):
 
-        mi_wspace = self._get_migrate_workspace(suites_from, suite_to)
+        mi_wspace = self._get_migrate_workspace(mtask)
         britney_conf = os.path.join(mi_wspace, 'britney.conf')
         if not os.path.isfile(britney_conf):
             log.warning(
                 'No Britney config for migration run "{}" - maybe the configuration was not yet updated?'.format(
-                    self._get_migration_name(suites_from, suite_to)
+                    self._get_migration_name(mtask.repo, mtask.source_suites, mtask.target_suite)
                 )
             )
             return None
 
-        log.info('Migration run for "{}"'.format(self._get_migration_name(suites_from, suite_to)))
+        log.info(
+            'Migration run for "{}"'.format(
+                self._get_migration_name(mtask.repo, mtask.source_suites, mtask.target_suite)
+            )
+        )
         # ensure prerequisites are met and Britney is fed with all the data it needs
-        self._prepare_source_data(session, mi_wspace, suites_from, suite_to)
-        self._create_faux_packages(session, mi_wspace, suites_from, suite_to)
-        self._collect_urgencies(mi_wspace)
+        self._prepare_source_data(session, mi_wspace, mtask)
+        self._create_faux_packages(session, mi_wspace, mtask)
+        self._collect_urgencies(mi_wspace, mtask)
         self._setup_dates(mi_wspace)
-        self._setup_various(mi_wspace, suites_from, suite_to)
+        self._setup_various(mi_wspace, mtask)
 
         # execute the migration tester
         self._britney.run(mi_wspace, britney_conf)
 
-        # tell dak to import the new data (overriding the target suite)
-        dak = DakBridge()
+        # prepare result for import
         heidi_result = self._postprocess_heidi_file(mi_wspace)
-        ret = dak.set_suite_to_britney_result(suite_to.name, heidi_result)
-        if not ret:
+
+        # tell lk-archive to import the new data (overriding the target suite)
+        proc = subprocess.run(
+            [
+                'lk-archive',
+                'import-heidi',
+                '--repo',
+                mtask.repo.name,
+                '-s',
+                mtask.target_suite.name,
+                '--with-rm',
+                heidi_result,
+            ],
+            check=True,
+        )
+        if proc.returncode != 0:
             return None
 
-        res = self._retrieve_excuses(session, mi_wspace, suites_from, suite_to)
+        res = self._retrieve_excuses(session, mi_wspace, mtask)
         return res
 
-    def _run_migration_for_entries(self, session, migration_entries):
+    def _run_migration_for_entries(self, session, migration_tasks: T.List[SpearsMigrationTask]):
 
         # event emitted for message publishing
         emitter = EventEmitter(LkModule.SPEARS)
 
-        for mentry in migration_entries:
-            si_res = self._suites_from_migration_entry(session, mentry)
-            if si_res['error']:
-                continue
-            print('\nRunning migration: {} to {}\n'.format('+'.join(mentry.source_suites), mentry.target_suite))
-            suites_from = si_res['from']
-            suite_to = si_res['to']
-            assert len(suites_from) >= 1
+        for mtask in migration_tasks:
+            print(
+                '\nRunning migration: {} to {}\n'.format(
+                    '+'.join([s.name for s in mtask.source_suites]), mtask.target_suite.name
+                )
+            )
+            assert len(mtask.source_suites) >= 1
 
-            n_excuses = self._run_migration_internal(session, suites_from, suite_to)
+            n_excuses = self._run_migration_internal(session, mtask)
             if n_excuses is None:
                 continue
 
-            migration_id = mentry.make_migration_id()
-
             # list existing excuses
             existing_excuses = {}
-            all_excuses = session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == migration_id).all()
+            all_excuses = session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == mtask.id).all()
             for excuse in all_excuses:
                 eid = '{}-{}:{}-{}/{}'.format(
                     excuse.suite_source,
@@ -615,26 +564,32 @@ class SpearsEngine:
 
         return True
 
-    def run_migration(self, source_suite_name: str, target_suite_name: str):
+    def run_migration(self, repo_name: str, source_suite_name: str, target_suite_name: str):
 
         with session_scope() as session:
-            migration_entries = session.query(SpearsMigrationEntry).all()
+            migration_tasks = session.query(SpearsMigrationTask).all()
             if source_suite_name:
                 # we have parameters, so limit which migration entries we act on
                 if not target_suite_name:
                     log.error('Target suite parameter is missing!')
                     return False
 
+                source_suite_names = source_suite_name.split('+')
                 migration_found = False
-                migration_id = '{}-to-{}'.format(source_suite_name, target_suite_name)
-                for entry in migration_entries:
-                    if entry.make_migration_id() == migration_id:
-                        migration_found = True
-                        migration_entries = [entry]
-                        break
+                for mtask in migration_tasks:
+                    if mtask.repo.name != repo_name:
+                        continue
+                    if mtask.target_suite.name != target_suite_name:
+                        continue
+                    mtask_src_suite_names = [s.name for s in mtask.source_suites]
+                    if sorted(mtask_src_suite_names) != sorted(source_suite_names):
+                        continue
+                    migration_found = True
+                    migration_tasks = [mtask]
+                    break
 
                 if not migration_found:
-                    log.error('Could not find migration recipe with ID "{}"'.format(migration_id))
+                    log.error('Could not find migration recipe with the given parameters.')
                     return False
 
-            return self._run_migration_for_entries(session, migration_entries)
+            return self._run_migration_for_entries(session, migration_tasks)
