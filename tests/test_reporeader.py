@@ -128,7 +128,7 @@ def validate_bin_packages(bpkgs):
     assert found
 
 
-def test_repo_local(samples_dir, localconfig):
+def test_reporeader_local(samples_dir, localconfig):
     keyrings = localconfig.trusted_gpg_keyrings
     repo_location = os.path.join(samples_dir, 'samplerepo', 'dummy')
 
@@ -136,18 +136,18 @@ def test_repo_local(samples_dir, localconfig):
     component = ArchiveComponent('main')
     arch = ArchiveArchitecture('amd64')
     arch_all = ArchiveArchitecture('all')
-    repo = RepositoryReader(repo_location, 'Dummy', trusted_keyrings=[])
+    repo_reader = RepositoryReader(repo_location, 'Dummy', trusted_keyrings=[])
 
     # we have no keyrings set, so this should fail
     with pytest.raises(GpgException):
-        src_pkgs = repo.source_packages(suite, component)
+        src_pkgs = repo_reader.source_packages(suite, component)
 
     # try again!
-    repo = RepositoryReader(repo_location, 'Dummy', trusted_keyrings=keyrings)
-    src_pkgs = repo.source_packages(suite, component)
-    bin_pkgs = repo.binary_packages(suite, component, arch)
+    repo_reader = RepositoryReader(repo_location, 'Dummy', trusted_keyrings=keyrings)
+    src_pkgs = repo_reader.source_packages(suite, component)
+    bin_pkgs = repo_reader.binary_packages(suite, component, arch)
     assert len(bin_pkgs) == 4
-    bin_pkgs.extend(repo.binary_packages(suite, component, arch_all))
+    bin_pkgs.extend(repo_reader.binary_packages(suite, component, arch_all))
 
     # check packages
     assert len(src_pkgs) == 8

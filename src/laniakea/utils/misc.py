@@ -145,7 +145,7 @@ class ProcessFileLock:
             self._lock_file_fd = -1
             os.close(fd)
             if raise_error:
-                raise Exception('Unable to acquire lock "{}": Another instance is running!'.format(lock_fname))
+                raise Exception('Unable to acquire lock "{}": Lock held by other instance or thread!'.format(self.lock_filename))
             return False
         self._lock_file_fd = fd
         return True

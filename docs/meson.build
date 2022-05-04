@@ -1,6 +1,6 @@
 # Meson definition for Laniakea Documentation
 
-r = run_command(pymod_check_exe, [pymod_check_arg, 'docs'])
+r = run_command(pymod_check_exe, [pymod_check_arg, 'docs'], check: false)
 if r.returncode() != 0
     error(r.stderr().strip())
 endif

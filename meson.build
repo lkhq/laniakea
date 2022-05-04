@@ -23,7 +23,7 @@ endif
 # Python dependencies
 pymod_check_exe = find_program(join_paths(source_root, 'pyreqcheck.py'))
 pymod_check_arg = ['--check-group']
-r = run_command(pymod_check_exe, [pymod_check_arg, 'base'])
+r = run_command(pymod_check_exe, [pymod_check_arg, 'base'], check: false)
 if r.returncode() != 0
     error(r.stderr().strip())
 endif
