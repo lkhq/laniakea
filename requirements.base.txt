@@ -1,3 +1,4 @@
+Pebble>=4.6
 PyGObject
 PyNaCl~=1.4.0
 PyYAML>=5.3.1

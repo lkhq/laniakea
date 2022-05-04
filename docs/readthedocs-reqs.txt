@@ -1,3 +1,4 @@
+Pebble
 PyNaCl
 PyYAML
 SQLAlchemy
