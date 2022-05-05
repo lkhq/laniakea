@@ -81,11 +81,6 @@ option('ariadne',
     value: true,
     description: 'Build the "Ariadne" package build planner'
 )
-option('daktape',
-    type: 'boolean',
-    value: true,
-    description: 'Build the "DakTape" Debian Archive Kit (dak) bridge'
-)
 option('mirk',
     type: 'boolean',
     value: false,

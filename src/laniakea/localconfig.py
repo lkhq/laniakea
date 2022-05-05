@@ -280,6 +280,3 @@ class ExternalToolsUrls:
         self.britney_git_repository = cspears.get(
             'britneyGitRepository', 'https://salsa.debian.org/release-team/britney2.git'
         )
-
-        cdaktape = cdata.get('DakTape', {})
-        self.dak_git_repository = cdaktape.get('dakGitRepository', 'https://salsa.debian.org/ftp-team/dak.git')
