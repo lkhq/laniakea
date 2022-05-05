@@ -15,6 +15,7 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 import logging as log
 from argparse import ArgumentParser
 
+from sqlalchemy import and_, func
 from sqlalchemy.orm import undefer
 
 from laniakea import LkModule
@@ -34,31 +35,36 @@ from laniakea.db import (
 from laniakea.utils import any_arch_matches
 
 
-def get_newest_sources_index(session, repo, suite):
+def get_newest_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite):
     '''
     Create an index of the most recent source packages, using
     the source-UUID of source packages.
     '''
-    from apt_pkg import version_compare
 
-    res_spkgs = {}
-    spkgs = (
+    smv_subq = (
+        session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
+        .group_by(SourcePackage.name)
+        .subquery('smv_subq')
+    )
+
+    latest_spkg = (
         session.query(SourcePackage)
         .options(undefer(SourcePackage.version))
         .options(undefer(SourcePackage.architectures))
-        .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id))
-        .filter(SourcePackage.repo_id == repo.id)
-        .order_by(SourcePackage.version.desc())
+        .join(
+            smv_subq,
+            and_(
+                SourcePackage.repo_id == repo.id,
+                SourcePackage.suites.any(id=suite.id),
+                SourcePackage.version == smv_subq.c.max_version,
+            ),
+        )
         .all()
     )
 
-    for pkg in spkgs:
-        epkg = res_spkgs.get(pkg.uuid)
-        if epkg and version_compare(pkg.version, epkg.version) <= 0:
-            # don't override if the existing version is newer
-            continue
+    res_spkgs = {}
+    for pkg in latest_spkg:
         res_spkgs[pkg.uuid] = pkg
-
     return res_spkgs
 
 
