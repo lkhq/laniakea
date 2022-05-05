@@ -20,7 +20,7 @@ def spears():
 def configure_all():
     '''Configure this module.'''
 
-    from laniakea.db import ChangesUrgency, SpearsMigrationEntry
+    from laniakea.db import ChangesUrgency, SpearsMigrationTask
 
     print_header('Configuring settings for Spears (migrations)')
 

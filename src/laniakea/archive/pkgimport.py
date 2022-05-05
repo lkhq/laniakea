@@ -829,7 +829,7 @@ class UploadHandler:
             return (
                 False,
                 uploader,
-                'This uploader is not permitted to make sourceful uploads.'.format(str(changes.distributions)),
+                'This uploader is not permitted to make sourceful uploads to {}.'.format(str(changes.distributions)),
             )
 
         # fetch the repository-suite config for this package
@@ -1015,9 +1015,10 @@ class UploadHandler:
                             )
                             if afile_orig_nocs:
                                 raise UploadError(
-                                    'Referenced upstream source checksums for `{}` do not match the ones of the version found in the archive.'.format(
-                                        dscf_basename
-                                    )
+                                    (
+                                        'Referenced upstream source checksums for `{}` do not match the ones of the '
+                                        'version found in the archive.'
+                                    ).format(dscf_basename)
                                 )
                             else:
                                 raise UploadError(

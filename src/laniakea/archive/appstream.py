@@ -10,7 +10,6 @@ import os
 import gi
 
 gi.require_version('AppStream', '1.0')
-import gzip
 import json
 import lzma
 

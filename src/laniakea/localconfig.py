@@ -134,7 +134,9 @@ class LocalConfig:
             syncconf = cdata.get('Synchrotron')
             if syncconf:
                 if 'SourceKeyringDir' in syncconf:
-                    self._synchrotron_sourcekeyrings = glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
+                    self._synchrotron_sourcekeyrings = [
+                        v for v in glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
+                    ]
 
             # ZCurve / Message signing
             self._curve_keys_basedir = cdata.get('CurveKeysDir', os.path.join(self._workspace, 'keys', 'curve'))
@@ -202,7 +204,7 @@ class LocalConfig:
             return self._lighthouse
 
         @property
-        def synchrotron_sourcekeyrings(self) -> str:
+        def synchrotron_sourcekeyrings(self) -> T.List[str]:
             return self._synchrotron_sourcekeyrings
 
         def secret_curve_keyfile_for_module(self, module) -> str:

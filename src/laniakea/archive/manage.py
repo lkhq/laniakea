@@ -212,14 +212,14 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
         .filter(
             SourcePackage.repo_id == rss.repo_id,
             SourcePackage.suites.any(id=rss.suite_id),
-            SourcePackage.time_deleted != None,
+            ~SourcePackage.time_deleted.is_(None),
             SourcePackage.time_deleted <= time_cutoff,
         )
         .all()
     )
     for spkg_rm in spkgs_delete:
         log.info('Removing package marked for removal for %s days: %s', retention_days, str(spkg_rm))
-        remove_source_package(rss, spkg_rm)
+        remove_source_package(session, rss, spkg_rm)
 
     # delete orphaned AppStream metadata
     for cpt in session.query(SoftwareComponent).filter(~SoftwareComponent.pkgs_binary.any()).all():

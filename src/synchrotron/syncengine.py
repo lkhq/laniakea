@@ -9,8 +9,10 @@ from typing import List
 
 from apt_pkg import version_compare
 
+import laniakea.typing as T
 from laniakea import LkModule, LocalConfig
 from laniakea.db import (
+    NewPolicy,
     ArchiveSuite,
     SourcePackage,
     ArchiveComponent,
@@ -23,10 +25,15 @@ from laniakea.db import (
     session_scope,
     config_get_distro_tag,
 )
+from laniakea.archive import PackageImporter
 from laniakea.logging import log
-from laniakea.dakbridge import DakBridge
 from laniakea.msgstream import EventEmitter
-from laniakea.reporeader import Repository, version_revision, make_newest_packages_dict
+from laniakea.reporeader import (
+    RepositoryReader,
+    version_revision,
+    make_newest_packages_dict,
+)
+from laniakea.archive.utils import repo_suite_settings_for
 
 
 class SyncEngine:
@@ -34,16 +41,15 @@ class SyncEngine:
     Execute package synchronization in Synchrotron
     '''
 
-    def __init__(self, target_suite_name: str, source_suite_name: str):
+    def __init__(self, repo_name: T.Optional[str], target_suite_name: str, source_suite_name: str):
         self._lconf = LocalConfig()
-        self._dak = DakBridge()
-
-        # FIXME: Don't hardcode this!
-        repo_name = 'master'
+        if not repo_name:
+            repo_name = self._lconf.master_repo_name
+        self._repo_name = repo_name
 
         # the repository of the distribution we import stuff into
-        self._target_repo = Repository(self._lconf.archive_root_dir, repo_name)
-        self._target_repo.set_trusted(True)
+        self._target_reader = RepositoryReader(self._lconf.archive_root_dir, repo_name)
+        self._target_reader.set_trusted(True)
 
         self._target_suite_name = target_suite_name
         self._source_suite_name = source_suite_name
@@ -61,7 +67,7 @@ class SyncEngine:
             # (currently it is just a 1:1 translation from D code)
 
             # the repository of the distribution we use to sync stuff from
-            self._source_repo = Repository(
+            self._source_repo = RepositoryReader(
                 sync_source.repo_url, sync_source.os_name, self._lconf.synchrotron_sourcekeyrings
             )
 
@@ -117,21 +123,17 @@ class SyncEngine:
         '''Get mapping of all sources packages in a suite and its parent suite.'''
         with session_scope() as session:
             target_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == self._target_suite_name).one()
-            suite_pkgmap = self._get_repo_source_package_map(self._target_repo, target_suite.name, component)
+            suite_pkgmap = self._get_repo_source_package_map(self._target_reader, target_suite.name, component)
             if target_suite.parent:
                 # we have a parent suite
-                parent_map = self._get_repo_source_package_map(self._target_repo, target_suite.parent.name, component)
+                parent_map = self._get_repo_source_package_map(self._target_reader, target_suite.parent.name, component)
 
                 # merge the two arrays, keeping only the latest versions
                 suite_pkgmap = make_newest_packages_dict(list(parent_map.values()) + list(suite_pkgmap.values()))
 
         return suite_pkgmap
 
-    def _import_package_files(self, suite: str, component: str, fnames: List[str]):
-        '''Import an arbitrary amount of packages via the archive management software.'''
-        return self._dak.import_package_files(suite, component, fnames, self._imports_trusted, True)
-
-    def _import_source_package(self, spkg: SourcePackage, component: str) -> bool:
+    def _import_source_package(self, pkgip: PackageImporter, spkg: SourcePackage, component: str) -> bool:
         '''
         Import a source package from the source repository into the
         target repo.
@@ -153,13 +155,17 @@ class SyncEngine:
             )
             return False
 
-        if self._import_package_files(self._target_suite_name, component, [dscfile]):
-            self._synced_source_pkgs.append(spkg)
-            return True
-        return False
+        pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW)
+        self._synced_source_pkgs.append(spkg)
+        return True
 
     def _import_binaries_for_source(
-        self, sync_conf, target_suite, component: str, spkgs: List[SourcePackage], ignore_target_changes: bool = False
+        self,
+        sync_conf: SynchrotronConfig,
+        pkgip: PackageImporter,
+        component: str,
+        spkgs: List[SourcePackage],
+        ignore_target_changes: bool = False,
     ) -> bool:
         '''Import binary packages for the given set of source packages into the archive.'''
 
@@ -168,7 +174,7 @@ class SyncEngine:
             return True
 
         # list of valid architectrures supported by the target
-        target_archs = [a.name for a in target_suite.architectures]
+        target_archs = [a.name for a in sync_conf.destination_suite.architectures]
 
         # cache of binary-package mappings for the source
         src_bpkg_arch_map = {}
@@ -181,7 +187,7 @@ class SyncEngine:
         dest_bpkg_arch_map = {}
         for aname in target_archs:
             dest_bpkg_arch_map[aname] = self._get_repo_binary_package_map(
-                self._target_repo, self._target_suite_name, component, aname
+                self._target_reader, self._target_suite_name, component, aname
             )
 
         for spkg in spkgs:
@@ -257,16 +263,15 @@ class SyncEngine:
                 # now import the binary packages, if there is anything to import
                 if bin_files:
                     bin_files_synced = True
-                    ret = self._import_package_files(self._target_suite_name, component, bin_files)
-                    if not ret:
-                        return False
+                    for fname in bin_files:
+                        pkgip.import_binary(fname, component)
 
             if not bin_files_synced and not existing_packages:
                 log.warning('No binary packages synced for source {}/{}'.format(spkg.name, spkg.version))
 
         return True
 
-    def sync_packages(self, component: str, pkgnames: List[str], force: bool = False):
+    def sync_packages(self, component_name: str, pkgnames: List[str], force: bool = False):
         self._synced_source_pkgs = []
 
         with session_scope() as session:
@@ -288,10 +293,12 @@ class SyncEngine:
                 log.error('Can not synchronize package: Synchronization is disabled for this configuration.')
                 return False
 
-            target_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == self._target_suite_name).one()
+            dest_pkg_map = self._get_target_source_packages(component_name)
+            src_pkg_map = self._get_repo_source_package_map(self._source_repo, self._source_suite_name, component_name)
 
-            dest_pkg_map = self._get_target_source_packages(component)
-            src_pkg_map = self._get_repo_source_package_map(self._source_repo, self._source_suite_name, component)
+            rss = repo_suite_settings_for(session, self._repo_name, self._target_suite_name)
+            pkgip = PackageImporter(session, rss)
+            pkgip.keep_source_packages = True
 
             for pkgname in pkgnames:
                 spkg = src_pkg_map.get(pkgname)
@@ -331,11 +338,11 @@ class SyncEngine:
 
                 # sync source package
                 # the source package must always be known to dak first
-                ret = self._import_source_package(spkg, component)
+                ret = self._import_source_package(pkgip, spkg, component_name)
                 if not ret:
                     return False
 
-            ret = self._import_binaries_for_source(sync_conf, target_suite, component, self._synced_source_pkgs, force)
+            ret = self._import_binaries_for_source(sync_conf, pkgip, component_name, self._synced_source_pkgs, force)
 
             # TODO: Analyze the input, fetch the packages from the source distribution and
             # import them into the target in their correct order.
@@ -353,7 +360,6 @@ class SyncEngine:
         active_src_pkgs = []  # source packages which should have their binary packages updated
         res_issues = []
 
-        target_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == self._target_suite_name).one()
         sync_conf = (
             session.query(SynchrotronConfig)
             .join(SynchrotronConfig.destination_suite)
@@ -364,7 +370,12 @@ class SyncEngine:
             .one_or_none()
         )
 
-        for component in target_suite.components:
+        # obtain package import helper to register new packages with the archive
+        rss = repo_suite_settings_for(session, self._repo_name, self._target_suite_name)
+        pkgip = PackageImporter(session, rss)
+        pkgip.keep_source_packages = True
+
+        for component in rss.suite.components:
             dest_pkg_map = self._get_target_source_packages(component.name)
 
             # The source package lists contains many different versions, some source package
@@ -421,7 +432,7 @@ class SyncEngine:
 
                 # sync source package
                 # the source package must always be known to dak first
-                ret = self._import_source_package(spkg, component.name)
+                ret = self._import_source_package(pkgip, spkg, component.name)
                 if not ret:
                     return False, []
 
@@ -439,19 +450,19 @@ class SyncEngine:
             # as binNMUs might have happened in the source distribution.
             # (an active package in this context is any source package which doesn't have modifications in the
             # target distribution)
-            ret = self._import_binaries_for_source(sync_conf, target_suite, component.name, active_src_pkgs)
+            ret = self._import_binaries_for_source(sync_conf, pkgip, component.name, active_src_pkgs)
             if not ret:
                 return False, []
 
         # test for cruft packages
         target_pkg_index = {}
-        for component in target_suite.components:
-            dest_pkg_map = self._get_repo_source_package_map(self._target_repo, target_suite.name, component.name)
+        for component in rss.suite.components:
+            dest_pkg_map = self._get_repo_source_package_map(self._target_reader, rss.suite.name, component.name)
             for pkgname, pkg in dest_pkg_map.items():
                 target_pkg_index[pkgname] = pkg
 
         # check which packages are present in the target, but not in the source suite
-        for component in target_suite.components:
+        for component in rss.suite.components:
             src_pkg_map = self._get_repo_source_package_map(self._source_repo, self._source_suite_name, component.name)
             for pkgname in src_pkg_map.keys():
                 target_pkg_index.pop(pkgname, None)
@@ -482,22 +493,23 @@ class SyncEngine:
                     res_issues.append(issue)
                     continue
 
+                # FIXME: This needs to be ported so a smarter check using apt/debcheck
                 # check if we can remove this package without breaking stuff
-                if self._dak.package_is_removable(dpkg.name, target_suite.name):
-                    # try to remove the package
-                    try:
-                        self._dak.remove_package(dpkg.name, target_suite.name)
-                    except Exception as e:
-                        issue = SynchrotronIssue()
-                        issue.kind = SynchrotronIssueKind.REMOVAL_FAILED
-                        issue.source_suite = self._source_suite_name
-                        issue.target_suite = self._target_suite_name
-                        issue.package_name = dpkg.name
-                        issue.source_version = None
-                        issue.target_version = dpkg.version
-                        issue.details = str(e)
-
-                        res_issues.append(issue)
+                # if self._dak.package_is_removable(dpkg.name, rss.suite.name):
+                #    # try to remove the package
+                #    try:
+                #        self._dak.remove_package(dpkg.name, rss.suite.name)
+                #    except Exception as e:
+                #        issue = SynchrotronIssue()
+                #        issue.kind = SynchrotronIssueKind.REMOVAL_FAILED
+                #        issue.source_suite = self._source_suite_name
+                #        issue.target_suite = self._target_suite_name
+                #        issue.package_name = dpkg.name
+                #        issue.source_version = None
+                #        issue.target_version = dpkg.version
+                #        issue.details = str(e)
+                #
+                #        res_issues.append(issue)
                 else:
                     # looks like we can not remove this
                     issue = SynchrotronIssue()

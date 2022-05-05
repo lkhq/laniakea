@@ -5,9 +5,12 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import click
+from rich.prompt import Prompt
 
+from laniakea import LocalConfig
 from laniakea.db import (
     ArchiveSuite,
+    ArchiveRepository,
     SynchrotronConfig,
     SynchrotronSource,
     SyncBlacklistEntry,
@@ -60,15 +63,22 @@ def configure_all():
     add_sync_tasks = True
     while add_sync_tasks:
         with session_scope() as session:
+            repo_name = Prompt.ask('Repository name to add sync task for', default=LocalConfig().master_repo_name)
+            repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
+
             autosync = SynchrotronConfig()
+            autosync.repo = repo
             sync_source = None
             while not sync_source:
+                src_os = input_str('Source OS name')
                 src_suite = input_str('Source suite name')
                 sync_source = (
-                    session.query(SynchrotronSource).filter(SynchrotronSource.suite_name == src_suite).one_or_none()
+                    session.query(SynchrotronSource)
+                    .filter(SynchrotronSource.os_name == src_os, SynchrotronSource.suite_name == src_suite)
+                    .one_or_none()
                 )
                 if not sync_source:
-                    print_note('Could not find sync source with suite name "{}"'.format(src_suite))
+                    print_note('Could not find sync source with suite name "{}/{}"'.format(src_os, src_suite))
             autosync.source = sync_source
 
             dest_suite = None

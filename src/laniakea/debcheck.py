@@ -23,7 +23,7 @@ class Debcheck:
 
     def __init__(self, repo_entity):
         lconf = LocalConfig()
-        self._repo = Repository(lconf.archive_root_dir, 'master', entity=repo_entity)
+        self._repo = RepositoryReader(lconf.archive_root_dir, 'master', entity=repo_entity)
         self._repo_entity = repo_entity
         self._repo.set_trusted(True)
 

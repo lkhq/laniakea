@@ -29,7 +29,7 @@ def command_sync(options):
         print('You need to define at least one package to synchronize!')
         sys.exit(1)
 
-    engine = SyncEngine(options.dest_suite, options.src_suite)
+    engine = SyncEngine(options.repo_name, options.dest_suite, options.src_suite)
     ret = engine.sync_packages(options.component, options.packages, options.force)
     if not ret:
         sys.exit(2)
@@ -60,7 +60,6 @@ def command_autosync(options):
             ret, issue_data = engine.autosync(session, autosync, autosync.auto_cruft_remove)
             if not ret:
                 sys.exit(2)
-                return
 
             existing_sync_issues = {}
             for ssource in sync_sources:
@@ -137,6 +136,7 @@ def create_parser(formatter_class=None):
     sp.add_argument(
         '--force', action='store_true', dest='force', help='Force package import and ignore version conflicts.'
     )
+    sp.add_argument('--repo', dest='repo_name', help='Act on the repository with this name.')
     sp.add_argument('src_suite', type=str, help='The suite to synchronize from')
     sp.add_argument('dest_suite', type=str, help='The suite to synchronize to')
     sp.add_argument('component', type=str, help='The archive component to import from')

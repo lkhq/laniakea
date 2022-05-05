@@ -280,7 +280,7 @@ class Changes:
                 continue
 
             raise InvalidChangesError(
-                "{0}: {1} looks like a byhand package, but is in section {2}".format(self.fname, f.fname, f.section)
+                "{0}: {1} looks like a byhand package, but is in section {2}".format(self.filename, f.fname, f.section)
             )
 
         return byhand
