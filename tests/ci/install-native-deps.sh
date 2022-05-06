@@ -31,6 +31,8 @@ eatmydata apt-get install -yq --no-install-recommends \
     podman \
     fuse-overlayfs \
     git \
+    debhelper \
+    dpkg-dev \
     npm
 
 eatmydata apt-get install -yq --no-install-recommends \
