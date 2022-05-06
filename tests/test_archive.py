@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import shutil
 import subprocess
 
 import pytest
@@ -301,7 +300,7 @@ class TestArchive:
             success, uploader, error = uh.process_changes(
                 os.path.join(package_samples, 'package_0.2-1_%s.changes' % self._host_arch)
             )
-            assert error == None
+            assert error is None
             assert success
             assert uploader.email == 'snowman@example.com'
             assert uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
@@ -335,7 +334,7 @@ class TestArchive:
             success, uploader, error = uh.process_changes(
                 os.path.join(package_samples, 'nonfree-package_0.1-1_%s.changes' % self._host_arch)
             )
-            assert error == None
+            assert error is None
             assert success
             assert uploader.email == 'maint@example.com'
             assert uploader.pgp_fingerprints == ['993C2870F54D83789E55323C13D986C3912E851C']
@@ -411,7 +410,7 @@ class TestArchive:
             success, uploader, error = uh.process_changes(
                 os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % self._host_arch)
             )
-            assert error == None
+            assert error is None
             assert success
             assert uploader.email == 'maint@example.com'
             assert uploader.pgp_fingerprints == ['993C2870F54D83789E55323C13D986C3912E851C']
@@ -453,7 +452,7 @@ class TestArchive:
             success, _, error = uh.process_changes(
                 os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % self._host_arch)
             )
-            assert error == None
+            assert error is None
             assert success
             spkg = (
                 session.query(SourcePackage)
@@ -467,7 +466,7 @@ class TestArchive:
 
             # pkgnew 0.1-2
             success, _, error = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-2_source.changes'))
-            assert error == None
+            assert error is None
             assert success
             spkg = (
                 session.query(SourcePackage)
@@ -483,7 +482,7 @@ class TestArchive:
             success, _, error = uh.process_changes(
                 os.path.join(package_samples, 'pkgnew_0.1-2_%s.changes' % self._host_arch)
             )
-            assert error == None
+            assert error is None
             assert success
             bpkg = (
                 session.query(BinaryPackage)
@@ -505,7 +504,7 @@ class TestArchive:
             success, _, error = uh.process_changes(
                 os.path.join(package_samples, 'pkgnew_0.1-3_%s.changes' % self._host_arch)
             )
-            assert error == None
+            assert error is None
             assert success
             spkg = (
                 session.query(SourcePackage)
@@ -556,7 +555,7 @@ class TestArchive:
             success, uploader, error = uh.process_changes(
                 os.path.join(package_samples, 'grave_0.1-1_%s.changes' % self._host_arch)
             )
-            assert error == None
+            assert error is None
             assert success
             spkg = (
                 session.query(SourcePackage)
@@ -633,7 +632,7 @@ class TestArchive:
             success, uploader, error = uh.process_changes(
                 os.path.join(package_samples, 'main-contrib-with-debug_0.1-1_%s.changes' % self._host_arch)
             )
-            assert error == None
+            assert error is None
             assert success
             spkg = (
                 session.query(SourcePackage)

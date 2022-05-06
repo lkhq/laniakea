@@ -246,7 +246,7 @@ class RepositoryReader:
             return []
 
         pkgs = []
-        with TagFile(index_fname) as tf:
+        with TagFile(index_fname) as tf:  # type: ignore[attr-defined]
             for e in tf:
                 pkgname = e['Package']
                 pkgversion = e['Version']
@@ -420,7 +420,7 @@ class RepositoryReader:
             else:
                 return []
 
-        with TagFile(index_fname) as tf:
+        with TagFile(index_fname) as tf:  # type: ignore[attr-defined]
             return self._read_binary_packages_from_tf(tf, index_fname, suite, component, arch, DebType.DEB)
 
     def installer_packages(self, suite, component, arch):

@@ -65,7 +65,7 @@ def retrieve_dep11_data(repo_name: str) -> T.Tuple[bool, T.Optional[str], T.Opti
     env['LK_REPO_NAME'] = repo_name
     proc = subprocess.run(hook_script, check=False, capture_output=True, cwd=dep11_tmp_target, env=env)
     if proc.returncode != 0:
-        return False, 'Hook script failed: {}{}'.format(proc.stdout, proc.stderr), None
+        return False, 'Hook script failed: {}{}'.format(str(proc.stdout), str(proc.stderr)), None
 
     if not any(os.scandir(dep11_tmp_target)):
         log.debug('No DEP-11 data received for repository %s', repo_name)
@@ -74,7 +74,7 @@ def retrieve_dep11_data(repo_name: str) -> T.Tuple[bool, T.Optional[str], T.Opti
     log.info('Validating received DEP-11 metadata for %s', repo_name)
     success, issues = check_dep11_path(dep11_tmp_target)
     if not success:
-        return False, 'DEP11 validation failed:\n' + str('\n'.join(issues), 'utf-8'), None
+        return False, 'DEP11 validation failed:\n' + '\n'.join(issues), None
 
     # everything went fine, we can use this data (if there is any)
     return True, None, dep11_tmp_target
@@ -141,6 +141,8 @@ def import_metadata_file(
     :param data: Data the file should contain (usually UTF-8 text)
     """
 
+    source_fname = str(source_fname)
+
     finfos = []
     if source_fname.endswith('.xz'):
         with lzma.open(source_fname, 'rb') as f:
@@ -155,9 +157,9 @@ def import_metadata_file(
     finfos.append(RepoFileInfo(repo_fname, len(data), hashlib.sha256(data).hexdigest()))
 
     if only_compression:
-        use_exts = (only_compression,)
+        use_exts = [only_compression]
     else:
-        use_exts = ('xz', 'gz')
+        use_exts = ['xz', 'gz']
 
     for z_ext in use_exts:
         fname_z = os.path.join(root_path, repo_fname + '.' + z_ext)
@@ -597,7 +599,7 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
         # import external data in parallel (we may be able to run more data import in parallel here in future,
         # at the moment we just have DEP-11)
         dep11_future = retrieve_dep11_data(repo.name)
-        success, error_msg, dep11_dir = dep11_future.result()
+        success, error_msg, dep11_dir = dep11_future.result()  # pylint: disable=E1101
         if not success:
             raise Exception(error_msg)
 

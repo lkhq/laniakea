@@ -56,7 +56,7 @@ def command_autosync(options):
 
             emitter = EventEmitter(LkModule.SYNCHROTRON)
 
-            engine = SyncEngine(autosync.destination_suite.name, autosync.source.suite_name)
+            engine = SyncEngine(autosync.repo.name, autosync.destination_suite.name, autosync.source.suite_name)
             ret, issue_data = engine.autosync(session, autosync, autosync.auto_cruft_remove)
             if not ret:
                 sys.exit(2)

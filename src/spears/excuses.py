@@ -10,9 +10,7 @@ from datetime import datetime
 import yaml
 from sqlalchemy import or_
 
-import laniakea.typing as T
 from laniakea.db import (
-    ArchiveSuite,
     SpearsExcuse,
     SourcePackage,
     SpearsOldBinaries,

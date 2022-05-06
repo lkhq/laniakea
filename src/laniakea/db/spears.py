@@ -10,7 +10,6 @@ from datetime import datetime
 
 from sqlalchemy import (
     Text,
-    Index,
     Table,
     Column,
     String,
@@ -24,7 +23,6 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import JSON, ARRAY, JSONB
 
 from .base import UUID, Base, DebVersion
-from .archive import ArchiveRepoSuiteSettings
 
 
 class SpearsHint(Base):

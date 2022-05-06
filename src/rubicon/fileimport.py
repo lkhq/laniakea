@@ -169,7 +169,7 @@ def import_files_for(
             continue
 
         # if we are here, the file is good to go
-        accept_dud_upload(conf, dud, emitter)
+        accept_dud_upload(conf, repo, dud, emitter)
     for changes_fname in glob(os.path.join(incoming_dir, '*.changes')):
         handle_package_upload(session, conf, repo, changes_fname, event_emitter=emitter)
 

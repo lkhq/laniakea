@@ -145,6 +145,10 @@ def verify_hashes(file: T.Union[ChangesFileEntry, ArchiveFile], local_fname: T.U
         raise HashVerifyError('An insufficient amount of hashes was validated for "{}" - this is a bug.')
 
 
+# result tuple of import_source
+ImportSourceResult = namedtuple('ImportSourceResult', 'pkg is_new')
+
+
 class PackageImporter:
     """
     Imports packages into the archive directly,
@@ -205,9 +209,6 @@ class PackageImporter:
             safe_rename(src, dst)
             log.debug('Moved package file: %s -> %s', src, dst)
 
-    # result tuple of import_source
-    ImportSourceResult = namedtuple('ImportSourceResult', 'pkg is_new')
-
     def import_source(
         self,
         dsc_fname: T.Union[os.PathLike, str],
@@ -256,7 +257,7 @@ class PackageImporter:
         )
         if result:
             if ignore_existing:
-                return None, False
+                return ImportSourceResult(None, False)
             raise ArchiveImportError(
                 'Unable to import package "{}": '
                 'We have already seen higher version "{}" in this repository before.'.format(pkgname, result)
@@ -292,7 +293,7 @@ class PackageImporter:
             ).scalar()
             if ret:
                 if ignore_existing:
-                    return None, False
+                    return ImportSourceResult(None, False)
                 raise ArchivePackageExistsError(
                     'Can not import source package {}/{}: Already exists.'.format(pkgname, version)
                 )
@@ -489,7 +490,7 @@ class PackageImporter:
                 )
             )
             self._session.commit()
-        return spkg, is_new
+        return ImportSourceResult(spkg, is_new)
 
     def import_binary(
         self,
@@ -672,7 +673,7 @@ class PackageImporter:
         bpkg.bin_file = af
         bpkg.description = bin_tf.pop('Description')
         bpkg.summary = bpkg.description.split('\n', 1)[0].strip()
-        bpkg.description_md5 = hashlib.md5(bpkg.description.encode('utf-8')).hexdigest()
+        bpkg.description_md5 = hashlib.md5(str(bpkg.description).encode('utf-8')).hexdigest()
 
         # we don't need the generated filename value
         bin_tf.pop('Filename')
@@ -942,7 +943,7 @@ class UploadHandler:
             # actually perform final checks and import the package into the archive
             try:
                 self._import_trusted_changes(rss, changes, uploader)
-            except (ArchiveImportError or UploadError) as e:
+            except (ArchiveImportError, UploadError) as e:
                 return False, uploader, str(e)
 
         # if we are here, everything went fine and the package is in the archive or NEW now
@@ -980,8 +981,8 @@ class UploadHandler:
 
             # check for orig tarball
             has_orig_tar = False
-            for f in files.values():
-                if re_file_orig.match(os.path.basename(f.fname)):
+            for cf in files.values():
+                if re_file_orig.match(os.path.basename(cf.fname)):
                     has_orig_tar = True
 
             if not has_orig_tar:

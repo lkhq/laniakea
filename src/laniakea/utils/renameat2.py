@@ -15,7 +15,7 @@ import laniakea.typing as T
 
 glibc = CDLL('libc.so.6', use_errno=True)
 
-__all__ = ['swap_paths', 'Flags']
+__all__ = ['exchange_paths', 'Flags']
 
 
 class Flags(IntFlag):

@@ -1068,13 +1068,13 @@ class SoftwareComponent(Base):
         return json.loads(self._data)
 
     @data.setter
-    def data(self, value):
+    def data(self, value: T.Union[str, bytes, T.Dict[str, T.Any]]):
         if type(value) is bytes or type(value) is str:
             self._data = value
         elif type(value) is dict:
             self._data = json.dumps(value)
         else:
-            raise ValueError('Can not add {} ({}) as software component data value.'.format(type(value), value))
+            raise ValueError('Can not add {} ({}) as software component data value.'.format(type(value), str(value)))
 
 
 def get_archive_sections():

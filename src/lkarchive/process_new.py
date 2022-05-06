@@ -15,7 +15,6 @@ from rich.prompt import Prompt
 from rich.console import Console
 
 import laniakea.typing as T
-from laniakea import LocalConfig
 from laniakea.db import (
     PackageInfo,
     SourcePackage,
@@ -66,7 +65,6 @@ def newqueue_accept(
 
 def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
     """Reject a selected package from the NEW queue"""
-    from glob import glob
 
     dsc_file = spkg.dsc_file
     if not dsc_file:

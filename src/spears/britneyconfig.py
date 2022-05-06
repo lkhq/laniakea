@@ -120,21 +120,22 @@ class BritneyConfig:
 
         self._new_archs_set = True
 
-    def set_delays(self, delays: Dict[ChangesUrgency, int]):
+    def set_delays(self, delays: Dict[str, int]):
         assert not self._delays_set
 
         # ensure all priorities have a value
-        for prio, days in delays.copy().items():
-            delays.pop(prio)
-            prio_i = int(prio)
-            delays[ChangesUrgency(prio_i)] = int(days)
+        delays_e: Dict[ChangesUrgency, int] = {}
+        for prio_str, days in delays.items():
+            delays.pop(prio_str)
+            prio = ChangesUrgency.from_string(prio_str)
+            delays_e[prio] = int(days)
         for prio in ChangesUrgency:
-            if prio not in delays:
-                delays[prio] = 0
+            if prio not in delays_e:
+                delays_e[prio] = 0
 
         # write delay config
-        for prio, days in delays.items():
-            self._contents.append('MINDAYS_{} = {}'.format(str(prio).upper(), str(int(days))))
+        for prio, days in delays_e.items():
+            self._contents.append('MINDAYS_{} = {}'.format(prio.to_string().upper(), str(int(days))))
 
         self._contents.append('DEFAULT_URGENCY   = medium')
 

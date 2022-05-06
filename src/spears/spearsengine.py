@@ -11,10 +11,8 @@ import lzma
 import shutil
 import subprocess
 from uuid import uuid4
-from typing import Any
 
 from apt_pkg import TagFile
-from sqlalchemy import or_
 
 import laniakea.typing as T
 from laniakea.db import (
@@ -30,9 +28,7 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.utils import open_compressed
-from laniakea.archive import repo_suite_settings_for
 from laniakea.logging import log
-from laniakea.dakbridge import DakBridge
 from laniakea.msgstream import EventEmitter
 from laniakea.reporeader import RepositoryReader
 from laniakea.localconfig import LocalConfig
@@ -110,7 +106,7 @@ class SpearsEngine:
                         self._get_migration_name(mtask.repo, suites_from, suite_to)
                     )
                 )
-                mi_wspace = self._get_migrate_workspace(mtask.repo, suites_from, suite_to)
+                mi_wspace = self._get_migrate_workspace(mtask)
                 bc = BritneyConfig(mi_wspace)
                 bc.set_archive_paths(
                     self._get_source_suite_dists_dir(mi_wspace, mtask.repo, suites_from),
@@ -447,7 +443,7 @@ class SpearsEngine:
         # ensure prerequisites are met and Britney is fed with all the data it needs
         self._prepare_source_data(session, mi_wspace, mtask)
         self._create_faux_packages(session, mi_wspace, mtask)
-        self._collect_urgencies(mi_wspace, mtask)
+        self._collect_urgencies(session, mi_wspace, mtask)
         self._setup_dates(mi_wspace)
         self._setup_various(mi_wspace, mtask)
 

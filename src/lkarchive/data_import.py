@@ -50,6 +50,7 @@ def import_packages(
     src_fnames = []
     bin_fnames = []
     for fname in fnames:
+        fname = str(fname)
         if fname.endswith('.dsc'):
             src_fnames.append(fname)
         elif fname.endswith(('.deb', '.udeb')):
@@ -358,7 +359,7 @@ def _import_repo_into_suite(
 
         # now actually import the source package, or register it with our suite if needed
         if spkg_dst:
-            if not rss_dest.suite in spkg_dst.suites:
+            if rss_dest.suite not in spkg_dst.suites:
                 spkg_dst.suites.append(rss_dest.suite)
             log.info('Processed source: %s/%s', spkg_dst.name, spkg_dst.version)
         else:
@@ -372,9 +373,9 @@ def _import_repo_into_suite(
         if arch.name == 'all':
             for a in rss_dest.suite.architectures:
                 if a.name != 'all':
+                    shadow_arch = a
                     break
-            shadow_arch = a
-            log.info('Using shadow architecture %s for arch:all', a.name)
+            log.info('Using shadow architecture %s for arch:all', shadow_arch.name)
         for bpkg_src in src_repo.binary_packages(src_suite, src_component, arch, shadow_arch=shadow_arch):
             fname = src_repo.get_file(bpkg_src.bin_file)
 
@@ -410,7 +411,10 @@ def _import_repo_into_suite(
                 )
                 if not override:
                     log.error(
-                        'Override missing unexpectedly: Binary package %s has no associated override in %s:%s, even though it was already imported.',
+                        (
+                            'Override missing unexpectedly: Binary package %s has no associated override in %s:%s, '
+                            'even though it was already imported.'
+                        ),
                         bpkg_src.name,
                         rss_dest_real.repo.name,
                         rss_dest_real.suite.name,
@@ -432,7 +436,7 @@ def _import_repo_into_suite(
 
             # import binary package if needed
             if bpkg_dst:
-                if not rss_dest_real.suite in bpkg_dst.suites:
+                if rss_dest_real.suite not in bpkg_dst.suites:
                     bpkg_dst.suites.append(rss_dest_real.suite)
                 log.info('Processed binary: %s/%s on %s', bpkg_dst.name, bpkg_dst.version, arch.name)
             else:

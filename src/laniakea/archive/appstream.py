@@ -139,7 +139,7 @@ def import_appstream_data(
         mdata_write.clear_components()
         mdata_write.add_component(cpt)
         y_data = yaml.safe_load(mdata_write.components_to_collection(AppStream.FormatKind.YAML))
-        dcpt.data = json.dumps(y_data)
+        dcpt.data = json.dumps(y_data)  # type: ignore[assignment]
 
         # create UUID for this component (based on GCID or XML data)
         dcpt.update_uuid()

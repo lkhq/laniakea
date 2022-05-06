@@ -9,7 +9,6 @@ import os
 import re
 
 import apt_pkg
-from sqlalchemy import and_, func
 
 import laniakea.typing as T
 from laniakea import LocalConfig
@@ -34,13 +33,9 @@ from laniakea.utils import split_strip
 class UploadError(Exception):
     """Issue while processing an upload"""
 
-    pass
-
 
 class ArchiveIntegrityError(Exception):
     """Something is wrong with the overall archive structure."""
-
-    pass
 
 
 orig_source_ext_re = r'orig(?:-[a-zA-Z0-9-]+)?\.tar\.(?:gz|bz2|xz)(?:\.asc)?'

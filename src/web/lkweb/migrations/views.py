@@ -8,7 +8,7 @@ import math
 
 from flask import Blueprint, abort, render_template
 
-from laniakea.db import SpearsExcuse, SpearsMigrationEntry, session_scope
+from laniakea.db import SpearsExcuse, SpearsMigrationTask, session_scope
 
 from ..utils import is_uuid
 
@@ -18,7 +18,7 @@ migrations = Blueprint('migrations', __name__, url_prefix='/migrations')
 @migrations.route('/')
 def index():
     with session_scope() as session:
-        entries = session.query(SpearsMigrationEntry).all()
+        entries = session.query(SpearsMigrationTask).all()
         disp_entries = []
         for e in entries:
             disp_entries.append({'id': e.idname, 'from': ', '.join(e.source_suites), 'to': e.target_suite})
@@ -30,7 +30,7 @@ def index():
 def excuses_list(migration_id, page):
     with session_scope() as session:
 
-        migration = session.query(SpearsMigrationEntry).filter(SpearsMigrationEntry.idname == migration_id).one()
+        migration = session.query(SpearsMigrationTask).filter(SpearsMigrationTask.idname == migration_id).one()
 
         excuses_per_page = 50
         excuses_total = session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == migration_id).count()

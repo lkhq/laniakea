@@ -5,8 +5,10 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import click
+from rich.prompt import Prompt
 
-from laniakea.db import session_factory
+from laniakea import LocalConfig
+from laniakea.db import ArchiveSuite, ArchiveRepository, session_factory
 
 from .utils import input_int, input_str, input_bool, input_list, print_header
 
@@ -28,18 +30,25 @@ def configure_all():
 
     add_migration = True
     while add_migration:
-        entry = SpearsMigrationEntry()
+        stask = SpearsMigrationTask()
 
-        entry.source_suites = input_list('Migrate from suites (source names)')
-        entry.target_suite = input_str('Migrate to suite (target name)')
+        repo_name = Prompt.ask('Repository name to add migration task for', default=LocalConfig().master_repo_name)
+        stask.repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
 
-        entry.delays = {}
+        for suite_name in input_list('Migrate from suites (source names)'):
+            stask.source_suites.append(session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one())
+
+        target_suite_name = input_str('Migrate to suite (target name)')
+        stask.target_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == target_suite_name).one()
+
+        stask.delays = {}
         for prio in ChangesUrgency:
-            entry.delays[int(prio)] = input_int('Delay for packages of priority "{}" in days'.format(repr(prio)))
+            stask.delays[prio.to_string()] = input_int(
+                'Delay for packages of priority "{}" in days'.format(prio.to_string())
+            )
 
         # FIXME: We need to check for uniqueness of the migration task!
-        entry.idname = entry.make_migration_id()
-        session.add(entry)
+        session.add(stask)
         session.commit()
 
         add_migration = input_bool('Add another migration task?')

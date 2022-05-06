@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 # flake8: noqa
+# pylint: disable=wildcard-import,unused-wildcard-import
 
 import os
 from typing import *
