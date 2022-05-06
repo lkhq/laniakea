@@ -17,3 +17,4 @@ rich>=9.0
 systemd-python~=234.0
 toml~=0.10.2
 tornado~=6.1
+voluptuous~=0.12.2

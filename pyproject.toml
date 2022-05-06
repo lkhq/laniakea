@@ -34,6 +34,7 @@ base = [
     'systemd-python',
     'click>=7.1',
     'rich>=9.0',
+    'voluptuous',
     'gir:AppStream~=1.0',
 ]
 web = [
