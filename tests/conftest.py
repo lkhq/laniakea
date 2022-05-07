@@ -176,7 +176,7 @@ def postgresql_container():
             '--name',
             LKPG_CONTAINER_NAME,
             '--rm',
-            'lktest_postgres',
+            LKPG_IMAGE_TAG,
         ],
         check=True,
     )
@@ -188,6 +188,7 @@ def postgresql_container():
     ports = data['NetworkSettings']['Ports']
     port_data = ports.get('{}/tcp'.format(LKPG_IP), ports.get('{}/udp'.format(LKPG_IP)))
     if not port_data:
+        print('Postgres Container Data Raw:', data, file=sys.stderr)
         raise Exception('Unable to set up PostgreSQL test container: Could not find port settings')
 
     info = PGSQLContainerInfo()
