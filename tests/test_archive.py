@@ -40,7 +40,7 @@ from laniakea.archive.utils import (
     pool_dir_from_name_component,
     repo_suite_settings_for_debug,
 )
-from laniakea.archive.manage import expire_superseded
+from laniakea.archive.manage import expire_superseded, remove_binary_package
 
 
 def test_utils():
@@ -51,7 +51,7 @@ def test_utils():
 
 class TestParseChanges:
     @pytest.fixture(autouse=True)
-    def setup(self, samples_dir, sources_dir, database):
+    def setup(self, samples_dir, sources_dir):
         self._changes_dir = os.path.join(samples_dir, 'changes')
 
     def parse(self, filename, **kwargs):
@@ -77,34 +77,27 @@ class TestParseChanges:
 
 
 class TestArchive:
-    @pytest.fixture(autouse=True)
-    def setup(self, localconfig, samples_dir, sources_dir, database, host_deb_arch):
+    @staticmethod
+    @pytest.fixture(scope='class')
+    def ctx(localconfig, samples_dir, database, host_deb_arch):
+        """Context and global, shared state for all functions in this module."""
 
+        class Context:
+            pass
+
+        ctx = Context()
         gpg_dir = os.path.join(samples_dir, 'packages', 'gpg')
-        self._lconf = localconfig
-        self._archive_root = self._lconf.archive_root_dir
-        self._queue_root = self._lconf.archive_queue_dir
-        self._host_arch = host_deb_arch
-
-        lkadmin_exe = os.path.join(sources_dir, 'lkadmin', 'lk-admin.py')
-        subprocess.run(
-            [
-                lkadmin_exe,
-                '--config',
-                localconfig.fname,
-                'archive',
-                'add-from-config',
-                os.path.join(samples_dir, 'config', 'archive-config.toml'),
-            ],
-            check=True,
-        )
+        ctx._lconf = localconfig
+        ctx._archive_root = ctx._lconf.archive_root_dir
+        ctx._queue_root = ctx._lconf.archive_queue_dir
+        ctx._host_arch = host_deb_arch
 
         with session_scope() as session:
             #
             # check layout
             #
 
-            master_repo_name = self._lconf.master_repo_name
+            master_repo_name = ctx._lconf.master_repo_name
             master_debug_repo_name = '{}-debug'.format(master_repo_name)
 
             aconfig = session.query(ArchiveConfig).first()
@@ -151,7 +144,7 @@ class TestArchive:
             extra_repo.uploaders.append(uploader)
 
         # use
-        yield
+        yield ctx
 
         # cleanup
         with session_scope() as session:
@@ -162,7 +155,18 @@ class TestArchive:
             uploader = session.query(ArchiveUploader).filter(ArchiveUploader.email == 'snowman@example.com').one()
             session.delete(uploader)
 
-    def test_package_uploads(self, package_samples):
+            # remove all packages from our mock archive (binary packages are implicitly dropped)
+            for rss in session.query(ArchiveRepoSuiteSettings).all():
+                spkgs = (
+                    session.query(SourcePackage)
+                    .filter(SourcePackage.repo_id == rss.repo_id)
+                    .filter(SourcePackage.suites.any(id=rss.suite_id))
+                    .all()
+                )
+                for spkg in spkgs:
+                    assert remove_source_package(session, rss, spkg)
+
+    def test_package_uploads(self, ctx, package_samples):
         with session_scope() as session:
             rss = repo_suite_settings_for(session, 'master', 'unstable')
 
@@ -183,7 +187,7 @@ class TestArchive:
                 .one()
             )
             assert os.path.isfile(
-                os.path.join(self._archive_root, 'master', 'pool', 'main', 'p', 'package', 'package_0.1-1.dsc')
+                os.path.join(ctx._archive_root, 'master', 'pool', 'main', 'p', 'package', 'package_0.1-1.dsc')
             )
 
             # import the corresponding binary package (overrides should be present, so this should work)
@@ -199,7 +203,7 @@ class TestArchive:
                 .one()
             )
             assert os.path.isfile(
-                os.path.join(self._archive_root, 'master', 'pool', 'main', 'p', 'package', 'package_0.1-1_all.deb')
+                os.path.join(ctx._archive_root, 'master', 'pool', 'main', 'p', 'package', 'package_0.1-1_all.deb')
             )
 
             # try importing a binary that does not have overrides set
@@ -217,14 +221,14 @@ class TestArchive:
                 .first()
             )
             assert not os.path.isfile(
-                os.path.join(self._archive_root, 'master', 'pool', 's', 'snowman', 'snowman_0.1-1_all.deb')
+                os.path.join(ctx._archive_root, 'master', 'pool', 's', 'snowman', 'snowman_0.1-1_all.deb')
             )
 
             # add source package to NEW
             pi.import_source(os.path.join(package_samples, 'snowman_0.1-1.dsc'), 'main')
             session.commit()
             assert os.path.isfile(
-                os.path.join(self._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
+                os.path.join(ctx._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
             )
             spkg = (
                 session.query(SourcePackage)
@@ -241,7 +245,7 @@ class TestArchive:
             # try importing that binary again
             pi.import_binary(os.path.join(package_samples, 'snowman_0.1-1_all.deb'), 'main')
             assert os.path.isfile(
-                os.path.join(self._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1_all.deb')
+                os.path.join(ctx._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1_all.deb')
             )
             assert (
                 not session.query(BinaryPackage)
@@ -288,9 +292,9 @@ class TestArchive:
             )
             assert spkg
             assert not os.path.isfile(
-                os.path.join(self._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
+                os.path.join(ctx._queue_root, 'master', 'new', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
             )
-            assert os.path.join(self._archive_root, 'master', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
+            assert os.path.join(ctx._archive_root, 'master', 'pool', 'main', 's', 'snowman', 'snowman_0.1-1.dsc')
 
             # test processing an actual upload from a changes file
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
@@ -298,7 +302,7 @@ class TestArchive:
             uh.keep_source_packages = True
 
             success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'package_0.2-1_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch)
             )
             assert error is None
             assert success
@@ -320,7 +324,7 @@ class TestArchive:
 
             # try to import the same thing again and watch it fail
             success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'package_0.2-1_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch)
             )
             assert (
                 error
@@ -332,7 +336,7 @@ class TestArchive:
 
             # try importing a non-free package, this thing should end up in NEW
             success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'nonfree-package_0.1-1_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'nonfree-package_0.1-1_%s.changes' % ctx._host_arch)
             )
             assert error is None
             assert success
@@ -355,7 +359,7 @@ class TestArchive:
             nonfreepkg_pool_subdir = os.path.join(
                 'pool', 'non-free', 'n', 'nonfree-package', 'nonfree-package_0.1-1.dsc'
             )
-            assert os.path.isfile(os.path.join(self._queue_root, 'master', 'new', nonfreepkg_pool_subdir))
+            assert os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', nonfreepkg_pool_subdir))
 
             bpkg = (
                 session.query(BinaryPackage)
@@ -370,7 +374,7 @@ class TestArchive:
             assert not bpkg  # should not be in here, will be in NEW instead
             assert os.path.isfile(
                 os.path.join(
-                    self._queue_root,
+                    ctx._queue_root,
                     'master',
                     'new',
                     'pool',
@@ -396,8 +400,8 @@ class TestArchive:
                 .one_or_none()
             )
             assert spkg
-            assert not os.path.isfile(os.path.join(self._queue_root, 'master', 'new', nonfreepkg_pool_subdir))
-            assert os.path.join(self._archive_root, 'master', nonfreepkg_pool_subdir)
+            assert not os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', nonfreepkg_pool_subdir))
+            assert os.path.join(ctx._archive_root, 'master', nonfreepkg_pool_subdir)
 
             # restore previously moved orig file that may exist from a failed run
             # if we are not regenerating the sample directory
@@ -408,7 +412,7 @@ class TestArchive:
 
             # process another upload, and reject it
             success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % ctx._host_arch)
             )
             assert error is None
             assert success
@@ -428,12 +432,12 @@ class TestArchive:
             assert spkg
 
             pkg_pool_subdir = os.path.join('pool', 'main', 'p', 'pkgnew', 'pkgnew_0.1-1.dsc')
-            assert os.path.isfile(os.path.join(self._queue_root, 'master', 'new', pkg_pool_subdir))
-            assert not os.path.isfile(os.path.join(self._archive_root, 'master', pkg_pool_subdir))
+            assert os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subdir))
+            assert not os.path.isfile(os.path.join(ctx._archive_root, 'master', pkg_pool_subdir))
 
             newqueue_reject(session, rss, spkg)
-            assert not os.path.isfile(os.path.join(self._queue_root, 'master', 'new', pkg_pool_subdir))
-            assert not os.path.isfile(os.path.join(self._archive_root, 'master', pkg_pool_subdir))
+            assert not os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subdir))
+            assert not os.path.isfile(os.path.join(ctx._archive_root, 'master', pkg_pool_subdir))
             spkg = (
                 session.query(SourcePackage)
                 .filter(
@@ -450,7 +454,7 @@ class TestArchive:
             # process two uploads adding multiple versions
             # pkgnew 0.1-1
             success, _, error = uh.process_changes(
-                os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % ctx._host_arch)
             )
             assert error is None
             assert success
@@ -480,7 +484,7 @@ class TestArchive:
 
             # add the missing binaries
             success, _, error = uh.process_changes(
-                os.path.join(package_samples, 'pkgnew_0.1-2_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'pkgnew_0.1-2_%s.changes' % ctx._host_arch)
             )
             assert error is None
             assert success
@@ -502,7 +506,7 @@ class TestArchive:
             # to move it out of the way temporarily
             os.rename(pkgnew_orig_fname, pkgnew_orig_moved_fname)
             success, _, error = uh.process_changes(
-                os.path.join(package_samples, 'pkgnew_0.1-3_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'pkgnew_0.1-3_%s.changes' % ctx._host_arch)
             )
             assert error is None
             assert success
@@ -543,7 +547,7 @@ class TestArchive:
         queue_entries_count = session.query(ArchiveQueueNewEntry).count()
         assert queue_entries_count == 0
 
-    def test_package_delete(self, package_samples):
+    def test_package_delete(self, ctx, package_samples):
         with session_scope() as session:
             rss = repo_suite_settings_for(session, 'master', 'unstable')
 
@@ -553,7 +557,7 @@ class TestArchive:
 
             # add package and verify that is exists in the archive
             success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'grave_0.1-1_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'grave_0.1-1_%s.changes' % ctx._host_arch)
             )
             assert error is None
             assert success
@@ -573,7 +577,7 @@ class TestArchive:
             assert spkg.suites == []
             newqueue_accept(session, rss, spkg, missing_overrides, include_binaries=True)
             assert spkg.suites[0].name == 'unstable'
-            assert os.path.isfile(os.path.join(self._archive_root, 'master', spkg.directory, 'grave_0.1-1.dsc'))
+            assert os.path.isfile(os.path.join(ctx._archive_root, 'master', spkg.directory, 'grave_0.1-1.dsc'))
             bpkg = (
                 session.query(BinaryPackage)
                 .filter(
@@ -586,7 +590,7 @@ class TestArchive:
                 .one_or_none()
             )
             assert bpkg
-            assert os.path.isfile(os.path.join(self._archive_root, 'master', spkg.directory, 'grave_0.1-1_all.deb'))
+            assert os.path.isfile(os.path.join(ctx._archive_root, 'master', spkg.directory, 'grave_0.1-1_all.deb'))
 
             # now delete the package again and check that it is gone
             spkg_directory = spkg.directory
@@ -614,9 +618,9 @@ class TestArchive:
                 .one_or_none()
             )
             assert not bpkg
-            assert not os.path.isdir(os.path.join(self._archive_root, 'master', spkg_directory))
+            assert not os.path.isdir(os.path.join(ctx._archive_root, 'master', spkg_directory))
 
-    def test_package_dbgsym_upload(self, package_samples):
+    def test_package_dbgsym_upload(self, ctx, package_samples):
         with session_scope() as session:
             rss = repo_suite_settings_for(session, 'master', 'unstable')
             rss_dbg = repo_suite_settings_for_debug(session, rss)
@@ -630,7 +634,7 @@ class TestArchive:
 
             # add package and verify that is exists in the archive
             success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'main-contrib-with-debug_0.1-1_%s.changes' % self._host_arch)
+                os.path.join(package_samples, 'main-contrib-with-debug_0.1-1_%s.changes' % ctx._host_arch)
             )
             assert error is None
             assert success
@@ -651,7 +655,7 @@ class TestArchive:
             assert spkg.suites[0].name == 'unstable'
             assert spkg.component.name == 'main'
             assert os.path.isfile(
-                os.path.join(self._archive_root, 'master', spkg.directory, 'main-contrib-with-debug_0.1-1.dsc')
+                os.path.join(ctx._archive_root, 'master', spkg.directory, 'main-contrib-with-debug_0.1-1.dsc')
             )
 
             # check where the debug package ended up
@@ -670,14 +674,14 @@ class TestArchive:
             assert bpkg
             assert os.path.isfile(
                 os.path.join(
-                    self._archive_root,
+                    ctx._archive_root,
                     'master-debug',
                     bpkg.directory,
-                    'contrib-with-debug-dbgsym_0.1-1_%s.deb' % self._host_arch,
+                    'contrib-with-debug-dbgsym_0.1-1_%s.deb' % ctx._host_arch,
                 )
             )
 
-    def test_package_expire(self):
+    def test_package_expire(self, ctx):
         with session_scope() as session:
             repo_suites = session.query(ArchiveRepoSuiteSettings).all()
 
@@ -701,7 +705,7 @@ class TestArchive:
             )
             assert deleted_pkgs == [('package', '0.1-1'), ('pkgnew', '0.1-1'), ('pkgnew', '0.1-2')]
 
-    def test_heidi_import(self, samples_dir):
+    def test_heidi_import(self, ctx, samples_dir):
         # test import of Britney's Heidi report
 
         heidi_report_fname = os.path.join(samples_dir, 'spears', 'HeidiResult')
@@ -735,14 +739,14 @@ class TestArchive:
             )
             assert bpkg
 
-    def test_publish(self, samples_dir):
+    def test_publish(self, ctx, samples_dir):
         from lkarchive.publish import publish_repo_dists
 
         # link the DEP-11 fetch hook to its destination
-        os.makedirs(self._lconf.data_import_hooks_dir, exist_ok=True)
+        os.makedirs(ctx._lconf.data_import_hooks_dir, exist_ok=True)
         os.symlink(
             os.path.join(samples_dir, 'dep11', 'fetch-appstream.sh'),
-            os.path.join(self._lconf.data_import_hooks_dir, 'fetch-appstream.sh'),
+            os.path.join(ctx._lconf.data_import_hooks_dir, 'fetch-appstream.sh'),
         )
 
         # publish the "master" repository data

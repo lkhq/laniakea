@@ -90,7 +90,25 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
         repo_root_dir = rss.repo.get_root_dir()
         srcpkg_repo_dir = os.path.join(repo_root_dir, spkg.directory)
         for bpkg in spkg.binaries:
-            remove_binary_package(session, rss, bpkg)
+            # remove binary packages completely (we just need any suite it is in to construct the RSS)
+            bpkg_suite = bpkg.suites[0] if bpkg.suites else rss.suite
+            bpkg_rss = (
+                session.query(ArchiveRepoSuiteSettings)
+                .filter(
+                    ArchiveRepoSuiteSettings.repo.has(id=bpkg.repo_id),
+                    ArchiveRepoSuiteSettings.suite.has(id=bpkg_suite.id),
+                )
+                .one_or_none()
+            )
+            if not bpkg_rss:
+                raise ArchiveRemoveError(
+                    'Unable to find suite configuration "{}/{}" for "{}"'.format(
+                        bpkg_rss.repo.name, bpkg_rss.suite.name, str(bpkg)
+                    )
+                )
+            # drop the associated binary, even if it might be in a different repository
+            remove_binary_package(session, bpkg_rss, bpkg)
+
         for file in spkg.files:
             # check if any other source package (likely one with a different revision) also holds a reference
             # on the same source file, and only delete the file from disk if it is an orphan
@@ -265,6 +283,12 @@ def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuite
 
     dest_suite = dest_rss.suite
     dest_debug_suite = dest_suite.debug_suite
+    if bpkg.component not in dest_suite.components:
+        raise ArchiveError(
+            'Can not copy package: Source component "{}" not in target suite "{}".'.format(
+                bpkg.component.name, dest_suite.name
+            )
+        )
     if bpkg.repo.is_debug:
         # this package is in a debug repo and therefore a debug symbol package
         # we need to move it to the debug suite that corresponds to the target suite

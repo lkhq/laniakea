@@ -50,7 +50,7 @@ class TestLighthouseMsgStream:
         '''
         from laniakea.db import LkModule
 
-        assert create_message_tag(LkModule.ARCHIVE, 'new-source-packages') == '_lk.dataimport.new-source-packages'
+        assert create_message_tag(LkModule.ARCHIVE, 'new-source-packages') == '_lk.archive.new-source-packages'
 
         m = create_event_message(self._sender_id, '_lk.testsuite.dummy', {'aaa': 'bbb'}, self._sender_signing_key)
         assert m['tag'] == '_lk.testsuite.dummy'

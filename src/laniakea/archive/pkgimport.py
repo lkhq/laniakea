@@ -499,7 +499,7 @@ class PackageImporter:
         *,
         ignore_existing: bool = False,
         override_section: T.Optional[str] = None,
-    ):
+    ) -> T.Optional[BinaryPackage]:
         """Import a binary package into the given suite or its NEW queue.
 
         :param deb_fname: Path to a deb/udeb package to import
@@ -551,7 +551,7 @@ class PackageImporter:
                         os.path.basename(deb_fname)
                     )
                 )
-                return
+                return None
         if not component_name:
             component_name = deb_component
 
@@ -566,7 +566,7 @@ class PackageImporter:
         ).scalar()
         if ret:
             if ignore_existing:
-                return
+                return None
             raise ArchivePackageExistsError(
                 'Can not import binary package {}/{}/{}: Already exists.'.format(pkgname, version, pkgarch)
             )
@@ -743,6 +743,8 @@ class PackageImporter:
         deb_rss.changes_pending = True
         log.info('Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, deb_rss.repo.name, deb_rss.suite.name))
         self._session.commit()
+
+        return bpkg
 
 
 class UploadHandler:

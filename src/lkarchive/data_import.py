@@ -267,7 +267,7 @@ def import_heidi_result(
                             .one()
                         )
                         copy_binary_package(session, bpkg, rss)
-                        # FIXME: We also need to move the debug package here, if one the corresponds to the binary package exists
+                        # FIXME: We also need to move the debug package here, if one that corresponds to the binary package exists
                         continue
 
         if allow_delete:

@@ -8,9 +8,12 @@ import os
 
 import pytest
 
+import laniakea.typing as T
 from laniakea.db import (
     DebType,
     ArchiveSuite,
+    BinaryPackage,
+    SourcePackage,
     PackagePriority,
     ArchiveComponent,
     ArchiveArchitecture,
@@ -19,7 +22,7 @@ from laniakea.utils.gpg import GpgException
 from laniakea.reporeader import RepositoryReader
 
 
-def validate_src_packages(spkgs):
+def validate_src_packages(spkgs: T.List[SourcePackage]):
     assert len(spkgs) == 8
 
     found = False
@@ -83,8 +86,8 @@ def validate_src_packages(spkgs):
                 print('Bad file: {}'.format(f))
                 assert 0
 
-        assert len(spkg.binaries) == 2
-        for b in spkg.binaries:
+        assert len(spkg.expected_binaries) == 2
+        for b in spkg.expected_binaries:
             if b.name == '0ad':
                 assert b.deb_type == DebType.DEB
                 assert b.version == spkg.version
@@ -103,7 +106,7 @@ def validate_src_packages(spkgs):
     assert found
 
 
-def validate_bin_packages(bpkgs):
+def validate_bin_packages(bpkgs: T.List[BinaryPackage]):
     assert len(bpkgs) == 7
 
     found = False
@@ -118,8 +121,8 @@ def validate_bin_packages(bpkgs):
         assert pkg.depends == ['debhelper (>= 9)', 'make']
 
         assert pkg.architecture.name == 'all'
-        assert pkg.section == 'utils'
-        assert pkg.priority == PackagePriority.OPTIONAL
+        assert pkg.override.section == 'utils'
+        assert pkg.override.priority == PackagePriority.OPTIONAL
         assert pkg.size_installed == 89
 
         assert pkg.bin_file.fname == 'pool/main/k/kernel-wedge/kernel-wedge_2.94_all.deb'

@@ -209,10 +209,10 @@ def postgresql_container():
         subprocess.run(['podman', 'stop', LKPG_CONTAINER_NAME], check=True)
 
 
-@pytest.fixture(scope='class')
-def database(localconfig, postgresql_container):
+@pytest.fixture(scope='session')
+def create_database(localconfig, postgresql_container):
     '''
-    Retrieve a pristine, empty Laniakea database connection.
+    Create a pristine, empty Laniakea database connection.
     This will wipe the global database, so tests using this can
     never run in parallel.
     '''
@@ -246,17 +246,44 @@ def database(localconfig, postgresql_container):
         timeout=60.0, pause=0.5, check=lambda: pgsql_test_available(session_scope)
     )
 
-    # clear database tables so test function has a pristine database to work with
-    with session_scope() as session:
-        session.execute('DROP owned BY lkdbuser_test;')
-    db.downgrade('base')
     db.create_tables()
+    return db
+
+
+@pytest.fixture(scope='module')
+def database(sources_dir, samples_dir, localconfig, create_database):
+    """
+    Clear the current activate database and provide a
+    pristine, empty database to use.
+    """
+    from laniakea.db import session_scope
+    from laniakea.db.core import config_set_distro_tag, config_set_project_name
+
+    db = create_database
 
     # add core configuration data to the database
     config_set_project_name('Test Project')
     config_set_distro_tag('test')
 
-    return db
+    # create archive configuration for the test suite
+    lkadmin_exe = os.path.join(sources_dir, 'lkadmin', 'lk-admin.py')
+    subprocess.run(
+        [
+            lkadmin_exe,
+            '--config',
+            localconfig.fname,
+            'archive',
+            'add-from-config',
+            os.path.join(samples_dir, 'config', 'archive-config.toml'),
+        ],
+        check=True,
+    )
+
+    yield db
+
+    # drop all our tables and recreate empty ones
+    db.drop_tables()
+    db.create_tables()
 
 
 def generate_curve_keys_for_module(sources_dir, localconfig, mod):
@@ -432,15 +459,66 @@ def new_zmq_curve_socket(request):
 
 
 @pytest.fixture(scope='class')
-def import_package_data(request, sources_dir, localconfig, database):
-    '''
-    Retrieve a pristine, empty Laniakea database connection.
-    This will wipe the global database, so tests using this can
-    never run in parallel.
-    '''
+def import_sample_packages(package_samples, database):
+    """
+    Ensure sample packages are imported into the database.
+    """
+    from glob import iglob
+    from fnmatch import fnmatch
 
-    # TODO
-    # FIXME
+    from laniakea.db import NewPolicy, BinaryPackage, SourcePackage, session_scope
+    from laniakea.archive import PackageImporter
+    from laniakea.archive.utils import repo_suite_settings_for
+    from laniakea.archive.manage import remove_binary_package, remove_source_package
+
+    spkg_ids = []
+    bpkg_ids = []
+    # import everything we have
+    with session_scope() as session:
+        rss = repo_suite_settings_for(session, 'master', 'unstable')
+
+        # import a source package directly
+        pi = PackageImporter(session, rss)
+        pi.keep_source_packages = True
+        pi.prefer_hardlinks = True
+
+        for dsc_fname in sorted(iglob(os.path.join(package_samples, '*.dsc'))):
+            if dsc_fname.endswith('~exp.dsc'):
+                continue
+            spkg, _ = pi.import_source(dsc_fname, 'main', new_policy=NewPolicy.NEVER_NEW)
+            spkg_ids.append(spkg.uuid)
+            assert spkg
+
+        for deb_fname in iglob(os.path.join(package_samples, '*.deb')):
+            if fnmatch(deb_fname, '*~exp_*.deb'):
+                continue
+            bpkg = pi.import_binary(deb_fname)
+            assert bpkg
+            bpkg_ids.append(bpkg.uuid)
+        for udeb_fname in iglob(os.path.join(package_samples, '*.udeb')):
+            bpkg = pi.import_binary(udeb_fname)
+            assert bpkg
+            bpkg_ids.append(bpkg.uuid)
+        session.commit()
+
+    yield
+
+    # cleanup
+    with session_scope() as session:
+        rss = repo_suite_settings_for(session, 'master', 'unstable')
+
+        for spkg_uuid in spkg_ids:
+            spkg = session.query(SourcePackage).filter(SourcePackage.uuid == spkg_uuid).one()
+            assert remove_source_package(session, rss, spkg)
+        for bpkg_uuid in bpkg_ids:
+            bpkg = session.query(BinaryPackage).filter(BinaryPackage.uuid == bpkg_uuid).one_or_none()
+            if not bpkg:
+                # package might have already been removed
+                continue
+            pytest.fail(
+                'Binary package "%s" has not been removed, even though it should have been dropped with its source package.'
+                % str(bpkg)
+            )
 
 
 @pytest.fixture(scope='session')

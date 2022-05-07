@@ -71,6 +71,17 @@ class Database:
                 command.stamp(alembic_cfg, "head")
             self.upgrade()
 
+        def drop_tables(self):
+            '''Drop all database tables.'''
+            from sqlalchemy.orm import close_all_sessions
+
+            # due to q Postgres/SQLAlchemy quirk, we need to explicitly close all sessions
+            # before touching the tables
+            close_all_sessions()
+
+            # drop everything
+            Base.metadata.drop_all(self._engine)
+
         def upgrade(self):
             '''Upgrade database schema to the newest revision'''
             import alembic.config

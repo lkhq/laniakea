@@ -9,6 +9,7 @@ import json
 import zmq
 import pytest
 
+import laniakea.typing as T
 from laniakea.db import Job, JobKind, SourcePackage, session_scope
 
 dataimport_suite = 'unstable'
@@ -16,7 +17,7 @@ dataimport_suite = 'unstable'
 
 class TestLighthouseJobRequests:
     @pytest.fixture(autouse=True)
-    def setup(self, localconfig, make_curve_trusted_key, lighthouse_server, import_package_data, database):
+    def setup(self, localconfig, make_curve_trusted_key, lighthouse_server, import_sample_packages, database):
         from laniakea.db import LkModule
 
         self._client_key = make_curve_trusted_key('spark-builder')
@@ -55,7 +56,7 @@ class TestLighthouseJobRequests:
             job.data = {'suite': 'unstable'}
             session.add(job)
 
-    def req_base(self):
+    def req_base(self) -> T.Dict[str, T.Any]:
         return self._base_req.copy()
 
     def send_request(self, sock, req):
@@ -77,7 +78,7 @@ class TestLighthouseJobRequests:
 
         return reply
 
-    def test_request_job(self, new_zmq_curve_socket, localconfig, database):
+    def test_request_job(self, new_zmq_curve_socket, localconfig):
         sock = new_zmq_curve_socket(zmq.REQ, localconfig.lighthouse.servers_jobs[0], self._server_key, self._client_key)
 
         req = self.req_base()
