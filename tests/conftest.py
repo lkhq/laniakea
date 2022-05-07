@@ -219,7 +219,6 @@ def create_database(localconfig, postgresql_container):
     import toml
 
     from laniakea.db import Database, session_scope
-    from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     # get IP of our database container
     db_port = postgresql_container.pg_host_port
@@ -256,7 +255,6 @@ def database(sources_dir, samples_dir, localconfig, create_database):
     Clear the current activate database and provide a
     pristine, empty database to use.
     """
-    from laniakea.db import session_scope
     from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
     db = create_database
@@ -469,7 +467,7 @@ def import_sample_packages(package_samples, database):
     from laniakea.db import NewPolicy, BinaryPackage, SourcePackage, session_scope
     from laniakea.archive import PackageImporter
     from laniakea.archive.utils import repo_suite_settings_for
-    from laniakea.archive.manage import remove_binary_package, remove_source_package
+    from laniakea.archive.manage import remove_source_package
 
     spkg_ids = []
     bpkg_ids = []
@@ -499,7 +497,6 @@ def import_sample_packages(package_samples, database):
             bpkg = pi.import_binary(udeb_fname)
             assert bpkg
             bpkg_ids.append(bpkg.uuid)
-        session.commit()
 
     yield
 

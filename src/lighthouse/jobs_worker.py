@@ -16,9 +16,9 @@ from laniakea.db import (
     JobResult,
     JobStatus,
     SparkWorker,
-    ArchiveSuite,
     SourcePackage,
     ImageBuildRecipe,
+    ArchiveRepoSuiteSettings,
     session_scope,
     config_get_value,
 )
@@ -39,11 +39,12 @@ class JobWorker:
         with session_scope() as session:
             # FIXME: We need much better ways to select the right suite to synchronize with
             incoming_suite = (
-                session.query(ArchiveSuite)
-                .filter(ArchiveSuite.accept_uploads == True)  # noqa: E712
-                .order_by(ArchiveSuite.name)
+                session.query(ArchiveRepoSuiteSettings)
+                .filter(ArchiveRepoSuiteSettings.accept_uploads == True)  # noqa: E712
+                .filter(ArchiveRepoSuiteSettings.repo.has(name=self._lconf.master_repo_name))
+                .order_by(ArchiveRepoSuiteSettings.suite_id)
                 .first()
-            )
+            ).suite
             self._default_incoming_suite_name = incoming_suite.name
 
     def _emit_event(self, subject, data):

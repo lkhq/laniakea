@@ -33,7 +33,7 @@ class TestLighthouseJobRequests:
         # create jobs
         with session_scope() as session:
             spkg = (
-                session.query(SourcePackage).filter(SourcePackage.uuid == '194f1434-af2e-501c-9baa-8474a3ac4bab').one()
+                session.query(SourcePackage).filter(SourcePackage.uuid == 'a1b522ed-4105-59e1-a4da-e4eedd002d6c').one()
             )
             job = Job()
             job.module = LkModule.ARIADNE
@@ -45,7 +45,7 @@ class TestLighthouseJobRequests:
             session.add(job)
 
             spkg = (
-                session.query(SourcePackage).filter(SourcePackage.uuid == 'eb0d4c75-3055-5084-84ad-19f56c40c3ea').one()
+                session.query(SourcePackage).filter(SourcePackage.uuid == '96d38158-13fb-5be4-b16c-c6d63af13e70').one()
             )
             job = Job()
             job.module = LkModule.ARIADNE
@@ -55,6 +55,8 @@ class TestLighthouseJobRequests:
             job.trigger = spkg.source_uuid
             job.data = {'suite': 'unstable'}
             session.add(job)
+
+        yield
 
     def req_base(self) -> T.Dict[str, T.Any]:
         return self._base_req.copy()
@@ -97,18 +99,19 @@ class TestLighthouseJobRequests:
         del reply['time_created']
         assert reply['uuid']
         del reply['uuid']
+        assert reply['data']['sha256sum']
+        del reply['data']['sha256sum']
         assert reply == {
-            'module': 'ariadne',
-            'kind': 'package-build',
-            'version': '0.0.20-1',
             'architecture': 'amd64',
             'data': {
-                'package_name': '0ad',
-                'package_version': '0.0.20-1',
-                'maintainer': 'Debian Games Team <pkg-games-devel@lists.alioth.debian.org>',
-                'suite': 'unstable',
-                'dsc_url': '#/pool/main/0/0ad/0ad_0.0.20-1.dsc',
                 'do_indep': False,
-                'sha256sum': 'f43923ace1c558ad9f9fa88eb3f1764a8c0379013aafbc682a35769449fe8955',
+                'dsc_url': '#/pool/main/p/pkgnew/pkgnew_0.1-3.dsc',
+                'maintainer': 'A Maintainer <maint@example.com>',
+                'package_name': 'pkgnew',
+                'package_version': '0.1-3',
+                'suite': 'unstable',
             },
+            'kind': 'package-build',
+            'module': 'ariadne',
+            'version': '0.1-3',
         }

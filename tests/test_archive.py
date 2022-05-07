@@ -40,7 +40,7 @@ from laniakea.archive.utils import (
     pool_dir_from_name_component,
     repo_suite_settings_for_debug,
 )
-from laniakea.archive.manage import expire_superseded, remove_binary_package
+from laniakea.archive.manage import expire_superseded
 
 
 def test_utils():
