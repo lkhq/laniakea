@@ -23,7 +23,7 @@ class ClickAliasedGroup(click.Group):
             return decorator
 
         def _decorator(f):
-            cmd = decorator(f)
+            cmd = decorator(f)  # pylint: disable=not-callable
             if aliases:
                 self._commands[cmd.name] = aliases
                 for alias in aliases:
@@ -39,7 +39,7 @@ class ClickAliasedGroup(click.Group):
             return decorator
 
         def _decorator(f):
-            cmd = decorator(f)
+            cmd = decorator(f)  # pylint: disable=not-callable
             if aliases:
                 self._commands[cmd.name] = aliases
                 for alias in aliases:
