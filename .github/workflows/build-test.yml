@@ -38,8 +38,8 @@ jobs:
 
     - name: Set up Python virtual environment
       run: podman run -a stdout -a stderr -v `pwd`:/build laniakea
-          ./tests/ci/run-venv-prepare.sh
+           ./tests/ci/run-venv-prepare.sh
 
     - name: Testsuite
-      run: podman run --privileged -a stdout -a stderr -v `pwd`:/build laniakea
+      run: podman run --privileged -a stdout -a stderr --security-opt seccomp=unconfined -v `pwd`:/build laniakea
            ./tests/ci/run-tests.sh

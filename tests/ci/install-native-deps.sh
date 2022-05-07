@@ -17,6 +17,7 @@ apt-get install -yq \
     gdb
 
 # install dependencies for Laniakea
+eatmydata apt-get install -yq podman fuse-overlayfs
 eatmydata apt-get install -yq --no-install-recommends \
     pkg-config \
     meson \
@@ -28,8 +29,6 @@ eatmydata apt-get install -yq --no-install-recommends \
     ostree \
     flatpak \
     flatpak-builder \
-    podman \
-    fuse-overlayfs \
     git \
     debhelper \
     dpkg-dev \
