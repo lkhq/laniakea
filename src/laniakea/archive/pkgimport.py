@@ -666,7 +666,7 @@ class PackageImporter:
                 )
             )
             # nothing left to do, we will not register this package with the database
-            return
+            return bpkg
         else:
             pool_fname_full = os.path.join(deb_rss.repo.get_root_dir(), af.fname)
 
