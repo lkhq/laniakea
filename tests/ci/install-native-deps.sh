@@ -33,6 +33,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     git \
     debhelper \
     dpkg-dev \
+    devscripts \
     npm
 
 eatmydata apt-get install -yq --no-install-recommends \
