@@ -13,6 +13,10 @@
       <h2 class="subtitle">
         These pages contain resources to help with development of {{ config.PROJECT }}.
       </h2>
+      <p>
+          We currently keep track of {{repo_count}} package repositories in the archive.
+          Some statistics about the main repository are listed below.
+      </p>
     </div>
 </section>
 
@@ -21,16 +25,20 @@
     <div class="tile is-ancestor has-text-centered">
         <div class="tile is-parent">
 	    <article class="tile is-child box">
-                <p class="title">???</p>
+                <p class="title">{{package_count}}</p>
 		<p class="subtitle">Packages</p>
             </article>
         </div>
+
+        {% if dev_target %}
         <div class="tile is-parent">
 	    <article class="tile is-child box">
-              <p class="title">unknown</p>
+              <p class="title">{{dev_target.name}}</p>
               <p class="subtitle">Development Suite</p>
             </article>
         </div>
+        {% endif %}
+
         <div class="tile is-parent">
             <article class="tile is-child box">
               <p class="title">unknown</p>
@@ -48,10 +56,11 @@
 
 
 <div class="columns">
+
     <div class="column is-6">
     <div class="card events-card">
         <header class="card-header">
-            <p class="card-header-title-soft">
+            <p class="card-header-title">
                 Last Events
             </p>
         </header>

@@ -237,9 +237,11 @@ def _add_suite(
     arch_names=None,
     component_names=None,
     parent_names=None,
+    *,
     dbgsym_policy='no-debug',
     new_policy='default',
     debug_suite_for=None,
+    devel_target=False,
 ):
     '''Register a new suite with the archive.'''
 
@@ -282,6 +284,7 @@ def _add_suite(
         suite.alias = alias
         suite.summary = summary
         suite.version = version
+        suite.devel_target = devel_target
         suite.new_policy = new_policy_en
         suite.dbgsym_policy = dbg_policy
 
@@ -360,7 +363,17 @@ def suite_add(
     if is_debug and not debug_suite_for:
         debug_suite_for = input_str('Name of the suite this debug suite contains symbols for')
 
-    _add_suite(name, alias, summary, version, arch_names, component_names, parent_names, is_debug, debug_suite_for)
+    _add_suite(
+        name,
+        alias,
+        summary,
+        version,
+        arch_names,
+        component_names,
+        parent_names,
+        dbgsym_policy='only-debug' if is_debug else 'no-debug',
+        debug_suite_for=debug_suite_for,
+    )
 
 
 def _add_suite_to_repo(

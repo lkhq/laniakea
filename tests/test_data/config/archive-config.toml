@@ -39,6 +39,7 @@ summary = "Development Suite"
 version = "2.0"
 arch_names = ["amd64", "arm64"]
 component_names = ["main", "contrib", "non-free"]
+devel_target = true
 
 [[Suites]]
 name = "unstable-debug"
