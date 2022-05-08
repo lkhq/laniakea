@@ -13,7 +13,7 @@ from laniakea.db import BinaryPackage, SoftwareComponent, session_scope
 from ..extensions import cache
 
 gi.require_version('AppStream', '1.0')
-from gi.repository import AppStream  # type: ignore
+from gi.repository import AppStream
 
 software = Blueprint('software', __name__, url_prefix='/sw')
 

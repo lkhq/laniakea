@@ -23,7 +23,7 @@ from laniakea.db import (
 from ..extensions import cache
 
 gi.require_version('AppStream', '1.0')
-from gi.repository import AppStream  # type: ignore
+from gi.repository import AppStream
 
 portal = Blueprint('portal', __name__)
 
