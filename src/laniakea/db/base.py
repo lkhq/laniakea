@@ -58,6 +58,10 @@ class Database:
             self._engine = create_engine(self._lconf.database_url, client_encoding='utf8')
             self._SessionFactory = sessionmaker(bind=self._engine)
 
+        @property
+        def engine(self):
+            return self._engine
+
         def create_tables(self):
             '''Initialize the database and create all tables'''
             from alembic import command

@@ -14,6 +14,18 @@ if get_option('lighthouse')
                 install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 endif
 
+if get_option('scheduler')
+    lksd_data = configuration_data()
+    lksd_data.set('SCHEDULER_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/lkscheduler/laniakea-scheduler')
+
+    configure_file(input: 'laniakea-scheduler.service.in',
+                output: 'laniakea-scheduler.service',
+                configuration: lksd_data)
+
+    install_data(current_build_dir + '/laniakea-scheduler.service',
+                install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+endif
+
 if get_option('webgui')
     sd_data = configuration_data()
     sd_data.set('LKWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/web/')

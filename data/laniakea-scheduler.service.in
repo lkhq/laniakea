@@ -1,0 +1,15 @@
+[Unit]
+Description=Laniakea Maintenance Daemon
+After=syslog.target network.target
+ConditionPathExists=/etc/laniakea/base-config.toml
+
+[Service]
+Type=notify
+Restart=on-failure
+ProtectSystem=full
+User=lkuser
+Group=lkuser
+ExecStart=@SCHEDULER_INSTALL_BIN@
+
+[Install]
+WantedBy=multi-user.target

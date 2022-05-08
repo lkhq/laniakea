@@ -32,6 +32,11 @@ if (get_option('lighthouse'))
     subdir('lighthouse')
 endif
 
+# Background task scheduler daemon
+if (get_option('scheduler'))
+    subdir('lkscheduler')
+endif
+
 # Debcheck
 if (get_option('debcheck'))
     subdir('debcheck')

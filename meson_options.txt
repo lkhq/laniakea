@@ -29,22 +29,22 @@ option('download-npm',
 option('docs',
     type: 'boolean',
     value: false,
-    description: 'Enable target to build HTML documentation.'
+    description: 'Enable target to build HTML documentation'
 )
 option('cli-admin',
     type: 'boolean',
     value: true,
-    description: 'Build CLI administration tools.'
+    description: 'Build CLI administration tools'
 )
 option('lighthouse',
     type: 'boolean',
     value: true,
     description: 'Build Lighthouse message relay and queue service'
 )
-option('dataimport',
+option('scheduler',
     type: 'boolean',
     value: true,
-    description: 'Build utility to import data from existing archives'
+    description: 'Build archive management and maintenance task scheduler daemon'
 )
 option('debcheck',
     type: 'boolean',
