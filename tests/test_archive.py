@@ -168,10 +168,10 @@ class TestArchive:
 
     def test_sections_available(self, ctx):
         with session_scope() as session:
-            sections = session.query(ArchiveSection).sort_by(ArchiveSection.name).all()
+            sections = session.query(ArchiveSection).order_by(ArchiveSection.name).all()
             assert len(sections) == 59
-            assert sections[0]['name'] == 'admin'
-            assert sections[-1]['name'] == 'zope'
+            assert sections[0].name == 'admin'
+            assert sections[-1].name == 'zope'
 
     def test_package_uploads(self, ctx, package_samples):
         with session_scope() as session:

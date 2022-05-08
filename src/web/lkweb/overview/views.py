@@ -30,7 +30,7 @@ def index():
             .filter(
                 ArchiveRepoSuiteSettings.repo.has(id=master_repo_id),
                 ArchiveRepoSuiteSettings.repo.has(is_debug=False),
-                ArchiveRepoSuiteSettings.devel_target == True,
+                ArchiveRepoSuiteSettings.devel_target == True,  # noqa: E712
             )
             .first()
         )

@@ -112,7 +112,7 @@ def sections_index(suite_name):
         if not suite:
             abort(404)
 
-        sections = session.query(ArchiveSection).sort_by(ArchiveSection.name).all()
+        sections = session.query(ArchiveSection).order_by(ArchiveSection.name).all()
         return render_template('sections_index.html', suite=suite, sections=sections)
 
 
