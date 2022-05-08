@@ -31,7 +31,7 @@ option('docs',
     value: false,
     description: 'Enable target to build HTML documentation.'
 )
-option('clitools',
+option('cli-admin',
     type: 'boolean',
     value: true,
     description: 'Build CLI administration tools.'

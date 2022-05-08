@@ -15,19 +15,17 @@ lk_priv_bin_target = 'lib/laniakea/'
 subdir('laniakea')
 
 # Admin cli tool
-if (get_option('clitools'))
+if (get_option('cli-admin'))
     subdir('lkadmin')
 endif
 
-# Archive management cli tool
-if (get_option('clitools'))
-    subdir('lkarchive')
-endif
-
 # Key management cli tool
-if (get_option('clitools'))
+if (get_option('cli-admin'))
     subdir('keytool')
 endif
+
+# Archive management cli tool
+subdir('lkarchive')
 
 # Lighthouse relay
 if (get_option('lighthouse'))
