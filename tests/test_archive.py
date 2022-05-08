@@ -14,6 +14,7 @@ from laniakea.db import (
     ArchiveConfig,
     BinaryPackage,
     SourcePackage,
+    ArchiveSection,
     ArchiveUploader,
     ArchiveRepository,
     SoftwareComponent,
@@ -164,6 +165,13 @@ class TestArchive:
                 )
                 for spkg in spkgs:
                     assert remove_source_package(session, rss, spkg)
+
+    def test_sections_available(self, ctx):
+        with session_scope() as session:
+            sections = session.query(ArchiveSection).sort_by(ArchiveSection.name).all()
+            assert len(sections) == 59
+            assert sections[0]['name'] == 'admin'
+            assert sections[-1]['name'] == 'zope'
 
     def test_package_uploads(self, ctx, package_samples):
         with session_scope() as session:

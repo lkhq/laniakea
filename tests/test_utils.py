@@ -36,15 +36,6 @@ def test_base64():
     assert decode_base64('_-aa') == b'\xff\xe6\x9a'
 
 
-def test_loadsections(localconfig):
-    from laniakea.db import get_archive_sections
-
-    sections = get_archive_sections()
-    assert len(sections) == 59
-    assert sections[0]['name'] == 'admin'
-    assert sections[-1]['name'] == 'zope'
-
-
 def test_is_remote_url():
     from laniakea.utils import is_remote_url
 

@@ -1075,25 +1075,3 @@ class SoftwareComponent(Base):
             self._data = json.dumps(value)
         else:
             raise ValueError('Can not add {} ({}) as software component data value.'.format(type(value), str(value)))
-
-
-def get_archive_sections():
-    """
-    Retrieve a list of dictionaries describing the archive
-    sections that are currently supported.
-    This function does read a local data file, instead of information
-    from the database.
-    """
-    from ..localconfig import get_data_file
-
-    with open(get_data_file('archive-sections.json'), 'r') as f:
-        sections = json.load(f)
-
-    # validate & refine data
-    for section in sections:
-        if 'name' not in section:
-            raise Exception('Invalid section contained in archive sections file (name missing).')
-        if 'summary' not in section:
-            section['summary'] = 'The {} section'.format(section['name'])
-
-    return sections

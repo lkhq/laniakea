@@ -15,15 +15,15 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from laniakea.db import (
     ArchiveSuite,
     BinaryPackage,
+    ArchiveSection,
     SoftwareComponent,
     session_scope,
-    get_archive_sections,
 )
 
 from ..extensions import cache
 
 gi.require_version('AppStream', '1.0')
-from gi.repository import AppStream
+from gi.repository import AppStream  # type: ignore
 
 portal = Blueprint('portal', __name__)
 
@@ -112,7 +112,7 @@ def sections_index(suite_name):
         if not suite:
             abort(404)
 
-        sections = get_archive_sections()
+        sections = session.query(ArchiveSection).sort_by(ArchiveSection.name).all()
         return render_template('sections_index.html', suite=suite, sections=sections)
 
 

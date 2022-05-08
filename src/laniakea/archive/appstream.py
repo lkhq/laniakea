@@ -14,7 +14,7 @@ import json
 import lzma
 
 import yaml
-from gi.repository import AppStream
+from gi.repository import AppStream  # type: ignore
 
 import laniakea.typing as T
 from laniakea.db import (
