@@ -52,6 +52,7 @@ def localconfig(samples_dir):
     import toml
 
     from laniakea.logging import set_verbose
+    from laniakea.utils.misc import find_free_port_nr
 
     # enable verbose logging for tests
     set_verbose(True)
@@ -72,6 +73,17 @@ def localconfig(samples_dir):
     config_toml['CurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
     config_toml['Archive']['path'] = test_archive_dir
 
+    lhc = config_toml['Lighthouse']
+    lh_jobs_port = find_free_port_nr()
+    lh_submit_port = find_free_port_nr()
+    lh_publish_port = find_free_port_nr()
+    lhc['endpoints']['jobs'] = ['tcp://*:' + str(lh_jobs_port)]
+    lhc['endpoints']['submit'] = ['tcp://*:' + str(lh_submit_port)]
+    lhc['endpoints']['publish'] = ['tcp://*:' + str(lh_publish_port)]
+    lhc['servers']['jobs'] = ['tcp://localhost:' + str(lh_jobs_port)]
+    lhc['servers']['submit'] = ['tcp://localhost:' + str(lh_submit_port)]
+    lhc['servers']['publish'] = ['tcp://localhost:' + str(lh_publish_port)]
+
     config_fname = os.path.join(test_aux_data_dir, 'base-config.toml')
     with open(config_fname, 'w') as f:
         toml.dump(config_toml, f)
@@ -85,12 +97,6 @@ def localconfig(samples_dir):
     os.makedirs(conf.workspace, exist_ok=True)
 
     assert conf.database_url == 'postgresql://lkdbuser_test:notReallySecret@localhost:5432/laniakea_unittest'
-    assert conf.lighthouse.endpoints_jobs == ['tcp://*:5570']
-    assert conf.lighthouse.endpoints_submit == ['tcp://*:5571']
-    assert conf.lighthouse.endpoints_publish == ['tcp://*:5572']
-    assert conf.lighthouse.servers_jobs == ['tcp://localhost:5570']
-    assert conf.lighthouse.servers_submit == ['tcp://localhost:5571']
-    assert conf.lighthouse.servers_publish == ['tcp://localhost:5572']
 
     # Check injected sample certificate directory
     assert conf.secret_curve_keyfile_for_module('test').startswith('/tmp/test-lkaux/keys/curve/secret/')
