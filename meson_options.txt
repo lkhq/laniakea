@@ -46,6 +46,11 @@ option('scheduler',
     value: true,
     description: 'Build archive management and maintenance task scheduler daemon'
 )
+option('mailgun',
+    type: 'boolean',
+    value: true,
+    description: 'E-mail message emitter'
+)
 option('debcheck',
     type: 'boolean',
     value: true,

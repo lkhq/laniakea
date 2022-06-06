@@ -37,6 +37,11 @@ if (get_option('scheduler'))
     subdir('lkscheduler')
 endif
 
+# E-Mail emitter
+if (get_option('mailgun'))
+    subdir('mailgun')
+endif
+
 # Debcheck
 if (get_option('debcheck'))
     subdir('debcheck')
