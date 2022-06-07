@@ -42,7 +42,7 @@ def add_image_recipe():
         recipe.style = input_str('Style of this OS image (e.g. "oem", "live", ...)')
         recipe.architectures = input_list('List of architectures to build for')
         recipe.host_architecture = input_str(
-            ('Architecture of the host that is allowed to build images ' '(put "any" to allow any host)')
+            'Architecture of the host that is allowed to build images (put "any" to allow any host)'
         )
 
         while True:

@@ -101,9 +101,7 @@ def configure_logging(app):
     info_log = os.path.join(app.config['LOG_FOLDER'], 'info.log')
     info_file_handler = RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
     info_file_handler.setLevel(log.INFO)
-    info_file_handler.setFormatter(
-        log.Formatter('%(asctime)s %(levelname)s: %(message)s ' '[in %(pathname)s:%(lineno)d]')
-    )
+    info_file_handler.setFormatter(log.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
     app.logger.addHandler(info_file_handler)
 
     # supress GET etc. messages from Werkzeug
