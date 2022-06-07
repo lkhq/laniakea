@@ -1072,10 +1072,14 @@ class UploadHandler:
             'repo': self._repo.name,
             'upload_name': Path(changes.filename).stem,
             'is_new': is_new,
+            'files': list(files.keys()),
+            'changes': changes.changes.get('Changes', 'Unknown changes'),
         }
         if spkg:
             ev_data['source_name'] = spkg.name
             ev_data['source_version'] = spkg.version
+            ev_data['source_maintainer'] = spkg.maintainer
+            ev_data['source_uploaders'] = spkg.uploaders
         self._add_uploader_event_data(ev_data, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
 

@@ -10,6 +10,7 @@ import json
 import zmq
 import zmq.asyncio
 
+import laniakea.typing as T
 from laniakea.logging import log
 from laniakea.msgstream import (
     verify_event_message,
@@ -17,6 +18,7 @@ from laniakea.msgstream import (
     event_message_is_valid_and_signed,
 )
 
+from .config import MailgunConfig
 from .mailutils import MailSender, MailTemplateLoader
 
 
@@ -28,16 +30,19 @@ class MailRelay:
     def __init__(self):
         from glob import glob
 
+        from laniakea.db import config_get_project_name
         from laniakea.msgstream import keyfile_read_verify_key
         from laniakea.localconfig import LocalConfig
 
+        self._conf = MailgunConfig()
+        self._lconf = LocalConfig()
         self._zctx = zmq.asyncio.Context()
         self._lhsub_socket = create_event_listen_socket(self._zctx)
 
         # Read all the keys that we trust, to verify messages
         # TODO: Implement auto-reloading of valid keys list if directory changes
         self._trusted_keys = {}
-        for keyfname in glob(os.path.join(LocalConfig().trusted_curve_keys_dir, '*')):
+        for keyfname in glob(os.path.join(self._lconf.trusted_curve_keys_dir, '*')):
             signer_id, verify_key = keyfile_read_verify_key(keyfname)
             if signer_id and verify_key:
                 self._trusted_keys[signer_id] = verify_key
@@ -46,10 +51,36 @@ class MailRelay:
         self._mtmpl = MailTemplateLoader()
 
         # set of tags that we will actually send emails for
-        self._handled_tags = set(())
+        self._handled_tags = {'package-upload-accepted', 'package-upload-rejected'}
 
-    async def _send_mail_for(self, tag, data):
-        pass  # TODO
+        # basic template variables
+        self._common_vars = {'project_name': config_get_project_name(), 'from_address': self._conf.mail_origin_address}
+
+    async def _send_mail_for(self, tag, data: T.Dict[str, T.Any]):
+        if tag == 'package-upload-accepted':
+            is_new = data['is_new']
+            if is_new:
+                mail_text = self._mtmpl.render(
+                    'package-new', new_queue_url=self._lconf.new_queue_url, **data, **self._common_vars
+                )
+                self._mail_sender.send(mail_text)
+            else:
+                mail_text = self._mtmpl.render('package-accepted', **data, **self._common_vars)
+                self._mail_sender.send(mail_text)
+
+                # send mail to announcement location, if any is set
+                if self._conf.announce_email:
+                    mail_text = self._mtmpl.render(
+                        'package-accepted-announce',
+                        announce_address=self._conf.announce_email,
+                        **data,
+                        **self._common_vars,
+                    )
+                    self._mail_sender.send(mail_text)
+
+        elif tag == 'package-upload-rejected':
+            mail_text = self._mtmpl.render('package-rejected', **data, **self._common_vars)
+            self._mail_sender.send(mail_text)
 
     async def _on_event_received(self, event):
         tag = event['tag']

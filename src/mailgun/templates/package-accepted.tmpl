@@ -1,0 +1,22 @@
+From: {{from_address}}
+To: {{uploader_email}}
+X-Laniakea-Project: {{project_name}}
+X-Laniakea-Repo: {{repo}}
+X-Laniakea-Package: {{source_name}}
+X-Laniakea-Event: package-accepted
+Precedence: bulk
+Auto-Submitted: auto-generated
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Subject: [{{repo}}] {{upload_name}} ACCEPTED into {{suite_name}}
+
+Accepted {{source_name}} {{source_version}}:
+
+{{changes}}
+
+Files:
+
+{{ files|join('\n    ') }}
+
+Thank you for your contribution to {{project_name}}/{{repo}}!

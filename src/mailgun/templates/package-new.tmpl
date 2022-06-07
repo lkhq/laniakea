@@ -1,0 +1,25 @@
+From: {{from_address}}
+To: {{uploader_email}}
+X-Laniakea-Project: {{project_name}}
+X-Laniakea-Repo: {{repo}}
+X-Laniakea-Package: {{source_name}}
+X-Laniakea-Event: package-queued-new
+Precedence: bulk
+Auto-Submitted: auto-generated
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Subject: [{{repo}}] {{upload_name}} for {{suite_name}} is NEW
+
+Your package has been put into the NEW queue, which means it will require
+a human review to proceed further.
+The upload was otherwise valid (it had a good OpenPGP signature and file
+hashes are valid), so please be patient.
+
+Packages are routinely processed through to the archive, and do feel
+free to browse the NEW queue[1].
+
+If there is an issue with the upload, you will receive an email from a
+member of the review team.
+
+[1]: {{new_queue_url}}

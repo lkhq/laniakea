@@ -1,0 +1,18 @@
+From: {{from_address}}
+To: {{announce_address}}
+X-Laniakea-Project: {{project_name}}
+X-Laniakea-Repo: {{repo}}
+X-Laniakea-Package: {{source_name}}
+X-Laniakea-Event: package-accepted
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Subject: [{{repo}}] Accepted {{source_name}} {{source_version}} into {{suite_name}}
+
+{{changes}}
+
+Accepted:
+
+{{ files|join('\n    ') }}
+
+Thanks to {{uploader_name}} for the contribution.

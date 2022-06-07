@@ -114,6 +114,8 @@ class LocalConfig:
                 'appstream_media_url', 'https://appstream.debian.org/media/pool'
             )
 
+            self._new_queue_url = carchive.get('new_queue_url', 'https://#')
+
             self._data_import_hooks_dir = os.path.join(self._workspace, 'data-import-hooks')
 
             self._lighthouse = LocalConfig.LighthouseConfig()
@@ -193,6 +195,11 @@ class LocalConfig:
         @property
         def archive_appstream_media_url(self) -> str:
             return self._archive_appstream_media_url
+
+        @property
+        def new_queue_url(self) -> str:
+            """URL where a human user can view the archive NEW queue(s)"""
+            return self._new_queue_url
 
         @property
         def data_import_hooks_dir(self) -> T.PathUnion:
