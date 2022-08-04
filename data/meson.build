@@ -28,18 +28,18 @@ endif
 
 if get_option('webgui')
     sd_data = configuration_data()
-    sd_data.set('LKWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/web/')
+    sd_data.set('LKWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/webdash/')
     sd_data.set('LKSWWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/webswview/')
 
-    configure_file(input: 'laniakea-web.service.in',
-                   output: 'laniakea-web.service',
+    configure_file(input: 'laniakea-webdash.service.in',
+                   output: 'laniakea-webdash.service',
                    configuration: sd_data)
 
     configure_file(input: 'laniakea-webswview.service.in',
                    output: 'laniakea-webswview.service',
                    configuration: sd_data)
 
-    install_data(current_build_dir + '/laniakea-web.service',
+    install_data(current_build_dir + '/laniakea-webdash.service',
                  install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 
     install_data(current_build_dir + '/laniakea-webswview.service',

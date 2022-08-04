@@ -1,7 +1,7 @@
 [Unit]
-Description=Laniakea Web GUI
+Description=Laniakea Web Dashboard
 After=syslog.target network.target
-ConditionPathExists=/var/lib/laniakea-web/config.cfg
+ConditionPathExists=/var/lib/laniakea/webdash/config.cfg
 
 [Service]
 Restart=on-failure
@@ -14,7 +14,7 @@ Group=www-data
 WorkingDirectory=@LKWEB_INSTALL_DIR@
 
 RuntimeDirectory=lkweb
-ExecStart=/usr/bin/uwsgi --ini lkweb.ini
+ExecStart=/usr/bin/uwsgi --ini lkwebdash.ini
 
 [Install]
 WantedBy=multi-user.target

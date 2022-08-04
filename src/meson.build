@@ -98,7 +98,7 @@ if (get_option('webgui'))
     endif
 
     # admin & technical overview
-    subdir('web')
+    subdir('webdash')
     # software view
     subdir('webswview')
 endif

@@ -7,13 +7,13 @@
 import os
 
 # Instance folder path
-INSTANCE_FOLDER_PATH = '/var/lib/laniakea-web/'
+INSTANCE_FOLDER_PATH = '/var/lib/laniakea/webdash/'
 
 
 class BaseConfig:
 
     PROJECT = 'Laniakea Web'
-    BUG_REPORT_URL = 'https://github.com/lkorigin/laniakea/issues'
+    BUG_REPORT_URL = 'https://github.com/lkhq/laniakea/issues'
 
     LOG_STORAGE_URL = '/raw/logs'  # web URL where raw logs are stored by Rubicon
 

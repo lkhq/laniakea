@@ -1,7 +1,7 @@
 [Unit]
-Description=Laniakea Web Software View GUI
+Description=Laniakea Web Software View
 After=syslog.target network.target
-ConditionPathExists=/var/lib/laniakea-webswview/config.cfg
+ConditionPathExists=/var/lib/laniakea/webswview/config.cfg
 
 [Service]
 Restart=on-failure
