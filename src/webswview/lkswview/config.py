@@ -10,13 +10,13 @@ from laniakea import LocalConfig
 from laniakea.db import config_get_project_name
 
 # Instance folder path
-INSTANCE_FOLDER_PATH = '/var/lib/laniakea-webswview/'
+INSTANCE_FOLDER_PATH = '/var/lib/laniakea/webswview/'
 
 
 class BaseConfig:
 
     PROJECT = 'Laniakea SWV'
-    BUG_REPORT_URL = 'https://github.com/lkorigin/laniakea/issues'
+    BUG_REPORT_URL = 'https://github.com/lkhq/laniakea/issues'
 
     OS_NAME = config_get_project_name()
 
