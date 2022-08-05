@@ -12,7 +12,7 @@ INSTANCE_FOLDER_PATH = '/var/lib/laniakea/webdash/'
 
 class BaseConfig:
 
-    PROJECT = 'Laniakea Web'
+    PROJECT = 'Laniakea Web Dashboard'
     BUG_REPORT_URL = 'https://github.com/lkhq/laniakea/issues'
 
     LOG_STORAGE_URL = '/raw/logs'  # web URL where raw logs are stored by Rubicon

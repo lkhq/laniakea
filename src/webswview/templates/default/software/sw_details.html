@@ -23,8 +23,8 @@
                 <div class="column-header column is-three-quarters is-three-quarters-mobile">
                     <h1>{{sw.name}}</h1>
                     <h2>{{sw.summary}}</h2>
-                    {% if cpt.get_url(AppStream.UrlKind.HOMEPAGE) %}
-	                <a class="" href="{{cpt.get_url(AppStream.UrlKind.HOMEPAGE)}}">{{ sw.developer_name if sw.developer_name else 'Project\'s homepage' }}</a>
+                    {% if cpt.url_for(AppStream.UrlKind.HOMEPAGE) %}
+	                <a class="" href="{{cpt.url_for(AppStream.UrlKind.HOMEPAGE)}}">{{ sw.developer_name if sw.developer_name else 'Project Homepage' }}</a>
                     {% elif sw.developer_name %}
                         {{sw.developer_name}}
                     {% endif %}
@@ -51,13 +51,13 @@
     <div class="columns is-desktop">
         <div class="column is-three-quarters">
             <div class="screenshots">
-            {% if screenshots %}
+            {% if cpt.screenshots %}
                 {% set nb_visible_screens = 1 %}
-                {% if screenshots|length > 1 %}
+                {% if cpt.screenshots|length > 1 %}
                     {% set nb_visible_screens = 2 %}
                 {% endif %}
 
-                {% for scr in screenshots %}
+                {% for scr in cpt.screenshots %}
                 <img class="size-{{nb_visible_screens}}" src="{{ screenshot_get_orig_image_url(scr) }}" alt="...">
                 {% endfor %}
             {% endif %}

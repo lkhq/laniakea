@@ -18,10 +18,24 @@ from gi.repository import AppStream
 software = Blueprint('software', __name__, url_prefix='/sw')
 
 
-def screenshot_get_orig_image_url(scr):
-    for img in scr.get_images():
-        if img.get_kind() == AppStream.ImageKind.SOURCE:
-            return current_app.config['APPSTREAM_MEDIA_URL'] + '/' + img.get_url()
+class ASComponent:
+    """Helper class to work with raw AppStream data as JSON"""
+
+    def __init__(self, data):
+        self._d = data
+
+    def url_for(self, kind: AppStream.UrlKind):
+        return self._d.get('Url', {}).get(AppStream.url_kind_to_string(kind))
+
+    @property
+    def screenshots(self):
+        return self._d.get('Screenshots', [])
+
+
+def screenshot_get_orig_image_url(scr_data):
+    img = scr_data.get('source-image')
+    if img:
+        return current_app.config['APPSTREAM_MEDIA_URL'] + '/' + img['url']
     return '#'
 
 
@@ -54,12 +68,9 @@ def details(cid):
         # grab the most recent component
         sw = sws[0]
 
-        # parse AppStream metadata
-        # FIXME: Parsing XML is expensive, we can cache this aggressively
-        cpt = sw.load()
-
-        screenshots = cpt.get_screenshots()
-
+        # FIXME: We parse the whole component as JSON here - if this becomes a performance issue,
+        # we could parse less or cache this aggressively
+        cpt = ASComponent(sw.data)
         return render_template(
             'software/sw_details.html',
             AppStream=AppStream,
@@ -69,5 +80,4 @@ def details(cid):
             cpt=cpt,
             component_id=cid,
             packages_map=packages_map,
-            screenshots=screenshots,
         )
