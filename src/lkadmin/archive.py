@@ -4,8 +4,8 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import tomlkit
 import click
+import tomlkit
 
 from laniakea import LocalConfig
 from laniakea.db import (

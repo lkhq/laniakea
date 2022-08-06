@@ -7,6 +7,7 @@
 import os
 import re
 import fcntl
+import collections
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -47,11 +48,15 @@ def cd(where):
 
 def listify(item):
     '''
-    Return a list of :item, unless :item already is a lit.
+    Return a list of :item, unless :item already is a list.
     '''
     if not item:
         return []
-    return item if type(item) == list else [item]
+    if type(item) == list:
+        return item
+    if isinstance(item, collections.abc.Sequence):
+        return list(item)
+    return [item]
 
 
 def stringify(item: T.Any):

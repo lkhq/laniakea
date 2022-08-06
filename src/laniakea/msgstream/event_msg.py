@@ -119,7 +119,7 @@ def create_event_listen_socket(zmq_context, subscribed_tags: list[str] = None):
         subscribed_tags = []
 
     lconf = LocalConfig()
-    publish_server = random.choice(lconf.lighthouse.servers_publish)
+    publish_server: str = random.choice(lconf.lighthouse.servers_publish)
 
     socket = zmq_context.socket(zmq.SUB)
     socket.connect(publish_server)

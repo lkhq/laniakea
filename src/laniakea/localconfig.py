@@ -7,6 +7,7 @@
 import os
 import platform
 from glob import glob
+from dataclasses import field, dataclass
 
 import tomlkit
 
@@ -52,19 +53,20 @@ class LocalConfig:
     Local, machine-specific configuration for a Laniakea module.
     '''
 
+    @dataclass
     class LighthouseConfig:
         '''
         Configuration for a Lighthouse server and/or client.
         The configuration is loaded from a :LocalConfig.
         '''
 
-        endpoints_jobs: list[str] = []
-        endpoints_submit: list[str] = []
-        endpoints_publish: list[str] = []
+        endpoints_jobs: T.List[str] = field(default_factory=list)
+        endpoints_submit: T.List[str] = field(default_factory=list)
+        endpoints_publish: T.List[str] = field(default_factory=list)
 
-        servers_jobs: list[str] = []
-        servers_submit: list[str] = []
-        servers_publish: list[str] = []
+        servers_jobs: T.List[str] = field(default_factory=list)
+        servers_submit: T.List[str] = field(default_factory=list)
+        servers_publish: T.List[str] = field(default_factory=list)
 
     instance = None
 
