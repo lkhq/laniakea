@@ -7,7 +7,7 @@
 import os
 from typing import Any
 
-import toml
+import tomlkit
 
 from laniakea import get_config_file
 
@@ -33,7 +33,7 @@ class MirkConfig:
         cdata = {}
         if os.path.isfile(fname):
             with open(fname) as toml_file:
-                cdata = toml.load(toml_file)
+                cdata = tomlkit.load(toml_file)
 
         self.host = cdata.get('Host', None)
         if not self.host:

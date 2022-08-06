@@ -49,7 +49,7 @@ def localconfig(samples_dir):
     Retrieve a Laniakea LocalConfig object which is set
     up for testing.
     '''
-    import toml
+    import tomlkit
 
     from laniakea.logging import set_verbose
     from laniakea.utils.misc import find_free_port_nr
@@ -68,7 +68,7 @@ def localconfig(samples_dir):
 
     config_tmpl_fname = os.path.join(samples_dir, 'config', 'base-config.toml')
     with open(config_tmpl_fname, 'r') as f:
-        config_toml = toml.load(f)
+        config_toml = tomlkit.load(f)
 
     config_toml['CurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
     config_toml['Archive']['path'] = test_archive_dir
@@ -86,7 +86,7 @@ def localconfig(samples_dir):
 
     config_fname = os.path.join(test_aux_data_dir, 'base-config.toml')
     with open(config_fname, 'w') as f:
-        toml.dump(config_toml, f)
+        tomlkit.dump(config_toml, f)
 
     conf = LocalConfig(config_fname)
     conf = LocalConfig.instance
@@ -223,7 +223,7 @@ def create_database(localconfig, postgresql_container):
     This will wipe the global database, so tests using this can
     never run in parallel.
     '''
-    import toml
+    import tomlkit
 
     from laniakea.db import Database, session_scope
 
@@ -238,11 +238,11 @@ def create_database(localconfig, postgresql_container):
 
     # update the on-disk configuration, we may pass that on to independent modules
     with open(localconfig.fname, 'r') as f:
-        config_toml = toml.load(f)
+        config_toml = tomlkit.load(f)
     config_toml['Database']['host'] = podman_ip
     config_toml['Database']['port'] = db_port
     with open(localconfig.fname, 'w') as f:
-        toml.dump(config_toml, f)
+        tomlkit.dump(config_toml, f)
 
     # create database factory singleton, if it didn't exist yet
     db = Database(localconfig)

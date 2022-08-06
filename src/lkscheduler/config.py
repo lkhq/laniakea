@@ -7,7 +7,7 @@
 import os
 import shutil
 
-import toml
+import tomlkit
 
 import laniakea.typing as T
 from laniakea.localconfig import get_config_file
@@ -27,7 +27,7 @@ class SchedulerConfig:
             cdata = {}
             if fname and os.path.isfile(fname):
                 with open(fname) as toml_file:
-                    cdata = toml.load(toml_file)
+                    cdata = tomlkit.load(toml_file)
 
             cintervals = cdata.get('Intervals', {})
             self._intervals_min = {}

@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import toml
+import tomlkit
 import click
 
 from laniakea import LocalConfig
@@ -518,7 +518,7 @@ def section_add(name: str, summary: str):
 def add_from_config(config_fname):
     '''Add/update all archive settings from a TOML config file.'''
     with open(config_fname, 'r', encoding='utf-8') as f:
-        conf = toml.load(f)
+        conf = tomlkit.load(f)
 
     for repo_d in conf.get('Repositories', []):
         _add_repo(**repo_d)

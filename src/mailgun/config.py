@@ -6,7 +6,7 @@
 
 import os
 
-import toml
+import tomlkit
 
 import laniakea.typing as T
 from laniakea.utils import listify
@@ -27,7 +27,7 @@ class MailgunConfig:
             cdata = {}
             if fname and os.path.isfile(fname):
                 with open(fname) as toml_file:
-                    cdata = toml.load(toml_file)
+                    cdata = tomlkit.load(toml_file)
 
             self._mail_origin_address = listify(cdata.get('MyEmailAddress', 'Dummy UNSET <set_me@example.org>'))
 

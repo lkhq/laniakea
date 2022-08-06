@@ -7,7 +7,7 @@
 import os
 import logging as log
 
-import toml
+import tomlkit
 
 from laniakea import LocalConfig, get_config_file
 
@@ -39,7 +39,7 @@ class RubiConfig:
         cdata = {}
         if os.path.isfile(fname):
             with open(fname) as json_file:
-                cdata = toml.load(json_file)
+                cdata = tomlkit.load(json_file)
 
         self.log_storage_dir = cdata.get('LogStorage', os.path.join(self._lconf.workspace, 'job-logs'))
         if not self.log_storage_dir:

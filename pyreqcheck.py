@@ -25,16 +25,19 @@ except ModuleNotFoundError:
     sys.exit(2)
 
 try:
-    import toml
+    import tomllib as toml
 except ModuleNotFoundError:
-    print(
-        (
-            'Unable to find "toml" Python module. Please install it via '
-            '`apt install python3-toml` or `pip install toml`'
-        ),
-        file=sys.stderr,
-    )
-    sys.exit(2)
+    try:
+        import tomlkit as toml
+    except ModuleNotFoundError:
+        print(
+            (
+                'Unable to find "tomlkit" Python module. Please install it via '
+                '`apt install python3-tomlkit` or `pip install tomlkit`'
+            ),
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
 thisfile = __file__
 if not os.path.isabs(thisfile):

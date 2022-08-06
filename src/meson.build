@@ -88,7 +88,7 @@ if (get_option('webgui'))
     # JS/CSS/etc frontend 3rd-party downloaded code
     if get_option('download-npm')
         npm_exe = find_program('npm')
-        if run_command('[', '-f', 'web/templates/default/static/css/bulma.min.css', ']', check: false).returncode() != 0
+        if run_command('[', '-f', 'webdash/templates/default/static/css/bulma.min.css', ']', check: false).returncode() != 0
             message('Downloading NPM packages for web frontends...')
             getjs_cmd = run_command(py, source_root + '/contrib/npmdeps/fetch_npm.py', npm_exe, check: false)
             if getjs_cmd.returncode() != 0

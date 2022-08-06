@@ -8,7 +8,7 @@ import os
 import platform
 from glob import glob
 
-import toml
+import tomlkit
 
 import laniakea.typing as T
 from laniakea.utils import listify
@@ -79,7 +79,7 @@ class LocalConfig:
             cdata = {}
             if os.path.isfile(fname):
                 with open(fname) as toml_file:
-                    cdata = toml.load(toml_file)
+                    cdata = tomlkit.load(toml_file)
 
             carchive = cdata.get('Archive')
             if not carchive:
@@ -281,7 +281,7 @@ class ExternalToolsUrls:
         cdata = {}
         if os.path.isfile(fname):
             with open(fname) as toml_file:
-                cdata = toml.load(toml_file)
+                cdata = tomlkit.load(toml_file)
 
         cspears = cdata.get('Spears', {})
         self.britney_git_repository = cspears.get(

@@ -13,7 +13,7 @@ python-debian
 pyzmq
 requests
 rich
-toml
+tomlkit
 tornado
 voluptuous
 Flask
