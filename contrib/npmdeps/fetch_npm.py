@@ -22,7 +22,7 @@ node_modules = [
         'name': 'bulma',
         'files': ['css/bulma.min.css'],
         'copy_to': [
-            os.path.join(src_dir, 'web/templates/default/static/css/'),
+            os.path.join(src_dir, 'webdash/templates/default/static/css/'),
             os.path.join(src_dir, 'webswview/templates/default/static/css/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/css/'),
         ],
@@ -31,7 +31,7 @@ node_modules = [
         'name': '@fortawesome/fontawesome-free',
         'files': ['css/fontawesome.min.css', 'css/all.min.css'],
         'copy_to': [
-            os.path.join(src_dir, 'web/templates/default/static/css/fontawesome/'),
+            os.path.join(src_dir, 'webdash/templates/default/static/css/fontawesome/'),
             os.path.join(src_dir, 'webswview/templates/default/static/css/fontawesome/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/css/fontawesome/'),
         ],
@@ -40,7 +40,7 @@ node_modules = [
         'name': '@fortawesome/fontawesome-free',
         'files': ['webfonts/*'],
         'copy_to': [
-            os.path.join(src_dir, 'web/templates/default/static/css/webfonts/'),
+            os.path.join(src_dir, 'webdash/templates/default/static/css/webfonts/'),
             os.path.join(src_dir, 'webswview/templates/default/static/css/webfonts/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/css/webfonts/'),
         ],
@@ -49,7 +49,7 @@ node_modules = [
         'name': '@fontsource/cantarell',
         'files': ['files/*'],
         'copy_to': [
-            os.path.join(src_dir, 'web/templates/default/static/fonts/'),
+            os.path.join(src_dir, 'webdash/templates/default/static/fonts/'),
             os.path.join(src_dir, 'webswview/templates/default/static/fonts/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/fonts/'),
         ],
@@ -58,7 +58,7 @@ node_modules = [
         'name': 'jquery',
         'files': ['dist/jquery.slim.min.js'],
         'copy_to': [
-            os.path.join(src_dir, 'web/templates/default/static/js/jquery/'),
+            os.path.join(src_dir, 'webdash/templates/default/static/js/jquery/'),
             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/js/jquery/'),
