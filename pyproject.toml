@@ -40,7 +40,6 @@ base = [
 ]
 web = [
     'Flask',
-    'Flask-Script',
     'Flask-RESTful',
     'Flask-Caching',
     'Flask-Login',
