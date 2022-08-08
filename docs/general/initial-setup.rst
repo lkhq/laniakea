@@ -15,15 +15,8 @@ installed, install them now;
 .. code-block:: bash
 
     sudo apt install pkg-config meson postgresql libappstream-dev gir1.2-appstream-1.0 ostree flatpak flatpak-builder podman npm
-
-| Install the necessary Python modules and compilers/libraries
-  python3-pytest python3-sqlalchemy python3-alembic
-  python3-flask-caching
-| python3-psycopg2 python-debian python3-zmq python3-yaml flake8
-| python3-systemd python3-firehose python3-humanize python3-marshmallow
-| python3-tornado python3-nacl python-gobject-2 python3-pytest-flask
-| python3-flask python3-flask-script python3-flask-restful
-| gir1.2-appstream-1.0
+    # Install python dependencies 
+    sudo apt install python3-pip python3-setuptools python3-virtualenv python3-pytest python3-gi python3-cairo-dev python3-sqlalchemy python3-alembic python3-psycopg2 python3-nacl python3-debian python3-apt python3-zmq python3-yaml python3-systemd python3-flask python3-flask-restful python3-pytest-flask python3-humanize python3-marshmallow
 
 Build
 -----
