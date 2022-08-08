@@ -13,6 +13,7 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 9:
     sys.exit(2)
 
 try:
+    from packaging import version
     from packaging.requirements import Requirement
 except ModuleNotFoundError:
     print(
@@ -35,6 +36,12 @@ except ModuleNotFoundError:
                 'Unable to find "tomlkit" Python module. Please install it via '
                 '`apt install python3-tomlkit` or `pip install tomlkit`'
             ),
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    if version.parse(toml.__version__) < version.parse('0.8'):
+        print(
+            'Your version of tomlkit is too old. We require at least tomlkit>=0.8',
             file=sys.stderr,
         )
         sys.exit(2)
