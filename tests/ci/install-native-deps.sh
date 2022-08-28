@@ -22,6 +22,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     pkg-config \
     meson \
     systemd \
+    libsystemd-dev \
     postgresql-client \
     apt-utils \
     libappstream-dev \
