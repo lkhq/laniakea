@@ -88,7 +88,7 @@ def download_file(url, fname, check=False, headers: dict = None, **kwargs):
     hdr = {'user-agent': 'laniakea/0.0.1'}
     hdr.update(headers)
 
-    r = requests.get(url, stream=True, headers=hdr, **kwargs)
+    r = requests.get(url, stream=True, headers=hdr, timeout=60, **kwargs)
     if r.status_code == 200:
         with open(fname, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
