@@ -12,10 +12,13 @@ from sqlalchemy import String, cast, func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.dialects.postgresql import ARRAY
 
+import laniakea.typing as T
 from laniakea.db import (
     ArchiveSuite,
+    ArchiveConfig,
     BinaryPackage,
     ArchiveSection,
+    ArchiveRepository,
     SoftwareComponent,
     session_scope,
 )
@@ -95,13 +98,20 @@ def search_software():
         )
 
 
-@portal.route('/suites')
+@portal.route('/repos', defaults={'repo_name': None})
+@portal.route('/repo/<repo_name>')
 @cache.cached(timeout=8400)
-def suites_index():
+def repo_index(repo_name: T.Optional[str] = None):
     with session_scope() as session:
-        suites = session.query(ArchiveSuite).all()
+        if not repo_name:
+            selected_repo = session.query(ArchiveRepository).join(ArchiveConfig.primary_repo).one()
+        else:
+            selected_repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one_or_none()
+        if not selected_repo:
+            abort(404)
+        repos = session.query(ArchiveRepository).order_by(ArchiveRepository.name).all()
 
-        return render_template('suites_index.html', suites=suites)
+        return render_template('repo_index.html', repos=repos, selected_repo=selected_repo)
 
 
 @portal.route('/suite/<suite_name>/sections')

@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Suites' %}
+{% set page_title = 'Repositories & Suites' %}
 
 {% block body_header %}
 
@@ -10,10 +10,10 @@
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.suites_index') }}">Packages</a>
+            <a href="{{ url_for('portal.repo_index') }}">Packages</a>
         </li>
         <li class="breadcrumb-item active" aria-current="page">
-            Suites
+            Repositories
         </li>
     </ol>
 </nav>
@@ -23,8 +23,9 @@
 
 <div class="columns">
     <div class="column">
-        <h1 class="h2">Available suites in {{ config.OS_NAME }}</h1>
+        <h1 class="h2">Available Repositories</h1>
     </div>
+
     <div class="column is-one-quarter-desktop search">
         <form class="form-inline" action="/search_pkg" method="GET">
             <p class="control has-icons-left">
@@ -38,32 +39,50 @@
     </div>
 
 </div>
-<div class="columns is-multiline grid">
 
-{% for suite in suites %}
+<div class="tabs is-centered is-boxed">
+  <ul>
+    {% for repo in repos %}
+      {% if repo.name == selected_repo.name %}
+      <li class="is-active">
+      {% else %}
+      <li>
+      {% endif %}
+          <a href="{{ url_for('portal.repo_index', repo_name=repo.name) }}">
+            <span class="icon is-small"><i class="fa-solid {{ 'fa-bug' if repo.is_debug else 'fa-cubes' }}" aria-hidden="true"></i></span>
+            <span>{{repo.name}}</span>
+          </a>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<h3 class="subtitle is-3">Suites</h3>
+<div class="columns is-multiline grid" style="margin-top: 0;">
+{% for rss in selected_repo.suite_settings %}
     {% set btn_style = 'is-success' %}
-    {% if suite.parent %}
+    {% if rss.suite.parent %}
       {% set btn_style = 'is-white' %}
     {% endif %}
-    {% if suite.accept_uploads %}
+    {% if rss.accept_uploads %}
       {% set btn_style = 'is-info' %}
     {% endif %}
-    {% if suite.devel_target %}
+    {% if rss.devel_target %}
       {% set btn_style = 'is-warning' %}
     {% endif %}
     <div class="column is-one-quarter">
-        <a href="{{ url_for('portal.sections_index', suite_name=suite.name) }}">
+        <a href="{{ url_for('portal.sections_index', suite_name=rss.suite.name) }}">
             <div class="notification {{btn_style}} suite-btn">
 
-                <p><strong>{{suite.name}}</strong></p>
+                <p><strong>{{rss.suite.name}}</strong></p>
                 <p>
-                {% if suite.parent %}
-                    <small>Overlay for {{suite.parent.name}}</small><br/>
+                {% if rss.suite.parent %}
+                    <small>Overlay for {{rss.suite.parent.name}}</small><br/>
                 {% endif %}
-                {% if suite.accept_uploads %}
+                {% if rss.accept_uploads %}
                     <small>Accepts uploads</small><br/>
                 {% endif %}
-                {% if suite.devel_target %}
+                {% if rss.devel_target %}
                     <small>Development target</small><br/>
                 {% endif %}
                 </p>

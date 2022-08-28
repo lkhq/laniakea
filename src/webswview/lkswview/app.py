@@ -11,7 +11,7 @@ from logging.handlers import RotatingFileHandler
 import jinja2
 from flask import Flask, render_template
 
-from .config import INSTANCE_FOLDER_PATH, DefaultConfig
+from .config import INSTANCE_FOLDER_PATH, DebugConfig, DefaultConfig
 from .extensions import cache
 
 # For import *
@@ -46,7 +46,10 @@ def configure_app(app, config=None):
     precedence over others.
     '''
 
-    app.config.from_object(DefaultConfig)
+    if app.debug:
+        app.config.from_object(DebugConfig)
+    else:
+        app.config.from_object(DefaultConfig)
     app.config.from_pyfile('config.cfg', silent=True)
 
     if config:
