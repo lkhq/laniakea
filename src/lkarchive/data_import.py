@@ -36,6 +36,7 @@ from laniakea.archive.manage import (
     copy_binary_package,
     copy_source_package,
     package_mark_delete,
+    remove_binary_package,
 )
 from laniakea.archive.pkgimport import PackageImporter, ArchivePackageExistsError
 
@@ -364,7 +365,7 @@ def _import_repo_into_suite(
                 spkg_dst.suites.append(rss_dest.suite)
             log.info('Processed source: %s/%s', spkg_dst.name, spkg_dst.version)
         else:
-            pi.import_source(dscfile, target_component_name, new_policy=NewPolicy.NEVER_NEW)
+            pi.import_source(dscfile, target_component_name, new_policy=NewPolicy.NEVER_NEW, ignore_version_check=True)
     session.commit()
 
     # import all binary packages
@@ -432,16 +433,30 @@ def _import_repo_into_suite(
                         .one_or_none()
                     )
                     if not override:
-                        log.error(
-                            (
-                                'Override missing unexpectedly: Binary package %s has no associated override in %s:%s, '
-                                'even though it was already imported.'
-                            ),
-                            bpkg_src.name,
-                            rss_dest_real.repo.name,
-                            rss_dest_real.suite.name,
-                        )
-                        return False
+                        # check the corresponding debug suite
+                        if rss_dest_dbg.id != rss_dest.id:
+                            override = (
+                                session.query(PackageOverride)
+                                .filter(
+                                    PackageOverride.repo_suite_id == rss_dest_dbg.id,
+                                    PackageOverride.pkgname == bpkg_src.name,
+                                )
+                                .one_or_none()
+                            )
+                        if not override:
+                            log.error(
+                                (
+                                    'Override missing unexpectedly: Binary package %s has no associated override in %s:%s, '
+                                    'even though it was already imported.'
+                                ),
+                                bpkg_src.name,
+                                rss_dest_real.repo.name,
+                                rss_dest_real.suite.name,
+                            )
+                            if bpkg_src.override.section == 'debug':
+                                continue
+                            else:
+                                return False
             override.repo_suite = rss_dest_real
             override.section = (
                 session.query(ArchiveSection).filter(ArchiveSection.name == bpkg_src.override.section).one_or_none()

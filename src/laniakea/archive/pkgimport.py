@@ -217,6 +217,7 @@ class PackageImporter:
         new_policy: NewPolicy = NewPolicy.DEFAULT,
         error_if_new: bool = False,
         ignore_existing: bool = False,
+        ignore_version_check: bool = False,
     ) -> ImportSourceResult:
         """Import a source package into the given suite or its NEW queue.
 
@@ -258,10 +259,11 @@ class PackageImporter:
         if result:
             if ignore_existing:
                 return ImportSourceResult(None, False)
-            raise ArchiveImportError(
-                'Unable to import package "{}": '
-                'We have already seen higher version "{}" in this repository before.'.format(pkgname, result)
-            )
+            if not ignore_version_check:
+                raise ArchiveImportError(
+                    'Unable to import package "{}": '
+                    'We have already seen higher version "{}" in this repository before.'.format(pkgname, result)
+                )
 
         if not component_name:
             raise ArchiveImportError('Unable to import source package without explicit component name.')
@@ -631,8 +633,8 @@ class PackageImporter:
                 bpkg.source = nq_entry.package
             if not bpkg.source:
                 raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}`: Could not find corresponding source package.'.format(
-                        pkgname, version
+                    'Unable to import binary package `{}/{}/{}`: Could not find corresponding source package.'.format(
+                        pkgname, version, pkgarch
                     )
                 )
             self._session.expunge(bpkg)
