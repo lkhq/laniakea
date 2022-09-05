@@ -150,7 +150,7 @@ def write_requirements(all_dependencies):
                     if version == '0.0.0':
                         version = None
                 if version and not is_tests:
-                    if req.name == 'PyGObject':
+                    if req.name in ('PyGObject', 'systemd-python'):
                         f.write('{}\n'.format(req.name))
                     elif req.specifier:
                         f.write('{}{}\n'.format(req.name, str(req.specifier)))
