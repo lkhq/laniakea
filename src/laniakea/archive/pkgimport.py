@@ -312,8 +312,8 @@ class PackageImporter:
         spkg_dsc_text = src_tf.pop('Description', None)
         if spkg_dsc_text:
             # some source packages actually have a description text
-            bpkg.description = spkg_dsc_text
-            bpkg.summary = spkg_dsc_text.split('\n', 1)[0].strip()
+            spkg.description = spkg_dsc_text
+            spkg.summary = spkg_dsc_text.split('\n', 1)[0].strip()
 
         spkg.testsuite = pop_split(src_tf, 'Testsuite', ',')
         spkg.testsuite_triggers = pop_split(src_tf, 'Testsuite-Triggers', ',')
