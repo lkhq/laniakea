@@ -730,17 +730,23 @@ class SourcePackage(Base):
     vcs_browser = Column(Text(), nullable=True)  # VCS browser URL
     vcs_git = Column(Text(), nullable=True)  # Git repository URL
 
+    summary = Column(Text(), nullable=True)
+    description = Column(Text(), nullable=True)
+
     testsuite = Column(ARRAY(String(100)))  # list of testsuite types this package contains
     testsuite_triggers = Column(ARRAY(String(200)))  # list of package names that trigger the testsuite
 
     # value for how important it is to upgrade to this package version from previous ones
     changes_urgency = Column(Enum(ChangesUrgency), default=ChangesUrgency.MEDIUM)
 
+    # see https://www.debian.org/doc/debian-policy/ch-relationships.html
     build_depends = Column(ARRAY(Text()))
     build_depends_indep = Column(ARRAY(Text()))
+    build_depends_arch = Column(ARRAY(Text()))
 
     build_conflicts = Column(ARRAY(Text()))
     build_conflicts_indep = Column(ARRAY(Text()))
+    build_conflicts_arch = Column(ARRAY(Text()))
 
     directory = Column(Text(), nullable=False)  # pool directory name for the sources
     files = relationship(
@@ -946,8 +952,12 @@ class BinaryPackage(Base):
     breaks = Column(ARRAY(Text()))
 
     built_using = Column(ARRAY(Text()))
+    static_built_using = Column(ARRAY(Text()))
+
+    build_ids = Column(ARRAY(Text()))
 
     maintainer = Column(Text())
+    original_maintainer = Column(Text(), nullable=True)
     homepage = Column(Text())
 
     multi_arch = Column(CHAR(32))

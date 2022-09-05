@@ -256,8 +256,10 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
 
         set_deb822_value(entry, 'Build-Depends', ', '.join(spkg.build_depends))
         set_deb822_value(entry, 'Build-Depends-Indep', ', '.join(spkg.build_depends_indep))
+        set_deb822_value(entry, 'Build-Depends-Arch', ', '.join(spkg.build_depends_arch))
         set_deb822_value(entry, 'Build-Conflicts', ', '.join(spkg.build_conflicts))
         set_deb822_value(entry, 'Build-Conflicts-Indep', ', '.join(spkg.build_conflicts_indep))
+        set_deb822_value(entry, 'Build-Conflicts-Arch', ', '.join(spkg.build_conflicts_arch))
 
         set_deb822_value(entry, 'Testsuite', ', '.join(spkg.testsuite))
         set_deb822_value(entry, 'Testsuite-Triggers', ', '.join(spkg.testsuite_triggers))
@@ -331,6 +333,7 @@ def generate_packages_index(
         set_deb822_value(entry, 'Source', source_info)
         set_deb822_value(entry, 'Version', bpkg.version)
         set_deb822_value(entry, 'Maintainer', bpkg.maintainer)
+        set_deb822_value(entry, 'Original-Maintainer', bpkg.original_maintainer)
         set_deb822_value(entry, 'Description', bpkg.summary)
         set_deb822_value(entry, 'Description-md5', bpkg.description_md5)
         set_deb822_value(entry, 'Homepage', bpkg.homepage)
@@ -348,6 +351,9 @@ def generate_packages_index(
         set_deb822_value(entry, 'Conflicts', ', '.join(bpkg.conflicts))
         set_deb822_value(entry, 'Breaks', ', '.join(bpkg.breaks))
         set_deb822_value(entry, 'Built-Using', ', '.join(bpkg.built_using))
+        set_deb822_value(entry, 'Static-Built-Using', ', '.join(bpkg.static_built_using))
+        set_deb822_value(entry, 'Build-Ids', ' '.join(bpkg.build_ids))
+
         if bpkg.size_installed > 0:
             set_deb822_value(entry, 'Installed-Size', str(bpkg.size_installed))
         set_deb822_value(entry, 'Size', str(bpkg.bin_file.size))

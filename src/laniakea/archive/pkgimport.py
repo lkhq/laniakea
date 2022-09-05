@@ -309,13 +309,21 @@ class PackageImporter:
         spkg.vcs_browser = src_tf.pop('Vcs-Browser', None)
         spkg.vcs_git = src_tf.pop('Vcs-Git', None)
 
+        spkg_dsc_text = src_tf.pop('Description', None)
+        if spkg_dsc_text:
+            # some source packages actually have a description text
+            bpkg.description = spkg_dsc_text
+            bpkg.summary = spkg_dsc_text.split('\n', 1)[0].strip()
+
         spkg.testsuite = pop_split(src_tf, 'Testsuite', ',')
         spkg.testsuite_triggers = pop_split(src_tf, 'Testsuite-Triggers', ',')
 
         spkg.build_depends = pop_split(src_tf, 'Build-Depends', ',')
         spkg.build_depends_indep = pop_split(src_tf, 'Build-Depends-Indep', ',')
+        spkg.build_depends_arch = pop_split(src_tf, 'Build-Depends-Arch', ',')
         spkg.build_conflicts = pop_split(src_tf, 'Build-Conflicts', ',')
         spkg.build_conflicts_indep = pop_split(src_tf, 'Build-Conflicts-Indep', ',')
+        spkg.build_conflicts_arch = pop_split(src_tf, 'Build-Conflicts-Arch', ',')
         if 'Package-List' in src_tf:
             spkg.expected_binaries = parse_package_list_str(src_tf.pop('Package-List'))
             src_tf.pop('Binary')
@@ -578,6 +586,7 @@ class PackageImporter:
 
         bpkg.deb_type = pkg_type
         bpkg.maintainer = bin_tf.pop('Maintainer')
+        bpkg.original_maintainer = bin_tf.pop('Original-Maintainer', None)
         bpkg.homepage = bin_tf.pop('Homepage', None)
         bpkg.size_installed = int(bin_tf.pop('Installed-Size', '0'))
         bpkg.time_added = datetime.utcnow()
@@ -722,6 +731,8 @@ class PackageImporter:
         bpkg.breaks = pop_split(bin_tf, 'Breaks', ',')
 
         bpkg.built_using = pop_split(bin_tf, 'Built-Using', ',')
+        bpkg.static_built_using = pop_split(bin_tf, 'Static-Built-Using', ',')
+        bpkg.build_ids = pop_split(bin_tf, 'Build-Ids', ' ')
         bpkg.multi_arch = bin_tf.pop('Multi-Arch', None)
 
         # add to target suite
