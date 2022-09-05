@@ -36,7 +36,6 @@ from laniakea.archive.manage import (
     copy_binary_package,
     copy_source_package,
     package_mark_delete,
-    remove_binary_package,
 )
 from laniakea.archive.pkgimport import PackageImporter, ArchivePackageExistsError
 
