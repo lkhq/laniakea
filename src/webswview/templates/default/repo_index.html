@@ -71,7 +71,7 @@
       {% set btn_style = 'is-warning' %}
     {% endif %}
     <div class="column is-one-quarter">
-        <a href="{{ url_for('portal.sections_index', suite_name=rss.suite.name) }}">
+        <a href="{{ url_for('portal.sections_index', repo_name=selected_repo.name, suite_name=rss.suite.name) }}">
             <div class="notification {{btn_style}} suite-btn">
 
                 <p><strong>{{rss.suite.name}}</strong></p>

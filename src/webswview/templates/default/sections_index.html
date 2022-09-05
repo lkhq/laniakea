@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Sections in ' + suite.name %}
+{% set page_title = 'Sections in ' + repo_suite.suite.name %}
 
 {% block body_header %}
 
@@ -10,10 +10,13 @@
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.suites_index') }}">Packages</a>
+            <a href="{{ url_for('portal.repo_index') }}">Packages</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.repo_index', repo_name=repo_suite.repo.name) }}">{{repo_suite.repo.name}}</a>
         </li>
         <li class="breadcrumb-item active" aria-current="page">
-            {{suite.name}}
+            {{repo_suite.suite.name}}
         </li>
     </ol>
 </nav>
@@ -23,7 +26,7 @@
 
 <div class="columns">
     <div class="column">
-        <h1 class="h2">Sections in {{suite.name}}</h1>
+        <h1 class="h2">Sections in {{repo_suite.suite.name}}</h1>
     </div>
     <div class="column is-one-quarter-desktop search">
         <form class="form-inline" action="/search_pkg" method="GET">
@@ -42,7 +45,11 @@
 
     {% for section in sections %}
     <div class="column is-one-third">
-        <a href="{{ url_for('portal.section_view', suite_name=suite.name, section_name=section.name, page=1) }}" class="card-link">
+        <a href="{{ url_for('portal.section_view',
+                            repo_name=repo_suite.repo.name,
+                            suite_name=repo_suite.suite.name,
+                            section_name=section.name,
+                            page=1) }}" class="card-link">
         <div class="container category-item">
             <strong>{{section.name}}</strong><br/>
             <span>{{section.summary}}</span>

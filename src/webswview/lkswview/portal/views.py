@@ -18,10 +18,12 @@ from laniakea.db import (
     ArchiveConfig,
     BinaryPackage,
     ArchiveSection,
+    PackageOverride,
     ArchiveRepository,
     SoftwareComponent,
     session_scope,
 )
+from laniakea.archive import repo_suite_settings_for
 
 from ..extensions import cache
 
@@ -114,31 +116,33 @@ def repo_index(repo_name: T.Optional[str] = None):
         return render_template('repo_index.html', repos=repos, selected_repo=selected_repo)
 
 
-@portal.route('/suite/<suite_name>/sections')
+@portal.route('/<repo_name>/<suite_name>/sections')
 @cache.cached(timeout=8400)
-def sections_index(suite_name):
+def sections_index(repo_name, suite_name):
     with session_scope() as session:
-        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
-        if not suite:
+        rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
+        if not rss:
             abort(404)
 
         sections = session.query(ArchiveSection).order_by(ArchiveSection.name).all()
-        return render_template('sections_index.html', suite=suite, sections=sections)
+        return render_template('sections_index.html', repo_suite=rss, sections=sections)
 
 
-@portal.route('/suite/<suite_name>/<section_name>/<int:page>')
+@portal.route('/<repo_name>/<suite_name>/<section_name>/<int:page>')
 @cache.cached(timeout=3600)
-def section_view(suite_name, section_name, page):
+def section_view(repo_name, suite_name, section_name, page):
     with session_scope() as session:
-        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
-        if not suite:
+        rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
+        if not rss:
             abort(404)
 
         pkgs_per_page = 50
         pkg_query = (
             session.query(BinaryPackage)
-            .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id))
-            .filter(BinaryPackage.section == section_name)
+            .join(PackageOverride)
+            .filter(BinaryPackage.repo_id == rss.repo_id)
+            .filter(BinaryPackage.suites.any(ArchiveSuite.id == rss.suite_id))
+            .filter(PackageOverride.section.has(name=section_name))
             .distinct(BinaryPackage.name, BinaryPackage.version)
             .order_by(BinaryPackage.name)
         )
@@ -154,7 +158,7 @@ def section_view(suite_name, section_name, page):
         return render_template(
             'section_view.html',
             section_name=section_name,
-            suite=suite,
+            repo_suite=rss,
             packages=packages,
             pkgs_per_page=pkgs_per_page,
             pkgs_total=pkgs_total,

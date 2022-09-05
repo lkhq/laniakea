@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Section %s in %s (%s)'|format(section_name, suite.name, current_page) %}
+{% set page_title = 'Section %s in %s:%s (%s)'|format(section_name, repo_suite.repo.name, repo_suite.suite.name, current_page) %}
 
 {% block body_header %}
 
@@ -10,10 +10,13 @@
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.suites_index') }}">Packages</a>
+            <a href="{{ url_for('portal.repo_index') }}">Packages</a>
         </li>
         <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.sections_index', suite_name=suite.name) }}">{{suite.name}}</a>
+            <a href="{{ url_for('portal.repo_index', repo_name=repo_suite.repo.name) }}">{{repo_suite.repo.name}}</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('portal.sections_index', repo_name=repo_suite.repo.name, suite_name=repo_suite.suite.name) }}">{{repo_suite.suite.name}}</a>
         </li>
         <li class="breadcrumb-item active" aria-current="page">
             {{section_name}}
@@ -26,7 +29,7 @@
 
 <div class="columns">
     <div class="column">
-        <h2>Contents of section "{{section_name}}" in suite "{{suite.name}}"</h2>
+        <h2>Contents of section "{{section_name}}" in suite "{{repo_suite.suite.name}}"</h2>
     </div>
     <div class="column is-one-quarter-desktop search">
         <form class="form-inline" action="/search_pkg" method="GET">
@@ -50,12 +53,12 @@
 <div class="package-items">
     {% for p in packages %}
     <div>
-        <a class="border-box" href="{{ url_for('packages.bin_package_details', suite_name=suite.name, name=p.name) }}">
+        <a class="border-box" href="{{ url_for('packages.bin_package_details', suite_name=repo_suite.suite.name, name=p.name) }}">
 
             <div class="columns is-mobile">
                 <div class="column">
                     <strong>{{p.name}}</strong>
-                    <p>{{p.description}}</p>
+                    <p>{{p.summary}}</p>
                 </div>
                 <div class="column is-narrow">
                     {% if p.component.is_primary() %}
@@ -79,12 +82,23 @@
 
 {% if page_count > 1 %}
 <nav class="pagination is-centered" role="navigation" aria-label="pagination">
-    <a class="pagination-previous" href="{{ url_for('portal.section_view', suite_name=suite.name, section_name=section_name, page=current_page-1) if current_page > 1 else '#'}}">Previous</a>
-    <a class="pagination-next" href="{{ url_for('portal.section_view', suite_name=suite.name, section_name=section_name, page=current_page+1) if current_page < page_count else '#'}}">Next page</a>
+    <a class="pagination-previous" href="{{ url_for('portal.section_view',
+                                                     repo_name=repo_suite.repo.name,
+                                                     suite_name=repo_suite.suite.name,
+                                                     section_name=section_name,
+                                                     page=current_page-1) if current_page > 1 else '#'}}">Previous</a>
+    <a class="pagination-next" href="{{ url_for('portal.section_view',
+                                                repo_name=repo_suite.repo.name,
+                                                suite_name=repo_suite.suite.name,
+                                                section_name=section_name,
+                                                page=current_page+1) if current_page < page_count else '#'}}">Next page</a>
 
     <ul class="pagination-list">
         <li>
-            <a class="pagination-link {{'is-current' if 1 == current_page }}" href="{{ url_for('portal.section_view', suite_name=suite.name, section_name=section_name, page=1) }}">1</a>
+            <a class="pagination-link {{'is-current' if 1 == current_page }}" href="{{ url_for('portal.section_view',
+                                                                                               repo_name=repo_suite.repo.name,
+                                                                                               suite_name=repo_suite.suite.name,
+                                                                                               section_name=section_name, page=1) }}">1</a>
         </li>
 
         {% if page_count > 7 and current_page > 3 %}
@@ -95,7 +109,10 @@
             {% if page_count < 8 or i < current_page + 2 and i > current_page - 2 or current_page < 4 and i < 6 or current_page > page_count - 3 and i > page_count - 5 %}
 
             <li>
-                <a class="pagination-link {{'is-current' if i == current_page }}" href="{{ url_for('portal.section_view', suite_name=suite.name, section_name=section_name, page=i) }}">{{i}}</a>
+                <a class="pagination-link {{'is-current' if i == current_page }}" href="{{ url_for('portal.section_view',
+                                                                                                    repo_name=repo_suite.repo.name,
+                                                                                                    suite_name=repo_suite.suite.name,
+                                                                                                    section_name=section_name, page=i) }}">{{i}}</a>
             </li>
 
             {% endif %}
@@ -107,7 +124,11 @@
 
 
         <li>
-            <a class="pagination-link {{'is-current' if page_count == current_page }}" href="{{ url_for('portal.section_view', suite_name=suite.name, section_name=section_name, page=page_count) }}">{{page_count}}</a>
+            <a class="pagination-link {{'is-current' if page_count == current_page }}" href="{{ url_for('portal.section_view',
+                                                                                                         repo_name=repo_suite.repo.name,
+                                                                                                         suite_name=repo_suite.suite.name,
+                                                                                                         section_name=section_name,
+                                                                                                         page=page_count) }}">{{page_count}}</a>
         </li>
     </ul>
 </nav>
