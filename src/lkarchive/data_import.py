@@ -18,6 +18,7 @@ import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import (
     NewPolicy,
+    PackageInfo,
     ArchiveSuite,
     BinaryPackage,
     SourcePackage,
@@ -345,7 +346,7 @@ def _import_repo_into_suite(
 
         # we need to register overrides based on the source package info first, as
         # the dsc file may not contain sufficient data to auto-create them
-        register_package_overrides(session, rss_dest, spkg_src.expected_binaries)
+        register_package_overrides(session, rss_dest, spkg_src.expected_binaries, allow_invalid_section=True)
 
         spkg_dst = (
             session.query(SourcePackage)
@@ -410,16 +411,37 @@ def _import_repo_into_suite(
                     .one_or_none()
                 )
                 if not override:
-                    log.error(
-                        (
-                            'Override missing unexpectedly: Binary package %s has no associated override in %s:%s, '
-                            'even though it was already imported.'
-                        ),
-                        bpkg_src.name,
-                        rss_dest_real.repo.name,
-                        rss_dest_real.suite.name,
+                    # If we are importing a repository with older packages (e.g. Debian's), we may not have set
+                    # all the overrides correctly from source packages.
+                    # So we cheat and add a new override based on the binary override data (will not work for debug
+                    # packages, in which case we'll simply fail)
+                    pinfo = PackageInfo(
+                        deb_type=bpkg_src.deb_type,
+                        name=bpkg_src.name,
+                        version=bpkg_src.version,
+                        component=src_component.name,
+                        section=bpkg_src.override.section,
+                        essential=bpkg_src.override.essential,
+                        priority=bpkg_src.override.priority,
+                        architectures=[arch.name],
                     )
-                    return False
+                    register_package_overrides(session, rss_dest, [pinfo])
+                    override = (
+                        session.query(PackageOverride)
+                        .filter(PackageOverride.repo_suite_id == rss_dest.id, PackageOverride.pkgname == bpkg_src.name)
+                        .one_or_none()
+                    )
+                    if not override:
+                        log.error(
+                            (
+                                'Override missing unexpectedly: Binary package %s has no associated override in %s:%s, '
+                                'even though it was already imported.'
+                            ),
+                            bpkg_src.name,
+                            rss_dest_real.repo.name,
+                            rss_dest_real.suite.name,
+                        )
+                        return False
             override.repo_suite = rss_dest_real
             override.section = (
                 session.query(ArchiveSection).filter(ArchiveSection.name == bpkg_src.override.section).one_or_none()

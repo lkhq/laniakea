@@ -212,12 +212,15 @@ def find_latest_source_package(session, rss: ArchiveRepoSuiteSettings, pkgname: 
     return spkg
 
 
-def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides: T.List[PackageInfo]):
+def register_package_overrides(
+    session, rss: ArchiveRepoSuiteSettings, overrides: T.List[PackageInfo], *, allow_invalid_section=False
+):
     """Add selected overrides to the repository-suite combination they belong to.
 
     :param session: SQLAlchemy session
     :param rss: RepoSuiteSettings to add the overrides to.
     :param overrides: List of overrides to add.
+    :param allow_invalid_section: Allow invalid overrides (will be converted to "misc")
     """
 
     rss_dbg = None
@@ -241,12 +244,17 @@ def register_package_overrides(session, rss: ArchiveRepoSuiteSettings, overrides
             override.repo_suite = real_rss
             override.pkgname = pi.name
             session.add(override)
+
         override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one()
         override.section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one_or_none()
         if not override.section:
-            raise ValueError(
-                'Archive section `{}` does not exist, even though `{}` thinks it does.'.format(pi.section, pi.name)
-            )
+            if allow_invalid_section:
+                # we just throw a package with a bad section into "misc"
+                override.section = session.query(ArchiveSection).filter(ArchiveSection.name == 'misc').one_or_none()
+            else:
+                raise ValueError(
+                    'Archive section `{}` does not exist, even though `{}` thinks it does.'.format(pi.section, pi.name)
+                )
         override.essential = pi.essential
         override.priority = pi.priority
 

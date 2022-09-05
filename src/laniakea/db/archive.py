@@ -11,6 +11,7 @@ import uuid
 import typing as T
 from pathlib import Path
 from datetime import datetime
+from dataclasses import dataclass
 
 from sqlalchemy import (
     Enum,
@@ -22,6 +23,7 @@ from sqlalchemy import (
     Boolean,
     Integer,
     DateTime,
+    BigInteger,
     ForeignKey,
     SmallInteger,
     UniqueConstraint,
@@ -629,6 +631,7 @@ class ChangesUrgency(enum.Enum):
         return ChangesUrgency.UNKNOWN
 
 
+@dataclass
 class PackageInfo:
     """
     Basic package information, used by
@@ -659,7 +662,7 @@ class ArchiveFile(Base):
     repo = relationship('ArchiveRepository')
 
     fname = Column(Text(), nullable=False)
-    size = Column(Integer())  # the size of the file
+    size = Column(BigInteger())  # the size of the file
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this file was created
 
     md5sum = Column(CHAR(32))  # the files' MD5 checksum
@@ -925,9 +928,9 @@ class BinaryPackage(Base):
     time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive
     time_deleted = Column(DateTime(), nullable=True)  # Time when this package was deleted from the archive
 
-    size_installed = Column(Integer())  # Size of the installed package
+    size_installed = Column(BigInteger())  # Size of the installed package
 
-    summary = Column(String(200))
+    summary = Column(Text())
     description = Column(Text())
     description_md5 = Column(CHAR(32))
 
