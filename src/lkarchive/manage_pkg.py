@@ -54,7 +54,7 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
             spkg_q = spkg_q.filter(SourcePackage.repo.has(name=repo_name))
         if suite_name:
             spkg_q = spkg_q.filter(SourcePackage.suite.has(name=suite_name))
-        spkgs = spkg_q.all()
+        spkgs = spkg_q.order_by(SourcePackage.name.desc(), SourcePackage.version.desc()).all()
 
         # find binary packages
         bpkg_q = session.query(BinaryPackage).filter(BinaryPackage.name.like(term_q))
@@ -62,7 +62,7 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
             bpkg_q = spkg_q.filter(BinaryPackage.repo.has(name=repo_name))
         if suite_name:
             bpkg_q = spkg_q.filter(BinaryPackage.suite.has(name=suite_name))
-        bpkgs = bpkg_q.all()
+        bpkgs = bpkg_q.order_by(BinaryPackage.name.desc(), BinaryPackage.version.desc()).all()
 
         if not spkgs and not bpkgs:
             click.echo('Nothing found.', err=True)
@@ -85,14 +85,27 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
                 spkg.component.name,
                 'source',
             )
+
+        bpkg_by_arch = {}
         for bpkg in bpkgs:
+            bpkid = '{}:{}/{}-{}'.format(bpkg.repo.name, bpkg.component.name, bpkg.name, bpkg.version)
+            if bpkid in bpkg_by_arch:
+                bpkg_by_arch[bpkid]['archs'].add(bpkg.architecture.name)
+                bpkg_by_arch[bpkid]['suites'].update([s.name for s in bpkg.suites])
+            else:
+                bpkg_by_arch[bpkid] = dict(
+                    bpkg=bpkg, archs={bpkg.architecture.name}, suites=set([s.name for s in bpkg.suites])
+                )
+
+        for data in bpkg_by_arch.values():
+            bpkg = data['bpkg']
             table.add_row(
                 bpkg.name,
                 bpkg.version,
                 bpkg.repo.name,
-                ' '.join([s.name for s in bpkg.suites]),
+                ' '.join(data['suites']),
                 bpkg.component.name,
-                bpkg.architecture.name,
+                ' '.join(data['archs']),
             )
 
         console = Console()
