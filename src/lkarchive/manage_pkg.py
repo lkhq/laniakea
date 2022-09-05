@@ -86,7 +86,7 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
                 'source',
             )
 
-        bpkg_by_arch = {}
+        bpkg_by_arch: T.Dict[str, T.Any] = {}
         for bpkg in bpkgs:
             bpkid = '{}:{}/{}-{}'.format(bpkg.repo.name, bpkg.component.name, bpkg.name, bpkg.version)
             if bpkid in bpkg_by_arch:
