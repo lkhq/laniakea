@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Source package ' + pkg.name + '/' + pkg.version %}
+{% set page_title = 'Source package ' + pkg.name + '/' + pkg.version + ' in ' + pkg_suite.name + ' @ ' + pkg_repo.name %}
 
 {% block body_header %}
 {% endblock %}
@@ -18,12 +18,15 @@
     <div class="column is-one-quarter">
         <aside class="menu">
             <p class="menu-label">
-                Suites
+                Suites in {{pkg_repo.name}}
             </p>
             <ul class="menu-list">
             {% for suite_name in suites %}
                 <li>
-                    <a class="{{ 'is-active' if suite_name == pkg_suite_name }}" href="{{ url_for('packages.src_package_details', suite_name=suite_name, name=pkg.name) }}">{{suite_name}}</a>
+                    <a class="{{ 'is-active' if suite_name == pkg_suite.name }}" href="{{ url_for('packages.src_package_details',
+                                                                                                   repo_name=pkg_repo.name,
+                                                                                                   suite_name=suite_name,
+                                                                                                   name=pkg.name) }}">{{suite_name}}</a>
                 </li>
             {% endfor %}
             </ul>
@@ -52,22 +55,21 @@
             </div>
         </div>
 
-
-        <b>Versions in {{pkg_suite_name}}:</b> {{ pkgs_all|join(', ', attribute='version') }}
-        <br/>&nbsp;<br/>
-        <b>Maintainer:</b> {{pkg.maintainer}}
+        <b>Versions in {{pkg_suite.name}}:</b> {{ pkgs_all|join(', ', attribute='version') }}
+        <br/>
+        <b>Maintainer:</b> {{pkg.maintainer.replace('@', ' [꩜] ')}}
         <br/>
         {% if pkg.uploaders %}
         <b>Uploaders:</b>
         <div class="content">
             <ul>
               {% for id in pkg.uploaders %}
-                <li>{{id}}</li>
+                <li>{{id.replace('@', ' [꩜] ')}}</li>
               {% endfor %}
             </ul>
         </div>
         {% else %}
-        <br/>&nbsp;<br/>
+        <br/>
         {% endif %}
         <b>Format:</b> {{pkg.format_version}}
         <br/>
@@ -97,7 +99,7 @@
         {% if migration_infos %}
         {% for info in migration_infos %}
         <article class="message {{ 'is-danger' if info.stuck else 'is-warning' }}" role="alert">
-            {% if info.target == pkg_suite_name %}
+            {% if info.target == pkg_suite.name %}
               {% if info.stuck %}
                 Version {{ info.version_new }} fails to migrate to this suite from <strong>{{ info.source }}</strong>.
                 <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Check why</a>.
@@ -135,7 +137,7 @@
         <div class="content">
             <ul>
             {% for dep in pkg.build_depends %}
-                <li>{{ make_linked_dependency(pkg_suite_name, dep)|safe }}</li>
+                <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
             {% endfor %}
             </ul>
         </div>

@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Binary package ' + pkg.name + '/' + pkg.version + ' in ' + pkg_suite_name %}
+{% set page_title = 'Binary package ' + pkg.name + '/' + pkg.version + ' in ' + pkg_suite.name + ' @ ' + pkg_repo.name %}
 
 {% block body_header %}
 {% endblock %}
@@ -17,11 +17,14 @@
     <div class="column is-one-quarter">
         <aside class="menu">
             <p class="menu-label">
-                Suites
+                Suites in {{pkg_repo.name}}
             </p>
             <ul class="menu-list">
             {% for suite_name in suites %}
-                <li><a class="{{ 'is-active' if suite_name == pkg_suite_name }}" href="{{ url_for('packages.bin_package_details', suite_name=suite_name, name=pkg.name) }}">{{suite_name}}</a></li>
+                <li><a class="{{ 'is-active' if suite_name == pkg_suite.name }}" href="{{ url_for('packages.bin_package_details',
+                                                                                                   repo_name=pkg_repo.name,
+                                                                                                   suite_name=suite_name,
+                                                                                                   name=pkg.name) }}">{{suite_name}}</a></li>
             {% endfor %}
             </ul>
         </aside>
@@ -35,7 +38,7 @@
                     <span class="badge {{component_badge_style}}">{{pkg.component.name}}</span>
                 </small>
             </h2>
-        <p>{{pkg.description}}</p>
+        <p>{{pkg_description|safe}}</p>
             </div>
             <div class="column is-one-quarter-desktop search">
                 <form class="form-inline" action="/search_pkg" method="GET">
@@ -49,16 +52,21 @@
                 </form>
             </div>
         </div>
-        <b>Section:</b> {{pkg.section}}
+        <b>Priority:</b> {{PackagePriority.to_string(pkg.override.priority)}}
+        <br/>
+        <b>Section:</b> {{pkg.override.section.name}}
         <br/>
         <b>Suites:</b> {% for s in suites %}<span class="badge badge-pill badge-info">{{s}}</span>&nbsp;{% endfor %}
         <br/>
-        <b>Maintainer:</b> {{pkg.maintainer}}
+        <b>Maintainer:</b> {{pkg.maintainer.replace('@', ' [꩜] ')}}
         <br/>&nbsp;<br/>
         {% if pkg.homepage %}
         <a class="button" href="{{pkg.homepage}}" role="button">Homepage</a>
         {% endif %}
-        <a class="button" href="{{ url_for('packages.src_package_details', suite_name=pkg_suite_name, name=pkg.source_name) }}" role="button">Source Package</a>
+        <a class="button" href="{{ url_for('packages.src_package_details',
+                                           repo_name=pkg_repo.name,
+                                           suite_name=pkg_suite.name,
+                                           name=pkg.source.name) }}" role="button">Source Package</a>
         <br/>&nbsp;<br/>
 
         {% if dep_issues %}
@@ -71,7 +79,7 @@
             <div class="content">
                 <ul class="mb-0">
                 {% for m in issue.missing %}
-                  <li>{{ link_for_bin_package_id(pkg_suite_name, m.unsat_dependency)|safe }}</li>
+                  <li>{{ link_for_bin_package_id(pkg_repo, pkg_suite, m.unsat_dependency)|safe }}</li>
                 {% endfor %}
                 </ul>
             </div>
@@ -80,7 +88,7 @@
             {% if issue.conflicts %}
             <h6 class="mt-2 pl-2"><small class="fas fa-fist-raised"></small> Conflicts <small class="text-muted"><i class="fas fa-microchip"></i> {{issue.architectures|join(', ')}}</small></h6>
             {% for c in issue.conflicts %}
-              <h7 class="pl-3">{{ link_for_bin_package_id(pkg_suite_name, c.pkg1.package_name)|safe }} vs. {{ link_for_bin_package_id(pkg_suite_name, c.pkg2.package_name)|safe }}</h7>
+              <h7 class="pl-3">{{ link_for_bin_package_id(pkg_repo, pkg_suite, c.pkg1.package_name)|safe }} vs. {{ link_for_bin_package_id(pkg_repo, pkg_suite, c.pkg2.package_name)|safe }}</h7>
             {% endfor %}
             {% endif %}
         {% endfor %}
@@ -92,7 +100,7 @@
         <div class="content">
             <ul>
             {% for dep in pkg.pre_depends %}
-                <li>{{ make_linked_dependency(pkg_suite_name, dep)|safe }}</li>
+                <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
             {% endfor %}
             </ul>
         </div>
@@ -103,7 +111,7 @@
         <div class="content">
             <ul>
             {% for dep in pkg.depends %}
-                <li>{{ make_linked_dependency(pkg_suite_name, dep)|safe }}</li>
+                <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
             {% endfor %}
             </ul>
         </div>

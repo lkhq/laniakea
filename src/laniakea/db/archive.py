@@ -1012,9 +1012,9 @@ class BinaryPackage(Base):
         return '{}:{}/{}/{}'.format(repo_name, self.name, self.version, arch_name)
 
 
-# index to speed up data imports, where packages belonging to a certain repository/arch combination
-# are requested frequently
-bin_package_repo_arch_index = Index('idx_bin_package_repo_arch', BinaryPackage.repo_id, BinaryPackage.architecture_id)
+# Index to speed up data exports, where packages belonging to a certain repository/arch
+# combination are requested.
+pkgs_binary_repo_arch_index = Index('idx_pkgs_binary_repo_arch', BinaryPackage.repo_id, BinaryPackage.architecture_id)
 
 
 class SoftwareComponent(Base):

@@ -8,7 +8,6 @@ import math
 
 import humanize
 from flask import Blueprint, abort, url_for, current_app, render_template
-from sqlalchemy import or_
 from sqlalchemy.orm import undefer, joinedload
 
 from laniakea.db import (
@@ -22,10 +21,15 @@ from laniakea.db import (
     BinaryPackage,
     DebcheckIssue,
     SourcePackage,
+    PackagePriority,
+    ArchiveRepository,
     ArchiveArchitecture,
+    SpearsMigrationTask,
+    ArchiveRepoSuiteSettings,
     session_scope,
 )
 from laniakea.utils import get_dir_shorthand_for_uuid
+from laniakea.archive import repo_suite_settings_for
 
 from ..utils import is_uuid, humanized_timediff
 from ..extensions import cache
@@ -34,23 +38,38 @@ packages = Blueprint('packages', __name__, url_prefix='/package')
 
 
 @cache.memoize(1800)
-def make_linked_dependency(suite_name, depstr):
+def make_linked_dependency(repo: ArchiveRepository, suite: ArchiveSuite, depstr: str):
     if not depstr:
         return depstr
     deps = [d.strip() for d in depstr.split('|')]
 
     dep_urls = []
-    for dep in deps:
-        parts = dep.split(' ', 1)
-        pkgname = parts[0]
-        versioning = parts[1].strip() if len(parts) > 1 else ''
+    with session_scope() as session:
+        for dep in deps:
+            parts = dep.split(' ', 1)
+            pkgname = parts[0]
+            versioning = parts[1].strip() if len(parts) > 1 else ''
 
-        url = '<a href="{url}">{pkgname}</a> {versioning}'.format(
-            url=url_for('packages.bin_package_details', suite_name=suite_name, name=pkgname),
-            pkgname=pkgname,
-            versioning=versioning,
-        )
-        dep_urls.append(url)
+            exq = (
+                session.query(BinaryPackage)
+                .filter(BinaryPackage.repo.has(id=repo.id))
+                .filter(BinaryPackage.name == pkgname)
+                .exists()
+            )
+            if session.query(exq).scalar():
+                url = '<a href="{url}">{pkgname}</a> {versioning}'.format(
+                    url=url_for(
+                        'packages.bin_package_details', repo_name=repo.name, suite_name=suite.name, name=pkgname
+                    ),
+                    pkgname=pkgname,
+                    versioning=versioning,
+                )
+            else:
+                url = '{pkgname} {versioning}'.format(
+                    pkgname=pkgname,
+                    versioning=versioning,
+                )
+            dep_urls.append(url)
 
     return ' | '.join(dep_urls)
 
@@ -70,7 +89,7 @@ def all_architectures():
 
 
 @cache.memoize(1800)
-def link_for_bin_package_id(suite_name, pkgstr):
+def link_for_bin_package_id(repo_name: str, suite_name: str, pkgstr: str):
     if not pkgstr:
         return pkgstr
     parts = pkgstr.split(':', 1)
@@ -78,18 +97,21 @@ def link_for_bin_package_id(suite_name, pkgstr):
     extra = parts[1].strip() if len(parts) > 1 else ''
 
     url = '<a href="{url}">{pkgname}</a> {extra}'.format(
-        url=url_for('packages.bin_package_details', suite_name=suite_name, name=pkgname), pkgname=pkgname, extra=extra
+        url=url_for('packages.bin_package_details', repo_name=repo_name, suite_name=suite_name, name=pkgname),
+        pkgname=pkgname,
+        extra=extra,
     )
     return url
 
 
 @cache.memoize(600)
-def architectures_with_issues_for_spkg(suite, spkg):
+def architectures_with_issues_for_spkg(rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
     with session_scope() as session:
         results = (
             session.query(DebcheckIssue.architectures.distinct())
             .filter(DebcheckIssue.package_type == PackageType.SOURCE)
-            .filter(DebcheckIssue.suite_id == suite.id)
+            .filter(DebcheckIssue.repo_id == rss.repo_id)
+            .filter(DebcheckIssue.suite_id == rss.suite_id)
             .filter(DebcheckIssue.package_name == spkg.name)
             .filter(DebcheckIssue.package_version == spkg.version)
             .all()
@@ -101,43 +123,52 @@ def architectures_with_issues_for_spkg(suite, spkg):
 
 
 @cache.memoize(600)
-def migration_excuse_info(spkg, suite_name):
+def migration_excuse_info(rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
     with session_scope() as session:
+        smtask = (
+            session.query(SpearsMigrationTask)
+            .filter(SpearsMigrationTask.source_suites.any(ArchiveSuite.id == rss.suite_id))
+            .filter(SpearsMigrationTask.target_suite.has(id=rss.suite_id))
+            .first()
+        )
+        if not smtask:
+            return []
         qres = (
             session.query(
                 SpearsExcuse.uuid,
                 SpearsExcuse.version_new,
-                SpearsExcuse.suite_source,
-                SpearsExcuse.suite_target,
                 SpearsExcuse.age_current,
                 SpearsExcuse.age_required,
             )
-            .filter(
-                or_(
-                    SpearsExcuse.suite_source == suite_name,
-                    SpearsExcuse.suite_target == suite_name,
-                )
-            )
-            .filter(SpearsExcuse.source_package == spkg.name)
+            .filter(SpearsExcuse.source_package_id == spkg.uuid)
+            .filter(SpearsExcuse.migration_id == smtask.id)
             .all()
         )
         if not qres:
             return []
         infos = []
         for e in qres:
-            if e[4] is None:
+            if e[2] is None:
                 continue
-            stuck = e[4] >= e[5]
-            infos.append({'uuid': e[0], 'version_new': e[1], 'source': e[2], 'target': e[3], 'stuck': stuck})
+            stuck = e[2] >= e[3]
+            infos.append(
+                {
+                    'uuid': e[0],
+                    'version_new': e[1],
+                    'source': '×'.join([s.name for s in smtask.source_suites]),
+                    'target': smtask.target_suite.name,
+                    'stuck': stuck,
+                }
+            )
         return infos
 
 
-@packages.route('/bin/<suite_name>/<name>')
+@packages.route('/bin/<repo_name>/<suite_name>/<name>')
 @cache.cached(timeout=120)
-def bin_package_details(suite_name, name):
+def bin_package_details(repo_name, suite_name, name):
     with session_scope() as session:
-        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
-        if not suite:
+        rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
+        if not rss:
             abort(404)
 
         bpkgs = (
@@ -146,7 +177,8 @@ def bin_package_details(suite_name, name):
             .options(joinedload(BinaryPackage.bin_file))
             .options(undefer(BinaryPackage.version))
             .filter(BinaryPackage.name == name)
-            .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id))
+            .filter(BinaryPackage.repo_id == rss.repo_id)
+            .filter(BinaryPackage.suites.any(ArchiveSuite.id == rss.suite_id))
             .order_by(BinaryPackage.version.desc())
             .all()
         )
@@ -157,6 +189,7 @@ def bin_package_details(suite_name, name):
             s[0]
             for s in session.query(ArchiveSuite.name.distinct())
             .filter(ArchiveSuite.pkgs_binary.any(BinaryPackage.name == name))
+            .filter(ArchiveSuite.pkgs_binary.any(BinaryPackage.repo_id == rss.repo_id))
             .all()
         ]
 
@@ -170,7 +203,8 @@ def bin_package_details(suite_name, name):
         dep_issues = (
             session.query(DebcheckIssue)
             .filter(DebcheckIssue.package_type == PackageType.BINARY)
-            .filter(DebcheckIssue.suite_id == suite.id)
+            .filter(DebcheckIssue.repo_id == rss.repo_id)
+            .filter(DebcheckIssue.suite_id == rss.suite_id)
             .filter(DebcheckIssue.package_name == bpkg_rep.name)
             .filter(DebcheckIssue.package_version == bpkg_rep.version)
             .all()
@@ -179,29 +213,33 @@ def bin_package_details(suite_name, name):
         return render_template(
             'packages/bin_details.html',
             pkg=bpkg_rep,
+            pkg_description=bpkg_rep.description.split('\n', 1)[1].replace('\n', '<br/>'),
             pkgs_all=bpkgs,
-            pkg_suite_name=suite_name,
+            pkg_repo=rss.repo,
+            pkg_suite=rss.suite,
             suites=suites,
             architectures=architectures,
             dep_issues=dep_issues,
             naturalsize=humanize.naturalsize,
             make_linked_dependency=make_linked_dependency,
             link_for_bin_package_id=link_for_bin_package_id,
+            PackagePriority=PackagePriority,
         )
 
 
-@packages.route('/src/<suite_name>/<name>')
+@packages.route('/src/<repo_name>/<suite_name>/<name>')
 @cache.cached(timeout=120)
-def src_package_details(suite_name, name):
+def src_package_details(repo_name, suite_name, name):
     with session_scope() as session:
-        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
-        if not suite:
+        rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
+        if not rss:
             abort(404)
 
         spkgs = (
             session.query(SourcePackage)
             .options(undefer(SourcePackage.version))
-            .filter(SourcePackage.suites.any(ArchiveSuite.id == suite.id))
+            .filter(SourcePackage.repo_id == rss.repo_id)
+            .filter(SourcePackage.suites.any(ArchiveSuite.id == rss.suite_id))
             .filter(SourcePackage.name == name)
             .order_by(SourcePackage.version.desc())
             .all()
@@ -217,14 +255,15 @@ def src_package_details(suite_name, name):
         ]
         spkg_rep = spkgs[0]  # the first package is always the most recent one
 
-        broken_archs = architectures_with_issues_for_spkg(suite, spkg_rep)
-        migration_infos = migration_excuse_info(spkg_rep, suite_name)
+        broken_archs = architectures_with_issues_for_spkg(rss, spkg_rep)
+        migration_infos = migration_excuse_info(rss, spkg_rep)
 
         return render_template(
             'packages/src_details.html',
             pkg=spkg_rep,
             pkgs_all=spkgs,
-            pkg_suite_name=suite_name,
+            pkg_repo=rss.repo,
+            pkg_suite=rss.suite,
             suites=suites,
             broken_archs=broken_archs,
             migration_infos=migration_infos,

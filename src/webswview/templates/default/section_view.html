@@ -53,7 +53,10 @@
 <div class="package-items">
     {% for p in packages %}
     <div>
-        <a class="border-box" href="{{ url_for('packages.bin_package_details', suite_name=repo_suite.suite.name, name=p.name) }}">
+        <a class="border-box" href="{{ url_for('packages.bin_package_details',
+                                               repo_name=repo_suite.repo.name,
+                                               suite_name=repo_suite.suite.name,
+                                               name=p.name) }}">
 
             <div class="columns is-mobile">
                 <div class="column">
