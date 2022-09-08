@@ -94,9 +94,22 @@ class RepoFileInfo:
         return self.fname == other.fname
 
 
-def set_deb822_value(entry: Deb822, key: str, value: str):
+def set_deb822_value(entry: Deb822, key: str, value: T.Optional[str]):
+    """Optionally set a DEB822 string value."""
     if value:
         entry[key] = value
+
+
+def set_deb822_value_commalist(entry: Deb822, key: str, value: T.Optional[T.Iterable[str]]):
+    """Optionally set a DEB822 value and format it as comma-separated list"""
+    if value:
+        entry[key] = ', '.join(value)
+
+
+def set_deb822_value_spacelist(entry: Deb822, key: str, value: T.Optional[T.Iterable[str]]):
+    """Optionally set a DEB822 value and format it as space-separated list"""
+    if value:
+        entry[key] = ' '.join(value)
 
 
 def write_compressed_files(root_path: T.PathUnion, subdir: str, basename: str, data: str) -> T.List[RepoFileInfo]:
@@ -243,9 +256,9 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
         set_deb822_value(entry, 'Binary', ', '.join([b.name for b in spkg.expected_binaries]))
         set_deb822_value(entry, 'Maintainer', spkg.maintainer)
         set_deb822_value(entry, 'Original-Maintainer', spkg.original_maintainer)
-        set_deb822_value(entry, 'Uploaders', ', '.join(spkg.uploaders))
+        set_deb822_value_commalist(entry, 'Uploaders', spkg.uploaders)
 
-        set_deb822_value(entry, 'Architecture', ', '.join(spkg.architectures))
+        set_deb822_value_commalist(entry, 'Architecture', spkg.architectures)
         set_deb822_value(entry, 'Format', spkg.format_version)
         set_deb822_value(entry, 'Standards-Version', spkg.standards_version)
 
@@ -254,15 +267,15 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
         set_deb822_value(entry, 'Vcs-Browser', spkg.vcs_browser)
         set_deb822_value(entry, 'Vcs-Git', spkg.vcs_git)
 
-        set_deb822_value(entry, 'Build-Depends', ', '.join(spkg.build_depends))
-        set_deb822_value(entry, 'Build-Depends-Indep', ', '.join(spkg.build_depends_indep))
-        set_deb822_value(entry, 'Build-Depends-Arch', ', '.join(spkg.build_depends_arch))
-        set_deb822_value(entry, 'Build-Conflicts', ', '.join(spkg.build_conflicts))
-        set_deb822_value(entry, 'Build-Conflicts-Indep', ', '.join(spkg.build_conflicts_indep))
-        set_deb822_value(entry, 'Build-Conflicts-Arch', ', '.join(spkg.build_conflicts_arch))
+        set_deb822_value_commalist(entry, 'Build-Depends', spkg.build_depends)
+        set_deb822_value_commalist(entry, 'Build-Depends-Indep', spkg.build_depends_indep)
+        set_deb822_value_commalist(entry, 'Build-Depends-Arch', spkg.build_depends_arch)
+        set_deb822_value_commalist(entry, 'Build-Conflicts', spkg.build_conflicts)
+        set_deb822_value_commalist(entry, 'Build-Conflicts-Indep', spkg.build_conflicts_indep)
+        set_deb822_value_commalist(entry, 'Build-Conflicts-Arch', spkg.build_conflicts_arch)
 
-        set_deb822_value(entry, 'Testsuite', ', '.join(spkg.testsuite))
-        set_deb822_value(entry, 'Testsuite-Triggers', ', '.join(spkg.testsuite_triggers))
+        set_deb822_value_commalist(entry, 'Testsuite', spkg.testsuite)
+        set_deb822_value_commalist(entry, 'Testsuite-Triggers', spkg.testsuite_triggers)
 
         set_deb822_value(entry, 'Directory', spkg.directory)
         cs_data = []
@@ -341,18 +354,18 @@ def generate_packages_index(
         set_deb822_value(entry, 'Multi-Arch', bpkg.multi_arch)
         set_deb822_value(entry, 'Section', bpkg.override.section.name)
         set_deb822_value(entry, 'Priority', str(bpkg.override.priority))
-        set_deb822_value(entry, 'Pre-Depends', ', '.join(bpkg.pre_depends))
-        set_deb822_value(entry, 'Depends', ', '.join(bpkg.depends))
-        set_deb822_value(entry, 'Replaces', ', '.join(bpkg.replaces))
-        set_deb822_value(entry, 'Provides', ', '.join(bpkg.provides))
-        set_deb822_value(entry, 'Recommends', ', '.join(bpkg.recommends))
-        set_deb822_value(entry, 'Suggests', ', '.join(bpkg.suggests))
-        set_deb822_value(entry, 'Enhances', ', '.join(bpkg.enhances))
-        set_deb822_value(entry, 'Conflicts', ', '.join(bpkg.conflicts))
-        set_deb822_value(entry, 'Breaks', ', '.join(bpkg.breaks))
-        set_deb822_value(entry, 'Built-Using', ', '.join(bpkg.built_using))
-        set_deb822_value(entry, 'Static-Built-Using', ', '.join(bpkg.static_built_using))
-        set_deb822_value(entry, 'Build-Ids', ' '.join(bpkg.build_ids))
+        set_deb822_value_commalist(entry, 'Pre-Depends', bpkg.pre_depends)
+        set_deb822_value_commalist(entry, 'Depends', bpkg.depends)
+        set_deb822_value_commalist(entry, 'Replaces', bpkg.replaces)
+        set_deb822_value_commalist(entry, 'Provides', bpkg.provides)
+        set_deb822_value_commalist(entry, 'Recommends', bpkg.recommends)
+        set_deb822_value_commalist(entry, 'Suggests', bpkg.suggests)
+        set_deb822_value_commalist(entry, 'Enhances', bpkg.enhances)
+        set_deb822_value_commalist(entry, 'Conflicts', bpkg.conflicts)
+        set_deb822_value_commalist(entry, 'Breaks', bpkg.breaks)
+        set_deb822_value_commalist(entry, 'Built-Using', bpkg.built_using)
+        set_deb822_value_commalist(entry, 'Static-Built-Using', bpkg.static_built_using)
+        set_deb822_value_spacelist(entry, 'Build-Ids', bpkg.build_ids)
 
         if bpkg.size_installed > 0:
             set_deb822_value(entry, 'Installed-Size', str(bpkg.size_installed))
