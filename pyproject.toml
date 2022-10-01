@@ -2,13 +2,15 @@
 name = "laniakea"
 description = "Suite of tools to manage a Debian-based Linux distribution."
 authors = [
-    "Matthias Klumpp <matthias@tenstral.net>"
+    {name = "Matthias Klumpp", email = "matthias@tenstral.net"},
 ]
-license = "LGPL-3.0-or-later"
+license = {text="LGPL-3.0-or-later"}
 readme = "README.md"
-python = "^3.6"
-homepage = "https://github.com/lkorigin/laniakea"
-repository = "https://github.com/lkorigin/laniakea"
+requires-python = ">=3.9"
+
+[project.urls]
+Documentation = "https://github.com/lkhq/laniakea"
+Source = "https://github.com/lkhq/laniakea"
 
 [build-system]
 requires = ["meson"]
