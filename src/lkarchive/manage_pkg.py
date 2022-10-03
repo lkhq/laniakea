@@ -46,7 +46,7 @@ from laniakea.archive.manage import expire_superseded, copy_source_package
 def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
     """List repository packages."""
 
-    term_q = '%' + term + '%'
+    term_q = term.replace('*', '%')
     with session_scope() as session:
         # find source packages
         spkg_q = session.query(SourcePackage).filter(SourcePackage.name.like(term_q))
