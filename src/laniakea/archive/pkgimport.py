@@ -931,7 +931,7 @@ class UploadHandler:
                 # verify checksum
                 # validate hashes mentioned in the changes file
                 try:
-                    verify_hashes(file, fname_src)
+                    verify_hashes(file, fname_dst)
                 except HashVerifyError as e:
                     hash_issues.append(e)
 

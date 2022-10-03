@@ -27,9 +27,9 @@ def safe_move_rejected_upload(conf: RubiConfig, changes_fname: T.PathUnion) -> T
         changes = parse_changes(changes_fname, require_signature=False)
         files = changes.files
         for file in files.values():
-            safe_rename(
-                os.path.join(changes_basedir, file.fname), os.path.join(conf.rejected_dir, file.fname), override=True
-            )
+            fname = os.path.join(changes_basedir, file.fname)
+            if os.path.exists(fname):
+                safe_rename(fname, os.path.join(conf.rejected_dir, file.fname), override=True)
         safe_rename(changes_fname, os.path.join(conf.rejected_dir, os.path.basename(changes_fname)), override=True)
     except Exception as move_e:
         return str(move_e)
@@ -44,6 +44,7 @@ def handle_package_upload(
     '''
 
     reject_info_fname = os.path.join(conf.rejected_dir, Path(changes_fname).stem + '.reason')
+    os.makedirs(conf.rejected_dir, exist_ok=True)
     uh = UploadHandler(session, repo, event_emitter)
     uh.keep_source_packages = False
     uh.auto_emit_reject = False

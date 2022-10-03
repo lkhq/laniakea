@@ -79,9 +79,10 @@ def configure_blueprints(app):
     from .osimages import osimages
     from .overview import overview
     from .migrations import migrations
+    from .review_queues import review_queues
     from .synchronization import synchronization
 
-    blueprints = [api, migrations, overview, synchronization, jobs, osimages, depcheck]
+    blueprints = [api, migrations, overview, synchronization, jobs, osimages, depcheck, review_queues]
 
     for bp in blueprints:
         app.register_blueprint(bp)

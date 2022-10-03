@@ -104,10 +104,16 @@ class ArchiveRepository(Base):
         return os.path.join(LocalConfig().archive_root_dir, self.name)
 
     def get_new_queue_dir(self) -> str:
-        """Get the absolute path to the repository's root directory"""
+        """Get the absolute path to the repository's NEW queue directory"""
         from laniakea import LocalConfig
 
         return os.path.join(LocalConfig().archive_queue_dir, self.name, 'new')
+
+    def get_new_queue_url(self) -> str:
+        """Get the web URL to the repository's NEW queue"""
+        from laniakea import LocalConfig
+
+        return os.path.join(LocalConfig().archive_queue_url, self.name, 'new')
 
 
 suite_component_assoc_table = Table(

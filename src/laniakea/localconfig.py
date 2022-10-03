@@ -116,7 +116,7 @@ class LocalConfig:
                 'appstream_media_url', 'https://appstream.debian.org/media/pool'
             )
 
-            self._new_queue_url = carchive.get('new_queue_url', 'https://#')
+            self._archive_queue_url = carchive.get('archive_queue_url', 'https://#')
 
             self._data_import_hooks_dir = os.path.join(self._workspace, 'data-import-hooks')
 
@@ -187,6 +187,11 @@ class LocalConfig:
             return self._archive_queue_dir
 
         @property
+        def archive_queue_url(self) -> str:
+            """URL where a human user can view the archive queue(s), like the NEW queue"""
+            return self._archive_queue_url
+
+        @property
         def archive_flatpak_root_dir(self) -> str:
             return os.path.join(self._archive_root_dir, 'flatpak')
 
@@ -197,11 +202,6 @@ class LocalConfig:
         @property
         def archive_appstream_media_url(self) -> str:
             return self._archive_appstream_media_url
-
-        @property
-        def new_queue_url(self) -> str:
-            """URL where a human user can view the archive NEW queue(s)"""
-            return self._new_queue_url
 
         @property
         def data_import_hooks_dir(self) -> T.PathUnion:

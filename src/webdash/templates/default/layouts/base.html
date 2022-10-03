@@ -76,6 +76,11 @@
                     </a></li>
 
                     <li><a><i class="fas fa-seedling"></i> Package Seeds</a></li>
+
+                    <li><a class="{{'is-active' if active_menu == 'reviewqueues' }}" href="{{ url_for('review_queues.index') }}">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                        Review Queues
+                    </a></li>
                 </ul>
 
 		<p class="menu-label">

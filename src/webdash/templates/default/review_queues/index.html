@@ -1,0 +1,56 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'reviewqueues' %}
+{% set page_title = 'Review Queues' %}
+
+{% block breadcrumbs %}
+<nav class="pt-3" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('overview.index') }}">Home</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            <a href="{{ url_for('review_queues.index') }}">Review Queues</a>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block body_header %}
+<h1 class="title">Review Queues</h1>
+{% endblock %}
+
+{% block body %}
+
+<div class="columns is-mobile">
+    <div class="column is-8">
+
+      {% for queue in new_queues %}
+      <h4 class="title is-4 pt-4">NEW queue for {{queue.rss.repo.name}}/{{queue.rss.suite.name}}</h4>
+
+        {% if not queue.entries %}
+        <article class="message is-success mb-1">
+            <div class="message-header">
+                <p><span class="fa fa-check" aria-hidden="true"></span> This queue is empty!</p>
+            </div>
+        </article>
+        {% else %}
+
+        {% for entry in queue.entries %}
+        <div class="card {{item_style}}">
+        <header class="card-header">
+            <div class="card-header-title has-text-weight-semibold">
+                <a class="has-text-black" href="{{ entry.url }}">{{entry.spkg.name}} {{entry.spkg.version}} ↠ {{entry.info.destination.name}}/{{entry.spkg.component.name}}</a>
+
+                <span class="tag is-rounded is-light"><i class="fas fa-microchip"></i>&nbsp;{{entry.spkg.architectures|join(' ')}}</span>
+                <span class="tag is-rounded is-light is-link"><i class="fas fa-star-of-life"></i>&nbsp;{{humanized_timediff(entry.spkg.time_added)}}</span>
+            </div>
+        </header>
+        </div>
+        {% endfor %}
+
+        {% endif %}
+      {% endfor %}
+    </div>
+</div>
+{% endblock %}
