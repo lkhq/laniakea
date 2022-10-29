@@ -36,7 +36,7 @@ base = [
     'PyNaCl',
     'systemd-python',
     'click>=7.1',
-    'rich>=9.0',
+    'rich>=8.0',
     'voluptuous',
     'gir:AppStream~=1.0',
 ]
