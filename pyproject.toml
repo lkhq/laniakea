@@ -17,7 +17,7 @@ requires = ["meson"]
 
 [tool.laniakea.dependencies]
 base = [
-    'SQLAlchemy',
+    'SQLAlchemy>=1.4',
     'alembic',
     'psycopg2>=2.7.7',
     'python-debian',
