@@ -64,12 +64,16 @@ def _register_commands():
 def run(mainfile, args):
     from rich.traceback import install
 
+    from laniakea.utils.misc import ensure_laniakea_master_user
+
     if len(args) == 0:
         print('Need a subcommand to proceed!')
         sys.exit(1)
 
     global __mainfile
     __mainfile = mainfile
+
+    ensure_laniakea_master_user(warn_only=True)
 
     install(show_locals=True, suppress=[click])
     _register_commands()

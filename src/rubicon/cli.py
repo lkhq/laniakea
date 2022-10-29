@@ -41,6 +41,8 @@ def create_parser():
 
 
 def run(mainfile, args):
+    from laniakea.utils.misc import ensure_laniakea_master_user
+
     global __mainfile
     __mainfile = mainfile
 
@@ -48,4 +50,6 @@ def run(mainfile, args):
 
     args = parser.parse_args(args)
     check_print_version(args)
+
+    ensure_laniakea_master_user(warn_only=True)
     import_files(args)

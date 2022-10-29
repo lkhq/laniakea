@@ -6,6 +6,7 @@
 
 import os
 import re
+import sys
 import fcntl
 import collections
 from datetime import datetime
@@ -14,6 +15,7 @@ from contextlib import contextmanager
 import requests
 
 import laniakea.typing as T
+from laniakea.logging import log
 
 
 def get_dir_shorthand_for_uuid(uuid):
@@ -184,3 +186,36 @@ def find_free_port_nr():
         s.bind(('', 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
+
+
+def ensure_laniakea_master_user(warn_only: bool = False):
+    """
+    Ensure we are running as Laniakea's "lkmaster" user.
+    In case we are root, we try to switch to that user automatically, otherwise we exist
+    immediately and ask the user to run the current command again as the proper user.
+    """
+    import pwd
+    import shutil
+
+    from laniakea.localconfig import LocalConfig
+
+    current_username = pwd.getpwuid(os.getuid())[0]
+    master_username = LocalConfig().master_user_name
+    if current_username == master_username:
+        return
+
+    if os.geteuid() == 0 and shutil.which('sudo'):
+        os.execvp("sudo", ["sudo"] + sys.argv)
+    else:
+        from rich.console import Console
+
+        error_console = Console(stderr=True)
+        if warn_only:
+            error_console.print(
+                '[bold red]IMPORTANT[/]: Running command as user "{}" instead of the expected "{}" user.'.format(
+                    current_username, master_username
+                )
+            )
+        else:
+            error_console.print('[bold red]ERROR[/]: This command has to be run as user "{}".'.format(master_username))
+            sys.exit(6)

@@ -95,7 +95,11 @@ class LocalConfig:
                     'No "Workspace" directory set in local config file. Please specify a persistent workspace location!'
                 )
 
+            # location for various temporary caches that can be deleted at any time
             self._cache_dir = cdata.get('CacheLocation', '/var/tmp/laniakea')
+
+            # the user we run most (archive) commands as
+            self._master_user_name = cdata.get('MasterUserName', 'lkmaster')
 
             jdb = cdata.get('Database', {})
             db_host = jdb.get('host', 'localhost')
@@ -172,6 +176,11 @@ class LocalConfig:
         @property
         def database_url(self) -> str:
             return self._database_url
+
+        @property
+        def master_user_name(self) -> str:
+            """The name of the user we run most (archive) commands as."""
+            return self._master_user_name
 
         @property
         def master_repo_name(self) -> str:
