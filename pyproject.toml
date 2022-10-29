@@ -64,7 +64,7 @@ docs = [
     'Sphinx>=3.4',
     'Pygments>=2.6',
     'sphinx-autodoc-typehints',
-    'sphinxawesome-theme',
+    'piccolo-theme>=0.14',
 ]
 
 [tool.pylint.master]

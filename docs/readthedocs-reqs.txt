@@ -20,9 +20,8 @@ Flask
 Flask-Caching
 Flask-Login
 Flask-RESTful
-Flask-Script
 mautrix
 Pygments
 Sphinx
+piccolo-theme
 sphinx-autodoc-typehints
-sphinxawesome-theme
