@@ -320,14 +320,9 @@ class ArchiveSuite(Base):
     parents = relationship(
         'ArchiveSuite',
         secondary=suite_parents_assoc_table,
-        foreign_keys=[suite_parents_assoc_table.c.parent_suite_id],
-        back_populates='overlays',
-    )
-    overlays = relationship(
-        'ArchiveSuite',
-        secondary=suite_parents_assoc_table,
-        foreign_keys=[suite_parents_assoc_table.c.suite_id],
-        back_populates='parents',
+        primaryjoin=id == suite_parents_assoc_table.c.suite_id,
+        secondaryjoin=id == suite_parents_assoc_table.c.parent_suite_id,
+        backref='overlays',
     )
 
     pkgs_source = relationship('SourcePackage', secondary=srcpkg_suite_assoc_table, back_populates='suites')
