@@ -93,7 +93,8 @@ You will need to add some system users for Laniakea services to use:
 .. code-block:: bash
 
     # generic user for various administrative tasks, e.g. archive creation & management
-    sudo adduser --system --disabled-login --disabled-password --no-create-home lkmaster
+    # NOTE: This user needs a HOME directory, mostly because of GnuPG silliness
+    sudo adduser --system --disabled-login --disabled-password lkmaster
     # user for the "Lighthouse" message relay service & job distribution system
     sudo adduser --system --disabled-login --disabled-password --no-create-home lklighthouse
     # user for web services as well as the Matrix bot
