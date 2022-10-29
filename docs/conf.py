@@ -19,7 +19,7 @@ if not os.path.isabs(thisfile):
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', 'src')))
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 
-html_theme = 'sphinxawesome_theme'
+html_theme = 'piccolo_theme'
 html_theme_options = {"show_prev_next": True}
 
 extensions = [
