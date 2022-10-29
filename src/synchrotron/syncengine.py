@@ -149,8 +149,8 @@ class SyncEngine:
 
         if not dscfile:
             log.error(
-                'Critical consistency error: Source package {} in repository {} has no .dsc file.'.format(
-                    spkg.name, self._source_repo.base_dir
+                'Critical consistency error: Source package {}/{} in repository {} has no .dsc file.'.format(
+                    spkg.name, spkg.version, self._source_repo.base_dir
                 )
             )
             return False

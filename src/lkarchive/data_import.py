@@ -338,8 +338,8 @@ def _import_repo_into_suite(
 
         if not dscfile:
             log.error(
-                'Critical consistency error: Source package {} in repository {} has no .dsc file.'.format(
-                    spkg_src.name, spkg_src.base_dir
+                'Critical consistency error: Source package {}/{} in repository {} has no .dsc file.'.format(
+                    spkg_src.name, spkg_src.version, src_repo.base_dir
                 )
             )
             return False
