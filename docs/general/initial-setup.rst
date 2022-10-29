@@ -28,8 +28,8 @@ If you want to use the web-based GUI, you will also need these modules installed
 
 .. code-block:: bash
 
-    sudo apt install python3-flask python3-flask-caching \
-                     python3-flask-restful python3-flask-login npm
+    sudo apt install python3-flask python3-flask-restful python3-flask-login npm
+    sudo pip install Flask-Caching
 
 If you want to use the Matrix bot, you will need Mautrix:
 
@@ -135,7 +135,29 @@ Now set some elemental settings using an interactive shell wizard:
 Package Archive Setup
 ---------------------
 
-TODO
+To set up a new Debian package archive with multiple repositories, check out the commands that
+``lk-admin archive`` provides:
+
+.. code-block:: shell-session
+
+    $ lk-admin archive --help
+
+You can run the individual, interactive commands to first add a new repository to the archive, add suites,
+add architectures, associate suites and repositories etc.
+You can also decide instead of going the interactive route, to create your configuration as a TOML file
+and have ``lk-admin`` import it to apply your configuration.
+The TOML file format follows the CLI arguments of ``lk-admin archive`` you can find an example
+in the Laniakea testsuite as `archive-config.toml <https://github.com/lkhq/laniakea/blob/master/tests/test_data/config/archive-config.toml>`__.
+
+You can import your own file like this to set up your archive configuration:
+
+.. code-block:: shell-session
+
+    $ lk-admin archive add-from-config ./archive-config.toml
+
+This action, if run multiple times, should not add suites multiple times, it will however override existing
+properties of suites with the same time.
+Deleting suites, architectures or repositories is currently not possible.
 
 Autobuilder Setup
 -----------------
@@ -145,7 +167,83 @@ TODO
 Web Service Setup
 -----------------
 
-TODO
+To use any web service in production, first ensure that uWSGI is installed:
+
+.. code-block:: bash
+
+    $ sudo apt install uwsgi uwsgi-plugin-python3
+    # if you want Nginx as web server:
+    $ sudo apt install nginx
+
+Web Dashboard Service
+*********************
+
+In order to configure the web dashboard service, create the necessary configuration in
+``/var/lib/laniakea/webdash/config.cfg``:
+
+.. code-block:: python
+
+    PROJECT = 'PurrOS'
+    SECRET_KEY = '<secret_key_here>'
+
+    CACHE_TYPE = 'FileSystemCache'
+    CACHE_DIR = '/var/lib/laniakea/webdash/cache/'
+
+    DEBUG = False
+    TESTING = False
+
+Set the caching backend you want (filesystem, redis, memcached, ...) and ensure you generate a new
+secret key. Generating a secret key is asy with this Python snippet:
+
+.. code-block:: python
+
+    import secrets
+    print(secrets.token_hex(32))
+
+Then make sure the web application directory has the correct ownership, and launch it
+using ``systemctl``:
+
+.. code-block:: shell-session
+
+    $ sudo chown -Rv lkweb:www-data /var/lib/laniakea/webdash/
+    $ sudo systemctl restart laniakea-webdash ; sudo systemctl status laniakea-webdash
+
+
+You can then configure your webserver to serve the right static content
+from the web application (depending on your template choice) and configure it
+to use the uWSGI web application at ``/run/laniakea-webdash/webdash.sock``.
+
+Software Viewer Service
+***********************
+
+Just like with the web dashboard service, we create a configuration file for the software
+viewer web application:
+``/var/lib/laniakea/webdash/config.cfg``:
+
+.. code-block:: python
+
+    PROJECT = 'PurrOS'
+    SECRET_KEY = '<secret_key_here>'
+
+    THEME = 'default'
+    CACHE_TYPE = 'FileSystemCache'
+    CACHE_DIR = '/var/lib/laniakea/webswview/cache/'
+
+    DEBUG = False
+    TESTING = False
+
+Make sure to configure caching and secrets just like the web dashboard.
+Then change the directory ownership if necessary and launch the application:
+
+.. code-block:: shell-session
+
+    $ sudo chown -Rv lkweb:www-data /var/lib/laniakea/webswview/
+    $ sudo systemctl restart laniakea-webswview ; sudo systemctl status laniakea-webswview
+
+You can then configure your webserver to serve the right static content
+from the web application (depending on your template choice) and configure it
+to use the uWSGI web application at ``/run/laniakea-webswview/webswview.sock``.
+
 
 Troubleshooting
 ---------------
