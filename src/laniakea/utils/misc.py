@@ -205,7 +205,7 @@ def ensure_laniakea_master_user(warn_only: bool = False):
         return
 
     if os.geteuid() == 0 and shutil.which('sudo'):
-        os.execvp("sudo", ["sudo"] + sys.argv)
+        os.execvp('sudo', ['sudo', '-u', master_username] + sys.argv)
     else:
         from rich.console import Console
 
