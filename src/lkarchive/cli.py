@@ -39,24 +39,24 @@ def cli(ctx, verbose, version):
 def _register_commands():
     '''Register lk-archive subcommands.'''
 
-    from publish import publish
+    from .publish import publish
 
     cli.add_command(publish)
 
-    import data_import as dip
+    import lkarchive.data_import as dip
 
     cli.add_command(dip.import_pkg)
     cli.add_command(dip.import_heidi_result)
     cli.add_command(dip.import_repository)
 
-    import manage_pkg as mgr
+    import lkarchive.manage_pkg as mgr
 
     cli.add_command(mgr.list)
     cli.add_command(mgr.remove)
     cli.add_command(mgr.expire)
     cli.add_command(mgr.cmd_copy_package)
 
-    from process_new import process_new
+    from lkarchive.process_new import process_new
 
     cli.add_command(process_new)
 
