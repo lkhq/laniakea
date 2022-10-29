@@ -43,7 +43,7 @@ base = [
 web = [
     'Flask',
     'Flask-RESTful',
-    'Flask-Caching',
+    'Flask-Caching>=2.0',
     'Flask-Login',
 ]
 matrix = [
