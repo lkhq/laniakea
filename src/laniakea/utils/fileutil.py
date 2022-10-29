@@ -39,6 +39,7 @@ def hardlink_or_copy(src: T.PathUnion, dst: T.PathUnion):
         os.link(src, dst)
     except (PermissionError, OSError):
         shutil.copy2(src, dst)
+        shutil.chown(dst, user=os.getuid(), group=os.getgid())
 
 
 def safe_rename(src: T.PathUnion, dst: T.PathUnion, *, override: bool = False):

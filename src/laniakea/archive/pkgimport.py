@@ -203,6 +203,7 @@ class PackageImporter:
                 hardlink_or_copy(src, dst)
             else:
                 shutil.copy(src, dst)
+            shutil.chown(dst, user=os.getuid(), group=os.getgid())
             os.chmod(dst, 0o755)
             log.debug('Copied package file: %s -> %s', src, dst)
         else:
@@ -924,6 +925,7 @@ class UploadHandler:
                 # move or copy file
                 if self.keep_source_packages:
                     shutil.copy(fname_src, fname_dst)
+                    shutil.chown(fname_dst, user=os.getuid(), group=os.getgid())
                     os.chmod(fname_dst, 0o755)
                 else:
                     safe_rename(fname_src, fname_dst)
@@ -939,6 +941,7 @@ class UploadHandler:
             changes_fname_dst = os.path.join(tmp_dir, changes.filename)
             if self.keep_source_packages:
                 shutil.copy(fname, changes_fname_dst)
+                shutil.chown(fname_dst, user=os.getuid(), group=os.getgid())
                 os.chmod(fname_dst, 0o755)
             else:
                 safe_rename(fname, changes_fname_dst)
