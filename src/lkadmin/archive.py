@@ -233,7 +233,7 @@ def _add_suite(
     name,
     alias,
     summary,
-    version,
+    version=None,
     arch_names=None,
     component_names=None,
     parent_names=None,
@@ -379,7 +379,7 @@ def suite_add(
 def _add_suite_to_repo(
     repo_name: str,
     suite_name: str,
-    accept_uploads=True,
+    accept_uploads=False,
     devel_target=False,
     auto_overrides=False,
     manual_accept=False,
