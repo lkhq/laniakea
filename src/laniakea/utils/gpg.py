@@ -294,7 +294,7 @@ class SignedFile:
                 args.extend(['--keyring', k])
             args.extend(['--decrypt', '-'])
 
-            os.execvp(self.gpg, args)
+            os.execvpe(self.gpg, args, dict(GNUPGHOME='/dev/null'))
         finally:
             os._exit(1)
 
