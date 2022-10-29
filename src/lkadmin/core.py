@@ -16,15 +16,20 @@ def core():
     '''Elemental functions affecting all of Laniakea.'''
 
 
-@core.command()
-def db_init():
-    '''Initialize database schemas on an empty database.'''
+def _db_init():
+    '''Helper to initialize database schemas on an empty database.'''
     from laniakea.db import Database
 
     db = Database()
     db.create_tables()
 
     print('Database tables created.')
+
+
+@core.command()
+def db_init():
+    '''Initialize database schemas on an empty database.'''
+    _db_init()
 
 
 @core.command()
@@ -43,7 +48,7 @@ def configure_all():
     '''Configure all basic settings in one go.'''
     from laniakea.db.core import config_set_distro_tag, config_set_project_name
 
-    db_init()
+    _db_init()
     print_header('Configuring base settings for Laniakea')
     session = session_factory()
 
