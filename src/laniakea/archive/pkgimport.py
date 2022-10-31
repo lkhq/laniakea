@@ -690,7 +690,7 @@ class PackageImporter:
         # we don't need the generated filename value
         bin_tf.pop('Filename')
         # we fetch those from already added overrides
-        bin_tf.pop('Priority')
+        bin_tf.pop('Priority', None)
         bin_tf.pop('Section')
         bin_tf.pop('Essential', None)
 
