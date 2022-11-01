@@ -15,7 +15,6 @@ from contextlib import contextmanager
 import requests
 
 import laniakea.typing as T
-from laniakea.logging import log
 
 
 def get_dir_shorthand_for_uuid(uuid):
