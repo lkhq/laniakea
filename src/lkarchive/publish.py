@@ -451,7 +451,7 @@ def publish_suite_dists(
         log.info('Not updating %s/%s: No pending changes.', rss.repo.name, rss.suite.name)
         return
 
-    log.info('Publishing: %s/%s', rss.repo.name, rss.suite.name)
+    log.info('Publishing suite: %s/%s', rss.repo.name, rss.suite.name)
 
     # global settings
     lconf = LocalConfig()
@@ -600,6 +600,7 @@ def publish_suite_dists(
     # and we will also ensure that a suite gets published at least once
     # every week
     rss.changes_pending = False
+    log.info('Published suite: %s/%s', rss.repo.name, rss.suite.name)
 
 
 @concurrent.process(daemon=False, name='publish-repo-suite-dists')
@@ -658,7 +659,7 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
         # ensure all temporary data is cleaned up
         if os.path.isdir(temp_dists_dir):
             shutil.rmtree(temp_dists_dir)
-    log.info('Published: %s', repo.name)
+    log.info('Published repository: %s', repo.name)
 
 
 @click.command()
