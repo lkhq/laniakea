@@ -35,12 +35,13 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.utils import process_file_lock, datetime_to_rfc2822_string
+from laniakea.archive import repo_suite_settings_for
 from laniakea.logging import log
 from laniakea.utils.gpg import sign
 from laniakea.archive.appstream import import_appstream_data
 
 
-@concurrent.process(daemon=False)
+@concurrent.process(daemon=False, name='dep11-import')
 def retrieve_dep11_data(repo_name: str) -> T.Tuple[bool, T.Optional[str], T.Optional[T.PathUnion]]:
     """Fetch DEP-11 data from an external source
     This will fetch the AppStream/DEP-11 data via a hook script, validate it
@@ -455,17 +456,13 @@ def publish_suite_dists(
     # global settings
     lconf = LocalConfig()
     archive_root_dir = lconf.archive_root_dir
-    repo_dists_dir = os.path.join(archive_root_dir, rss.repo.name, 'dists')
-    temp_dists_dir = os.path.join(archive_root_dir, rss.repo.name, 'zzz-meta')
-    suite_temp_dist_dir = os.path.join(temp_dists_dir, rss.suite.name)
-
-    # remove possible remnants of an older publish operation
-    if os.path.isdir(temp_dists_dir):
-        shutil.rmtree(temp_dists_dir)
+    temp_dists_root = os.path.join(archive_root_dir, rss.repo.name, 'zzz-meta')
+    suite_temp_dist_dir = os.path.join(temp_dists_root, rss.suite.name)
+    suite_repo_dist_dir = os.path.join(archive_root_dir, rss.repo.name, 'dists', rss.suite.name)
 
     # copy old directory tree to our temporary location for editing
-    if os.path.isdir(repo_dists_dir):
-        shutil.copytree(repo_dists_dir, temp_dists_dir, symlinks=True, ignore_dangling_symlinks=True)
+    if os.path.isdir(suite_repo_dist_dir):
+        shutil.copytree(suite_repo_dist_dir, suite_temp_dist_dir, symlinks=True, ignore_dangling_symlinks=True)
     os.makedirs(suite_temp_dist_dir, exist_ok=True)
 
     # update metadata
@@ -521,7 +518,7 @@ def publish_suite_dists(
                     )
 
                 # import metadata into the database and connect it to binary packages
-                import_appstream_data(session, rss, component, arch, repo_dists_dir=temp_dists_dir)
+                import_appstream_data(session, rss, component, arch, repo_dists_dir=temp_dists_root)
 
         # copy AppStream icon tarballs
         if dep11_src_dir:
@@ -591,11 +588,11 @@ def publish_suite_dists(
 
     # mark changes as live, atomically replace old location by swapping the paths,
     # then deleting the old one.
-    if os.path.isdir(repo_dists_dir):
-        renameat2.exchange_paths(temp_dists_dir, repo_dists_dir)
-        shutil.rmtree(temp_dists_dir)
+    if os.path.isdir(suite_repo_dist_dir):
+        renameat2.exchange_paths(suite_temp_dist_dir, suite_repo_dist_dir)
+        shutil.rmtree(suite_temp_dist_dir)
     else:
-        os.rename(temp_dists_dir, repo_dists_dir)
+        os.rename(suite_temp_dist_dir, suite_repo_dist_dir)
 
     # all changes have been applied. This is a bit of a race-condition,
     # as some stuff may have been accepted while we are publishing data,
@@ -603,6 +600,24 @@ def publish_suite_dists(
     # and we will also ensure that a suite gets published at least once
     # every week
     rss.changes_pending = False
+
+
+@concurrent.process(daemon=False, name='publish-repo-suite-dists')
+def publish_suite_dists_async(
+    repo_name: str, suite_name: str, *, dep11_src_dir: T.Optional[T.PathUnion], force: bool = False
+):
+    """
+    Parallel method for publishing data for a suite.
+    :param repo_name: Name of the repository.
+    :param suite_name: Name of the suite in the repository
+    :param dep11_src_dir: Source directory for DEP-11 data
+    :param force: Force publication
+    """
+
+    with process_file_lock('{}-{}'.format(repo_name, suite_name)):
+        with session_scope() as session:
+            rss = repo_suite_settings_for(session, repo_name, suite_name)
+            publish_suite_dists(session, rss, dep11_src_dir=dep11_src_dir, force=force)
 
 
 def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Optional[str] = None, force: bool = False):
@@ -615,6 +630,11 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
     """
 
     with process_file_lock(repo.name):
+        # remove possible remnants of an older publish operation
+        temp_dists_dir = os.path.join(LocalConfig().archive_root_dir, repo.name, 'zzz-meta')
+        if os.path.isdir(temp_dists_dir):
+            shutil.rmtree(temp_dists_dir)
+
         # import external data in parallel (we may be able to run more data import in parallel here in future,
         # at the moment we just have DEP-11)
         dep11_future = retrieve_dep11_data(repo.name)
@@ -622,12 +642,22 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
         if not success:
             raise Exception(error_msg)
 
+        async_tasks = []
         for rss in repo.suite_settings:
             if suite_name:
                 # skip any suites that we shouldn't process
                 if rss.suite.name != suite_name:
                     continue
-            publish_suite_dists(session, rss, dep11_src_dir=dep11_dir, force=force)
+            future = publish_suite_dists_async(rss.repo.name, rss.suite.name, dep11_src_dir=dep11_dir, force=force)
+            async_tasks.append(future)
+
+        # collect potential errors and wait for parallel tasks to complete
+        for future in async_tasks:
+            future.result()
+
+        # ensure all temporary data is cleaned up
+        if os.path.isdir(temp_dists_dir):
+            shutil.rmtree(temp_dists_dir)
     log.info('Published: %s', repo.name)
 
 
