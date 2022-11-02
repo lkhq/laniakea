@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import multiprocessing as mp
 from argparse import ArgumentParser
 
 from laniakea import LkModule
@@ -171,6 +172,9 @@ def run(mainfile, args):
     if len(args) == 0:
         print('Need a subcommand to proceed!')
         sys.exit(1)
+
+    # configure multiprocessing
+    mp.set_start_method('forkserver', force=True)
 
     parser = create_parser()
 

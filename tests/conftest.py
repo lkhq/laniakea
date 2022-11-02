@@ -49,6 +49,8 @@ def localconfig(samples_dir):
     Retrieve a Laniakea LocalConfig object which is set
     up for testing.
     '''
+    import multiprocessing as mp
+
     import tomlkit
 
     from laniakea.logging import set_verbose
@@ -112,6 +114,11 @@ def localconfig(samples_dir):
     conf._trusted_gpg_keyrings = []
     conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'keyring.gpg'))
     conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'other-keyring.gpg'))
+
+    # We do want to use the forkserver method when multiprocessing is in use.
+    # It is difficult to find the right place to set that in PyTest, so we set it here to ensure
+    # it's called once and as early as possible.
+    mp.set_start_method('forkserver')
 
     return conf
 

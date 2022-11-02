@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import multiprocessing as mp
 
 import click
 
@@ -74,6 +75,7 @@ def run(mainfile, args):
     __mainfile = mainfile
 
     ensure_laniakea_master_user(warn_only=True)
+    mp.set_start_method('forkserver', force=True)
 
     install(show_locals=True, suppress=[click])
     _register_commands()
