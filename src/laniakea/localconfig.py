@@ -107,6 +107,7 @@ class LocalConfig:
             db_name = jdb.get('db', 'laniakea')
             db_user = jdb.get('user', 'laniakea-user')
             db_password = jdb.get('password', '')
+            self._db_slow_connection = bool(jdb.get('slow_connection', False))
 
             self._database_url = 'postgresql://{user}:{password}@{host}:{port}/{dbname}'.format(
                 user=db_user, password=db_password, host=db_host, port=db_port, dbname=db_name
@@ -176,6 +177,12 @@ class LocalConfig:
         @property
         def database_url(self) -> str:
             return self._database_url
+
+        @property
+        def database_slow_connection(self) -> bool:
+            """Set to True if database server or the connection to it is slow.
+            This will make Laniakea set higher timeout values."""
+            return self._db_slow_connection
 
         @property
         def master_user_name(self) -> str:

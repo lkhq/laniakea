@@ -11,6 +11,8 @@ distroTag = "test"
 db = "laniakea_unittest"
 user = "lkdbuser_test"
 password = "notReallySecret"
+# our CI server Postgres DB may be quite slow
+slow_connection = true
 
 [Synchrotron]
 SourceKeyringDir = "/etc/apt/trusted.gpg.d/"

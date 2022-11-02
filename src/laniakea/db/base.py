@@ -55,7 +55,16 @@ class Database:
                 lconf = LocalConfig()
             self._lconf = lconf
 
-            self._engine = create_engine(self._lconf.database_url, client_encoding='utf8')
+            connect_args = {}
+            if lconf.database_slow_connection:
+                connect_args = dict(
+                    keepalives=1,
+                    keepalives_idle=60,
+                    keepalives_interval=10,
+                    keepalives_count=5,
+                )
+
+            self._engine = create_engine(self._lconf.database_url, client_encoding='utf8', connect_args=connect_args)
             self._SessionFactory = sessionmaker(bind=self._engine)
 
         @property
