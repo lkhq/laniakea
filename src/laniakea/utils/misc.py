@@ -130,7 +130,14 @@ class ProcessFileLock:
         self._lock_file_fd = -1
         self._lock_dir = os.path.join('/usr/user', str(os.geteuid()))
         if not os.path.isdir(self._lock_dir):
-            self._lock_dir = '/tmp'  # may also be /var/lock
+            from laniakea import LocalConfig
+
+            lconf = LocalConfig()
+            self._lock_dir = os.path.join(lconf.workspace, 'locks')
+            try:
+                os.makedirs(self._lock_dir, exist_ok=True)
+            except:
+                self._lock_dir = '/tmp'  # should this fallback even exist? A flat out error may be better...
 
     @property
     def lock_filename(self) -> str:
@@ -146,7 +153,7 @@ class ProcessFileLock:
         fd = os.open(self.lock_filename, os.O_RDWR | os.O_CREAT)
         try:
             fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except IOError:
+        except (IOError, BlockingIOError):
             # another instance is running
             self._lock_file_fd = -1
             os.close(fd)
