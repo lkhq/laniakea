@@ -8,6 +8,6 @@ if not os.path.isabs(thisfile):
     thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
-from mailgun import cli
-
-sys.exit(cli.run(thisfile, sys.argv[1:]))
+if __name__ == '__main__':
+    from mailgun import cli
+    sys.exit(cli.run(thisfile, sys.argv[1:]))

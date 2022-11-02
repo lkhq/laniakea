@@ -10,6 +10,7 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', '
 if not thisfile.startswith(('/usr', '/bin')):
     sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
-from lkarchive import cli
+if __name__ == '__main__':
+    from lkarchive import cli
 
-sys.exit(cli.run(thisfile, sys.argv[1:]))
+    sys.exit(cli.run(thisfile, sys.argv[1:]))
