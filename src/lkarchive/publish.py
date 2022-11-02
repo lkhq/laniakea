@@ -11,6 +11,7 @@ import lzma
 import shutil
 import hashlib
 import functools
+import multiprocessing as mproc
 from glob import iglob
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -41,8 +42,10 @@ from laniakea.utils.gpg import sign
 from laniakea.archive.appstream import import_appstream_data
 
 
-@concurrent.process(daemon=False, name='dep11-import')
-def retrieve_dep11_data(repo_name: str) -> T.Tuple[bool, T.Optional[str], T.Optional[T.PathUnion]]:
+@concurrent.process(daemon=False, name='dep11-import', context=mproc.get_context('forkserver'))
+def _retrieve_dep11_data_async(
+    repo_name: str, lconf_fname: T.Optional[T.PathUnion] = None
+) -> T.Tuple[bool, T.Optional[str], T.Optional[T.PathUnion]]:
     """Fetch DEP-11 data from an external source
     This will fetch the AppStream/DEP-11 data via a hook script, validate it
     and move it to its destination.
@@ -51,7 +54,9 @@ def retrieve_dep11_data(repo_name: str) -> T.Tuple[bool, T.Optional[str], T.Opti
 
     from lkarchive.check_dep11 import check_dep11_path
 
-    lconf = LocalConfig()
+    # reload singleton data for multiprocessing
+    lconf = LocalConfig(lconf_fname)
+
     hook_script = os.path.join(lconf.data_import_hooks_dir, 'fetch-appstream.sh')
     if not os.path.isfile(hook_script):
         log.info('Will not fetch DEP-11 data for %s: No hook script `%s`', repo_name, hook_script)
@@ -435,8 +440,13 @@ def generate_i18n_template_data(
     return '\n'.join(i18n_entries)
 
 
-def publish_suite_dists(
-    session, rss: ArchiveRepoSuiteSettings, *, dep11_src_dir: T.Optional[T.PathUnion], force: bool = False
+def _publish_suite_dists(
+    lconf: LocalConfig,
+    session,
+    rss: ArchiveRepoSuiteSettings,
+    *,
+    dep11_src_dir: T.Optional[T.PathUnion],
+    force: bool = False,
 ):
 
     # we must never touch a frozen suite
@@ -454,16 +464,17 @@ def publish_suite_dists(
     log.info('Publishing suite: %s/%s', rss.repo.name, rss.suite.name)
 
     # global settings
-    lconf = LocalConfig()
     archive_root_dir = lconf.archive_root_dir
     temp_dists_root = os.path.join(archive_root_dir, rss.repo.name, 'zzz-meta')
+    repo_dists_root = os.path.join(archive_root_dir, rss.repo.name, 'dists')
     suite_temp_dist_dir = os.path.join(temp_dists_root, rss.suite.name)
-    suite_repo_dist_dir = os.path.join(archive_root_dir, rss.repo.name, 'dists', rss.suite.name)
+    suite_repo_dist_dir = os.path.join(repo_dists_root, rss.suite.name)
 
     # copy old directory tree to our temporary location for editing
     if os.path.isdir(suite_repo_dist_dir):
         shutil.copytree(suite_repo_dist_dir, suite_temp_dist_dir, symlinks=True, ignore_dangling_symlinks=True)
     os.makedirs(suite_temp_dist_dir, exist_ok=True)
+    os.makedirs(repo_dists_root, exist_ok=True)
 
     # update metadata
     meta_files = []
@@ -603,9 +614,14 @@ def publish_suite_dists(
     log.info('Published suite: %s/%s', rss.repo.name, rss.suite.name)
 
 
-@concurrent.process(daemon=False, name='publish-repo-suite-dists')
+@concurrent.process(daemon=False, name='publish-repo-suite-dists', context=mproc.get_context('forkserver'))
 def publish_suite_dists_async(
-    repo_name: str, suite_name: str, *, dep11_src_dir: T.Optional[T.PathUnion], force: bool = False
+    repo_name: str,
+    suite_name: str,
+    *,
+    dep11_src_dir: T.Optional[T.PathUnion],
+    force: bool = False,
+    lconf_fname: T.Optional[T.PathUnion] = None,
 ):
     """
     Parallel method for publishing data for a suite.
@@ -613,12 +629,14 @@ def publish_suite_dists_async(
     :param suite_name: Name of the suite in the repository
     :param dep11_src_dir: Source directory for DEP-11 data
     :param force: Force publication
+    :param lconf_fname: Local configuration file to use in a subprocess, or None to use default.
     """
 
+    lconf = LocalConfig(lconf_fname)
     with process_file_lock('{}-{}'.format(repo_name, suite_name)):
         with session_scope() as session:
             rss = repo_suite_settings_for(session, repo_name, suite_name)
-            publish_suite_dists(session, rss, dep11_src_dir=dep11_src_dir, force=force)
+            _publish_suite_dists(lconf, session, rss, dep11_src_dir=dep11_src_dir, force=force)
 
 
 def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Optional[str] = None, force: bool = False):
@@ -632,13 +650,14 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
 
     with process_file_lock(repo.name):
         # remove possible remnants of an older publish operation
-        temp_dists_dir = os.path.join(LocalConfig().archive_root_dir, repo.name, 'zzz-meta')
+        lconf = LocalConfig()
+        temp_dists_dir = os.path.join(lconf.archive_root_dir, repo.name, 'zzz-meta')
         if os.path.isdir(temp_dists_dir):
             shutil.rmtree(temp_dists_dir)
 
         # import external data in parallel (we may be able to run more data import in parallel here in future,
         # at the moment we just have DEP-11)
-        dep11_future = retrieve_dep11_data(repo.name)
+        dep11_future = _retrieve_dep11_data_async(repo.name, lconf.fname)
         success, error_msg, dep11_dir = dep11_future.result()  # pylint: disable=E1101
         if not success:
             raise Exception(error_msg)
@@ -649,7 +668,9 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
                 # skip any suites that we shouldn't process
                 if rss.suite.name != suite_name:
                     continue
-            future = publish_suite_dists_async(rss.repo.name, rss.suite.name, dep11_src_dir=dep11_dir, force=force)
+            future = publish_suite_dists_async(
+                rss.repo.name, rss.suite.name, dep11_src_dir=dep11_dir, force=force, lconf_fname=lconf.fname
+            )
             async_tasks.append(future)
 
         # collect potential errors and wait for parallel tasks to complete

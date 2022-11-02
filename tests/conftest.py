@@ -70,9 +70,15 @@ def localconfig(samples_dir):
     with open(config_tmpl_fname, 'r') as f:
         config_toml = tomlkit.load(f)
 
+    # Curve25519 signing/encryption key directory
     config_toml['CurveKeysDir'] = os.path.join(test_aux_data_dir, 'keys', 'curve')
+    # set our GPG secret keyring dir
+    config_toml['SecretGPGHome'] = os.path.join(samples_dir, 'gpg', 'secret-home')
+
+    # software archive root
     config_toml['Archive']['path'] = test_archive_dir
 
+    # Lighthouse configuration
     lhc = config_toml['Lighthouse']
     lh_jobs_port = find_free_port_nr()
     lh_submit_port = find_free_port_nr()
@@ -106,9 +112,6 @@ def localconfig(samples_dir):
     conf._trusted_gpg_keyrings = []
     conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'keyring.gpg'))
     conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'other-keyring.gpg'))
-
-    # set our GPG secret keyring dir
-    conf._secret_gpg_home_dir = os.path.join(samples_dir, 'gpg', 'secret-home')
 
     return conf
 
