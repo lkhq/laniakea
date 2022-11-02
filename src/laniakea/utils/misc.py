@@ -137,7 +137,11 @@ class ProcessFileLock:
             try:
                 os.makedirs(self._lock_dir, exist_ok=True)
             except:
-                self._lock_dir = '/tmp'  # should this fallback even exist? A flat out error may be better...
+                raise Exception(
+                    'No suitable location found to place lock file "{}"! - Does a workspace exist with proper permissions?'.format(
+                        self._name
+                    )
+                )
 
     @property
     def lock_filename(self) -> str:
