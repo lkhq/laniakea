@@ -223,7 +223,13 @@ def postgresql_container():
 
     # tear down container again
     if os.environ.get('LK_TEST_NO_CLEAN', '0') == '0':
-        subprocess.run(['podman', 'stop', LKPG_CONTAINER_NAME], check=True)
+        try:
+            proc = subprocess.run(
+                ['podman', 'stop', LKPG_CONTAINER_NAME], check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+            )
+        except subprocess.CalledProcessError:
+            print('WARNING: Failed to stop Postgres container:', str(proc.stdout), file=sys.stderr)
+            subprocess.run(['podman', 'kill', LKPG_CONTAINER_NAME], check=False)
 
 
 @pytest.fixture(scope='session')
