@@ -20,7 +20,7 @@ you can use this command on Debian-based systems (Debian 12 or newer required):
                      python3-click python3-requests python3-apscheduler \
                      python3-gi python3-rich python3-tomlkit python3-voluptuous \
                      python3-pip dose-builddebcheck dose-distcheck
-    sudo apt install --no-install-recommends flatpak flatpak-builder
+    sudo apt install --no-install-recommends flatpak
     sudo apt install flake8 pylint mypy pylint isort black # if you want to add code linting / test support
     sudo pip install firehose # or install python3-firehose from Debian unstable/experimental
 
@@ -107,9 +107,9 @@ Create a new PostgreSQL database and user for Laniakea:
 
 .. code-block:: bash
 
-    sudo -u postgres psql -c "CREATE DATABASE laniakea;"
     sudo -u postgres psql -c "CREATE USER lkmaster WITH PASSWORD 'notReallySecret';" # ensure to change the DB user password!
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE laniakea to lkmaster;"
+    sudo -u postgres psql -c "CREATE DATABASE laniakea WITH OWNER lkmaster;"
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE laniakea TO lkmaster;"
     sudo -u postgres psql -c "CREATE EXTENSION IF NOT EXISTS debversion;" laniakea
 
 3. Create basic configuration & populate database
