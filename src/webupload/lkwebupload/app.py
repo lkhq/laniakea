@@ -51,7 +51,6 @@ def create_app(config=None, app_name=None):
 
     configure_blueprints(app)
     configure_logging(app)
-    configure_error_handlers(app)
 
     return app
 
@@ -139,9 +138,3 @@ def configure_logging(app):
     # supress GET etc. messages from Werkzeug
     wlog = log.getLogger('werkzeug')
     wlog.setLevel(log.ERROR)
-
-
-def configure_error_handlers(app):
-    @app.errorhandler(404)
-    def page_not_found(error):
-        return render_template("errors/404.html"), 404
