@@ -49,7 +49,8 @@ endif
 
 # Rubicon data importer
 if (get_option('rubicon'))
-    subdir('rubicon')
+    subdir('rubicon')  # deferred upload processing
+    subdir('webupload')  # HTTPS upload service
 endif
 
 # Planter

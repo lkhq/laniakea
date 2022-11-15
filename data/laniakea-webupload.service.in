@@ -1,0 +1,20 @@
+[Unit]
+Description=Laniakea artifact upload service
+After=syslog.target network.target
+ConditionPathExists=/var/lib/laniakea/webupload/config.cfg
+
+[Service]
+Restart=on-failure
+
+ProtectSystem=full
+ProtectHome=true
+
+User=lkweb
+Group=nogroup
+WorkingDirectory=@LKUPLOAD_INSTALL_DIR@
+
+RuntimeDirectory=laniakea-upload
+ExecStart=/usr/bin/uwsgi --ini lkwebupload.ini
+
+[Install]
+WantedBy=multi-user.target

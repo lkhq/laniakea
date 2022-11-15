@@ -46,6 +46,17 @@ if get_option('webgui')
                  install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 endif
 
+if get_option('rubicon')
+    sd_data = configuration_data()
+    sd_data.set('LKUPLOAD_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/webupload/')
+
+    configure_file(input: 'laniakea-webupload.service.in',
+                   output: 'laniakea-webupload.service',
+                   configuration: sd_data)
+    install_data(current_build_dir + '/laniakea-webupload.service',
+                 install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+endif
+
 if get_option('mirk')
     mirk_data = configuration_data()
     mirk_data.set('MIRK_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/mirk/mirk')
