@@ -92,9 +92,11 @@ You will need to add some system users for Laniakea services to use:
 
 .. code-block:: bash
 
+    # master group, for the lesser groups to exchange files with master
+    sudo addgroup --system lkmaster
     # generic user for various administrative tasks, e.g. archive creation & management
     # NOTE: This user needs a HOME directory, mostly because of GnuPG silliness
-    sudo adduser --system --disabled-login --disabled-password lkmaster
+    sudo adduser --system --disabled-login --disabled-password --ingroup lkmaster lkmaster
     # user for the "Lighthouse" message relay service & job distribution system
     sudo adduser --system --disabled-login --disabled-password --no-create-home lklighthouse
     # user for web services as well as the Matrix bot
@@ -245,6 +247,50 @@ You can then configure your webserver to serve the right static content
 from the web application (depending on your template choice) and configure it
 to use the uWSGI web application at ``/run/laniakea-webswview/webswview.sock``.
 
+Artifact Upload Service
+***********************
+
+The build workers as well as user upload artifacts (packages, ISO images, Flatpak builds, ...)
+to the archive using `dput(1)` via HTTPS.
+Just like with the other web applications, we create a configuration file:
+``/var/lib/laniakea/webupload/config.cfg``:
+
+.. code-block:: python
+
+    SECRET_KEY = '<secret_key_here>'
+
+    DEBUG = False
+    TESTING = False
+
+This tool does not need much configuration except for the secret key for future use.
+Then create the incoming directory in your Laniakea workspace (adjust as needed!)
+and give it the proper permissions, so the `lkweb` user can write, and the `lkmaster`
+user can read and delete files:
+
+.. code-block:: shell-session
+
+    $ sudo mkdir /var/lib/laniakea/webupload/logs
+    $ sudo chown lkweb:www-data /var/lib/laniakea/webupload/logs
+    $ sudo mkdir /srv/laniakea-ws/archive-incoming
+    $ sudo chown -Rv lkweb:lkmaster /srv/laniakea-ws/archive-incoming
+    $ sudo chmod -Rv g+rw /srv/laniakea-ws/archive-incoming
+
+You can then configure your webserver to serve this web applcation
+in the right location, using socket ``/run/laniakea-upload/webupload.sock``.
+
+Keep in mind that you need to allow for a pretty high HTTP body size to allow for large uploads.
+If you are using Nginx, you can use this configuration snippet to serve the upload application from
+a subdirectory:
+
+.. code-block:: nginx
+
+    location /_upload {
+        client_max_body_size 3G;
+
+        include     uwsgi_params;
+        uwsgi_pass  unix:/run/laniakea-upload/webupload.sock;
+        uwsgi_param SCRIPT_NAME /_upload;
+    }
 
 Troubleshooting
 ---------------
