@@ -31,3 +31,8 @@ def upload_repo_artifact(repo_name: str, filename=None):
                 break
             f.write(chunk)
     return 'created', 201
+
+
+@upload.route('/')
+def index():
+    return '<html>Upload endpoint for <a href="https://dput.readthedocs.io/en/latest/">dput(1)</a>.'
