@@ -85,7 +85,7 @@ def configure_app(app, config=None):
     lconf = LocalConfig()
     rc_fname = get_config_file('rubicon.toml')
     rcdata = {}
-    if os.path.isfile(rc_fname):
+    if rc_fname and os.path.isfile(rc_fname):
         with open(rc_fname) as f:
             rcdata = tomlkit.load(f)
 
