@@ -10,7 +10,7 @@ ProtectSystem=full
 ProtectHome=true
 
 User=lkweb
-Group=nogroup
+Group=www-data
 WorkingDirectory=@LKUPLOAD_INSTALL_DIR@
 
 RuntimeDirectory=laniakea-upload
