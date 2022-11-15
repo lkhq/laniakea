@@ -4,6 +4,7 @@
 #
 
 import os
+import re
 import sys
 import argparse
 import subprocess
@@ -110,6 +111,10 @@ def ensure_dependencies(dependencies, installed_mods=None):
             sys.exit(2)
         if len(versions) == 1 and versions[0] is None:
             continue
+
+        # HACK: workaround for a malformed version string that appeared in python-apt once
+        if versions[0].startswith('='):
+            versions[0] = re.sub(r'[a-zA-Z]', '', versions[0][1:].replace('-', ''))
 
         candidates = list(req.specifier.filter(versions))
         if not candidates:
