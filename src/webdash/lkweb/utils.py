@@ -21,7 +21,7 @@ def is_uuid(value):
 
 def humanized_timediff(time):
     '''
-    Get a time difference of _time with the current clock time
+    Get a time difference of :time with the current clock time
     in a human-readable format.
     '''
     if not time:

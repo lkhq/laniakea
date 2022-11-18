@@ -61,7 +61,7 @@
     <div class="card events-card">
         <header class="card-header">
             <p class="card-header-title">
-                Last Events
+                Maintenance Tasks
             </p>
         </header>
         <div class="card-table">
@@ -69,8 +69,14 @@
                 <table class="table is-fullwidth is-striped">
                     <tbody>
                         <tr>
-                            <td width="5%"><i class="far fa-bell"></i></td>
-                            <td>Not yet implemented</td>
+                            <td width="5%"><i class="fa-solid fa-file-import"></i></td>
+                            <td><b>Data Import</b></td>
+                            <td>{{rubicon_nextrun_time}}</td>
+                        </tr>
+                        <tr>
+                            <td width="5%"><i class="fa-solid fa-location-arrow"></i></td>
+                            <td><b>Repository Publication</b></td>
+                            <td>{{publish_nextrun_time}}</td>
                         </tr>
                     </tbody>
                 </table>
