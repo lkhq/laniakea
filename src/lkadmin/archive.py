@@ -229,6 +229,20 @@ def uploader_add(
     )
 
 
+@archive.command(aliases=['u-a-k'])
+@click.argument('email', nargs=1, type=str, required=True)  # 'E-Mail address of the uploader to add a key for'
+@click.argument('gpg_file', nargs=1, type=click.Path(), required=True)  # GPG filename to register
+def uploader_add_key(email: str, gpg_file):
+    """Register a GPG key for the selected uploader."""
+    from laniakea.archive.uploadermgr import import_key_file_for_uploader
+
+    with session_scope() as session:
+        uploader = session.query(ArchiveUploader).filter(ArchiveUploader.email == email).one_or_none()
+        if not uploader:
+            print_error_exit('Uploader with E-Mail "{}" was not found.'.format(email))
+        import_key_file_for_uploader(uploader, gpg_file)
+
+
 def _add_suite(
     name,
     alias,

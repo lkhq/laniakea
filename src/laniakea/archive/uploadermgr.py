@@ -5,15 +5,15 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-from typing import Union
-from pathlib import Path
 
+import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import ArchiveUploader
+from laniakea.logging import archive_log
 from laniakea.utils.gpg import import_keyfile
 
 
-def import_key_file_for_uploader(uploader: ArchiveUploader, fname: Union[Path, str]):
+def import_key_file_for_uploader(uploader: ArchiveUploader, fname: T.PathUnion):
     """Import a new GPG key from a file for the respective uploader."""
 
     lconf = LocalConfig()
@@ -26,3 +26,4 @@ def import_key_file_for_uploader(uploader: ArchiveUploader, fname: Union[Path, s
     for fpr in fingerprints:
         if fpr not in uploader.pgp_fingerprints:
             uploader.pgp_fingerprints.append(fpr)
+    archive_log.info('UPLOADER-ADDED-GPG: %s: %s', uploader.email, ', '.join(fingerprints))

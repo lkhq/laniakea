@@ -7,7 +7,7 @@
 import logging as log
 import datetime
 
-__all__ = ['log', 'set_verbose', 'get_verbose']
+__all__ = ['log', 'set_verbose', 'get_verbose', 'archive_log', 'configure_pkg_archive_logger']
 
 import os
 
