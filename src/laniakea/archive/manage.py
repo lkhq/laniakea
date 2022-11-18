@@ -17,7 +17,7 @@ from laniakea.db import (
     SoftwareComponent,
     ArchiveRepoSuiteSettings,
 )
-from laniakea.logging import log
+from laniakea.logging import log, archive_log
 
 
 class ArchiveRemoveError(ArchiveError):
@@ -56,6 +56,7 @@ def remove_binary_package(session, rss, bpkg: BinaryPackage) -> bool:
     os.remove(bin_fname_full)
     session.delete(bpkg.bin_file)
     session.delete(bpkg)
+    archive_log.info('DELETED-ORPHAN-BIN: %s/%s @ %s/%s', bpkg.name, bpkg.version, rss.repo.name, rss.suite.name)
     return True
 
 
@@ -84,7 +85,9 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
 
     log.info('Removing package %s from suite %s', str(spkg), rss.suite.name)
     spkg.suites.remove(rss.suite)
-    if not spkg.suites:
+    if spkg.suites:
+        archive_log.info('DELETED-SRC-SUITE: %s/%s @ %s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name)
+    else:
         log.info('Deleting orphaned package %s', str(spkg))
         # the package no longer is in any suites, remove it completely
         repo_root_dir = rss.repo.get_root_dir()
@@ -124,6 +127,7 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
         if not os.listdir(srcpkg_repo_dir):
             os.rmdir(srcpkg_repo_dir)
         session.delete(spkg)
+        archive_log.info('DELETED-SRC: %s/%s @ %s', spkg.name, spkg.version, rss.repo.name)
 
     return True
 
@@ -153,17 +157,42 @@ def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[Bin
             )
         )
 
+    is_src_pkg = type(pkg) is SourcePackage
+
     log.info('Removing package %s from suite %s', str(pkg), rss.suite.name)
     pkg.suites.remove(rss.suite)
-    if not pkg.suites:
+
+    if pkg.suites:
+        archive_log.info(
+            '%s: %s/%s @ %s/%s',
+            'DELETED-SUITE-SRC' if is_src_pkg else 'DELETED-SUITE-BIN',
+            pkg.name,
+            pkg.version,
+            rss.repo.name,
+            rss.suite.name,
+        )
+    else:
         log.info('Marking package for removal: %s', str(pkg))
         pkg.time_deleted = datetime.utcnow()
-    if type(pkg) is SourcePackage:
+        archive_log.info(
+            '%s: %s/%s @ %s/%s',
+            'MARKED-REMOVAL-SRC' if is_src_pkg else 'MARKED-REMOVAL-BIN',
+            pkg.name,
+            pkg.version,
+            rss.repo.name,
+            rss.suite.name,
+        )
+    if is_src_pkg:
         for bpkg in pkg.binaries:
             bpkg.suites.remove(rss.suite)
-            if not bpkg.suites:
+            if bpkg.suites:
+                archive_log.info(
+                    'DELETED-SUITE-BIN: %s/%s @ %s/%s', bpkg.name, bpkg.version, rss.repo.name, rss.suite.name
+                )
+            else:
                 log.info('Marking binary for removal: %s', str(bpkg))
                 bpkg.time_deleted = datetime.utcnow()
+                archive_log.info('MARKED-REMOVAL-BIN: %s/%s @ %s', bpkg.name, bpkg.version, rss.repo.name)
 
 
 def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
@@ -242,6 +271,8 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
     # delete orphaned AppStream metadata
     for cpt in session.query(SoftwareComponent).filter(~SoftwareComponent.pkgs_binary.any()).all():
         session.delete(cpt)
+        archive_log.info('DELETED-SWCPT-ORPHAN: %s @ %s/%s', cpt.gcid, rss.repo.name, rss.suite.name)
+    archive_log.info('EXPIRE-RUN-COMPLETED')
 
 
 def copy_source_package(
@@ -265,6 +296,14 @@ def copy_source_package(
     if dest_suite not in spkg.suites:
         spkg.suites.append(dest_suite)
         log.info('Copied source package %s:%s/%s into %s', spkg.repo.name, spkg.name, spkg.version, dest_suite.name)
+        archive_log.info(
+            'COPY-SRC: %s/%s in %s to suite %s (%s)',
+            spkg.name,
+            spkg.version,
+            spkg.repo.name,
+            dest_suite,
+            'with-binaries' if include_binaries else 'no-binaries',
+        )
     if include_binaries:
         for bpkg in spkg.binaries:
             copy_binary_package(session, bpkg, dest_rss)
@@ -305,6 +344,10 @@ def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuite
             log.info(
                 'Copied dbgsym package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_debug_suite.name
             )
+            archive_log.info(
+                'COPY-BIN-DBG: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_debug_suite
+            )
     elif dest_suite not in bpkg.suites:
         bpkg.suites.append(dest_suite)
         log.info('Copied binary package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_suite.name)
+        archive_log.info('COPY-BIN: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_suite.name)
