@@ -78,6 +78,9 @@ def index():
         scheduler_configured = True
         rubicon_nextrun_time = 'disabled'
         publish_nextrun_time = 'disabled'
+        spears_nextrun_time = 'disabled'
+        debcheck_nextrun_time = 'disabled'
+        synchrotron_nextrun_time = 'disabled'
         try:
             job = jobstore.lookup_job('rubicon')
         except sqlalchemy.exc.ProgrammingError:
@@ -95,4 +98,7 @@ def index():
             package_count=package_count,
             rubicon_nextrun_time=rubicon_nextrun_time,
             publish_nextrun_time=publish_nextrun_time,
+            spears_nextrun_time=spears_nextrun_time,
+            debcheck_nextrun_time=debcheck_nextrun_time,
+            synchrotron_nextrun_time=synchrotron_nextrun_time
         )
