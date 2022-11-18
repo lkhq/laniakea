@@ -44,7 +44,7 @@ def humanized_job_timediff(job):
     if not job:
         return 'Never'
 
-    timediff = datetime.utcnow().astimezone(pytz.utc).replace(microsecond=0) - job.next_run_time.astimezone(pytz.utc)
+    timediff = datetime.now(pytz.utc).replace(microsecond=0) - job.next_run_time.astimezone(pytz.utc)
     return humanize.naturaltime(timediff)
 
 
