@@ -58,8 +58,14 @@ def create_parser():
 
 
 def run(mainfile, args):
+    from laniakea.utils.misc import ensure_laniakea_master_user
+
     global __mainfile
     __mainfile = mainfile
+
+    # we must run as the designated master user, otherwise we might run into permission error
+    # or, even worse, create security risks in case we run as root
+    ensure_laniakea_master_user()
 
     parser = create_parser()
 
