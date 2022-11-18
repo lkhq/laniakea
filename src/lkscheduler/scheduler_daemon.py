@@ -35,7 +35,7 @@ def task_repository_publish():
     if proc.returncode == 0:
         scheduler_log.info('Archive-Publish: Success.')
     else:
-        scheduler_log.error('Archive-Publish: Error: %s', proc.stdout)
+        scheduler_log.error('Archive-Publish: Error: %s', str(proc.stdout, 'utf-8'))
 
 
 def task_rubicon_scan():
@@ -54,7 +54,7 @@ def task_rubicon_scan():
     if proc.returncode == 0:
         scheduler_log.info('Rubicon: Success.')
     else:
-        scheduler_log.error('Rubicon: Error: %s', proc.stdout)
+        scheduler_log.error('Rubicon: Error: %s', str(proc.stdout, 'utf-8'))
 
 
 def task_configure_rotate_logfile():

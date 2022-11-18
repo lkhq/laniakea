@@ -37,7 +37,7 @@ class RubiConfig:
     def load_from_file(self, fname):
 
         cdata = {}
-        if os.path.isfile(fname):
+        if fname and os.path.isfile(fname):
             with open(fname) as json_file:
                 cdata = tomlkit.load(json_file)
 
@@ -52,13 +52,7 @@ class RubiConfig:
             )
         self.incoming_dir = cdata.get('IncomingDir', os.path.join(self._lconf.workspace, 'archive-incoming'))
 
-        self.trusted_gpg_keyrings = cdata.get('TrustedGpgKeyringDir', [])
-        if not self.trusted_gpg_keyrings or type(self.trusted_gpg_keyrings) != list:
-            self.trusted_gpg_keyrings = self._lconf.trusted_gpg_keyrings
-            if not self.trusted_gpg_keyrings:
-                log.error(
-                    'No trusted GPG keyrings were found. Ensure "TrustedGpgKeyringDir" entry in the general configuration is set properly.'
-                )
+        self.trusted_gpg_keyrings = self._lconf.trusted_gpg_keyrings
 
         self.isotope_root_dir = cdata.get('IsotopeRootDir', None)
 
@@ -66,10 +60,7 @@ class RubiConfig:
 
     def load(self):
         fname = get_config_file('rubicon.toml')
-        if fname:
-            self.load_from_file(fname)
-        else:
-            raise Exception('Unable to find Rubicon configuration (usually in `/etc/laniakea/rubicon.toml`')
+        self.load_from_file(fname)
 
     @property
     def common_config(self) -> LocalConfig:
