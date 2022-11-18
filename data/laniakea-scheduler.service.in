@@ -6,9 +6,10 @@ ConditionPathExists=/etc/laniakea/base-config.toml
 [Service]
 Type=notify
 Restart=on-failure
-ProtectSystem=full
+TimeoutStartSec=10
+
 User=lkmaster
-Group=nobody
+Group=lkmaster
 ExecStart=@SCHEDULER_INSTALL_BIN@
 
 [Install]
