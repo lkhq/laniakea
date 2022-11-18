@@ -100,5 +100,5 @@ def index():
             publish_nextrun_time=publish_nextrun_time,
             spears_nextrun_time=spears_nextrun_time,
             debcheck_nextrun_time=debcheck_nextrun_time,
-            synchrotron_nextrun_time=synchrotron_nextrun_time
+            synchrotron_nextrun_time=synchrotron_nextrun_time,
         )

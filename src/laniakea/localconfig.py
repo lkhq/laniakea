@@ -279,6 +279,10 @@ class LocalConfig:
         def uploaders_keyring_dir(self) -> str:
             return self._uploaders_keyring_dir
 
+        @property
+        def log_root_dir(self) -> T.PathUnion:
+            return os.path.join(self._workspace, 'logs')
+
     def __init__(self, fname=None):
         if not LocalConfig.instance:
             LocalConfig.instance = LocalConfig.__LocalConfig(fname)

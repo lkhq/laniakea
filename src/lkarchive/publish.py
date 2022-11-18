@@ -37,7 +37,7 @@ from laniakea.db import (
 )
 from laniakea.utils import process_file_lock, datetime_to_rfc2822_string
 from laniakea.archive import repo_suite_settings_for
-from laniakea.logging import log
+from laniakea.logging import log, archive_log
 from laniakea.utils.gpg import sign
 from laniakea.archive.appstream import import_appstream_data
 
@@ -612,6 +612,7 @@ def _publish_suite_dists(
     # every week
     rss.changes_pending = False
     log.info('Published suite: %s/%s', rss.repo.name, rss.suite.name)
+    archive_log.info('PUBLISHED: %s/%s', rss.repo.name, rss.suite.name)
 
 
 @concurrent.process(daemon=False, name='publish-repo-suite-dists', context=mproc.get_context('forkserver'))

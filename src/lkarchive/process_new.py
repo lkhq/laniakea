@@ -24,6 +24,7 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.archive import PackageImporter
+from laniakea.logging import archive_log
 from laniakea.archive.utils import (
     check_overrides_source,
     find_package_in_new_queue,
@@ -61,6 +62,9 @@ def newqueue_accept(
         for bpkg_fname in glob(os.path.join(spkg_queue_dir, '*.udeb')):
             pi.import_binary(bpkg_fname)
     shutil.rmtree(spkg_queue_dir)
+    archive_log.info(
+        'ACCEPTED: %s/%s -> %s/%s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name, spkg.component.name
+    )
 
 
 def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
@@ -84,6 +88,14 @@ def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage)
     spkg.files = []
     session.delete(spkg)
     session.flush()
+    archive_log.info(
+        'REJECTED: %s/%s (aimed at %s/%s/%s)',
+        spkg.name,
+        spkg.version,
+        rss.repo.name,
+        rss.suite.name,
+        spkg.component.name,
+    )
 
 
 def _process_new(repo_name: T.Optional[str] = None):
