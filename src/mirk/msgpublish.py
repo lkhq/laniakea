@@ -84,6 +84,8 @@ class MatrixPublisher:
     def __init__(self):
         from glob import glob
 
+        import systemd.daemon
+
         from laniakea.msgstream import keyfile_read_verify_key
         from laniakea.localconfig import LocalConfig
 
@@ -101,6 +103,9 @@ class MatrixPublisher:
                 self._trusted_keys[signer_id] = verify_key
 
         self._mclient = MirkMatrixClient(self._mconf)
+
+        # we're ready now
+        systemd.daemon.notify('READY=1')
 
     def _tag_data_to_html_message(self, tag, event):
         '''Convert the JSON message into a nice HTML string for display.'''

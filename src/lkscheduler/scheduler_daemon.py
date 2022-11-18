@@ -80,6 +80,8 @@ class SchedulerDaemon:
     """
 
     def __init__(self):
+        import systemd.daemon
+
         from laniakea.db import Base, Database
 
         self._lconf = LocalConfig()
@@ -92,6 +94,9 @@ class SchedulerDaemon:
         db = Database()
         jobstore = SQLAlchemyJobStore(engine=db.engine, tablename='maintenance_jobs', metadata=Base.metadata)
         self._scheduler = AsyncIOScheduler(jobstores={'default': jobstore})
+
+        # we're ready now
+        systemd.daemon.notify('READY=1')
 
         intervals_min = self._sconf.intervals_min
         if intervals_min['rubicon'] is not None:
