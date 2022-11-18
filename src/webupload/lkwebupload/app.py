@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 
 import jinja2
-from flask import Flask, render_template
+from flask import Flask
 
 import laniakea.typing as T
 from laniakea import LocalConfig

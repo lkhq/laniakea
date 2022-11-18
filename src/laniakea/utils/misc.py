@@ -136,7 +136,7 @@ class ProcessFileLock:
             self._lock_dir = os.path.join(lconf.workspace, 'locks')
             try:
                 os.makedirs(self._lock_dir, exist_ok=True)
-            except:
+            except Exception:
                 raise Exception(
                     'No suitable location found to place lock file "{}"! - Does a workspace exist with proper permissions?'.format(
                         self._name
