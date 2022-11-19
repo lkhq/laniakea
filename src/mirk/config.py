@@ -62,6 +62,8 @@ class MirkConfig:
         self.webview_url = cdata.get('WebViewUrl', '#')
         self.webswview_url = cdata.get('WebSWViewUrl', '#')
 
+        self.message_prefix = cdata.get('MessagePrefix', '')
+
         self._loaded = True
 
     def load(self):

@@ -169,13 +169,13 @@ class MatrixPublisher:
             filter_rules = settings.filter_rules
             if not filter_rules:
                 # no filter rules means we emit everything
-                await self._mclient.send_simple_html(room_id, text)
+                await self._mclient.send_simple_html(room_id, self._mconf.message_prefix + text)
                 continue
 
             # check if we are allowed to send this message to the particular room,
             # and then send it
             if filter_rules_match_event(filter_rules, event):
-                await self._mclient.send_simple_html(room_id, text)
+                await self._mclient.send_simple_html(room_id, self._mconf.message_prefix + text)
 
     def stop(self):
         self._running = False
