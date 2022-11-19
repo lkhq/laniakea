@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import shutil
 import logging as log
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
@@ -100,6 +101,8 @@ def configure_app(app, config=None):
         repo_incoming_dir = os.path.join(gdata.incoming_dir, repo_name)
         if not os.path.isdir(repo_incoming_dir):
             os.makedirs(repo_incoming_dir, exist_ok=True)
+        shutil.chown(repo_incoming_dir, group=gdata.master_user)
+        os.chmod(repo_incoming_dir, 0o775)
 
     app.gdata = gdata
 

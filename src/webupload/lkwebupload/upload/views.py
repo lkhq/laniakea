@@ -32,7 +32,8 @@ def upload_repo_artifact(repo_name: str, filename=None):
             if len(chunk) == 0:
                 break
             f.write(chunk)
-    shutil.chown(target_fname, user=gdata.master_user)
+    shutil.chown(target_fname, group=gdata.master_user)
+    os.chmod(target_fname, 0o664)
     return 'created', 201
 
 

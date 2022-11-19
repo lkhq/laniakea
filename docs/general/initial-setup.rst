@@ -101,6 +101,8 @@ You will need to add some system users for Laniakea services to use:
     sudo adduser --system --disabled-login --disabled-password --no-create-home lklighthouse
     # user for web services as well as the Matrix bot
     sudo adduser --system --disabled-login --disabled-password --no-create-home --ingroup www-data lkweb
+    # web user needs to be a member of the master user group for HTTPS web uploads
+    sudo adduser lkweb lkmaster
 
 2. Create database
 ******************
