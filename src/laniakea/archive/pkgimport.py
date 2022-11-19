@@ -39,7 +39,7 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
 )
 from laniakea.utils import safe_rename, hardlink_or_copy
-from laniakea.logging import log
+from laniakea.logging import log, archive_log
 from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import (
     UploadError,
@@ -799,6 +799,9 @@ class UploadHandler:
         event_data = {'repo': self._repo.name, 'upload_name': Path(changes_fname).stem, 'reason': reason}
         self._add_uploader_event_data(event_data, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-rejected', event_data)
+        archive_log.info(
+            'UPLOAD_REJECT: %s @ %s: %s', event_data['upload_name'], event_data['repo'], event_data['reason']
+        )
 
     def _process_changes_internal(self, fname: T.PathUnion) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
         """Version of :func:`process_changes` that will not emit message stream messages"""
@@ -1098,6 +1101,9 @@ class UploadHandler:
             ev_data['source_uploaders'] = spkg.uploaders
         self._add_uploader_event_data(ev_data, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
+        archive_log.info(
+            '%s: %s/%s @ %s', 'UPLOAD-NEW' if is_new else 'UPLOAD-ACCEPTED', spkg.name, spkg.version, self._repo.name
+        )
 
     def process_changes(self, fname: T.PathUnion) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
         """

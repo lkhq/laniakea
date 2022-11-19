@@ -41,6 +41,7 @@ def create_parser():
 
 
 def run(mainfile, args):
+    from laniakea.logging import set_verbose, configure_pkg_archive_logger
     from laniakea.utils.misc import ensure_laniakea_master_user
 
     global __mainfile
@@ -51,5 +52,9 @@ def run(mainfile, args):
     args = parser.parse_args(args)
     check_print_version(args)
 
-    ensure_laniakea_master_user(warn_only=True)
+    # ensure we run as the correct user
+    ensure_laniakea_master_user()
+    # configure the archive action file logging
+    configure_pkg_archive_logger()
+
     import_files(args)
