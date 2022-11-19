@@ -41,7 +41,7 @@ def create_parser():
 
 
 def run(mainfile, args):
-    from laniakea.logging import set_verbose, configure_pkg_archive_logger
+    from laniakea.logging import configure_pkg_archive_logger
     from laniakea.utils.misc import ensure_laniakea_master_user
 
     global __mainfile

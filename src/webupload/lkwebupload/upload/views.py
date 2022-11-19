@@ -7,8 +7,10 @@
 import os
 import shutil
 
-from flask import Blueprint, request, current_app
+from flask import Blueprint, request
 from werkzeug.utils import secure_filename
+
+from ..app import gdata
 
 upload = Blueprint('upload', __name__)
 
@@ -18,7 +20,6 @@ upload = Blueprint('upload', __name__)
 def upload_repo_artifact(repo_name: str, filename=None):
     if not filename:
         return 'no repository name given', 400
-    gdata = current_app.gdata
     if repo_name not in gdata.repo_names:
         return 'repository not found or does not accept uploads', 422
 

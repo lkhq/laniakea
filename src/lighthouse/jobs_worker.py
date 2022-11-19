@@ -6,9 +6,9 @@
 
 import uuid
 import logging as log
-from typing import Optional
 from datetime import datetime
 
+import laniakea.typing as T
 from laniakea import LkModule, LocalConfig
 from laniakea.db import (
     Job,
@@ -89,7 +89,7 @@ class JobWorker:
         session.commit()
         return res
 
-    def _get_job_details(self, session, job_dict):
+    def _get_job_details(self, session, job_dict) -> dict[str, T.Any]:
         '''
         Retrieve additional information about a given job.
         '''
@@ -101,8 +101,8 @@ class JobWorker:
 
         job = session.query(Job).filter(Job.uuid == job_uuid_str).one()
 
-        info = dict()
-        jdata = dict()
+        info: dict[str, T.Any] = {}
+        jdata: dict[str, T.Any] = {}
         info['uuid'] = job_uuid_str
         info['module'] = job_dict['module']
         info['kind'] = job_kind
@@ -187,7 +187,7 @@ class JobWorker:
                 # This not an error the client needs to know about
                 return None
         elif job_kind == JobKind.OS_IMAGE_BUILD:
-            recipe: Optional[ImageBuildRecipe] = (
+            recipe: T.Optional[ImageBuildRecipe] = (
                 session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid == trigger_uuid).one_or_none()
             )
             if not recipe:

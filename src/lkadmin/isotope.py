@@ -84,7 +84,7 @@ def add_image_recipe():
 
 @isotope.command()
 @click.argument('recipe_name', nargs=1)
-def trigger_image_build(recipe_name):
+def trigger_image_build(recipe_name) -> None:
     '''Schedule a disk image build job.'''
 
     with session_scope() as session:

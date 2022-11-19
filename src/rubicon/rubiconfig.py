@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import logging as log
 
 import tomlkit
 

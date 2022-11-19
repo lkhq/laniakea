@@ -10,11 +10,11 @@ import fcntl
 import select
 import datetime
 import subprocess
-from typing import List, Union, Optional
-from pathlib import Path
+from typing import List, Optional
 
 import apt_pkg
 
+import laniakea.typing as T
 from laniakea.logging import log
 
 try:
@@ -343,7 +343,7 @@ def sign(
     subprocess.check_call(args, stdin=infile, stdout=outfile)
 
 
-def import_keyfile(gpghome: Union[Path, str], fname: Union[Path, str]) -> List[str]:
+def import_keyfile(gpghome: T.PathUnion, fname: T.PathUnion) -> List[str]:
     """Import a GPG (public) keyfile into the keyring set by :gpghome"""
 
     args = [

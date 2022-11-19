@@ -37,7 +37,7 @@ class NewQueueData:
 
 
 @review_queues.route('/')
-def index():
+def index() -> T.Any:
     with session_scope() as session:
         repo_suites = (
             session.query(ArchiveRepoSuiteSettings)

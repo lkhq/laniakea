@@ -42,6 +42,9 @@ class BaseDataCache:
         self.repo_names = set()
 
 
+gdata: T.Optional[BaseDataCache] = None
+
+
 def create_app(config=None, app_name=None):
     if app_name is None:
         app_name = DefaultConfig.PROJECT
@@ -66,6 +69,8 @@ def configure_app(app, config=None):
 
     from laniakea import get_config_file
     from laniakea.db import ArchiveRepoSuiteSettings, session_scope
+
+    global gdata
 
     if app.debug:
         app.config.from_object(DebugConfig)
@@ -103,8 +108,6 @@ def configure_app(app, config=None):
             os.makedirs(repo_incoming_dir, exist_ok=True)
         shutil.chown(repo_incoming_dir, group=gdata.master_user)
         os.chmod(repo_incoming_dir, 0o775)
-
-    app.gdata = gdata
 
 
 def configure_blueprints(app):
