@@ -29,6 +29,7 @@ class MirkConfig:
         self.load()
 
     def load_from_file(self, fname):
+        import tomlkit.items
 
         cdata = {}
         if os.path.isfile(fname):
@@ -52,10 +53,11 @@ class MirkConfig:
         self.rooms = cdata.get('Rooms', {})
         if not self.rooms:
             raise Exception('No "Rooms" entry in mIrk configuration: We need at least one registered room.')
-        if type(self.rooms) is not dict:
+        if type(self.rooms) is not tomlkit.items.Table:
             raise Exception(
                 '"Rooms" entry in mIrk configuration is no mapping: Needs to be a mapping of room names to settings.'
             )
+        self.rooms = dict(self.rooms)
 
         self.allow_unsigned = cdata.get('AllowUnsigned', False)
 
