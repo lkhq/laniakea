@@ -22,16 +22,19 @@ def cli(ctx, verbose, version, config_fname):
     This utility allows you to perform a lot of administrative actions for
     Laniakea directly from the command-line.'''
     from laniakea import LocalConfig
+    from laniakea.logging import set_verbose, configure_pkg_archive_logger
 
     if verbose:
-        from laniakea.logging import set_verbose
-
         set_verbose(True)
     if version:
         from laniakea import __version__
 
         print(__version__)
         sys.exit(0)
+
+    # configure the archive action file logging
+    configure_pkg_archive_logger()
+
     if config_fname:
         LocalConfig(config_fname)
 
