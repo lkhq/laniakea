@@ -32,6 +32,7 @@ class BaseDataCache:
     """Some data that we cache on startup, for very low overhead per single upload."""
 
     upload_chunk_size: int  # chunk size for uploads to be written to disk
+    master_user: str  # Laniakea system user name
     incoming_dir: T.PathUnion  # path to incoming root directory
     repo_names: T.Set[str]  # set of repository+suite names that we accept uploads for
 
@@ -89,6 +90,7 @@ def configure_app(app, config=None):
             rcdata = tomlkit.load(f)
 
     gdata = BaseDataCache(app.config['UPLOAD_CHUNK_SIZE'])
+    gdata.master_user = lconf.master_user_name
     gdata.incoming_dir = rcdata.get('IncomingDir', os.path.join(lconf.workspace, 'archive-incoming'))
 
     with session_scope() as session:

@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import shutil
 
 from flask import Blueprint, request, current_app
 from werkzeug.utils import secure_filename
@@ -17,19 +18,21 @@ upload = Blueprint('upload', __name__)
 def upload_repo_artifact(repo_name: str, filename=None):
     if not filename:
         return 'no repository name given', 400
-    if repo_name not in current_app.gdata.repo_names:
+    gdata = current_app.gdata
+    if repo_name not in gdata.repo_names:
         return 'repository not found or does not accept uploads', 422
 
     filename = secure_filename(filename)
-    target_fname = os.path.join(current_app.gdata.incoming_dir, repo_name, filename)
+    target_fname = os.path.join(gdata.incoming_dir, repo_name, filename)
     if os.path.exists(target_fname):
         return 'upload already exists', 403
     with open(target_fname, 'wb') as f:
         while True:
-            chunk = request.stream.read(current_app.gdata.upload_chunk_size)
+            chunk = request.stream.read(gdata.upload_chunk_size)
             if len(chunk) == 0:
                 break
             f.write(chunk)
+    shutil.chown(target_fname, user=gdata.master_user)
     return 'created', 201
 
 
