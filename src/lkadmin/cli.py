@@ -32,11 +32,11 @@ def cli(ctx, verbose, version, config_fname):
         print(__version__)
         sys.exit(0)
 
-    # configure the archive action file logging
-    configure_pkg_archive_logger()
-
     if config_fname:
         LocalConfig(config_fname)
+
+    # configure the archive action file logging
+    configure_pkg_archive_logger()
 
     if ctx.invoked_subcommand is None:
         click.echo('No subcommand was provided. Can not continue.')
