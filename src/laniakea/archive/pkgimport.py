@@ -778,6 +778,8 @@ class UploadHandler:
         self.keep_source_packages = False
         self.auto_emit_reject = True
 
+        self._suite_map: T.Dict[str, str] = self._repo.upload_suite_map
+
     def _add_uploader_event_data(self, event_data: T.Dict[str, str], uploader: T.Optional[ArchiveUploader]):
         """Add relevant uploader data to the event data"""
         if not uploader:
@@ -844,6 +846,9 @@ class UploadHandler:
                 ).format(str(changes.distributions)),
             )
         suite_name = changes.distributions[0]
+        # override target suite based on the repository's suite mapping
+        if suite_name in self._suite_map:
+            suite_name = self._suite_map[suite_name]
 
         if changes.sourceful and not uploader.allow_source_uploads:
             return (

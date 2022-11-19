@@ -94,6 +94,9 @@ class ArchiveRepository(Base):
 
     suite_settings = relationship('ArchiveRepoSuiteSettings', back_populates='repo', uselist=True)
 
+    # map upload suites to the actual suite automatically
+    upload_suite_map = Column(MutableDict.as_mutable(JSON))
+
     def __init__(self, name):
         self.name = name
 

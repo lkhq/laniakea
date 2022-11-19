@@ -7,6 +7,7 @@
 import click
 import tomlkit
 
+import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import (
     NewPolicy,
@@ -30,7 +31,9 @@ def archive():
     '''Configure package archive settings.'''
 
 
-def _add_repo(name: str, origin: str, is_debug: bool = False, debug_for: str = None):
+def _add_repo(
+    name: str, origin: str, is_debug: bool = False, debug_for: str = None, upload_suite_map: T.Dict[str, str] = None
+):
     '''Create a new repository (helper function).'''
 
     if is_debug and not debug_for:
@@ -52,6 +55,8 @@ def _add_repo(name: str, origin: str, is_debug: bool = False, debug_for: str = N
             if not nd_repo:
                 raise ValueError('Repository with name "{}" was not found.'.format(debug_for))
             nd_repo.debug_repo = repo
+        if upload_suite_map:
+            repo.upload_suite_map = upload_suite_map
 
 
 @archive.command(aliases=['r-a'])
