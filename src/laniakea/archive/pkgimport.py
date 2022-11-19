@@ -779,6 +779,8 @@ class UploadHandler:
         self.auto_emit_reject = True
 
         self._suite_map: T.Dict[str, str] = self._repo.upload_suite_map
+        if not self._suite_map:
+            self._suite_map = {}
 
     def _add_uploader_event_data(self, event_data: T.Dict[str, str], uploader: T.Optional[ArchiveUploader]):
         """Add relevant uploader data to the event data"""
@@ -1107,7 +1109,7 @@ class UploadHandler:
         self._add_uploader_event_data(ev_data, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
         archive_log.info(
-            '%s: %s/%s @ %s', 'UPLOAD-NEW' if is_new else 'UPLOAD-ACCEPTED', spkg.name, spkg.version, self._repo.name
+            '%s: %s @ %s', 'UPLOAD-NEW' if is_new else 'UPLOAD-ACCEPTED', ev_data['upload_name'], self._repo.name
         )
 
     def process_changes(self, fname: T.PathUnion) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:

@@ -95,7 +95,7 @@ class ArchiveRepository(Base):
     suite_settings = relationship('ArchiveRepoSuiteSettings', back_populates='repo', uselist=True)
 
     # map upload suites to the actual suite automatically
-    upload_suite_map = Column(MutableDict.as_mutable(JSON))
+    upload_suite_map = Column(MutableDict.as_mutable(JSON), default={})
 
     def __init__(self, name):
         self.name = name
@@ -761,7 +761,7 @@ class SourcePackage(Base):
 
     _expected_binaries_json = Column('expected_binaries', JSON)
     # Additional key-value metadata that may be specific to this package
-    extra_data = Column(MutableDict.as_mutable(JSONB))
+    extra_data = Column(MutableDict.as_mutable(JSONB), default={})
 
     _expected_binaries = None
 
@@ -971,7 +971,7 @@ class BinaryPackage(Base):
     contents = Column(ARRAY(Text()))  # List of filenames that this package contains
 
     # Additional key-value metadata that may be specific to this package
-    extra_data = Column(MutableDict.as_mutable(JSONB))
+    extra_data = Column(MutableDict.as_mutable(JSONB), default={})
 
     bin_file_id = Column(Integer, ForeignKey('archive_files.id'))
     bin_file = relationship(

@@ -68,7 +68,6 @@ class TestLighthouseMsgStream:
     def test_msg_simple_submit_listen(self):
         # create subscriber socket that is listening to all events emitted by the Lighthouse instance
         sub_socket = create_event_listen_socket(self._zctx)
-        sub_socket.RCVTIMEO = 1000
 
         # create connection with the Lighthouse server to submit new events
         pub_socket = create_submit_socket(self._zctx)
@@ -77,7 +76,18 @@ class TestLighthouseMsgStream:
             pub_socket, self._sender_id, '_lk.testsuite.my-event', {'hello': 'world'}, self._sender_signing_key
         )
 
-        mparts = sub_socket.recv_multipart()
+        for i in range(1, 4):
+            try:
+                mparts = sub_socket.recv_multipart()
+                break
+            except zmq.error.Again as e:
+                # the test might be slow, so we retry to get a connection three times
+                # before we give up
+                sub_socket.close()
+                sub_socket = create_event_listen_socket(self._zctx)
+                if i == 3:
+                    raise e
+
         assert len(mparts) == 2
         topic = mparts[0]
         msg_b = mparts[1]
