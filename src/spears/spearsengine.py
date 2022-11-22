@@ -110,7 +110,7 @@ class SpearsEngine:
                 bc = BritneyConfig(mi_wspace)
                 bc.set_archive_paths(
                     self._get_source_suite_dists_dir(mi_wspace, mtask.repo, suites_from),
-                    os.path.join(self._lconf.archive_root_dir, 'dists', suite_to.name),
+                    os.path.join(self._lconf.archive_root_dir, mtask.repo.name, 'dists', suite_to.name),
                 )
                 bc.set_components([c.name for c in suite_to.components])
                 bc.set_architectures([a.name for a in suite_to.architectures])
@@ -162,7 +162,7 @@ class SpearsEngine:
                             log.debug('Looking for packages in: {}'.format(pfile))
                             packages_files.append(pfile)
 
-                    if not installer_dir and not installer_dir:
+                    if not installer_dir and not packages_files:
                         raise Exception(
                             'No packages found on {}/{} in sources for migration "{}:{}": Can not continue.'.format(
                                 component.name,
@@ -236,7 +236,7 @@ class SpearsEngine:
 
         suite_source = mtask.source_suites[0]
 
-        if suite_source.parent and mtask.target_suite.parent:
+        if suite_source.parents or mtask.target_suite.parents:
             log.info('Creating faux-packages to aid resolving of partial suites.')
         else:
             log.info('No auto-generating faux packages: No source and target suite parents, generation is unnecessary.')
@@ -264,7 +264,7 @@ class SpearsEngine:
                     for spkg in repo_reader.source_packages(suite, component):
                         existing_pkg_arch_set.add(aname + ':' + spkg.name)
 
-        archive_root_dir = self._lconf.archive_root_dir
+        archive_root_dir = os.path.join(self._lconf.archive_root_dir, mtask.repo.name)
         fauxpkg_fname = os.path.join(mi_wspace, 'input', 'faux-packages')
 
         log.debug('Generating faux packages list')
