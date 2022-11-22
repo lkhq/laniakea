@@ -32,7 +32,7 @@ def command_update(options):
 
     engine = SpearsEngine()
 
-    ret = engine.update_config()
+    ret = engine.update_config(options.update_britney)
     if not ret:
         sys.exit(2)
 
@@ -60,6 +60,9 @@ def create_parser():
     )
 
     sp = subparsers.add_parser('update', help='Update the copy of Britney and its configuration.')
+    sp.add_argument(
+        '--update-britney', action='store_true', dest='update_britney', help='Fetch new Britney code form Git.'
+    )
     sp.set_defaults(func=command_update)
 
     sp = subparsers.add_parser(

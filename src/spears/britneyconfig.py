@@ -126,7 +126,6 @@ class BritneyConfig:
         # ensure all priorities have a value
         delays_e: Dict[ChangesUrgency, int] = {}
         for prio_str, days in delays.items():
-            delays.pop(prio_str)
             prio = ChangesUrgency.from_string(prio_str)
             delays_e[prio] = int(days)
         for prio in ChangesUrgency:

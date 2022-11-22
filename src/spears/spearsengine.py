@@ -97,7 +97,7 @@ class SpearsEngine:
             for mtask in session.query(SpearsMigrationTask).all():
 
                 suites_from = mtask.source_suites
-                suite_to = mtask.target_suites
+                suite_to = mtask.target_suite
                 assert len(suites_from) >= 1
                 assert suite_to
 

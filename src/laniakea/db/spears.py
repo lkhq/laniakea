@@ -17,6 +17,7 @@ from sqlalchemy import (
     Integer,
     DateTime,
     ForeignKey,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableDict
@@ -76,6 +77,8 @@ class SpearsMigrationTask(Base):
     target_suite = relationship('ArchiveSuite')  # The suite packages migrate to
 
     delays = Column(MutableDict.as_mutable(JSONB))  # Dictionary of VersionPriority --> int
+
+    __table_args__ = (UniqueConstraint('repo_id', 'target_suite_id', name='repo_target_suite_uc'),)
 
     def source_suites_id(self):
         '''

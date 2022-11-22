@@ -39,6 +39,10 @@ class Britney:
         if not args:
             args = []
 
+        # automatically fetch Britney if it doesn't exist yet
+        if not os.path.isfile(self._britney_exe):
+            self.update_dist()
+
         cmd = [self._britney_exe]
         cmd.extend(['-c', config_fname])
         cmd.extend(args)
