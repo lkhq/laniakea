@@ -300,7 +300,13 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
 
 
 def generate_packages_index(
-    session, repo: ArchiveRepository, suite: ArchiveSuite, component: ArchiveComponent, arch: ArchiveArchitecture
+    session,
+    repo: ArchiveRepository,
+    suite: ArchiveSuite,
+    component: ArchiveComponent,
+    arch: ArchiveArchitecture,
+    *,
+    installer_udeb: bool = False,
 ) -> str:
     """
     Generate Packages index data for the given repo/suite/component/arch.
@@ -308,8 +314,11 @@ def generate_packages_index(
     :param repo: Repository to generate data for
     :param suite: Suite to generate data for
     :param component: Component to generate data for
+    :param installer_udeb: True if we should build the debian-installer index
     :return:
     """
+
+    from laniakea.db.archive import DebType
 
     bmv_subq = (
         session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
@@ -317,12 +326,17 @@ def generate_packages_index(
         .subquery('bmv_subq')
     )
 
+    deb_type = DebType.DEB
+    if installer_udeb:
+        deb_type = DebType.UDEB
+
     # get the latest binary packages for this configuration
     bpkgs = (
         session.query(BinaryPackage)
         .join(
             bmv_subq,
             and_(
+                BinaryPackage.deb_type == deb_type,
                 BinaryPackage.name == bmv_subq.c.name,
                 BinaryPackage.repo_id == repo.id,
                 BinaryPackage.suites.any(id=suite.id),
@@ -494,14 +508,24 @@ def _publish_suite_dists(
         for arch in rss.suite.architectures:
             # generate Packages
             dists_arch_subdir = os.path.join(component.name, 'binary-' + arch.name)
-            suite_component_dists_arch_dir = os.path.join(suite_temp_dist_dir, dists_arch_subdir)
-            os.makedirs(suite_component_dists_arch_dir, exist_ok=True)
+            dists_arch_di_subdir = os.path.join(component.name, 'debian-installer', 'binary-' + arch.name)
+            os.makedirs(os.path.join(suite_temp_dist_dir, dists_arch_subdir), exist_ok=True)
 
-            pkg_data = generate_packages_index(session, rss.repo, rss.suite, component, arch)
+            pkg_data = generate_packages_index(session, rss.repo, rss.suite, component, arch, installer_udeb=False)
             meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_arch_subdir, 'Packages', pkg_data))
             meta_files.append(
                 write_release_file_for_arch(suite_temp_dist_dir, dists_arch_subdir, rss, component, arch.name)
             )
+
+            # only add debian-installer data if we are not a debug suite
+            if not rss.suite.debug_suite_for:
+                os.makedirs(os.path.join(suite_temp_dist_dir, dists_arch_di_subdir), exist_ok=True)
+                pkg_data_di = generate_packages_index(
+                    session, rss.repo, rss.suite, component, arch, installer_udeb=True
+                )
+                meta_files.extend(
+                    write_compressed_files(suite_temp_dist_dir, dists_arch_di_subdir, 'Packages', pkg_data_di)
+                )
 
             # import AppStream data
             if dep11_src_dir:
