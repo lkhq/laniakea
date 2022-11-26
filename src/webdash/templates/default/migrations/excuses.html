@@ -3,7 +3,7 @@
 {% set page_title = 'Migration excuses for {{migration.target_suite.name}}' %}
 
 {% block body_header %}
-<h1 class="title">Excuses for {{migration.target_suite.name}}</h1>
+<h1 class="title">Excuses for {{migration_source_suites_str}} <i class="fas fa-long-arrow-alt-right"></i> {{migration.target_suite.name}}</h1>
 {% endblock %}
 
 {% block body %}
