@@ -83,7 +83,7 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
                 spkg.repo.name,
                 ' '.join(sorted([s.name for s in spkg.suites])),
                 spkg.component.name,
-                'source',
+                '[red]source (deleted)' if spkg.time_deleted else 'source',
             )
 
         bpkg_by_arch: T.Dict[str, T.Any] = {}

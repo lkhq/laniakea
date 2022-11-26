@@ -176,8 +176,8 @@ class SpearsExcuse(Base):
     def make_idname(self):
         return '{}:{}->{}:{}-{}/{}'.format(
             self.migration_task.repo.name,
-            self.suite_source,
-            self.suite_target,
+            self.migration_task.source_suites_id(),
+            self.migration_task.target_suite.name,
             self.source_package.name,
             self.version_new,
             self.version_old,

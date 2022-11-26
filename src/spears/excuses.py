@@ -8,7 +8,6 @@ from typing import Dict
 from datetime import datetime
 
 import yaml
-from sqlalchemy import or_
 
 from laniakea.db import (
     SpearsExcuse,
@@ -80,10 +79,6 @@ class ExcusesFile:
         # get log data
         loginfo = self._process_log_data()
 
-        suite_from_filter = []
-        for suite in self._suites_source:
-            suite_from_filter.append(SourcePackage.suites.any(id=suite.id))
-
         ysrc = self._excuses_data['sources']
         for entry in ysrc:
             excuse = SpearsExcuse()
@@ -95,18 +90,22 @@ class ExcusesFile:
             excuse.version_new = str(entry['new-version'])
             excuse.version_old = str(entry['old-version'])
 
+            spkg_version = excuse.version_new
+            if not spkg_version or spkg_version == '-':
+                # the package might be deleted, so we need to search for the *old* version instead
+                spkg_version = excuse.version_old
+
             excuse.source_package = (
                 self._session.query(SourcePackage)
                 .filter(
                     SourcePackage.repo_id == self._mtask.repo.id,
-                    SourcePackage.name == excuse.source_package.name,
-                    SourcePackage.version == excuse.version_new,
-                    or_(*suite_from_filter),
+                    SourcePackage.name == spkg_name,
+                    SourcePackage.version == spkg_version,
                 )
                 .one_or_none()
             )
             if not excuse.source_package:
-                raise ValueError("Unable to find source package %s/%s!" % (spkg_name, excuse.version_new))
+                raise ValueError("Unable to find source package %s/%s!" % (spkg_name, spkg_version))
 
             excuse.is_candidate = bool(entry['is-candidate'])
             if 'maintainer' in entry:

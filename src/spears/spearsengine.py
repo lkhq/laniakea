@@ -423,7 +423,8 @@ class SpearsEngine:
         efile = ExcusesFile(session, excuses_yaml, log_file, mtask)
         excuses = []
         for _, excuse in efile.get_excuses().items():
-            session.expunge(excuse)  # don't add this to the database yet
+            if excuse in session:
+                session.expunge(excuse)  # don't add this to the database yet
             excuses.append(excuse)
 
         return excuses
@@ -523,9 +524,9 @@ class SpearsEngine:
 
                     data = {
                         'uuid': str(excuse.uuid),
-                        'suite_source': excuse.suite_source,
-                        'suite_target': excuse.suite_target,
-                        'source_package': excuse.source_package,
+                        'suites_source': [s.name for s in excuse.migration_task.source_suites],
+                        'suite_target': excuse.migration_task.target_suite,
+                        'source_package': excuse.source_package.name,
                         'version_new': excuse.version_new,
                         'version_old': excuse.version_old,
                     }
@@ -551,9 +552,9 @@ class SpearsEngine:
             for excuse in existing_excuses.values():
                 data = {
                     'uuid': str(excuse.uuid),
-                    'suite_source': excuse.suite_source,
-                    'suite_target': excuse.suite_target,
-                    'source_package': excuse.source_package,
+                    'suites_source': [s.name for s in excuse.migration_task.source_suites],
+                    'suite_target': excuse.migration_task.target_suite,
+                    'source_package': excuse.source_package.name,
                     'version_new': excuse.version_new,
                     'version_old': excuse.version_old,
                 }
