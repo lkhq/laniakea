@@ -81,7 +81,7 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
                 '[red]' + spkg.name if spkg.time_deleted else spkg.name,
                 spkg.version,
                 spkg.repo.name,
-                ' '.join([s.name for s in spkg.suites]),
+                ' '.join(sorted([s.name for s in spkg.suites])),
                 spkg.component.name,
                 'source',
             )
@@ -89,23 +89,22 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
         bpkg_by_arch: T.Dict[str, T.Any] = {}
         for bpkg in bpkgs:
             bpkid = '{}:{}/{}-{}'.format(bpkg.repo.name, bpkg.component.name, bpkg.name, bpkg.version)
+            arch_str = '[red]{}[/red]'.format(bpkg.architecture.name) if bpkg.time_deleted else bpkg.architecture.name
             if bpkid in bpkg_by_arch:
-                bpkg_by_arch[bpkid]['archs'].add(bpkg.architecture.name)
+                bpkg_by_arch[bpkid]['archs'].add(arch_str)
                 bpkg_by_arch[bpkid]['suites'].update([s.name for s in bpkg.suites])
             else:
-                bpkg_by_arch[bpkid] = dict(
-                    bpkg=bpkg, archs={bpkg.architecture.name}, suites=set([s.name for s in bpkg.suites])
-                )
+                bpkg_by_arch[bpkid] = dict(bpkg=bpkg, archs={arch_str}, suites=set([s.name for s in bpkg.suites]))
 
         for data in bpkg_by_arch.values():
             bpkg = data['bpkg']
             table.add_row(
-                '[red]' + bpkg.name if bpkg.time_deleted else bpkg.name,
+                bpkg.name,
                 bpkg.version,
                 bpkg.repo.name,
-                ' '.join(data['suites']),
+                ' '.join(sorted(data['suites'])),
                 bpkg.component.name,
-                ' '.join(data['archs']),
+                ' '.join(sorted(data['archs'])),
             )
 
         console = Console()
