@@ -32,7 +32,11 @@ class JobsRegistry:
     @contextmanager
     def lock_publish_job(self):
         """Prevent publishing from being run."""
-        pub_job = self.jobs['publish-repos']
+        pub_job = self.jobs.get('publish-repos', None)
+        if not pub_job:
+            log.debug('No "publish-repos" job is present in the current job list.')
+            yield
+            return
         pub_job.pause()
         try:
             with process_file_lock('scheduler_publish-repos'):
