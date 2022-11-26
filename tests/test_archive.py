@@ -715,7 +715,7 @@ class TestArchive:
     def test_heidi_import(self, ctx, samples_dir):
         # test import of Britney's Heidi report
 
-        heidi_report_fname = os.path.join(samples_dir, 'spears', 'HeidiResult')
+        heidi_report_fname = os.path.join(samples_dir, 'spears', 'heidi-current')
         import_heidi_result.callback(suite_name='stable', heidi_fname=heidi_report_fname, allow_delete=True)
 
         with session_scope() as session:
