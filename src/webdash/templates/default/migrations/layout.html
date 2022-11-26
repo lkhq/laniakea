@@ -13,7 +13,10 @@
         </li>
         {% if migration %}
         <li class="breadcrumb-item {{'active' if not excuse}}" aria-current="page">
-            <a href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=1) }}">{{migration.idname}}</a>
+            <a href="{{ url_for('migrations.excuses_list',
+                                 repo_name=migration.repo.name,
+                                 target_suite_name=migration.target_suite.name,
+                                 page=1) }}">{{migration.target_suite.name}}</a>
         {% endif %}
         {% if excuse %}
         <li class="breadcrumb-item active" aria-current="page">{{excuse.source_package}} {{excuse.version_new}}</li>

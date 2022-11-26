@@ -1,9 +1,9 @@
 {% extends 'migrations/layout.html' %}
 
-{% set page_title = 'Migration excuses for ' + excuse.source_package + ' ' + excuse.version_new %}
+{% set page_title = 'Migration excuses for ' + excuse.source_package.name + ' ' + excuse.version_new %}
 
 {% block body_header %}
-<h1 class="title">Migration excuse for: {{excuse.source_package}} {{excuse.version_new}}</h1>
+<h1 class="title">Migration excuse for: {{excuse.source_package.name}} {{excuse.version_new}}</h1>
 {% endblock %}
 
 {% block body %}

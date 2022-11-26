@@ -11,11 +11,17 @@
 <div class="column is-5">
 
 
-    {% for m in migrations %}
-        <a class="button is-medium is-fullwidth is-info is-outlined" href="{{ url_for('migrations.excuses_list', migration_id=m.id, page=1) }}" role="button">
+    {% for repo_name, mtasks in migrations.items() %}
+    <h4 class="subtitle is-4">Repository: <b>{{repo_name}}</b></h4>
+    {% for m in mtasks %}
+        <a class="button is-medium is-fullwidth is-info is-outlined" href="{{ url_for('migrations.excuses_list',
+                                                                                       repo_name=m.repo_name,
+                                                                                       target_suite_name=m.to,
+                                                                                       page=1) }}" role="button">
         {{m.from}}&nbsp;<i class="fas fa-long-arrow-alt-right"></i>&nbsp;{{m.to}}
         </a>
         <br/>
+    {% endfor %}
     {% endfor %}
 
 </div>

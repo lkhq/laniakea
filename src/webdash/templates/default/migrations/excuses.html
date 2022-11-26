@@ -1,9 +1,9 @@
 {% extends 'migrations/layout.html' %}
 
-{% set page_title = 'Migration excuses for {{migration.idname}}' %}
+{% set page_title = 'Migration excuses for {{migration.target_suite.name}}' %}
 
 {% block body_header %}
-<h1 class="title">Excuses for {{migration.idname}}</h1>
+<h1 class="title">Excuses for {{migration.target_suite.name}}</h1>
 {% endblock %}
 
 {% block body %}
@@ -11,7 +11,7 @@
 {% if current_page == 1 %}
 <div class="column is-8">
     <div class="notification is-info is-light">
-        <p>These packages fail to migrate from the <i>{{migration.source_suites|join(', ')}}</i> suite(s) to the <i>{{migration.target_suite}}</i> suite.</p>
+        <p>These packages fail to migrate from the <i>{{migration_source_suites_str}}</i> suite(s) to the <i>{{migration.target_suite.name}}</i> suite.</p>
         <p>
           Migration issues can happen for many reasons, most commonly a package failed to
           build on an architecture, will break other packages in the target suite or depends on packages which need to migrate first.<br/>
@@ -30,7 +30,7 @@
         <header class="card-header">
             <div class="card-header-title has-text-weight-semibold">
                 <a href="{{ url_for('migrations.view_excuse', uuid=e.uuid) }}">
-                <span class="has-text-black">{{e.source_package}}</span>&nbsp;
+                <span class="has-text-black">{{e.source_package.name}}</span>&nbsp;
                 <span class="tag is-light is-rounded">{{e.version_old}}&nbsp;<i class="fas fa-long-arrow-alt-right"></i>&nbsp;{{e.version_new}}</span>
                 </a>
             </div>
@@ -42,12 +42,18 @@
     <br/>
     <nav class="pagination" role="navigation" aria-label="pagination">
         <a class="pagination-previous"
-            href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=current_page-1) if current_page > 1 else '#'}}"
+            href="{{ url_for('migrations.excuses_list',
+                              repo_name=migration.repo.name,
+                              target_suite_name=migration.target_suite.name,
+                              page=current_page-1) if current_page > 1 else '#'}}"
             {{'disabled' if current_page <= 1 }}>
             Previous
         </a>
         <a class="pagination-next"
-            href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=current_page+1) if current_page < page_count else '#'}}"
+            href="{{ url_for('migrations.excuses_list',
+                             repo_name=migration.repo.name,
+                             target_suite_name=migration.target_suite.name,
+                             page=current_page+1) if current_page < page_count else '#'}}"
             {{'disabled' if current_page >= page_count }}>
             Next
         </a>
@@ -57,7 +63,10 @@
         {% for i in range(1, page_count + 1) %}
             <li>
                 <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
-                    href="{{ url_for('migrations.excuses_list', migration_id=migration.idname, page=i) }}">{{i}}</a>
+                    href="{{ url_for('migrations.excuses_list',
+                                     repo_name=migration.repo.name,
+                                     target_suite_name=migration.target_suite.name,
+                                     page=i) }}">{{i}}</a>
             </li>
         {% endfor %}
         </ul>
