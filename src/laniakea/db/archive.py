@@ -234,11 +234,11 @@ class DbgSymPolicy(enum.Enum):
     DEBUG_ALLOWED = enum.auto()  # this suite may contain both regular and debug symbol packages
 
     def to_string(self):
-        if self.value == self.NO_DEBUG:
+        if self.value == self.NO_DEBUG.value:
             return 'no-debug'
-        elif self.value == self.ONLY_DEBUG:
+        elif self.value == self.ONLY_DEBUG.value:
             return 'only-debug'
-        elif self.value == self.DEBUG_ALLOWED:
+        elif self.value == self.DEBUG_ALLOWED.value:
             return 'debug-allowed'
         return 'invalid'
 
@@ -270,11 +270,11 @@ class NewPolicy(enum.Enum):
     NEVER_NEW = enum.auto()  # no package will end up in NEW, everything will be auto-accepted.
 
     def to_string(self):
-        if self.value == self.DEFAULT:
+        if self.value == self.DEFAULT.value:
             return 'default'
-        elif self.value == self.ALWAYS_NEW:
+        elif self.value == self.ALWAYS_NEW.value:
             return 'always-new'
-        elif self.value == self.NEVER_NEW:
+        elif self.value == self.NEVER_NEW.value:
             return 'never-new'
         return 'invalid'
 
@@ -602,20 +602,17 @@ class ChangesUrgency(enum.Enum):
     EMERGENCY = enum.auto()
 
     def to_string(self):
-        if self.value == self.LOW:
+        if self.value == self.LOW.value:
             return 'low'
-        elif self.value == self.MEDIUM:
+        elif self.value == self.MEDIUM.value:
             return 'medium'
-        elif self.value == self.HIGH:
+        elif self.value == self.HIGH.value:
             return 'high'
-        elif self.value == self.CRITICAL:
+        elif self.value == self.CRITICAL.value:
             return 'critical'
-        elif self.value == self.EMERGENCY:
+        elif self.value == self.EMERGENCY.value:
             return 'emergency'
         return 'unknown'
-
-    def __str__(self):
-        return self.to_string()
 
     @staticmethod
     def from_string(s: str) -> 'ChangesUrgency':
@@ -633,6 +630,9 @@ class ChangesUrgency(enum.Enum):
         elif s == 'emergency':
             return ChangesUrgency.EMERGENCY
         return ChangesUrgency.UNKNOWN
+
+    def __str__(self):
+        return self.to_string()
 
 
 @dataclass

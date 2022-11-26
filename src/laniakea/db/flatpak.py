@@ -51,12 +51,15 @@ class FlatpakRefKind(enum.Enum):
     APP = enum.auto()
     RUNTIME = enum.auto()
 
-    def __str__(self):
-        if self.value == self.APP:
+    def to_string(self):
+        if self.value == self.APP.value:
             return 'app'
-        elif self.value == self.RUNTIME:
+        elif self.value == self.RUNTIME.value:
             return 'runtime'
         return 'unknown'
+
+    def __str__(self):
+        return self.to_string()
 
 
 class FlatpakRef(Base):
