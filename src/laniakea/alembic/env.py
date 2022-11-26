@@ -39,6 +39,20 @@ target_metadata = laniakea.db.base.Base.metadata
 # ... etc.
 
 
+def get_exclude_tables():
+    section = config.get_section('exclude_tables')
+    if not section:
+        return []
+    return section.get('tables', '').split(',')
+
+
+exclude_tables = get_exclude_tables()
+
+
+def include_object(object, name, type_, *args, **kwargs):
+    return not (type_ == 'table' and name in exclude_tables)
+
+
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
 
@@ -52,7 +66,7 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
+    context.configure(url=url, target_metadata=target_metadata, literal_binds=True, include_object=include_object)
 
     with context.begin_transaction():
         context.run_migrations()
@@ -78,7 +92,7 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(connection=connection, target_metadata=target_metadata, include_object=include_object)
 
         with context.begin_transaction():
             context.run_migrations()
