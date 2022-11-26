@@ -50,6 +50,11 @@ class SpearsEngine:
         self._workspace = os.path.join(self._lconf.workspace, 'spears')
         os.makedirs(self._workspace, exist_ok=True)
 
+        my_dir = os.path.dirname(os.path.realpath(__file__))
+        self._lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'lkarchive', 'lk-archive.py'))
+        if not os.path.isfile(self._lk_archive_exe):
+            self._lk_archive_exe = 'lk-archive'
+
     def _get_source_suite_dists_dir(
         self, mi_workspace: str, repo: ArchiveRepository, source_suites: T.List[ArchiveSuite]
     ):
@@ -456,7 +461,7 @@ class SpearsEngine:
         # tell lk-archive to import the new data (overriding the target suite)
         proc = subprocess.run(
             [
-                'lk-archive',
+                self._lk_archive_exe,
                 'import-heidi',
                 '--repo',
                 mtask.repo.name,

@@ -78,7 +78,7 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
 
         for spkg in spkgs:
             table.add_row(
-                spkg.name,
+                '[red]' + spkg.name if spkg.time_deleted else spkg.name,
                 spkg.version,
                 spkg.repo.name,
                 ' '.join([s.name for s in spkg.suites]),
@@ -100,7 +100,7 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
         for data in bpkg_by_arch.values():
             bpkg = data['bpkg']
             table.add_row(
-                bpkg.name,
+                '[red]' + bpkg.name if bpkg.time_deleted else bpkg.name,
                 bpkg.version,
                 bpkg.repo.name,
                 ' '.join(data['suites']),

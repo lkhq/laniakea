@@ -184,7 +184,8 @@ def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[Bin
         )
     if is_src_pkg:
         for bpkg in pkg.binaries:
-            bpkg.suites.remove(rss.suite)
+            if rss.suite in bpkg.suites:
+                bpkg.suites.remove(rss.suite)
             if bpkg.suites:
                 archive_log.info(
                     'DELETED-SUITE-BIN: %s/%s @ %s/%s', bpkg.name, bpkg.version, rss.repo.name, rss.suite.name

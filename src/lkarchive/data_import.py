@@ -226,7 +226,7 @@ def import_heidi_result(
         )
         bpkg_eset = {}
         for info in bpkg_einfo:
-            bpkg_eset[info[0] + '-' + info[2]] = (info[0], info[1], info[2])
+            bpkg_eset[info[0] + '/' + info[2]] = (info[0], info[1], info[2])
 
         arch_ref = {}
         for arch in rss.suite.architectures:
@@ -234,7 +234,7 @@ def import_heidi_result(
 
         with open(heidi_fname, 'r', encoding='utf-8') as f:
             while line := f.readline():
-                pkgname, pkgversion, arch_name, section_full = line.rstrip().split(' ', 3)
+                pkgname, pkgversion, arch_name = line.rstrip().split(' ', 3)
 
                 if arch_name == 'source':
                     # handle source package migration
@@ -254,7 +254,7 @@ def import_heidi_result(
                         copy_source_package(session, spkg, rss, include_binaries=False)
                         continue
                 else:
-                    _, e_version, e_arch_name = bpkg_eset.pop(pkgname + arch_name, (None, None, None))
+                    _, e_version, e_arch_name = bpkg_eset.pop(pkgname + '/' + arch_name, (None, None, None))
                     if not e_version or e_version != pkgversion:
                         arch = arch_ref[arch_name]
                         bpkg = (
@@ -279,9 +279,12 @@ def import_heidi_result(
                         SourcePackage.repo_id == rss.repo_id,
                         SourcePackage.name == pkgname_rm,
                         SourcePackage.version == version_rm,
+                        SourcePackage.suites.any(id=rss.suite_id),
                     )
-                    .one()
+                    .one_or_none()
                 )
+                if not spkg:
+                    continue
                 package_mark_delete(session, rss, spkg)
 
             for pkgname_rm, version_rm, arch_name_rm in bpkg_eset.values():
@@ -292,10 +295,13 @@ def import_heidi_result(
                         BinaryPackage.repo_id == rss.repo_id,
                         BinaryPackage.name == pkgname_rm,
                         BinaryPackage.version == version_rm,
+                        BinaryPackage.suites.any(id=rss.suite_id),
                         BinaryPackage.architecture.has(id=arch_rm.id),
                     )
-                    .one()
+                    .one_or_none()
                 )
+                if not bpkg:
+                    continue
                 package_mark_delete(session, rss, bpkg)
 
 
