@@ -166,6 +166,8 @@ def check_verbose(options):
 
 
 def run(mainfile, args):
+    from laniakea.utils.misc import ensure_laniakea_master_user
+
     global __mainfile
     __mainfile = mainfile
 
@@ -181,4 +183,6 @@ def run(mainfile, args):
     args = parser.parse_args(args)
     check_print_version(args)
     check_verbose(args)
+
+    ensure_laniakea_master_user(warn_only=True)
     args.func(args)
