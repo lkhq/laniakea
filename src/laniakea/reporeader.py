@@ -310,7 +310,9 @@ class RepositoryReader:
 
         return pkgs
 
-    def _read_binary_packages_from_tf(self, tf, tf_fname, suite, component, arch, deb_type):
+    def _read_binary_packages_from_tf(
+        self, tf, tf_fname, suite, component: ArchiveComponent, arch: ArchiveArchitecture, deb_type: DebType
+    ) -> T.List[BinaryPackage]:
         requested_arch_is_all = arch.name == 'all'
 
         pkgs = []
@@ -339,6 +341,7 @@ class RepositoryReader:
                 )
 
             pkg = BinaryPackage(pkgname, pkgversion)
+            pkg.deb_type = deb_type
             pkg.repo = self._repo_entity
             pkg.component = component
             if suite not in pkg.suites:

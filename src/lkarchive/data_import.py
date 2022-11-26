@@ -377,7 +377,10 @@ def _import_repo_into_suite(
                     shadow_arch = a
                     break
             log.info('Using shadow architecture %s for arch:all', shadow_arch.name)
-        for bpkg_src in src_repo.binary_packages(src_suite, src_component, arch, shadow_arch=shadow_arch):
+
+        bin_pkgs = src_repo.binary_packages(src_suite, src_component, arch, shadow_arch=shadow_arch)
+        bin_pkgs.extend(src_repo.installer_packages(src_suite, src_component, arch))
+        for bpkg_src in bin_pkgs:
             fname = src_repo.get_file(bpkg_src.bin_file)
 
             rss_dest_real = rss_dest
