@@ -11,6 +11,7 @@ __mainfile = None
 
 
 def run_server(options):
+    from laniakea.utils.misc import ensure_laniakea_master_user
     from laniakea.localconfig import LocalConfig
     from lkscheduler.scheduler_daemon import SchedulerDaemon
 
@@ -21,6 +22,10 @@ def run_server(options):
         from laniakea.logging import set_verbose
 
         set_verbose(True)
+
+    # we must run as the designated master user, otherwise we might run into permission error
+    # or, even worse, create security risks in case we run as root
+    ensure_laniakea_master_user(warn_only=options.no_user_check)
 
     daemon = SchedulerDaemon()
     daemon.run()
@@ -45,6 +50,12 @@ def create_parser():
         '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
     )
     parser.add_argument(
+        '--no-user-check',
+        action='store_true',
+        dest='no_user_check',
+        help='Don\'t verify that we run as the right user.',
+    )
+    parser.add_argument(
         '--config',
         action='store',
         dest='config_fname',
@@ -58,14 +69,8 @@ def create_parser():
 
 
 def run(mainfile, args):
-    from laniakea.utils.misc import ensure_laniakea_master_user
-
     global __mainfile
     __mainfile = mainfile
-
-    # we must run as the designated master user, otherwise we might run into permission error
-    # or, even worse, create security risks in case we run as root
-    ensure_laniakea_master_user()
 
     parser = create_parser()
 

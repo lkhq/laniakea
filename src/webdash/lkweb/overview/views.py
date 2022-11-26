@@ -91,6 +91,9 @@ def index():
             job = jobstore.lookup_job('publish-repos')
             publish_nextrun_time = humanized_job_timediff(job)
 
+            job = jobstore.lookup_job('spears-migrate')
+            spears_nextrun_time = humanized_job_timediff(job)
+
         return render_template(
             'index.html',
             repo_count=repo_count,
