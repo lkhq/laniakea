@@ -31,18 +31,9 @@ class JobsRegistry:
 
     @contextmanager
     def lock_publish_job(self):
-        """Prevent publishing from being run."""
-        pub_job = self.jobs.get('publish-repos', None)
-        if not pub_job:
-            log.debug('No "publish-repos" job is present in the current job list.')
+        """Prevent publishing from being run simultaneously."""
+        with process_file_lock('scheduler_publish-repos'):
             yield
-            return
-        pub_job.pause()
-        try:
-            with process_file_lock('scheduler_publish-repos'):
-                yield
-        finally:
-            pub_job.resume()
 
 
 def task_repository_publish(registry: JobsRegistry):
