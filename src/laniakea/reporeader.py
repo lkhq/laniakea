@@ -290,7 +290,7 @@ class RepositoryReader:
                         pi.component = component.name
                         pi.section = e.get('Section')
                         pi.essential = e.get('Essential', 'no') == 'yes'
-                        pi.priority = PackagePriority.from_string(e['Priority'])
+                        pi.priority = PackagePriority.from_string(e.get('Priority', 'optional'))
                         ex_binaries.append(pi)
                 else:
                     ex_binaries = parse_package_list_str(raw_pkg_list, pkg.version)
