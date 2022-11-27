@@ -227,7 +227,7 @@ class SpearsEngine:
             os.remove(target_release_file)
         shutil.copyfile(release_file, target_release_file)
 
-    def _create_faux_packages(self, session, mi_wspace: str, mtask: SpearsMigrationTask):
+    def _create_faux_packages(self, session, mi_wspace: str, mtask: SpearsMigrationTask) -> None:
         """
         If we have a partial source and target suite, we need to let Britney know about the
         parent packages somehow.
@@ -267,64 +267,67 @@ class SpearsEngine:
                     # fetch package information
                     for bpkg in repo_reader.binary_packages(suite_nodb, component_nodb, arch_nodb):
                         existing_pkg_arch_set.add(aname + ':' + bpkg.name)
-                    for spkg in repo_reader.source_packages(suite, component):
+                    for spkg in repo_reader.source_packages(suite_nodb, component_nodb):
                         existing_pkg_arch_set.add(aname + ':' + spkg.name)
+        del repo_reader
 
         log.debug('Generating faux packages list')
         fauxpkg_fname = os.path.join(mi_wspace, 'input', 'faux-packages')
         fauxpkg_data = {}
-        for component in mtask.target_suite.parent.components:
 
-            for installer_dir in ['', 'debian-installer']:
-                for arch in mtask.target_suite.parent.architectures:
-                    pfile = os.path.join(
-                        archive_root_dir,
-                        'dists',
-                        mtask.target_suite.parent.name,
-                        component.name,
-                        installer_dir,
-                        'binary-{}'.format(arch.name),
-                        'Packages.xz',
-                    )
-                    if not os.path.isfile(pfile):
-                        continue
+        for parent in mtask.target_suite.parents:
+            for component in parent.components:
 
-                    log.debug('Reading data for faux packages list: {}'.format(pfile))
+                for installer_dir in ['', 'debian-installer']:
+                    for arch in parent.architectures:
+                        pfile = os.path.join(
+                            archive_root_dir,
+                            'dists',
+                            parent.name,
+                            component.name,
+                            installer_dir,
+                            'binary-{}'.format(arch.name),
+                            'Packages.xz',
+                        )
+                        if not os.path.isfile(pfile):
+                            continue
 
-                    with TagFile(pfile) as tf:  # type: ignore[attr-defined]
-                        for e in tf:
-                            pkgname = e['Package']
-                            pkgversion = e['Version']
-                            pkgarch = e['Architecture']
+                        log.debug('Reading data for faux packages list: {}'.format(pfile))
 
-                            pkid = '{}-{}-{}'.format(pkgname, pkgversion, pkgarch)
-                            if pkid in fauxpkg_data:
-                                continue
-                            pkgname_arch = pkgarch + ':' + pkgname
-                            if pkgname_arch in existing_pkg_arch_set:
-                                continue
-                            provides = e.get('Provides', '')
+                        with TagFile(pfile) as tf:  # type: ignore[attr-defined]
+                            for e in tf:
+                                pkgname = e['Package']
+                                pkgversion = e['Version']
+                                pkgarch = e['Architecture']
 
-                            data = 'Package: {}\nVersion: {}'.format(pkgname, pkgversion)
-                            if pkgarch and pkgarch != 'all':
-                                data = data + '\nArchitecture: {}'.format(pkgarch)
-                            if provides:
-                                data = data + '\nProvides: {}'.format(provides)
-                            if component.name != 'main':
-                                data = data + '\nComponent: {}'.format(component.name)
-
-                            fauxpkg_data[pkid] = data
-
-                            # FIXME: We shouldn't have to special-case this :any case,
-                            # rather Britney should do the right thing and recognize this
-                            # notation for faux-packages. But until that is fixed
-                            # properly and since a dependency on python3:any is so common, we
-                            # will work around this issue
-                            if pkgname == 'python3':
-                                pkid = '{}-{}-{}'.format('python3:any', pkgversion, pkgarch)
+                                pkid = '{}-{}-{}'.format(pkgname, pkgversion, pkgarch)
                                 if pkid in fauxpkg_data:
                                     continue
-                                fauxpkg_data[pkid] = data.replace('Package: python3\n', 'Package: python3:any\n')
+                                pkgname_arch = pkgarch + ':' + pkgname
+                                if pkgname_arch in existing_pkg_arch_set:
+                                    continue
+                                provides = e.get('Provides', '')
+
+                                data = 'Package: {}\nVersion: {}'.format(pkgname, pkgversion)
+                                if pkgarch and pkgarch != 'all':
+                                    data = data + '\nArchitecture: {}'.format(pkgarch)
+                                if provides:
+                                    data = data + '\nProvides: {}'.format(provides)
+                                if component.name != 'main':
+                                    data = data + '\nComponent: {}'.format(component.name)
+
+                                fauxpkg_data[pkid] = data
+
+                                # FIXME: We shouldn't have to special-case this :any case,
+                                # rather Britney should do the right thing and recognize this
+                                # notation for faux-packages. But until that is fixed
+                                # properly and since a dependency on python3:any is so common, we
+                                # will work around this issue
+                                if pkgname == 'python3':
+                                    pkid = '{}-{}-{}'.format('python3:any', pkgversion, pkgarch)
+                                    if pkid in fauxpkg_data:
+                                        continue
+                                    fauxpkg_data[pkid] = data.replace('Package: python3\n', 'Package: python3:any\n')
 
         with open(fauxpkg_fname, 'w') as f:
             for segment in fauxpkg_data.values():
