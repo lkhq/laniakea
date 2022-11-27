@@ -234,7 +234,11 @@ def import_heidi_result(
 
         with open(heidi_fname, 'r', encoding='utf-8') as f:
             while line := f.readline():
-                pkgname, pkgversion, arch_name = line.rstrip().split(' ', 3)
+                line = line.rstrip()
+                if not line:
+                    # this may be the end of the file or the file might be completely empty
+                    continue
+                pkgname, pkgversion, arch_name = line.split(' ', 3)
 
                 if arch_name == 'source':
                     # handle source package migration
