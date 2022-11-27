@@ -252,7 +252,8 @@ class SpearsEngine:
 
         # we need repository information to only generate faux packages if a package doesn't exist
         # in our source suite(s) already
-        repo_reader = RepositoryReader(self._lconf.archive_root_dir, mtask.repo.name, trusted_keyrings=[])
+        archive_root_dir = os.path.join(self._lconf.archive_root_dir, mtask.repo.name)
+        repo_reader = RepositoryReader(archive_root_dir, mtask.repo.name, trusted_keyrings=[])
         repo_reader.set_trusted(True)  # we assume the local repository data is trusted
         for suite in mtask.source_suites:
             suite_nodb = ArchiveSuite(suite.name, suite.alias)
@@ -269,10 +270,8 @@ class SpearsEngine:
                     for spkg in repo_reader.source_packages(suite, component):
                         existing_pkg_arch_set.add(aname + ':' + spkg.name)
 
-        archive_root_dir = os.path.join(self._lconf.archive_root_dir, mtask.repo.name)
-        fauxpkg_fname = os.path.join(mi_wspace, 'input', 'faux-packages')
-
         log.debug('Generating faux packages list')
+        fauxpkg_fname = os.path.join(mi_wspace, 'input', 'faux-packages')
         fauxpkg_data = {}
         for component in mtask.target_suite.parent.components:
 
@@ -500,14 +499,7 @@ class SpearsEngine:
             existing_excuses = {}
             all_excuses = session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == mtask.id).all()
             for excuse in all_excuses:
-                eid = '{}-{}:{}-{}/{}'.format(
-                    excuse.suite_source,
-                    excuse.suite_target,
-                    excuse.source_package,
-                    excuse.version_new,
-                    excuse.version_old,
-                )
-                existing_excuses[eid] = excuse
+                existing_excuses[excuse.make_idname()] = excuse
 
             for new_excuse in n_excuses:
                 excuse = existing_excuses.pop(new_excuse.make_idname(), None)
