@@ -525,7 +525,7 @@ class SpearsEngine:
                     data = {
                         'uuid': str(excuse.uuid),
                         'suites_source': [s.name for s in excuse.migration_task.source_suites],
-                        'suite_target': excuse.migration_task.target_suite,
+                        'suite_target': excuse.migration_task.target_suite.name,
                         'source_package': excuse.source_package.name,
                         'version_new': excuse.version_new,
                         'version_old': excuse.version_old,
@@ -553,7 +553,7 @@ class SpearsEngine:
                 data = {
                     'uuid': str(excuse.uuid),
                     'suites_source': [s.name for s in excuse.migration_task.source_suites],
-                    'suite_target': excuse.migration_task.target_suite,
+                    'suite_target': excuse.migration_task.target_suite.name,
                     'source_package': excuse.source_package.name,
                     'version_new': excuse.version_new,
                     'version_old': excuse.version_old,
