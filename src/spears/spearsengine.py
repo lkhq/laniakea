@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import os
-import lzma
+import gzip
 import shutil
 import subprocess
 from uuid import uuid4
@@ -59,21 +59,23 @@ class SpearsEngine:
         self, mi_workspace: str, repo: ArchiveRepository, source_suites: T.List[ArchiveSuite]
     ):
         '''
-        If our source suite is a single suite, we can just use the archive's vanilla dists/
-        directory as source of package information for Britney.
+        If our source suite is a single suite, we use the archive's vanilla data, but with arch:all
+        merged into the arch:any files.
         If we use Britney to migrate packages from two suites together however, we need
         an amalgamation of the two suites' Packages/Sources files, which resides in Britney's
         workspace directory.
-        This function returns the correct dists/ path, depending on the case.
+        This function returns the correct dists/ path, where the preprocessed data for Britney
+        is written to.
         '''
 
         if not source_suites:
             raise Exception('Can not get source-suite dists/ directory if no source suites are selected.')
 
         if len(source_suites) == 1:
-            return os.path.join(repo.get_root_dir(), 'dists', source_suites[0].name)
+            dists_dir = os.path.join(mi_workspace, 'input', 'dists', source_suites[0].name)
+        else:
+            dists_dir = os.path.join(mi_workspace, 'input', 'dists', '+'.join([s.name for s in source_suites]))
 
-        dists_dir = os.path.join(mi_workspace, 'input', 'dists', '+'.join([s.name for s in source_suites]))
         os.makedirs(dists_dir, exist_ok=True)
         return dists_dir
 
@@ -132,16 +134,15 @@ class SpearsEngine:
 
         return True
 
-    def _prepare_source_data(self, session, mi_wspace: str, mtask: SpearsMigrationTask):
+    def _prepare_source_data(self, session, mi_wspace: str, mtask: SpearsMigrationTask) -> None:
         """
         If there is more than one source suite, we need to give Britney an amalgamation
         of the data of the two source suites.
-        This function prepares this data in the respective workspace location.
-        """
+        If there is only one suite, we need to merge arch:all into the native architecture file,
+        as Britney does not work well with Laniakea's split-arch-all configuration (yet).
 
-        # only one suite means we can use the suite's data directly
-        if len(mtask.source_suites) <= 1:
-            return
+        This function prepares the combined data in the respective workspace location.
+        """
 
         repo_root_dir = mtask.repo.get_root_dir()
         fake_dists_dir = self._get_source_suite_dists_dir(mi_wspace, mtask.repo, mtask.source_suites)
@@ -150,7 +151,7 @@ class SpearsEngine:
             for arch in mtask.target_suite.architectures:
                 if arch.name == 'all':
                     continue
-                packages_files = []
+                packages_files: list[tuple[T.PathUnion, T.PathUnion]] = []
 
                 for installer_dir in ['', 'debian-installer']:
                     for suite_source in mtask.source_suites:
@@ -163,9 +164,18 @@ class SpearsEngine:
                             'binary-{}'.format(arch.name),
                             'Packages.xz',
                         )
+                        pfile_all = os.path.join(
+                            repo_root_dir,
+                            'dists',
+                            suite_source.name,
+                            component.name,
+                            installer_dir,
+                            'binary-all',
+                            'Packages.xz',
+                        )
                         if os.path.isfile(pfile):
                             log.debug('Looking for packages in: {}'.format(pfile))
-                            packages_files.append(pfile)
+                            packages_files.append((pfile, pfile_all if os.path.isfile(pfile_all) else None))
 
                     if not installer_dir and not packages_files:
                         raise Exception(
@@ -179,16 +189,19 @@ class SpearsEngine:
 
                     # create new merged Packages file
                     target_packages_file = os.path.join(
-                        fake_dists_dir, component.name, installer_dir, 'binary-{}'.format(arch.name), 'Packages.xz'
+                        fake_dists_dir, component.name, installer_dir, 'binary-{}'.format(arch.name), 'Packages.gz'
                     )
                     log.debug('Generating combined new fake packages file: {}'.format(target_packages_file))
                     os.makedirs(os.path.dirname(target_packages_file), exist_ok=True)
 
                     data = b''
-                    for fname in packages_files:
+                    for fname, fname_all in packages_files:
                         with open_compressed(fname) as f:
                             data = data + f.read()
-                    with lzma.open(target_packages_file, 'w') as f:
+                        if fname_all:
+                            with open_compressed(fname_all) as f:
+                                data = data + f.read()
+                    with gzip.open(target_packages_file, 'w') as f:
                         f.write(data)
 
             sources_files = []
@@ -206,7 +219,7 @@ class SpearsEngine:
                 )
 
             # Create new merged Sources file
-            target_sources_file = os.path.join(fake_dists_dir, component.name, 'source', 'Sources.xz')
+            target_sources_file = os.path.join(fake_dists_dir, component.name, 'source', 'Sources.gz')
             log.debug('Generating combined new fake sources file: {}'.format(target_sources_file))
             os.makedirs(os.path.dirname(target_sources_file), exist_ok=True)
 
@@ -214,7 +227,7 @@ class SpearsEngine:
             for fname in sources_files:
                 with open_compressed(fname) as f:
                     data = data + f.read()
-            with lzma.open(target_sources_file, 'w') as f:
+            with gzip.open(target_sources_file, 'w') as f:
                 f.write(data)
 
         # Britney needs a Release file to determine the source suites components and architectures.
@@ -222,8 +235,8 @@ class SpearsEngine:
         # TODO: Synthesize a dedicated file instead and be less lazy
         release_file = os.path.join(repo_root_dir, 'dists', mtask.source_suites[0].name, 'Release')
         target_release_file = os.path.join(fake_dists_dir, 'Release')
-        log.debug('Using Release file for fake suite: {}'.format(target_release_file))
-        if os.path.join(target_release_file):
+        log.debug('Using Release file for merged source suite: {}'.format(target_release_file))
+        if os.path.isfile(target_release_file):
             os.remove(target_release_file)
         shutil.copyfile(release_file, target_release_file)
 

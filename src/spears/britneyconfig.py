@@ -27,6 +27,7 @@ class BritneyConfig:
         self._broken_archs_set = False
         self._delays_set = False
         self._new_archs_set = False
+        self._partial_source = False
 
         self._base_dir = britney_dir
 
@@ -41,6 +42,7 @@ class BritneyConfig:
         self._contents.append('EXCUSES_YAML_OUTPUT = output/target/excuses.yaml')
         self._contents.append('UPGRADE_OUTPUT      = output/target/output.txt')
         self._contents.append('HEIDI_OUTPUT        = output/target/HeidiResult')
+        self._contents.append('HEIDI_DELTA_OUTPUT  = output/target/HeidiResultDelta')
 
         # external policy/constraints/faux-packages information that
         # (presumably) rarely changes.  Examples include "constraints".
@@ -81,6 +83,13 @@ class BritneyConfig:
         # DISABLED: removed from Britney
         # self._contents.append('COMPONENTS = {}'.format(', '.join(components)));
         self._components_set = True
+
+    def set_partial_source(self, enabled: bool):
+        """Set if the source suite is a partial suite.
+        By default, package removal propagates to the target suite. To disable this,
+        e.g. for partial suites like experimental or spu, set this to True.
+        """
+        self._partial_source = enabled
 
     def set_architectures(self, archs: List[str]):
         assert not self._archs_set
@@ -178,8 +187,12 @@ class BritneyConfig:
         conf_fname = os.path.join(self._base_dir, 'britney.conf')
         log.debug('Saving Britney config to "{}"'.format(conf_fname))
 
+        conf_contents = self._contents.copy()
+        if self._partial_source:
+            conf_contents.append('PARTIAL_SOURCE    = true')
+
         with open(conf_fname, 'wt') as f:
-            for line in self._contents:
+            for line in conf_contents:
                 f.write(line + '\n')
 
         if self._hint_contents:
