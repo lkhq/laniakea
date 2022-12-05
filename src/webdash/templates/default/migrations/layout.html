@@ -16,10 +16,10 @@
             <a href="{{ url_for('migrations.excuses_list',
                                  repo_name=migration.repo.name,
                                  target_suite_name=migration.target_suite.name,
-                                 page=1) }}">{{migration.target_suite.name}}</a>
+                                 page=1) }}">{{migration.repo.name}}: {{migration.target_suite.name}}</a>
         {% endif %}
         {% if excuse %}
-        <li class="breadcrumb-item active" aria-current="page">{{excuse.source_package}} {{excuse.version_new}}</li>
+        <li class="breadcrumb-item active" aria-current="page">{{excuse.source_package.name}} {{excuse.version_new}}</li>
         {% endif %}
     </ol>
 </nav>
