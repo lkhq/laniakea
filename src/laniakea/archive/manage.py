@@ -302,7 +302,7 @@ def copy_source_package(
             spkg.name,
             spkg.version,
             spkg.repo.name,
-            dest_suite,
+            dest_suite.name,
             'with-binaries' if include_binaries else 'no-binaries',
         )
     if include_binaries:
@@ -346,7 +346,7 @@ def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuite
                 'Copied dbgsym package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_debug_suite.name
             )
             archive_log.info(
-                'COPY-BIN-DBG: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_debug_suite
+                'COPY-BIN-DBG: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_debug_suite.name
             )
     elif dest_suite not in bpkg.suites:
         bpkg.suites.append(dest_suite)
