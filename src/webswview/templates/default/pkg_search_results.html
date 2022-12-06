@@ -29,7 +29,7 @@
 {% for p in packages %}
 
     <h2>{{p.name}}</h2>
-    <p class="is-size-7"><strong>Version :</strong> {{ p.version }}</p>
+    <p class="is-size-7"><strong>Version:</strong> {{ p.version }}</p>
 
     {% if p.component.is_primary() %}
         {% set component_badge_style = 'badge-primary' %}

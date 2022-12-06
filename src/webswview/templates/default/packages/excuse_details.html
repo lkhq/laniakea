@@ -1,18 +1,22 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Migration excuses for ' + excuse.source_package + ' ' + excuse.version_new %}
+{% set page_title = 'Migration excuses for ' + excuse.source_package.name + ' ' + excuse.version_new %}
 
 {% block breadcrumbs %}
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a href="{{ url_for('portal.suites_index') }}">Packages</a>
+            <a href="{{ url_for('portal.repo_index',
+                                repo_name=excuse.source_package.repo.name) }}">Packages in {{excuse.source_package.repo.name}}</a>
         </li>
         <li class="breadcrumb-item">
-            {{excuse.suite_source}}
+            {{excuse.migration_task.source_suites_str}}
         </li>
         <li class="breadcrumb-item">
-            <a href="{{ url_for('packages.src_package_details', suite_name=excuse.suite_source, name=excuse.source_package) }}">{{excuse.source_package}}</a>
+            <a href="{{ url_for('packages.src_package_details',
+                                repo_name=excuse.source_package.repo.name,
+                                suite_name=excuse.source_package.suites[0].name,
+                                name=excuse.source_package.name) }}">{{excuse.source_package.name}}</a>
         </li>
         <li class="breadcrumb-item active" aria-current="page">
             Migration Excuses
@@ -22,109 +26,228 @@
 {% endblock %}
 
 {% block body_header %}
-<h1 class="h2">Migration excuse for: {{excuse.source_package}} {{excuse.version_new}}</h1>
+<h1 class="h2">Migration excuse for: {{excuse.source_package.name}} {{excuse.version_new}}</h1>
 {% endblock %}
 
 {% block body %}
 
+<div class="columns is-mobile">
+    <div class="column is-6">
 
-<p>
-    <b>Is candidate:
-    {% if excuse.is_candidate %}
-        <font class="fa fa-check-circle" color="green"></font>
-    {% else %}
-        <font class="fa fa-times-circle" color="red"></font>
-    {% endif %}
-    </b>
-</p>
+<table class="table">
+  <tbody>
+    <tr>
+      <td><b>Is candidate</b></td>
+      <td>
+        {% if excuse.is_candidate %}
+            <font class="fa fa-check-circle" color="green"></font>
+        {% else %}
+            <font class="fa fa-times-circle" color="red"></font>
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td><b>Maintainer</b></td>
+      <td>{{excuse.maintainer}}</td>
+    </tr>
+    <tr>
+      <td><b>Source</b></td>
+      <td>{{excuse.suite_source}} <i>(version: {{excuse.version_new}})</i></td>
+    </tr>
+    <tr>
+      <td><b>Destination</b></td>
+      <td>{{excuse.suite_target}} <i>(old version: {{excuse.version_old}})</i></td>
+    </tr>
+    </tbody>
+</table>
 
-<p>
-<b>Maintainer</b>: {{excuse.maintainer}}<br/>
-<b>Source:</b> {{excuse.suite_source}} <i>(version: {{excuse.version_new}})</i><br/>
-<b>Destination:</b> {{excuse.suite_target}} <i>(old version: {{excuse.version_old}})</i><br/>
-</p>
+<div class="card">
+  <header class="card-header">
+    <p class="card-header-title">
+      Age
+    </p>
+    <div class="card-header-icon">
+      <span class="icon">
+        <i class="fas fa-stopwatch" aria-hidden="true"></i>
+      </span>
+    </div>
+  </header>
+  <div class="card-content py-3">
+    <div class="content">
+      Package is {{excuse.age_current}} days old (needed {{excuse.age_required}})
+    </div>
+  </div>
+</div>
 
-<h4>Age</h4>
-<p>Package is {{excuse.age_current}} days old (needed {{excuse.age_required}})</p>
 
 {% if excuse.missing_archs_primary or excuse.missing_archs_secondary %}
-<h4>Architectures</h4>
+<div class="card">
+  <header class="card-header">
+    <p class="card-header-title">
+      Architectures
+    </p>
+    <div class="card-header-icon">
+      <span class="icon">
+        <i class="fas fa-microchip" aria-hidden="true"></i>
+      </span>
+    </div>
+  </header>
+  <div class="card-content py-3">
+    <div class="content">
+        {% if excuse.missing_archs_primary %}
+        <h5>Primary</h5>
+        <ul>
+            {% for arch in excuse.missing_archs_primary %}
+            <li>{{arch}}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
 
-{% if excuse.missing_archs_primary %}
-<h5>Primary</h5>
-<ul>
-    {% for arch in excuse.missing_archs_primary %}
-    <li>{{arch}}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-
-{% if excuse.missing_archs_secondary %}
-<h5>Secondary</h5>
-<ul>
-    {% for arch in excuse.missing_archs_secondary %}
-    <li>{{arch}}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-
+        {% if excuse.missing_archs_secondary %}
+        <h5>Secondary</h5>
+        <ul>
+            {% for arch in excuse.missing_archs_secondary %}
+            <li>{{arch}}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+  </div>
+</div>
 {% endif %}
 
 
 {% if excuse.old_binaries %}
-<h4>Old Binaries</h4>
-<ul>
-    {% for obin in excuse.old_binaries %}
-    <li><b>{{obin.pkg_version}}</b>: {{obin.binaries|join(', ')}}</li>
-    {% endfor %}
-</ul>
+<div class="card">
+  <header class="card-header">
+    <p class="card-header-title">
+      Old Binaries
+    </p>
+    <div class="card-header-icon">
+      <span class="icon">
+        <i class="fas fa-recycle" aria-hidden="true"></i>
+      </span>
+    </div>
+  </header>
+  <div class="card-content pt-0 pb-3">
+    <div class="content">
+        <ul>
+            {% for obin in excuse.old_binaries %}
+            <li><b>{{obin.pkg_version}}</b>: {{obin.binaries|join(', ')}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+  </div>
+</div>
 {% endif %}
+
 
 {% if excuse.blocked_by %}
-<h4>Blocked By</h4>
-<ul>
-    {% for block in excuse.blocked_by %}
-    <li><a href="{{ url_for('packages.src_package_details', suite_name=excuse.suite_source, name=block) }}">{{block}}</a></li>
-    {% endfor %}
-</ul>
+<div class="card">
+  <header class="card-header">
+    <p class="card-header-title">
+      Blocked By
+    </p>
+    <div class="card-header-icon">
+      <span class="icon">
+        <i class="fas fa-ban" aria-hidden="true"></i>
+      </span>
+    </div>
+  </header>
+  <div class="card-content pt-0 pb-3">
+    <div class="content">
+        <ul>
+            {% for block in excuse.blocked_by %}
+            <li>{{block}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+  </div>
+</div>
 {% endif %}
+
 
 {% if excuse.migrate_after %}
-<h4>Migrates After</h4>
-<ul>
-    {% for wait_entry in excuse.migrate_after %}
-    <li><a href="{{ url_for('packages.src_package_details', suite_name=excuse.suite_source, name=wait_entry) }}">{{wait_entry}}</a></li>
-    {% endfor %}
-</ul>
+<div class="card">
+  <header class="card-header">
+    <p class="card-header-title">
+      Migrates After
+    </p>
+    <div class="card-header-icon">
+      <span class="icon">
+        <i class="fas fa-sort-numeric-down" aria-hidden="true"></i>
+      </span>
+    </div>
+  </header>
+  <div class="card-content pt-0 pb-3">
+    <div class="content">
+        <ul>
+            {% for wait_entry in excuse.migrate_after %}
+            <li>{{wait_entry}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+  </div>
+</div>
 {% endif %}
 
+
 {% if excuse.manual_block %}
-<h4>Manually Blocked</h4>
-<ul>
-    {% for block in excuse.manual_block %}
-    <li>{{block}}</li>
-    {% endfor %}
-</ul>
+<div class="card">
+  <header class="card-header">
+    <p class="card-header-title">
+      Manually Blocked
+    </p>
+    <div class="card-header-icon">
+      <span class="icon">
+        <i class="fas fa-stop-circle" aria-hidden="true"></i>
+      </span>
+    </div>
+  </header>
+  <div class="card-content pt-0 pb-3">
+    <div class="content">
+        <ul>
+            {% for block in excuse.manual_block %}
+            <li>{{block}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+  </div>
+</div>
 {% endif %}
 
 {% if excuse.other %}
-<h4>Other Reasons</h4>
-<ul>
-    {% for reason in excuse.other %}
-    <li>{{reason}}</li>
-    {% endfor %}
-</ul>
+<div class="card">
+  <header class="card-header">
+    <p class="card-header-title">
+      Other Reasons
+    </p>
+    <div class="card-header-icon">
+      <span class="icon">
+        <i class="fas fa-asterisk" aria-hidden="true"></i>
+      </span>
+    </div>
+  </header>
+  <div class="card-content pt-0 pb-3">
+    <div class="content">
+        <ul>
+            {% for reason in excuse.other %}
+            <li>{{reason}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+  </div>
+</div>
 {% endif %}
 
 {% if excuse.log_excerpt %}
-<h4>Log Excerpt</h4>
-<div class="row">
-    <div class="col-md-4">
-        <div class="card card-body bg-light">
-            <pre><code>{{excuse.log_excerpt}}</code></pre>
-        </div>
-    </div>
+<h4 class="subtitle is-4" style="margin-bottom: 0.5rem;margin-top: 1.5rem;">Log Excerpt</h4>
+<div class="box">
+    <pre style="padding: 0; background-color: initial;"><code>{{excuse.log_excerpt}}</code></pre>
 </div>
 {% endif %}
+
+    </div>
+</div>
 
 {% endblock %}

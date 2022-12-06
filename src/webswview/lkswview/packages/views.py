@@ -8,6 +8,7 @@ import math
 
 import humanize
 from flask import Blueprint, abort, url_for, current_app, render_template
+from sqlalchemy import or_
 from sqlalchemy.orm import undefer, joinedload
 
 from laniakea.db import (
@@ -127,8 +128,12 @@ def migration_excuse_info(rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
     with session_scope() as session:
         smtask = (
             session.query(SpearsMigrationTask)
-            .filter(SpearsMigrationTask.source_suites.any(ArchiveSuite.id == rss.suite_id))
-            .filter(SpearsMigrationTask.target_suite.has(id=rss.suite_id))
+            .filter(
+                or_(
+                    SpearsMigrationTask.source_suites.any(ArchiveSuite.id == rss.suite_id),
+                    SpearsMigrationTask.target_suite.has(id=rss.suite_id),
+                )
+            )
             .first()
         )
         if not smtask:
