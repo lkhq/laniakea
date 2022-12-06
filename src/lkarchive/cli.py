@@ -9,6 +9,8 @@ import multiprocessing as mp
 
 import click
 
+from laniakea.logging import configure_pkg_archive_logger
+
 __mainfile = None
 
 
@@ -25,8 +27,7 @@ def cli(ctx, verbose, version):
     '''
     from laniakea.logging import set_verbose, configure_pkg_archive_logger
 
-    if verbose:
-        set_verbose(True)
+    set_verbose(verbose)
     if version:
         from laniakea import __version__
 

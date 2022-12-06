@@ -24,8 +24,7 @@ def cli(ctx, verbose, version, config_fname):
     from laniakea import LocalConfig
     from laniakea.logging import set_verbose, configure_pkg_archive_logger
 
-    if verbose:
-        set_verbose(True)
+    set_verbose(verbose)
     if version:
         from laniakea import __version__
 

@@ -52,10 +52,13 @@ def _retrieve_dep11_data_async(
     """
     import subprocess
 
+    from laniakea.logging import configure_pkg_archive_logger
     from lkarchive.check_dep11 import check_dep11_path
 
     # reload singleton data for multiprocessing
     lconf = LocalConfig(lconf_fname)
+    # reconfigure logging
+    configure_pkg_archive_logger()
 
     hook_script = os.path.join(lconf.data_import_hooks_dir, 'fetch-appstream.sh')
     if not os.path.isfile(hook_script):
@@ -656,8 +659,12 @@ def publish_suite_dists_async(
     :param force: Force publication
     :param lconf_fname: Local configuration file to use in a subprocess, or None to use default.
     """
+    from laniakea.logging import configure_pkg_archive_logger
 
     lconf = LocalConfig(lconf_fname)
+    # reconfigure logging
+    configure_pkg_archive_logger()
+
     with process_file_lock('{}-{}'.format(repo_name, suite_name)):
         with session_scope() as session:
             rss = repo_suite_settings_for(session, repo_name, suite_name)
