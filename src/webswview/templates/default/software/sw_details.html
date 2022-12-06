@@ -75,7 +75,7 @@
                 <p>{{sw.project_license if sw.project_license else 'Unknown'}}</p>
                 <strong>Versions</strong>
                 {% for suite_name, pkgs in packages_map.items() %}
-                <p><a href="{{ url_for('packages.bin_package_details', suite_name=suite_name, name=pkgs[0].name) }}">{{pkgs[0].version}}</a> ({{suite_name}})</p>
+                <p><a href="{{ url_for('packages.bin_package_details', repo_name=pkgs[0].repo.name, suite_name=suite_name, name=pkgs[0].name) }}">{{pkgs[0].version}}</a> ({{suite_name}})</p>
                 {% endfor %}
                 {% if sw.categories %}
                 <strong>Category</strong>

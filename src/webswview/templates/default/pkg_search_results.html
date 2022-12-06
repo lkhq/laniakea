@@ -40,7 +40,7 @@
     {% endif %}
     <div class="container package-items">
         {% for ps in p.suites %}
-          <a class="border-box" href="{{ url_for('packages.bin_package_details', suite_name=ps.name, name=p.name) }}">
+          <a class="border-box" href="{{ url_for('packages.bin_package_details', repo_name=p.repo.name, suite_name=ps.name, name=p.name) }}">
 
             <div class="columns is-mobile">
                 <div class="column">
