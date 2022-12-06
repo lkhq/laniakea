@@ -13,7 +13,7 @@ from pathlib import Path
 from datetime import datetime
 from collections import namedtuple
 
-from apt_pkg import Hashes
+from apt_pkg import Hashes, version_compare
 from sqlalchemy import exists
 from debian.deb822 import Sources, Packages
 
@@ -102,7 +102,10 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkgname: str,
     )
 
     if vmem:
-        vmem.highest_version = version
+        # safety check, so we don't downgrade a version number accidentally (e.g. in case we were
+        # ignoring previous version sanity checks)
+        if version_compare(version, vmem.highest_version) > 0:
+            vmem.highest_version = version
     else:
         vmem = ArchiveVersionMemory()
         vmem.repo = rss.repo
