@@ -81,6 +81,7 @@ def index():
         spears_nextrun_time = 'disabled'
         debcheck_nextrun_time = 'disabled'
         synchrotron_nextrun_time = 'disabled'
+        expire_nextrun_time = 'disabled'
         try:
             job = jobstore.lookup_job('rubicon')
         except sqlalchemy.exc.ProgrammingError:
@@ -90,6 +91,9 @@ def index():
             rubicon_nextrun_time = humanized_job_timediff(job)
             job = jobstore.lookup_job('publish-repos')
             publish_nextrun_time = humanized_job_timediff(job)
+
+            job = jobstore.lookup_job('expire-repos')
+            expire_nextrun_time = humanized_job_timediff(job)
 
             job = jobstore.lookup_job('spears-migrate')
             spears_nextrun_time = humanized_job_timediff(job)
@@ -101,6 +105,7 @@ def index():
             package_count=package_count,
             rubicon_nextrun_time=rubicon_nextrun_time,
             publish_nextrun_time=publish_nextrun_time,
+            expire_nextrun_time=expire_nextrun_time,
             spears_nextrun_time=spears_nextrun_time,
             debcheck_nextrun_time=debcheck_nextrun_time,
             synchrotron_nextrun_time=synchrotron_nextrun_time,

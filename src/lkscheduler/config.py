@@ -38,6 +38,9 @@ class SchedulerConfig:
             # publish repos all 4h by default
             self._intervals_min['publish-repos'] = cintervals.get('publish-repos', 4 * 60)
 
+            # expire old data in repos every 3 days by default
+            self._intervals_min['expire-repos'] = cintervals.get('expire-repos', 3 * 24 * 60)
+
             # migrate packages all 6h by default
             self._intervals_min['spears-migrate'] = cintervals.get('spears-migrate', 6 * 60)
 

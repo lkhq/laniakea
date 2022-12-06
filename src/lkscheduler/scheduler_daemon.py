@@ -56,6 +56,26 @@ def task_repository_publish(registry: JobsRegistry):
         scheduler_log.error('Archive-Publish: Error: %s', str(proc.stdout, 'utf-8'))
 
 
+def task_repository_expire(registry: JobsRegistry):
+    """Expire old packages in all repositories."""
+    import subprocess
+
+    conf = SchedulerConfig()
+    log.info('Cleaning up repository data')
+    proc = subprocess.run(
+        [conf.lk_archive_exe, 'expire'],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+        check=False,
+    )
+    if proc.returncode == 0:
+        scheduler_log.info('Archive-Expire: Success.')
+    else:
+        scheduler_log.error('Archive-Expire: Error: %s', str(proc.stdout, 'utf-8'))
+
+
 def task_rubicon_scan(registry: JobsRegistry):
     """Make Rubicon look for new uploads."""
     import subprocess
@@ -177,6 +197,20 @@ class SchedulerDaemon:
                 name='Publish all repository data',
                 jitter=20,
                 minutes=intervals_min['publish-repos'],
+                max_instances=1,
+                replace_existing=True,
+            )
+            self._registry.set_job(job)
+
+        if intervals_min['expire-repos'] is not None:
+            job = self._scheduler.add_job(
+                task_repository_publish,
+                'interval',
+                args=(self._registry,),
+                id='expire-repos',
+                name='Expire old repository data',
+                jitter=2 * 60,
+                minutes=intervals_min['expire-repos'],
                 max_instances=1,
                 replace_existing=True,
             )
