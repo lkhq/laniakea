@@ -80,17 +80,22 @@ class SpearsMigrationTask(Base):
 
     __table_args__ = (UniqueConstraint('repo_id', 'target_suite_id', name='repo_target_suite_uc'),)
 
-    def source_suites_id(self):
+    @property
+    def source_suites_str(self) -> str:
         '''
         Get a string identifying the source suites packages are migrated from.
         '''
         return '+'.join(sorted([s.name for s in self.source_suites]))
 
-    def make_migration_name(self):
+    def make_migration_unique_name(self):
         '''
         Get a unique identifier for this migration task
         '''
-        return '{}:{}-to-{}'.format(self.repo.name, self.source_suites_id(), self.target_suite.name)
+        return '{}:{}-to-{}'.format(self.repo.name, self.source_suites_str, self.target_suite.name)
+
+    def make_migration_shortname(self) -> str:
+        """get a short name for this migration that can be used in file paths."""
+        return '{}-to-{}'.format(self.source_suites_str, self.target_suite.name)
 
 
 class SpearsOldBinaries:
@@ -176,7 +181,7 @@ class SpearsExcuse(Base):
     def make_idname(self):
         return '{}:{}->{}:{}-{}/{}'.format(
             self.migration_task.repo.name,
-            self.migration_task.source_suites_id(),
+            self.migration_task.source_suites_str,
             self.migration_task.target_suite.name,
             self.source_package.name,
             self.version_new,

@@ -12,6 +12,7 @@ import shutil
 import subprocess
 from uuid import uuid4
 
+from pebble import concurrent
 from apt_pkg import TagFile
 
 import laniakea.typing as T
@@ -27,7 +28,7 @@ from laniakea.db import (
     SpearsMigrationTask,
     session_scope,
 )
-from laniakea.utils import open_compressed
+from laniakea.utils import listify, open_compressed
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 from laniakea.reporeader import RepositoryReader
@@ -55,9 +56,7 @@ class SpearsEngine:
         if not os.path.isfile(self._lk_archive_exe):
             self._lk_archive_exe = 'lk-archive'
 
-    def _get_source_suite_dists_dir(
-        self, mi_workspace: str, repo: ArchiveRepository, source_suites: T.List[ArchiveSuite]
-    ):
+    def _get_suites_dists_staging_dir(self, mi_workspace: str, suites: T.Union[ArchiveSuite, T.List[ArchiveSuite]]):
         '''
         If our source suite is a single suite, we use the archive's vanilla data, but with arch:all
         merged into the arch:any files.
@@ -68,29 +67,25 @@ class SpearsEngine:
         is written to.
         '''
 
-        if not source_suites:
+        if not suites:
             raise Exception('Can not get source-suite dists/ directory if no source suites are selected.')
+        suites = listify(suites)
 
-        if len(source_suites) == 1:
-            dists_dir = os.path.join(mi_workspace, 'input', 'dists', source_suites[0].name)
+        if len(suites) == 1:
+            dists_dir = os.path.join(mi_workspace, 'input', 'dists', suites[0].name)
         else:
-            dists_dir = os.path.join(mi_workspace, 'input', 'dists', '+'.join([s.name for s in source_suites]))
+            dists_dir = os.path.join(mi_workspace, 'input', 'dists', '+'.join([s.name for s in suites]))
 
         os.makedirs(dists_dir, exist_ok=True)
         return dists_dir
 
-    def _get_migration_id(self, suites_from: T.List[ArchiveSuite], suite_to: ArchiveSuite) -> str:
-        return '{}-to-{}'.format('+'.join(sorted([s.name for s in suites_from])), suite_to.name)
-
-    def _get_migration_name(
+    def _get_migration_displayname(
         self, repo: ArchiveRepository, suites_from: list[ArchiveSuite], suite_to: ArchiveSuite
     ) -> str:
         return '{}: {} -> {}'.format(repo.name, '+'.join(sorted([s.name for s in suites_from])), suite_to.name)
 
     def _get_migrate_workspace(self, mtask: SpearsMigrationTask) -> str:
-        return os.path.join(
-            self._workspace, mtask.repo.name, self._get_migration_id(mtask.source_suites, mtask.target_suite)
-        )
+        return os.path.join(self._workspace, mtask.repo.name, mtask.make_migration_shortname())
 
     def update_config(self, update_britney: bool = True):
         '''
@@ -110,14 +105,14 @@ class SpearsEngine:
 
                 log.info(
                     'Refreshing Britney config for "{}"'.format(
-                        self._get_migration_name(mtask.repo, suites_from, suite_to)
+                        self._get_migration_displayname(mtask.repo, suites_from, suite_to)
                     )
                 )
                 mi_wspace = self._get_migrate_workspace(mtask)
                 bc = BritneyConfig(mi_wspace)
                 bc.set_archive_paths(
-                    self._get_source_suite_dists_dir(mi_wspace, mtask.repo, suites_from),
-                    os.path.join(self._lconf.archive_root_dir, mtask.repo.name, 'dists', suite_to.name),
+                    self._get_suites_dists_staging_dir(mi_wspace, suites_from),
+                    self._get_suites_dists_staging_dir(mi_wspace, suite_to),
                 )
                 bc.set_components([c.name for c in suite_to.components])
                 bc.set_architectures([a.name for a in suite_to.architectures])
@@ -134,18 +129,16 @@ class SpearsEngine:
 
         return True
 
-    def _prepare_source_data(self, session, mi_wspace: str, mtask: SpearsMigrationTask) -> None:
-        """
-        If there is more than one source suite, we need to give Britney an amalgamation
-        of the data of the two source suites.
-        If there is only one suite, we need to merge arch:all into the native architecture file,
-        as Britney does not work well with Laniakea's split-arch-all configuration (yet).
+    @concurrent.thread
+    def _write_merged_dists_data_for(
+        self, session, mi_wspace: str, mtask: SpearsMigrationTask, suites: T.Union[ArchiveSuite, list[ArchiveSuite]]
+    ):
+        """Merge multiple suites into one new dummy suite, and combine arch:all and arch:any binary files."""
 
-        This function prepares the combined data in the respective workspace location.
-        """
+        suites = listify(suites)
 
         repo_root_dir = mtask.repo.get_root_dir()
-        fake_dists_dir = self._get_source_suite_dists_dir(mi_wspace, mtask.repo, mtask.source_suites)
+        fake_dists_dir = self._get_suites_dists_staging_dir(mi_wspace, suites)
 
         for component in mtask.target_suite.components:
             for arch in mtask.target_suite.architectures:
@@ -154,11 +147,11 @@ class SpearsEngine:
                 packages_files: list[tuple[T.PathUnion, T.PathUnion]] = []
 
                 for installer_dir in ['', 'debian-installer']:
-                    for suite_source in mtask.source_suites:
+                    for suite in suites:
                         pfile = os.path.join(
                             repo_root_dir,
                             'dists',
-                            suite_source.name,
+                            suite.name,
                             component.name,
                             installer_dir,
                             'binary-{}'.format(arch.name),
@@ -167,7 +160,7 @@ class SpearsEngine:
                         pfile_all = os.path.join(
                             repo_root_dir,
                             'dists',
-                            suite_source.name,
+                            suite.name,
                             component.name,
                             installer_dir,
                             'binary-all',
@@ -179,11 +172,12 @@ class SpearsEngine:
 
                     if not installer_dir and not packages_files:
                         raise Exception(
-                            'No packages found on {}/{} in sources for migration "{}:{}": Can not continue.'.format(
+                            'No packages found for {}/{}/{} in repo metadata for migration "{}:{}": Can not continue.'.format(
+                                '+'.join([s.name for s in suites]),
                                 component.name,
                                 arch.name,
                                 mtask.repo.name,
-                                self._get_migration_id(mtask.source_suites, mtask.target_suite),
+                                mtask.make_migration_shortname(),
                             )
                         )
 
@@ -191,54 +185,76 @@ class SpearsEngine:
                     target_packages_file = os.path.join(
                         fake_dists_dir, component.name, installer_dir, 'binary-{}'.format(arch.name), 'Packages.gz'
                     )
-                    log.debug('Generating combined new fake packages file: {}'.format(target_packages_file))
+                    log.debug('Generating combined packages input file: {}'.format(target_packages_file))
                     os.makedirs(os.path.dirname(target_packages_file), exist_ok=True)
 
                     data = b''
                     for fname, fname_all in packages_files:
                         with open_compressed(fname) as f:
-                            data = data + f.read()
+                            data += f.read()
                         if fname_all:
+                            if data.rstrip():
+                                data += b'\n'
                             with open_compressed(fname_all) as f:
-                                data = data + f.read()
+                                data += f.read()
+                        if data.rstrip():
+                            data += b'\n'
                     with gzip.open(target_packages_file, 'w') as f:
                         f.write(data)
 
             sources_files = []
-            for suite_source in mtask.source_suites:
-                sfile = os.path.join(repo_root_dir, 'dists', suite_source.name, component.name, 'source', 'Sources.xz')
+            for suite in suites:
+                sfile = os.path.join(repo_root_dir, 'dists', suite.name, component.name, 'source', 'Sources.xz')
                 if os.path.isfile(sfile):
                     log.debug('Looking for source packages in: {}'.format(sfile))
                     sources_files.append(sfile)
 
             if not sources_files:
                 raise Exception(
-                    'No source packages found in "{}" sources for migration "{}": Can not continue.'.format(
-                        component.name, self._get_migration_id(mtask.source_suites, mtask.target_suite)
+                    'No packages found in "{}/{}" sources for migration "{}": Can not continue.'.format(
+                        '+'.join([s.name for s in suites]), component.name, mtask.make_migration_shortname()
                     )
                 )
 
             # Create new merged Sources file
             target_sources_file = os.path.join(fake_dists_dir, component.name, 'source', 'Sources.gz')
-            log.debug('Generating combined new fake sources file: {}'.format(target_sources_file))
+            log.debug('Generating combined sources input file: {}'.format(target_sources_file))
             os.makedirs(os.path.dirname(target_sources_file), exist_ok=True)
 
             data = b''
             for fname in sources_files:
                 with open_compressed(fname) as f:
-                    data = data + f.read()
+                    data += f.read()
+                if data.rstrip():
+                    data += b'\n'
             with gzip.open(target_sources_file, 'w') as f:
                 f.write(data)
 
         # Britney needs a Release file to determine the source suites components and architectures.
         # To keep things simple, we just copy one of the source Release files.
         # TODO: Synthesize a dedicated file instead and be less lazy
-        release_file = os.path.join(repo_root_dir, 'dists', mtask.source_suites[0].name, 'Release')
+        release_file = os.path.join(repo_root_dir, 'dists', suites[0].name, 'Release')
         target_release_file = os.path.join(fake_dists_dir, 'Release')
         log.debug('Using Release file for merged source suite: {}'.format(target_release_file))
         if os.path.isfile(target_release_file):
             os.remove(target_release_file)
         shutil.copyfile(release_file, target_release_file)
+
+    def _prepare_source_dists_data(self, session, mi_wspace: str, mtask: SpearsMigrationTask) -> None:
+        """
+        If there is more than one source suite, we need to give Britney an amalgamation
+        of the data of the two source suites.
+        If there is only one suite, we need to merge arch:all into the native architecture file,
+        as Britney does not work well with Laniakea's split-arch-all configuration (yet).
+
+        This function prepares the combined data in the respective workspace location.
+        """
+
+        srcmerge_future = self._write_merged_dists_data_for(session, mi_wspace, mtask, mtask.source_suites)
+        dstmerge_future = self._write_merged_dists_data_for(session, mi_wspace, mtask, mtask.target_suite)
+
+        srcmerge_future.result()
+        dstmerge_future.result()
 
     def _create_faux_packages(self, session, mi_wspace: str, mtask: SpearsMigrationTask) -> None:
         """
@@ -451,18 +467,18 @@ class SpearsEngine:
         if not os.path.isfile(britney_conf):
             log.warning(
                 'No Britney config for migration run "{}" - maybe the configuration was not yet updated?'.format(
-                    self._get_migration_name(mtask.repo, mtask.source_suites, mtask.target_suite)
+                    self._get_migration_displayname(mtask.repo, mtask.source_suites, mtask.target_suite)
                 )
             )
             return None
 
         log.info(
             'Migration run for "{}"'.format(
-                self._get_migration_name(mtask.repo, mtask.source_suites, mtask.target_suite)
+                self._get_migration_displayname(mtask.repo, mtask.source_suites, mtask.target_suite)
             )
         )
         # ensure prerequisites are met and Britney is fed with all the data it needs
-        self._prepare_source_data(session, mi_wspace, mtask)
+        self._prepare_source_dists_data(session, mi_wspace, mtask)
         self._create_faux_packages(session, mi_wspace, mtask)
         self._collect_urgencies(session, mi_wspace, mtask)
         self._setup_dates(mi_wspace)
