@@ -226,6 +226,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
                 SourcePackage.repo_id == rss.repo_id,
                 SourcePackage.suites.any(id=rss.suite_id),
                 SourcePackage.version == smv_subq.c.max_version,
+                SourcePackage.time_deleted.is_(None),
                 SourcePackage.binaries.any(),
             ),
         )
@@ -249,8 +250,14 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
         if not old_spkgs:
             continue
         for old_spkg in old_spkgs:
-            log.info('Marking superseded package for removal: %s', str(old_spkg))
-            old_spkg.time_deleted = datetime.utcnow()
+            old_spkg.suites.remove(rss.suite)
+            if old_spkg.suites:
+                log.info('Removed superseded package from suite %s: %s', rss.suite.name, str(old_spkg))
+                archive_log.info('EXPIRE-SUITE-REMOVED: %s from %s', rss.suite.name, str(old_spkg))
+            else:
+                log.info('Marking superseded package for removal: %s', str(old_spkg))
+                old_spkg.time_deleted = datetime.utcnow()
+                archive_log.info('EXPIRE-MARK-DELETE: %s', str(old_spkg))
 
     # grab all the packages that we should actively delete as they have been expired for a while
     retention_days = 14
