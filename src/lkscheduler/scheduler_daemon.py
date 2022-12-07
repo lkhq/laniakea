@@ -40,16 +40,17 @@ def task_repository_publish(registry: JobsRegistry):
     """Publish the archive repositories."""
     import subprocess
 
-    conf = SchedulerConfig()
-    log.info('Publishing all repositories')
-    proc = subprocess.run(
-        [conf.lk_archive_exe, 'publish'],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        start_new_session=True,
-        check=False,
-    )
+    with registry.lock_publish_job():
+        conf = SchedulerConfig()
+        log.info('Publishing all repositories')
+        proc = subprocess.run(
+            [conf.lk_archive_exe, 'publish'],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            check=False,
+        )
     if proc.returncode == 0:
         scheduler_log.info('Archive-Publish: Success.')
     else:
@@ -60,16 +61,17 @@ def task_repository_expire(registry: JobsRegistry):
     """Expire old packages in all repositories."""
     import subprocess
 
-    conf = SchedulerConfig()
-    log.info('Cleaning up repository data')
-    proc = subprocess.run(
-        [conf.lk_archive_exe, 'expire'],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        start_new_session=True,
-        check=False,
-    )
+    with registry.lock_publish_job():
+        conf = SchedulerConfig()
+        log.info('Cleaning up repository data')
+        proc = subprocess.run(
+            [conf.lk_archive_exe, 'expire'],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            check=False,
+        )
     if proc.returncode == 0:
         scheduler_log.info('Archive-Expire: Success.')
     else:
@@ -204,7 +206,7 @@ class SchedulerDaemon:
 
         if intervals_min['expire-repos'] is not None:
             job = self._scheduler.add_job(
-                task_repository_publish,
+                task_repository_expire,
                 'interval',
                 args=(self._registry,),
                 id='expire-repos',
