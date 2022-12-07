@@ -48,7 +48,7 @@ def make_linked_dependency(repo: ArchiveRepository, suite: ArchiveSuite, depstr:
     with session_scope() as session:
         for dep in deps:
             parts = dep.split(' ', 1)
-            pkgname = parts[0]
+            pkgname = parts[0].removesuffix(':any')
             versioning = parts[1].strip() if len(parts) > 1 else ''
 
             exq = (
@@ -62,12 +62,12 @@ def make_linked_dependency(repo: ArchiveRepository, suite: ArchiveSuite, depstr:
                     url=url_for(
                         'packages.bin_package_details', repo_name=repo.name, suite_name=suite.name, name=pkgname
                     ),
-                    pkgname=pkgname,
+                    pkgname=parts[0],
                     versioning=versioning,
                 )
             else:
                 url = '{pkgname} {versioning}'.format(
-                    pkgname=pkgname,
+                    pkgname=parts[0],
                     versioning=versioning,
                 )
             dep_urls.append(url)
