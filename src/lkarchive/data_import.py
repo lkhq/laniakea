@@ -287,7 +287,7 @@ def export_package_list(suite_name: str, result_fname: T.PathUnion, repo_name: T
             sys.exit(4)
 
         spkg_einfo, bpkg_einfo = retrieve_suite_package_maxver_baseinfo(session, rss)
-        with open(result_fname, 'w', encoding='utf-8') as f:
+        with open(os.path.abspath(result_fname), 'w', encoding='utf-8') as f:
             for info in spkg_einfo:
                 f.write('{} {} source\n'.format(info[0], info[1]))
             for info in bpkg_einfo:
