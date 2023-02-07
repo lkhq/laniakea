@@ -54,6 +54,7 @@ def _register_commands():
     cli.add_command(dip.import_pkg)
     cli.add_command(dip.import_heidi_result)
     cli.add_command(dip.import_repository)
+    cli.add_command(dip.export_package_list)
 
     import lkarchive.manage_pkg as mgr
 

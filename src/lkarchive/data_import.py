@@ -11,7 +11,6 @@ import fnmatch
 import click
 from rich import print
 from rich.panel import Panel
-from sqlalchemy import and_, func
 from rich.prompt import Confirm
 
 import laniakea.typing as T
@@ -26,7 +25,6 @@ from laniakea.db import (
     PackageOverride,
     ArchiveComponent,
     ArchiveRepository,
-    ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
@@ -36,6 +34,7 @@ from laniakea.archive.manage import (
     copy_binary_package,
     copy_source_package,
     package_mark_delete,
+    retrieve_suite_package_maxver_baseinfo,
 )
 from laniakea.archive.pkgimport import PackageImporter, ArchivePackageExistsError
 
@@ -146,12 +145,7 @@ def import_pkg(
     default=None,
     help='Name of the repository to act on, if not set the default repository will be used.',
 )
-@click.option(
-    '--suite',
-    '-s',
-    'suite_name',
-    help='Name of the suite to act on.',
-)
+@click.option('--suite', '-s', 'suite_name', help='Name of the suite to act on.', required=True)
 @click.option(
     '--with-rm',
     'allow_delete',
@@ -177,53 +171,12 @@ def import_heidi_result(
             )
             sys.exit(4)
 
-        smv_subq = (
-            session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
-            .group_by(SourcePackage.name)
-            .subquery('smv_subq')
-        )
+        spkg_einfo, bpkg_einfo = retrieve_suite_package_maxver_baseinfo(session, rss)
 
-        # get the latest source packages for this configuration
-        spkg_einfo = (
-            session.query(SourcePackage.name, SourcePackage.version)
-            .join(
-                smv_subq,
-                and_(
-                    SourcePackage.name == smv_subq.c.name,
-                    SourcePackage.repo_id == rss.repo_id,
-                    SourcePackage.suites.any(id=rss.suite_id),
-                    SourcePackage.version == smv_subq.c.max_version,
-                    SourcePackage.time_deleted.is_(None),
-                ),
-            )
-            .all()
-        )
         spkg_eset = {}
         for info in spkg_einfo:
             spkg_eset[info[0]] = info[1]
 
-        bmv_subq = (
-            session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
-            .group_by(BinaryPackage.name)
-            .subquery('bmv_subq')
-        )
-
-        # get binary package info for target suite
-        bpkg_einfo = (
-            session.query(BinaryPackage.name, BinaryPackage.version, ArchiveArchitecture.name)
-            .join(BinaryPackage.architecture)
-            .join(
-                bmv_subq,
-                and_(
-                    BinaryPackage.name == bmv_subq.c.name,
-                    BinaryPackage.repo_id == rss.repo_id,
-                    BinaryPackage.suites.any(id=rss.suite_id),
-                    BinaryPackage.version == bmv_subq.c.max_version,
-                    BinaryPackage.time_deleted.is_(None),
-                ),
-            )
-            .all()
-        )
         bpkg_eset = {}
         for info in bpkg_einfo:
             bpkg_eset[info[0] + '/' + info[2]] = (info[0], info[1], info[2])
@@ -307,6 +260,38 @@ def import_heidi_result(
                 if not bpkg:
                     continue
                 package_mark_delete(session, rss, bpkg)
+
+
+@click.command('export-list')
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set the default repository will be used.',
+)
+@click.option('--suite', '-s', 'suite_name', help='Name of the suite to act on.', required=True)
+@click.argument('result_fname', nargs=1, type=click.Path(), required=True)
+def export_package_list(suite_name: str, result_fname: T.PathUnion, repo_name: T.Optional[str] = None):
+    """Export a list of all packages contained in the selected suite configuration."""
+
+    if not repo_name:
+        lconf = LocalConfig()
+        repo_name = lconf.master_repo_name
+
+    with session_scope() as session:
+        rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
+        if not rss:
+            click.echo(
+                'Suite / repository configuration not found for {} in {}.'.format(suite_name, repo_name), err=True
+            )
+            sys.exit(4)
+
+        spkg_einfo, bpkg_einfo = retrieve_suite_package_maxver_baseinfo(session, rss)
+        with open(result_fname, 'w', encoding='utf-8') as f:
+            for info in spkg_einfo:
+                f.write('{} {} source\n'.format(info[0], info[1]))
+            for info in bpkg_einfo:
+                f.write('{} {} {}\n'.format(info[0], info[1], info[2]))
 
 
 def _import_repo_into_suite(

@@ -6,6 +6,7 @@
 
 import os
 from datetime import datetime, timedelta
+from collections import namedtuple
 
 from sqlalchemy import and_, func
 
@@ -15,6 +16,7 @@ from laniakea.db import (
     BinaryPackage,
     SourcePackage,
     SoftwareComponent,
+    ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
 )
 from laniakea.logging import log, archive_log
@@ -359,3 +361,67 @@ def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuite
         bpkg.suites.append(dest_suite)
         log.info('Copied binary package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_suite.name)
         archive_log.info('COPY-BIN: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_suite.name)
+
+
+def retrieve_suite_package_maxver_baseinfo(session, rss: ArchiveRepoSuiteSettings):
+    """
+    Retrieve basic information about the most recent versions of source and binary packages in a suite.
+
+    This function returns a list of source package entries, consisting of the package name as first,
+    and package version as second entry, as well as a list of binary package entries, with the
+    package name as first, version as second, and architecture as third entry.
+    For all packages, only the most recent version will be returned.
+
+    :param session: A SQLAlchemy session
+    :param rss: The repository/suite combination to retrieve data for.
+    :return: A tuple of a list of source package infos, and binary package infos.
+    """
+
+    PackageInfoTuple = namedtuple('PackageInfoTuple', 'source binary')
+
+    smv_subq = (
+        session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
+        .group_by(SourcePackage.name)
+        .subquery('smv_subq')
+    )
+
+    # get the latest source packages for this configuration
+    spkg_einfo = (
+        session.query(SourcePackage.name, SourcePackage.version)
+        .join(
+            smv_subq,
+            and_(
+                SourcePackage.name == smv_subq.c.name,
+                SourcePackage.repo_id == rss.repo_id,
+                SourcePackage.suites.any(id=rss.suite_id),
+                SourcePackage.version == smv_subq.c.max_version,
+                SourcePackage.time_deleted.is_(None),
+            ),
+        )
+        .all()
+    )
+
+    bmv_subq = (
+        session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
+        .group_by(BinaryPackage.name)
+        .subquery('bmv_subq')
+    )
+
+    # get binary package info for target suite
+    bpkg_einfo = (
+        session.query(BinaryPackage.name, BinaryPackage.version, ArchiveArchitecture.name)
+        .join(BinaryPackage.architecture)
+        .join(
+            bmv_subq,
+            and_(
+                BinaryPackage.name == bmv_subq.c.name,
+                BinaryPackage.repo_id == rss.repo_id,
+                BinaryPackage.suites.any(id=rss.suite_id),
+                BinaryPackage.version == bmv_subq.c.max_version,
+                BinaryPackage.time_deleted.is_(None),
+            ),
+        )
+        .all()
+    )
+
+    return PackageInfoTuple(spkg_einfo, bpkg_einfo)
