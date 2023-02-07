@@ -346,7 +346,6 @@ def generate_curve_keys_for_module(sources_dir, localconfig, mod):
 @pytest.fixture
 def make_curve_trusted_key(sources_dir, localconfig):
     def _make_curve_trusted_key(name):
-
         pub_dest_fname = os.path.join(localconfig.trusted_curve_keys_dir, '{}.key'.format(name))
         sec_dest_fname = os.path.join(localconfig.trusted_curve_keys_dir, '..', '{}.key_secret'.format(name))
         if os.path.isfile(sec_dest_fname) and os.path.isfile(pub_dest_fname):

@@ -51,7 +51,6 @@ def humanized_job_timediff(job):
 @overview.route('/')
 @cache.cached(timeout=10)
 def index():
-
     lconf = LocalConfig()
     with session_scope() as session:
         master_repo_id = (

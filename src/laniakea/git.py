@@ -29,7 +29,6 @@ class Git:
         self._location = path
 
     def _run_git(self, command, args, clone_dir=None, throw_error=True):
-
         git_cmd = [self._git_exe]
         if command == 'clone':
             git_cmd.append(command)

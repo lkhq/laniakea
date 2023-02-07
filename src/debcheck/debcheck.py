@@ -43,7 +43,6 @@ def _create_debcheck(session, suite_name):
 
 
 def _update_debcheck_issues(session, repo, suite, new_issues, package_type):
-
     # remove old entries
     for issue in new_issues:
         session.expunge(issue)

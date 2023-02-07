@@ -97,7 +97,6 @@ class SpearsEngine:
 
         with session_scope() as session:
             for mtask in session.query(SpearsMigrationTask).all():
-
                 suites_from = mtask.source_suites
                 suite_to = mtask.target_suite
                 assert len(suites_from) >= 1
@@ -306,7 +305,6 @@ class SpearsEngine:
 
         for parent in mtask.target_suite.parents:
             for component in parent.components:
-
                 for installer_dir in ['', 'debian-installer']:
                     for arch in parent.architectures:
                         pfile = os.path.join(
@@ -363,7 +361,6 @@ class SpearsEngine:
                 f.write(segment + '\n\n')
 
     def _collect_urgencies(self, session, mi_wspace: T.PathUnion, mtask: SpearsMigrationTask):
-
         log.debug('Collecting urgencies for %s:%s', mtask.repo.name, mtask.target_suite.name)
         udata = (
             session.query(SourcePackage.name, SourcePackage.version, SourcePackage.changes_urgency).filter(
@@ -444,7 +441,6 @@ class SpearsEngine:
         return processed_result
 
     def _retrieve_excuses(self, session, mi_wspace: str, mtask: SpearsMigrationTask):
-
         excuses_yaml = os.path.join(mi_wspace, 'output', 'target', 'excuses.yaml')
         log_file = os.path.join(mi_wspace, 'output', 'target', 'output.txt')
 
@@ -461,7 +457,6 @@ class SpearsEngine:
         return excuses
 
     def _run_migration_internal(self, session, mtask: SpearsMigrationTask):
-
         mi_wspace = self._get_migrate_workspace(mtask)
         britney_conf = os.path.join(mi_wspace, 'britney.conf')
         if not os.path.isfile(britney_conf):
@@ -511,7 +506,6 @@ class SpearsEngine:
         return res
 
     def _run_migration_for_entries(self, session, migration_tasks: T.List[SpearsMigrationTask]):
-
         # event emitted for message publishing
         emitter = EventEmitter(LkModule.SPEARS)
 
@@ -591,7 +585,6 @@ class SpearsEngine:
         return True
 
     def run_migration(self, repo_name: str, source_suite_name: str, target_suite_name: str):
-
         with session_scope() as session:
             migration_tasks = session.query(SpearsMigrationTask).all()
             if source_suite_name:

@@ -465,7 +465,6 @@ def _publish_suite_dists(
     dep11_src_dir: T.Optional[T.PathUnion],
     force: bool = False,
 ):
-
     # we must never touch a frozen suite
     if rss.frozen:
         log.debug('Not publishing frozen suite %s/%s', rss.repo.name, rss.suite.name)

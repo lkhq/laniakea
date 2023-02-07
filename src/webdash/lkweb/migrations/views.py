@@ -37,7 +37,6 @@ def index():
 @migrations.route('/excuses/<repo_name>/<target_suite_name>/<int:page>')
 def excuses_list(repo_name, target_suite_name, page):
     with session_scope() as session:
-
         migration = (
             session.query(SpearsMigrationTask)
             .filter(

@@ -73,7 +73,6 @@ class ExcusesFile:
         return res
 
     def get_excuses(self) -> Dict[str, SpearsExcuse]:
-
         res = {}
 
         # get log data

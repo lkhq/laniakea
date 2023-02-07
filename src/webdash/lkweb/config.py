@@ -11,7 +11,6 @@ INSTANCE_FOLDER_PATH = '/var/lib/laniakea/webdash/'
 
 
 class BaseConfig:
-
     PROJECT = 'Laniakea Web Dashboard'
     BUG_REPORT_URL = 'https://github.com/lkhq/laniakea/issues'
 
@@ -39,12 +38,10 @@ class BaseConfig:
 
 
 class DefaultConfig(BaseConfig):
-
     DEBUG = False
     CACHE_TYPE = 'simple'
 
 
 class DebugConfig(BaseConfig):
-
     DEBUG = True
     CACHE_TYPE = 'null'

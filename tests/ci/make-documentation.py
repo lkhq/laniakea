@@ -93,7 +93,6 @@ def run_ddox(source_root, build_root):
 
 
 def run(source_root, build_root):
-
     # build Markdown documentation
     run_mkdocs(source_root, build_root)
 

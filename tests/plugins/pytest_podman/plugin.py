@@ -54,7 +54,6 @@ def podman_ip():
 
 @attr.s(frozen=True)
 class Services:
-
     _podman_compose = attr.ib()
     _services = attr.ib(init=False, default=attr.Factory(dict))
 
@@ -129,7 +128,6 @@ def str_to_list(arg):
 
 @attr.s(frozen=True)
 class PodmanComposeExecutor:
-
     _compose_files = attr.ib(converter=str_to_list)
     _compose_project_name = attr.ib()
 
@@ -194,7 +192,6 @@ def podman_compose_function_project_name():
 
 
 def get_cleanup_command():
-
     return "down -t 240"
 
 

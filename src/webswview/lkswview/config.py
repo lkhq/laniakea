@@ -14,7 +14,6 @@ INSTANCE_FOLDER_PATH = '/var/lib/laniakea/webswview/'
 
 
 class BaseConfig:
-
     PROJECT = 'Laniakea SWV'
     BUG_REPORT_URL = 'https://github.com/lkhq/laniakea/issues'
 
@@ -45,14 +44,12 @@ class BaseConfig:
 
 
 class DefaultConfig(BaseConfig):
-
     DEBUG = False
     TESTING = False
     CACHE_TYPE = 'simple'
 
 
 class DebugConfig(BaseConfig):
-
     DEBUG = True
     TESTING = True
     CACHE_TYPE = 'null'

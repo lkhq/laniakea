@@ -34,7 +34,6 @@ class RubiConfig:
         self.load()
 
     def load_from_file(self, fname):
-
         cdata = {}
         if fname and os.path.isfile(fname):
             with open(fname) as json_file:

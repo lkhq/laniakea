@@ -53,7 +53,6 @@ def title_for_job(session, job):
 @jobs.route('/queue/<int:page>')
 def queue(page):
     with session_scope() as session:
-
         jobs_per_page = 50
         jobs_total = (
             session.query(Job).filter(Job.status != JobStatus.DONE).filter(Job.status != JobStatus.TERMINATED).count()

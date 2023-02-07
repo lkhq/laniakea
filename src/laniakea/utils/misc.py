@@ -82,7 +82,6 @@ def is_remote_url(uri):
 
 
 def download_file(url, fname, check=False, headers: dict = None, **kwargs):
-
     if not headers:
         headers = {}
 

@@ -17,7 +17,6 @@ class BritneyConfig:
     '''
 
     def __init__(self, britney_dir: str):
-
         self._contents: list[str] = []
         self._hint_contents: list[str] = []
 
@@ -150,7 +149,6 @@ class BritneyConfig:
         self._delays_set = True
 
     def set_hints(self, hints: List[SpearsHint]):
-
         self._hint_contents = []
         self._hint_contents.append('##')
         self._hint_contents.append('# Britney hints file for Laniakea')

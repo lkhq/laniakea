@@ -98,7 +98,6 @@ def ensure_dependencies(dependencies, installed_mods=None):
     if not installed_mods:
         installed_mods = get_installed_modules()
     for req_str in dependencies:
-
         # handle GIR dependencies
         if req_str.startswith('gir:'):
             ensure_gir(req_str)

@@ -31,7 +31,6 @@ def issue_list(suite_name, ptype, arch_name, page):
         package_type = PackageType.SOURCE
 
     with session_scope() as session:
-
         suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
         if not suite:
             abort(404)

@@ -28,7 +28,6 @@ class Debcheck:
         self._repo.set_trusted(True)
 
     def _execute_dose(self, dose_exe, args, files: list[str] = None):
-
         if not files:
             files = []
 

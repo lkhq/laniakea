@@ -11,7 +11,6 @@ INSTANCE_FOLDER_PATH = '/var/lib/laniakea/webupload/'
 
 
 class BaseConfig:
-
     PROJECT = 'Laniakea HTTP Upload Receiver'
     BUG_REPORT_URL = 'https://github.com/lkhq/laniakea/issues'
 
@@ -31,10 +30,8 @@ class BaseConfig:
 
 
 class DefaultConfig(BaseConfig):
-
     DEBUG = False
 
 
 class DebugConfig(BaseConfig):
-
     DEBUG = True

@@ -77,7 +77,6 @@ class RepositoryReader:
         files: list[ArchiveFile] = []
 
     def __init__(self, location, repo_name=None, trusted_keyrings: list[str] = None, entity=None):
-
         if not trusted_keyrings:
             trusted_keyrings = []
 

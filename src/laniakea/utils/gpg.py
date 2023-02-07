@@ -312,7 +312,6 @@ def sign(
     homedir=None,
     passphrase_file=None,
 ):
-
     if not keyids:
         keyids = []
 
