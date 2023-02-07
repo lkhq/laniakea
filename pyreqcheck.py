@@ -200,7 +200,7 @@ def run(args):
         print('No group name set to check modules for!', file=sys.stderr)
         sys.exit(1)
 
-    with open('pyproject.toml', 'r') as f:
+    with open('pyproject.toml', 'rb') as f:
         pyproject = toml.load(f)
 
     if args.check_group:
