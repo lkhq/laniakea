@@ -89,8 +89,8 @@ class TestLighthouseMsgStream:
                     raise e
 
         assert len(mparts) == 2
-        topic = mparts[0]
-        msg_b = mparts[1]
+        topic = mparts[0]  # pylint: disable=unsubscriptable-object
+        msg_b = mparts[1]  # pylint: disable=unsubscriptable-object
         assert topic == b'_lk.testsuite.my-event'
 
         msg = json.loads(msg_b)

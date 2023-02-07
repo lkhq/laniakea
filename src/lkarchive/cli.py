@@ -9,8 +9,6 @@ import multiprocessing as mp
 
 import click
 
-from laniakea.logging import configure_pkg_archive_logger
-
 __mainfile = None
 
 
