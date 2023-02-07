@@ -55,12 +55,12 @@ def import_appstream_data(
 
     mdata_read = AppStream.Metadata()
     mdata_read.set_locale('ALL')
-    mdata_read.set_format_style(AppStream.FormatStyle.COLLECTION)
+    mdata_read.set_format_style(AppStream.FormatStyle.CATALOG)
     mdata_read.set_parse_flags(AppStream.ParseFlags.IGNORE_MEDIABASEURL)
 
     mdata_write = AppStream.Metadata()
     mdata_write.set_locale('ALL')
-    mdata_write.set_format_style(AppStream.FormatStyle.COLLECTION)
+    mdata_write.set_format_style(AppStream.FormatStyle.CATALOG)
     mdata_write.set_parse_flags(AppStream.ParseFlags.IGNORE_MEDIABASEURL)
     mdata_write.set_write_header(False)
 
