@@ -99,6 +99,7 @@ disable = [
     'redefined-outer-name',
     'unused-variable',
     'unspecified-encoding',
+    'broad-exception-raised',
 ]
 
 [tool.pylint.reports]
