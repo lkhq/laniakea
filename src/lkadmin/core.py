@@ -6,9 +6,9 @@
 
 import click
 
-from laniakea.db import session_factory
+from laniakea.db import session_scope, session_factory
 
-from .utils import input_str, print_header
+from .utils import input_str, print_header, print_error_exit
 
 
 @click.group()
@@ -61,3 +61,21 @@ def configure_all():
         )
     )
     session.commit()
+
+
+@core.command()
+def shell():
+    """Launch interactive bpython shell."""
+
+    try:
+        import bpython
+    except ImportError:
+        print_error_exit('Could not find `bpython`! Please install bpython to use this command.')
+
+    # flake8: noqa
+    # pylint: disable=possibly-unused-variable
+    import laniakea.db as db
+
+    # pylint: disable=possibly-unused-variable
+    with session_scope() as session:
+        bpython.embed(locals_=locals())
