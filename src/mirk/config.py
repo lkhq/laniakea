@@ -8,6 +8,7 @@ import os
 from typing import Any
 
 import tomlkit
+import tomlkit.items
 
 from laniakea import get_config_file
 
@@ -29,8 +30,6 @@ class MirkConfig:
         self.load()
 
     def load_from_file(self, fname):
-        import tomlkit.items
-
         cdata = {}
         if os.path.isfile(fname):
             with open(fname) as toml_file:
