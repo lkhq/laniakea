@@ -41,22 +41,25 @@ def get_newest_sources_index(session, repo: ArchiveRepository, suite: ArchiveSui
     the source-UUID of source packages.
     '''
 
-    smv_subq = (
-        session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
-        .group_by(SourcePackage.name)
-        .subquery('smv_subq')
+    spkg_filters = [SourcePackage.repo_id == repo.id, SourcePackage.suites.any(id=suite.id)]
+
+    spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
+    smv_sq = (
+        session.query(spkg_filter_sq.c.name, func.max(spkg_filter_sq.c.version).label('max_version'))
+        .group_by(spkg_filter_sq.c.name)
+        .subquery('smv_sq')
     )
 
     latest_spkg = (
         session.query(SourcePackage)
         .options(undefer(SourcePackage.version))
         .options(undefer(SourcePackage.architectures))
+        .filter(spkg_filters)
         .join(
-            smv_subq,
+            smv_sq,
             and_(
-                SourcePackage.repo_id == repo.id,
-                SourcePackage.suites.any(id=suite.id),
-                SourcePackage.version == smv_subq.c.max_version,
+                SourcePackage.name == smv_sq.c.name,
+                SourcePackage.version == smv_sq.c.max_version,
             ),
         )
         .all()

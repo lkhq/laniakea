@@ -210,10 +210,18 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
     if rss.frozen:
         raise ArchiveError('Will not expire old packages in frozen suite `{}/{}`'.format(rss.repo.name, rss.suite.name))
 
-    smv_subq = (
-        session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
-        .group_by(SourcePackage.name)
-        .subquery('smv_subq')
+    spkg_filters = [
+        SourcePackage.repo_id == rss.repo_id,
+        SourcePackage.suites.any(id=rss.suite_id),
+        SourcePackage.time_deleted.is_(None),
+        SourcePackage.binaries.any(),
+    ]
+
+    spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
+    smv_sq = (
+        session.query(spkg_filter_sq.c.name, func.max(spkg_filter_sq.c.version).label('max_version'))
+        .group_by(spkg_filter_sq.c.name)
+        .subquery('smv_sq')
     )
 
     # fetch the latest source package info
@@ -221,15 +229,12 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
     # TODO: this logic can be improved, e.g, we should make sure the package built on all arches
     latest_spkg_info = (
         session.query(SourcePackage.name, SourcePackage.version)
+        .filter(*spkg_filters)
         .join(
-            smv_subq,
+            smv_sq,
             and_(
-                SourcePackage.name == smv_subq.c.name,
-                SourcePackage.repo_id == rss.repo_id,
-                SourcePackage.suites.any(id=rss.suite_id),
-                SourcePackage.version == smv_subq.c.max_version,
-                SourcePackage.time_deleted.is_(None),
-                SourcePackage.binaries.any(),
+                SourcePackage.name == smv_sq.c.name,
+                SourcePackage.version == smv_sq.c.max_version,
             ),
         )
         .all()
@@ -379,46 +384,56 @@ def retrieve_suite_package_maxver_baseinfo(session, rss: ArchiveRepoSuiteSetting
 
     PackageInfoTuple = namedtuple('PackageInfoTuple', 'source binary')
 
-    smv_subq = (
-        session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
-        .group_by(SourcePackage.name)
-        .subquery('smv_subq')
+    spkg_filters = [
+        SourcePackage.repo_id == rss.repo_id,
+        SourcePackage.suites.any(id=rss.suite_id),
+        SourcePackage.time_deleted.is_(None),
+    ]
+
+    spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
+    smv_sq = (
+        session.query(spkg_filter_sq.c.name, func.max(spkg_filter_sq.c.version).label('max_version'))
+        .group_by(spkg_filter_sq.c.name)
+        .subquery('smv_sq')
     )
 
     # get the latest source packages for this configuration
     spkg_einfo = (
         session.query(SourcePackage.name, SourcePackage.version)
+        .filter(*spkg_filters)
         .join(
-            smv_subq,
+            smv_sq,
             and_(
-                SourcePackage.name == smv_subq.c.name,
-                SourcePackage.repo_id == rss.repo_id,
-                SourcePackage.suites.any(id=rss.suite_id),
-                SourcePackage.version == smv_subq.c.max_version,
-                SourcePackage.time_deleted.is_(None),
+                SourcePackage.name == smv_sq.c.name,
+                SourcePackage.version == smv_sq.c.max_version,
             ),
         )
         .all()
     )
 
-    bmv_subq = (
-        session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
-        .group_by(BinaryPackage.name)
-        .subquery('bmv_subq')
+    bpkg_filters = [
+        BinaryPackage.repo_id == rss.repo_id,
+        BinaryPackage.suites.any(id=rss.suite_id),
+        BinaryPackage.time_deleted.is_(None),
+    ]
+
+    bpkg_filter_sq = session.query(BinaryPackage).filter(*bpkg_filters).subquery()
+    bmv_sq = (
+        session.query(bpkg_filter_sq.c.name, func.max(bpkg_filter_sq.c.version).label('max_version'))
+        .group_by(bpkg_filter_sq.c.name)
+        .subquery('bmv_sq')
     )
 
     # get binary package info for target suite
     bpkg_einfo = (
         session.query(BinaryPackage.name, BinaryPackage.version, ArchiveArchitecture.name)
+        .filter(*bpkg_filters)
         .join(BinaryPackage.architecture)
         .join(
-            bmv_subq,
+            bmv_sq,
             and_(
-                BinaryPackage.name == bmv_subq.c.name,
-                BinaryPackage.repo_id == rss.repo_id,
-                BinaryPackage.suites.any(id=rss.suite_id),
-                BinaryPackage.version == bmv_subq.c.max_version,
-                BinaryPackage.time_deleted.is_(None),
+                BinaryPackage.name == bmv_sq.c.name,
+                BinaryPackage.version == bmv_sq.c.max_version,
             ),
         )
         .all()

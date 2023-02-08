@@ -232,24 +232,29 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
     :return:
     """
 
-    smv_subq = (
-        session.query(SourcePackage.name, func.max(SourcePackage.version).label('max_version'))
-        .group_by(SourcePackage.name)
-        .subquery('smv_subq')
+    spkg_filters = [
+        SourcePackage.repo_id == repo.id,
+        SourcePackage.suites.any(id=suite.id),
+        SourcePackage.component_id == component.id,
+        SourcePackage.time_deleted.is_(None),
+    ]
+
+    spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
+    smv_sq = (
+        session.query(spkg_filter_sq.c.name, func.max(spkg_filter_sq.c.version).label('max_version'))
+        .group_by(spkg_filter_sq.c.name)
+        .subquery('smv_sq')
     )
 
     # get the latest source packages for this configuration
     spkgs = (
         session.query(SourcePackage)
+        .filter(*spkg_filters)
         .join(
-            smv_subq,
+            smv_sq,
             and_(
-                SourcePackage.name == smv_subq.c.name,
-                SourcePackage.repo_id == repo.id,
-                SourcePackage.suites.any(id=suite.id),
-                SourcePackage.component_id == component.id,
-                SourcePackage.version == smv_subq.c.max_version,
-                SourcePackage.time_deleted.is_(None),
+                SourcePackage.name == smv_sq.c.name,
+                SourcePackage.version == smv_sq.c.max_version,
             ),
         )
         .order_by(SourcePackage.name)
@@ -323,30 +328,35 @@ def generate_packages_index(
 
     from laniakea.db.archive import DebType
 
-    bmv_subq = (
-        session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
-        .group_by(BinaryPackage.name)
-        .subquery('bmv_subq')
-    )
-
     deb_type = DebType.DEB
     if installer_udeb:
         deb_type = DebType.UDEB
 
+    bpkg_filter = [
+        BinaryPackage.deb_type == deb_type,
+        BinaryPackage.repo_id == repo.id,
+        BinaryPackage.suites.any(id=suite.id),
+        BinaryPackage.component_id == component.id,
+        BinaryPackage.architecture_id == arch.id,
+        BinaryPackage.time_deleted.is_(None),
+    ]
+
+    bpkg_filter_sq = session.query(BinaryPackage).filter(*bpkg_filter).subquery()
+    bmv_sq = (
+        session.query(bpkg_filter_sq.c.name, func.max(bpkg_filter_sq.c.version).label('max_version'))
+        .group_by(bpkg_filter_sq.c.name)
+        .subquery('bmv_sq')
+    )
+
     # get the latest binary packages for this configuration
     bpkgs = (
         session.query(BinaryPackage)
+        .filter(*bpkg_filter)
         .join(
-            bmv_subq,
+            bmv_sq,
             and_(
-                BinaryPackage.deb_type == deb_type,
-                BinaryPackage.name == bmv_subq.c.name,
-                BinaryPackage.repo_id == repo.id,
-                BinaryPackage.suites.any(id=suite.id),
-                BinaryPackage.component_id == component.id,
-                BinaryPackage.architecture_id == arch.id,
-                BinaryPackage.version == bmv_subq.c.max_version,
-                BinaryPackage.time_deleted.is_(None),
+                BinaryPackage.name == bmv_sq.c.name,
+                BinaryPackage.version == bmv_sq.c.max_version,
             ),
         )
         .order_by(BinaryPackage.name)
@@ -421,24 +431,29 @@ def generate_i18n_template_data(
     :return:
     """
 
-    bmv_subq = (
-        session.query(BinaryPackage.name, func.max(BinaryPackage.version).label('max_version'))
-        .group_by(BinaryPackage.name)
-        .subquery('bmv_subq')
+    bpkg_filters = [
+        BinaryPackage.repo_id == repo.id,
+        BinaryPackage.suites.any(id=suite.id),
+        BinaryPackage.component_id == component.id,
+        BinaryPackage.time_deleted.is_(None),
+    ]
+
+    bpkg_filter_sq = session.query(BinaryPackage).filter(*bpkg_filters).subquery()
+    bmv_sq = (
+        session.query(bpkg_filter_sq.c.name, func.max(bpkg_filter_sq.c.version).label('max_version'))
+        .group_by(bpkg_filter_sq.c.name)
+        .subquery('bmv_sq')
     )
 
     # get the latest binary packages, ignoring the architecture (so we will select only one at random)
     i18n_data = (
         session.query(BinaryPackage.name, BinaryPackage.description_md5, BinaryPackage.description)
+        .filter(*bpkg_filters)
         .join(
-            bmv_subq,
+            bmv_sq,
             and_(
-                BinaryPackage.name == bmv_subq.c.name,
-                BinaryPackage.repo_id == repo.id,
-                BinaryPackage.suites.any(id=suite.id),
-                BinaryPackage.component_id == component.id,
-                BinaryPackage.version == bmv_subq.c.max_version,
-                BinaryPackage.time_deleted.is_(None),
+                BinaryPackage.name == bmv_sq.c.name,
+                BinaryPackage.version == bmv_sq.c.max_version,
             ),
         )
         .order_by(BinaryPackage.name)
