@@ -369,11 +369,12 @@ def generate_packages_index(
         entry = Deb822()
 
         source_info = None
-        if bpkg.name != bpkg.source.name:
-            if bpkg.version == bpkg.source.version:
-                source_info = bpkg.source.name
-            else:
+        bpkg_is_binmu = bpkg.version != bpkg.source.version
+        if bpkg_is_binmu or bpkg.name != bpkg.source.name:
+            if bpkg_is_binmu:
                 source_info = bpkg.source.name + ' (' + bpkg.source.version + ')'
+            else:
+                source_info = bpkg.source.name
 
         entry['Package'] = bpkg.name
         set_deb822_value(entry, 'Source', source_info)
