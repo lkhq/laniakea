@@ -321,7 +321,7 @@ class SpearsEngine:
 
                         log.debug('Reading data for faux packages list: {}'.format(pfile))
 
-                        with TagFile(pfile) as tf:  # type: ignore[attr-defined]
+                        with TagFile(pfile) as tf:
                             for e in tf:
                                 pkgname = e['Package']
                                 pkgversion = e['Version']

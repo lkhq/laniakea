@@ -188,12 +188,13 @@ class TestArchive:
                 # immediately expire anything that has been marked as deleted
                 expire_superseded(session, rss, retention_days=0)
 
+            # ensure source package files are really gone
+            for repo in session.query(ArchiveRepository).all():
+                for fname in fnames:
+                    assert not os.path.isfile(os.path.join(ctx._archive_root, repo.name, fname))
+
             # ensure all source packages are deleted
             assert session.query(SourcePackage).count() == 0
-
-            # ensure source package files are really gone
-            for fname in fnames:
-                assert not os.path.isfile(os.path.join(ctx._archive_root, rss.repo.name, fname))
 
     def test_sections_available(self, ctx):
         with session_scope() as session:
