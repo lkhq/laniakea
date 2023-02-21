@@ -85,11 +85,12 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
             )
         )
 
-    log.info('Removing package %s from suite %s', str(spkg), rss.suite.name)
-    spkg.suites.remove(rss.suite)
     if spkg.suites:
-        archive_log.info('DELETED-SRC-SUITE: %s/%s @ %s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name)
-    else:
+        log.info('Removing package %s from suite %s', str(spkg), rss.suite.name)
+        spkg.suites.remove(rss.suite)
+        if spkg.suites:
+            archive_log.info('DELETED-SRC-SUITE: %s/%s @ %s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name)
+    if not spkg.suites:
         log.info('Deleting orphaned package %s', str(spkg))
         # the package no longer is in any suites, remove it completely
         repo_root_dir = rss.repo.get_root_dir()
@@ -198,7 +199,7 @@ def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[Bin
                 archive_log.info('MARKED-REMOVAL-BIN: %s/%s @ %s', bpkg.name, bpkg.version, rss.repo.name)
 
 
-def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
+def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=14) -> None:
     """Remove superseded packages from the archive.
     This function will remove cruft packages in the selected repo/suite that have a higher version
     available and are no longer needed to be kept around.
@@ -267,18 +268,20 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings) -> None:
                 archive_log.info('EXPIRE-MARK-DELETE: %s', str(old_spkg))
 
     # grab all the packages that we should actively delete as they have been expired for a while
-    retention_days = 14
     time_cutoff = datetime.utcnow() - timedelta(days=retention_days)
     spkgs_delete = (
         session.query(SourcePackage)
         .filter(
             SourcePackage.repo_id == rss.repo_id,
-            SourcePackage.suites.any(id=rss.suite_id),
             ~SourcePackage.time_deleted.is_(None),
             SourcePackage.time_deleted <= time_cutoff,
+            # delete anything expired in the selected suite, or any expired entity that is
+            # in the selected repo and has no suite associated with it anymore.
+            SourcePackage.suites.any(id=rss.suite_id) | ~SourcePackage.suites.any(),
         )
         .all()
     )
+
     for spkg_rm in spkgs_delete:
         log.info('Removing package marked for removal for %s days: %s', retention_days, str(spkg_rm))
         remove_source_package(session, rss, spkg_rm)

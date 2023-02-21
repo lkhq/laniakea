@@ -156,6 +156,7 @@ class TestArchive:
             session.delete(uploader)
 
             # remove all packages from our mock archive (binary packages are implicitly dropped)
+            fnames = []
             for rss in session.query(ArchiveRepoSuiteSettings).all():
                 spkgs = (
                     session.query(SourcePackage)
@@ -164,7 +165,35 @@ class TestArchive:
                     .all()
                 )
                 for spkg in spkgs:
+                    if len(spkg.suites) <= 1:
+                        for file in spkg.files:
+                            fnames.append(file.fname)
+                            assert os.path.isfile(os.path.join(ctx._archive_root, rss.repo.name, file.fname))
+
                     assert remove_source_package(session, rss, spkg)
+
+                queue_entries = (
+                    session.query(ArchiveQueueNewEntry)
+                    .filter(
+                        ArchiveQueueNewEntry.destination_id == rss.suite_id,
+                        ArchiveQueueNewEntry.package.has(repo_id=rss.repo_id),
+                    )
+                    .all()
+                )
+
+                for entry in queue_entries:
+                    spkg = entry.package
+                    newqueue_reject(session, rss, spkg)
+
+                # immediately expire anything that has been marked as deleted
+                expire_superseded(session, rss, retention_days=0)
+
+            # ensure all source packages are deleted
+            assert session.query(SourcePackage).count() == 0
+
+            # ensure source package files are really gone
+            for fname in fnames:
+                assert not os.path.isfile(os.path.join(ctx._archive_root, rss.repo.name, fname))
 
     def test_sections_available(self, ctx):
         with session_scope() as session:
