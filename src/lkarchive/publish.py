@@ -272,7 +272,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
         set_deb822_value(entry, 'Original-Maintainer', spkg.original_maintainer)
         set_deb822_value_commalist(entry, 'Uploaders', spkg.uploaders)
 
-        set_deb822_value_commalist(entry, 'Architecture', spkg.architectures)
+        set_deb822_value_spacelist(entry, 'Architecture', spkg.architectures)
         set_deb822_value(entry, 'Format', spkg.format_version)
         set_deb822_value(entry, 'Standards-Version', spkg.standards_version)
 

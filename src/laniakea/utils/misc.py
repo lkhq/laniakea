@@ -109,6 +109,11 @@ def split_strip(s: str, sep: str):
     return res
 
 
+def safe_strip(s: T.Optional[str]):
+    """Strip a string and handle None"""
+    return s if not s else s.strip()
+
+
 def datetime_to_rfc2822_string(dt: datetime):
     """Convert a datetime object into an RFC2822 date string."""
     from email import utils

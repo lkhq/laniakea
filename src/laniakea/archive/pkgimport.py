@@ -38,14 +38,13 @@ from laniakea.db import (
     ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
 )
-from laniakea.utils import safe_rename, hardlink_or_copy
+from laniakea.utils import safe_strip, safe_rename, split_strip, hardlink_or_copy
 from laniakea.logging import log, archive_log
 from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import (
     UploadError,
     is_deb_file,
     split_epoch,
-    split_strip,
     re_file_orig,
     check_overrides_source,
     checksums_list_to_file,
@@ -248,8 +247,8 @@ class PackageImporter:
         if 'Package' not in src_tf:
             raise ArchiveImportError('Unable to gather valid source package information: {}'.format(p.stderr))
 
-        pkgname = src_tf.pop('Package')
-        version = src_tf.pop('Version')
+        pkgname = safe_strip(src_tf.pop('Package'))
+        version = safe_strip(src_tf.pop('Version'))
 
         result = (
             self._session.query(ArchiveVersionMemory.highest_version)
@@ -305,17 +304,17 @@ class PackageImporter:
                 )
             spkg.time_added = datetime.utcnow()
 
-        spkg.format_version = src_tf.pop('Format')
-        spkg.standards_version = src_tf.pop('Standards-Version', None)
+        spkg.format_version = safe_strip(src_tf.pop('Format'))
+        spkg.standards_version = safe_strip(src_tf.pop('Standards-Version', None))
         spkg.architectures = pop_split(src_tf, 'Architecture', ' ')
-        spkg.maintainer = src_tf.pop('Maintainer')
-        spkg.original_maintainer = src_tf.pop('Original-Maintainer', None)
+        spkg.maintainer = safe_strip(src_tf.pop('Maintainer'))
+        spkg.original_maintainer = safe_strip(src_tf.pop('Original-Maintainer', None))
         spkg.uploaders = pop_split(src_tf, 'Uploaders', ',')
-        spkg.homepage = src_tf.pop('Homepage', None)
-        spkg.vcs_browser = src_tf.pop('Vcs-Browser', None)
-        spkg.vcs_git = src_tf.pop('Vcs-Git', None)
+        spkg.homepage = safe_strip(src_tf.pop('Homepage', None))
+        spkg.vcs_browser = safe_strip(src_tf.pop('Vcs-Browser', None))
+        spkg.vcs_git = safe_strip(src_tf.pop('Vcs-Git', None))
 
-        spkg_dsc_text = src_tf.pop('Description', None)
+        spkg_dsc_text = safe_strip(src_tf.pop('Description', None))
         if spkg_dsc_text:
             # some source packages actually have a description text
             spkg.description = spkg_dsc_text
@@ -547,9 +546,9 @@ class PackageImporter:
         )
         filelist_raw = p.stdout.splitlines()
 
-        pkgname = bin_tf.pop('Package')
-        version = bin_tf.pop('Version')
-        pkgarch = bin_tf.pop('Architecture')
+        pkgname = safe_strip(bin_tf.pop('Package'))
+        version = safe_strip(bin_tf.pop('Version'))
+        pkgarch = safe_strip(bin_tf.pop('Architecture'))
 
         deb_rss = self._rss
         deb_component = 'main'
@@ -591,9 +590,9 @@ class PackageImporter:
         bpkg.update_uuid()
 
         bpkg.deb_type = pkg_type
-        bpkg.maintainer = bin_tf.pop('Maintainer')
-        bpkg.original_maintainer = bin_tf.pop('Original-Maintainer', None)
-        bpkg.homepage = bin_tf.pop('Homepage', None)
+        bpkg.maintainer = safe_strip(bin_tf.pop('Maintainer'))
+        bpkg.original_maintainer = safe_strip(bin_tf.pop('Original-Maintainer', None))
+        bpkg.homepage = safe_strip(bin_tf.pop('Homepage', None))
         bpkg.size_installed = int(bin_tf.pop('Installed-Size', '0'))
         bpkg.time_added = datetime.utcnow()
 
@@ -686,7 +685,7 @@ class PackageImporter:
             pool_fname_full = os.path.join(deb_rss.repo.get_root_dir(), af.fname)
 
         bpkg.bin_file = af
-        bpkg.description = bin_tf.pop('Description')
+        bpkg.description = safe_strip(bin_tf.pop('Description'))
         bpkg.summary = bpkg.description.split('\n', 1)[0].strip()
         bpkg.description_md5 = hashlib.md5(str(bpkg.description).encode('utf-8')).hexdigest()
 
@@ -739,7 +738,7 @@ class PackageImporter:
         bpkg.built_using = pop_split(bin_tf, 'Built-Using', ',')
         bpkg.static_built_using = pop_split(bin_tf, 'Static-Built-Using', ',')
         bpkg.build_ids = pop_split(bin_tf, 'Build-Ids', ' ')
-        bpkg.multi_arch = bin_tf.pop('Multi-Arch', None)
+        bpkg.multi_arch = safe_strip(bin_tf.pop('Multi-Arch', None))
 
         # add to target suite
         bpkg.suites.append(deb_rss.suite)
