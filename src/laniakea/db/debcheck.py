@@ -22,7 +22,7 @@ class PackageIssue(Schema):
     Information about the package issue reason.
     '''
 
-    package_type = fields.Int()  # PackageType enum
+    package_type = fields.Enum(PackageType, by_value=True)
     package_name = fields.Str()
     package_version = fields.Str()
     architectures = fields.List(fields.Str())

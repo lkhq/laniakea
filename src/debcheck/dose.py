@@ -5,27 +5,40 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import uuid
 import subprocess
 from datetime import datetime
 
 import yaml
 
-from laniakea.db import PackageType, PackageIssue, DebcheckIssue, PackageConflict
+import laniakea.typing as T
+from laniakea.db import (
+    PackageType,
+    ArchiveSuite,
+    PackageIssue,
+    DebcheckIssue,
+    PackageConflict,
+    ArchiveRepository,
+)
 from laniakea.logging import log
 from laniakea.reporeader import RepositoryReader
 from laniakea.localconfig import LocalConfig
 
+# UUID namespace for uuid5 IDs for Debcheck entities
+DEBCHECK_ENTITY_UUID = uuid.UUID('43f7d768-7cce-4bd7-90ce-1ea6dec23a60')
 
-class Debcheck:
-    '''
+
+class DoseDebcheck:
+    """
     Analyze the archive's dependency chain.
-    '''
+    """
 
-    def __init__(self, repo_entity):
+    def __init__(self, session, repo):
         lconf = LocalConfig()
-        self._repo = RepositoryReader(lconf.archive_root_dir, 'master', entity=repo_entity)
-        self._repo_entity = repo_entity
-        self._repo.set_trusted(True)
+        self._repo = repo
+        self._repo_reader = RepositoryReader(os.path.join(lconf.archive_root_dir, repo.name), repo.name, entity=repo)
+        self._repo_reader.set_trusted(True)
+        self._session = session
 
     def _execute_dose(self, dose_exe, args, files: list[str] = None):
         if not files:
@@ -64,32 +77,32 @@ class Debcheck:
 
         for component in suite.components:
             if sources:
-                fname = self._repo.index_file(suite, os.path.join(component.name, 'source', 'Sources.xz'))
+                fname = self._repo_reader.index_file(suite, os.path.join(component.name, 'source', 'Sources.xz'))
                 if fname:
                     res['fg'].append(fname)
 
-                fname = self._repo.index_file(
+                fname = self._repo_reader.index_file(
                     suite, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz')
                 )
                 if fname:
                     res['bg'].append(fname)
             else:
-                fname = self._repo.index_file(
+                fname = self._repo_reader.index_file(
                     suite, os.path.join(component.name, 'binary-{}'.format(arch.name), 'Packages.xz')
                 )
                 if fname:
                     res['fg'].append(fname)
 
             if arch.name == 'all':
-                fname = self._repo.index_file(
+                fname = self._repo_reader.index_file(
                     suite, os.path.join(component.name, 'binary-{}'.format(bin_arch.name), 'Packages.xz')
                 )
                 if fname:
                     res['bg'].append(fname)
 
         # add base suite packages to the background
-        if suite.parent:
-            parent_indices = self._get_full_index_info(suite.parent, arch, False)
+        for parent in suite.parents:
+            parent_indices = self._get_full_index_info(parent, arch, False)
             res['bg'].extend(parent_indices['bg'])
             res['bg'].extend(parent_indices['fg'])
 
@@ -105,8 +118,6 @@ class Debcheck:
             # fetch source-package-centric index list
             indices = self._get_full_index_info(suite, arch, True)
             if not indices['fg']:
-                if arch.name == 'all':
-                    continue
                 raise Exception(
                     'Unable to get any indices for {}/{} to check for dependency issues.'.format(suite.name, arch.name)
                 )
@@ -139,8 +150,6 @@ class Debcheck:
             # fetch binary-package index list
             indices = self._get_full_index_info(suite, arch, False)
             if not indices['fg']:
-                if arch.name == 'all':
-                    continue
                 raise Exception(
                     'Unable to get any indices for {}/{} to check for dependency issues.'.format(suite.name, arch.name)
                 )
@@ -171,9 +180,32 @@ class Debcheck:
 
         return arch_issue_map
 
+    def _make_issue_uuid(
+        self,
+        issue: DebcheckIssue,
+        repo: T.Optional[ArchiveRepository] = None,
+        suite: T.Optional[ArchiveSuite] = None,
+    ):
+        """Issue entities have an UUID based on a set of data, this function generates the UUID."""
+        if not repo:
+            repo = issue.repo
+        if not suite:
+            suite = issue.suite
+        return uuid.uuid5(
+            DEBCHECK_ENTITY_UUID,
+            '{}:{}:{}:{}/{} [{}]'.format(
+                repo.id,
+                suite.id,
+                issue.package_type.value,
+                issue.package_name,
+                issue.package_version,
+                ' '.join(issue.architectures),
+            ),
+        )
+
     def _dose_yaml_to_issues(self, yaml_data, suite, arch_name):
-        def set_basic_package_info(v, entry):
-            if 'type' in entry and entry['type'] == "src":
+        def set_basic_package_info(v: T.Union[PackageIssue, DebcheckIssue], entry):
+            if 'type' in entry and entry['type'] == 'src':
                 v.package_type = PackageType.SOURCE
             else:
                 v.package_type = PackageType.BINARY
@@ -199,13 +231,23 @@ class Debcheck:
                     continue
 
             issue = DebcheckIssue()
-            issue.repo = self._repo_entity
             issue.time = datetime.utcnow()
-            issue.suite = suite
             missing = []
             conflicts = []
-
             set_basic_package_info(issue, entry)
+            issue_uuid = self._make_issue_uuid(issue, self._repo, suite)
+
+            existing_issue = self._session.query(DebcheckIssue).filter(DebcheckIssue.uuid == issue_uuid).one_or_none()
+            if existing_issue:
+                # update the existing issue
+                issue = existing_issue
+                set_basic_package_info(issue, entry)
+            else:
+                # add the new issue
+                issue.uuid = issue_uuid
+                issue.repo = self._repo
+                issue.suite = suite
+                self._session.add(issue)
 
             reasons = entry['reasons']
             for reason in reasons:
@@ -260,7 +302,7 @@ class Debcheck:
 
         return res
 
-    def build_depcheck_issues(self, suite):
+    def fetch_build_depcheck_issues(self, suite):
         '''Get a list of build-dependency issues affecting the suite'''
 
         issues = []
@@ -270,7 +312,7 @@ class Debcheck:
 
         return issues
 
-    def depcheck_issues(self, suite):
+    def fetch_depcheck_issues(self, suite):
         '''Get a list of dependency issues affecting the suite'''
 
         issues = []

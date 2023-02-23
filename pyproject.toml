@@ -30,7 +30,7 @@ base = [
     'APScheduler',
     'firehose',
     'humanize',
-    'marshmallow',
+    'marshmallow>=3.18',
     'tornado',
     'PyGObject',
     'PyNaCl',
