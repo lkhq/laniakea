@@ -22,14 +22,14 @@ you can use this command on Debian-based systems (Debian 12 or newer required):
                      python3-pip dose-builddebcheck dose-distcheck
     sudo apt install --no-install-recommends flatpak
     sudo apt install flake8 pylint mypy pylint isort black # if you want to add code linting / test support
-    sudo pip install firehose # or install python3-firehose from Debian unstable/experimental
+    sudo pip install firehose
 
 If you want to use the web-based GUI, you will also need these modules installed:
 
 .. code-block:: bash
 
-    sudo apt install python3-flask python3-flask-restful python3-flask-login npm
-    sudo pip install Flask-Caching
+    sudo apt install python3-flask python3-flask-restful python3-flask-login npm \
+                     python3-flask-caching
 
 If you want to use the Matrix bot, you will need Mautrix:
 
