@@ -122,7 +122,7 @@ Create a new PostgreSQL database and user for Laniakea:
 Edit ``/etc/laniakea/base-config.toml`` and add the database settings.
 Use the `base-config.toml.sample <https://github.com/lkhq/laniakea/blob/master/contrib/base-config.toml.sample>`__
 file for reference.
-Essential values for the configuration are ``ProjectName`` and the fields in ``Database``, the other
+Essential values for the configuration are ``Workspace`` and the fields in ``Database``, the other
 values are optional, depending on which Laniakea features you are using.
 
 To create the initial database run the following command:
