@@ -44,6 +44,9 @@ class SchedulerConfig:
             # migrate packages all 6h by default
             self._intervals_min['spears-migrate'] = cintervals.get('spears-migrate', 6 * 60)
 
+            # check the archive for dependency issues every 3h
+            self._intervals_min['debcheck'] = cintervals.get('debcheck', 3 * 60)
+
             # find executables
             my_dir = os.path.dirname(os.path.realpath(__file__))
             self._lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'lkarchive', 'lk-archive.py'))
@@ -59,6 +62,12 @@ class SchedulerConfig:
                 raise ValueError('Unable to find `rubicon` binary. Check your Laniakea installation!')
 
             self._spears_exe = os.path.normpath(os.path.join(my_dir, '..', 'spears', 'spears'))
+            if not self._spears_exe:
+                raise ValueError('Unable to find `spears` binary. Check your Laniakea installation!')
+
+            self._debcheck_exe = os.path.normpath(os.path.join(my_dir, '..', 'debcheck', 'debcheck'))
+            if not self._debcheck_exe:
+                raise ValueError('Unable to find `debcheck` binary. Check your Laniakea installation!')
 
         @property
         def lk_archive_exe(self) -> T.PathUnion:
@@ -74,6 +83,11 @@ class SchedulerConfig:
         def spears_exe(self) -> T.PathUnion:
             """Executable path for spears"""
             return self._spears_exe
+
+        @property
+        def debcheck_exe(self) -> T.PathUnion:
+            """Executable path for debcheck"""
+            return self._debcheck_exe
 
         @property
         def intervals_min(self) -> T.Dict[str, T.Optional[int]]:

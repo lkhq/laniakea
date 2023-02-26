@@ -133,6 +133,38 @@ def task_spears_migrate(registry: JobsRegistry):
         scheduler_log.error('Spears: Error: %s', str(proc.stdout, 'utf-8'))
 
 
+def task_debcheck(registry: JobsRegistry):
+    """Make Debcheck test dependencies."""
+    import subprocess
+
+    with registry.lock_publish_job():
+        conf = SchedulerConfig()
+
+        # check sources
+        proc = subprocess.run(
+            [conf.debcheck_exe, 'sources'],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            scheduler_log.error('Debcheck sources check: Error: %s', str(proc.stdout, 'utf-8'))
+
+        # check binaries
+        proc = subprocess.run(
+            [conf.debcheck_exe, 'binaries'],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            scheduler_log.error('Debcheck binaries check: Error: %s', str(proc.stdout, 'utf-8'))
+
+
 def task_configure_rotate_logfile():
     """Configure the logger and set the right persistent log file."""
     lconf = LocalConfig()
@@ -183,6 +215,7 @@ class SchedulerDaemon:
         self._configure_job(task_rubicon_scan, 'rubicon', 'Import data from new uploads', jitter=60)
         self._configure_job(task_repository_publish, 'publish-repos', 'Publish all repository data', jitter=20)
         self._configure_job(task_repository_expire, 'expire-repos', 'Expire old repository data', jitter=2 * 60)
+        self._configure_job(task_debcheck, 'debcheck', 'Check package dependencies', jitter=30)
 
         with session_scope() as session:
             from laniakea.db import SpearsMigrationTask
