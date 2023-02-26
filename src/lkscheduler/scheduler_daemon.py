@@ -168,76 +168,30 @@ class SchedulerDaemon:
         task_configure_rotate_logfile()
 
         db = Database()
-        jobstore = SQLAlchemyJobStore(engine=db.engine, tablename='maintenance_jobs', metadata=Base.metadata)
-        self._scheduler = AsyncIOScheduler(jobstores={'default': jobstore})
+        self._jobstore = SQLAlchemyJobStore(engine=db.engine, tablename='maintenance_jobs', metadata=Base.metadata)
+        self._scheduler = AsyncIOScheduler(jobstores={'default': self._jobstore})
 
         # we're ready now
         self._scheduler.start()
         systemd.daemon.notify('READY=1')
 
-        intervals_min = self._sconf.intervals_min
-        if intervals_min['rubicon'] is not None:
-            job = self._scheduler.add_job(
-                task_rubicon_scan,
-                'interval',
-                args=(self._registry,),
-                id='rubicon',
-                name='Import data from new uploads',
-                jitter=60,
-                minutes=intervals_min['rubicon'],
-                max_instances=1,
-                replace_existing=True,
-            )
-            self._registry.set_job(job)
+        # get a list of all job IDs that we need to configure
+        self._job_setup_todo = set()
+        for job in self._jobstore.get_all_jobs():
+            self._job_setup_todo.add(job.id)
 
-        if intervals_min['publish-repos'] is not None:
-            job = self._scheduler.add_job(
-                task_repository_publish,
-                'interval',
-                args=(self._registry,),
-                id='publish-repos',
-                name='Publish all repository data',
-                jitter=20,
-                minutes=intervals_min['publish-repos'],
-                max_instances=1,
-                replace_existing=True,
-            )
-            self._registry.set_job(job)
+        self._configure_job(task_rubicon_scan, 'rubicon', 'Import data from new uploads', jitter=60)
+        self._configure_job(task_repository_publish, 'publish-repos', 'Publish all repository data', jitter=20)
+        self._configure_job(task_repository_expire, 'expire-repos', 'Expire old repository data', jitter=2 * 60)
 
-        if intervals_min['expire-repos'] is not None:
-            job = self._scheduler.add_job(
-                task_repository_expire,
-                'interval',
-                args=(self._registry,),
-                id='expire-repos',
-                name='Expire old repository data',
-                jitter=2 * 60,
-                minutes=intervals_min['expire-repos'],
-                max_instances=1,
-                replace_existing=True,
-            )
-            self._registry.set_job(job)
+        with session_scope() as session:
+            from laniakea.db import SpearsMigrationTask
 
-        if intervals_min['spears-migrate'] is not None:
-            from laniakea.db.spears import SpearsMigrationTask
-
-            with session_scope() as session:
-                mtask_ids = session.query(SpearsMigrationTask.id).all()
-                if mtask_ids:
-                    job = self._scheduler.add_job(
-                        task_spears_migrate,
-                        'interval',
-                        args=(self._registry,),
-                        id='spears-migrate',
-                        name='Migrate packages between suites.',
-                        jitter=20,
-                        minutes=intervals_min['spears-migrate'],
-                        max_instances=1,
-                        replace_existing=True,
-                    )
-                    self._registry.set_job(job)
-                else:
-                    log.info('Not creating Spears migration job: No migration tasks configured.')
+            mtask_ids = session.query(SpearsMigrationTask.id).all()
+            if mtask_ids:
+                self._configure_job(task_spears_migrate, 'spears-migrate', 'Migrate packages between suites', jitter=20)
+            else:
+                log.info('Not creating Spears migration job: No migration tasks configured.')
 
         # internal maintenance tasks
         self._scheduler.add_job(
@@ -250,6 +204,40 @@ class SchedulerDaemon:
             max_instances=1,
             replace_existing=True,
         )
+        self._job_setup_todo.remove('internal-log-rotate')
+
+        # remove all jobs that we haven't configured and which are therefore stale
+        for job_id in self._job_setup_todo:
+            self._jobstore.remove_job(job_id)
+
+    def _configure_job(self, func, job_id, job_name, *, jitter):
+        """Add or update a job."""
+        from apscheduler.util import undefined
+
+        job = self._jobstore.lookup_job(job_id)
+        intervals_min = self._sconf.intervals_min
+        if intervals_min[job_id] is None:
+            if job:
+                self._jobstore.remove_job(job_id)
+        else:
+            # replace job, but keep the next run time
+            next_run_time = job.next_run_time if job else undefined
+
+            job = self._scheduler.add_job(
+                func,
+                'interval',
+                args=(self._registry,),
+                id=job_id,
+                name=job_name,
+                jitter=jitter,
+                minutes=intervals_min[job_id],
+                max_instances=1,
+                next_run_time=next_run_time,
+                replace_existing=True,
+            )
+            self._registry.set_job(job)
+
+        self._job_setup_todo.discard(job_id)
 
     def run(self):
         try:
