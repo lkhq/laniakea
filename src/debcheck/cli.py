@@ -91,7 +91,7 @@ def _update_debcheck_issues(session, repo, suite, new_issues, package_type):
 
 
 def command_sources(options):
-    '''Check source packages'''
+    """Check source packages"""
 
     with session_scope() as session:
         debcheck, repo, scan_suites = _create_debcheck(session, options.repo_name, options.suite)
@@ -103,7 +103,7 @@ def command_sources(options):
 
 
 def command_binaries(options):
-    '''Check binary packages'''
+    """Check binary packages"""
 
     with session_scope() as session:
         debcheck, repo, scan_suites = _create_debcheck(session, options.repo_name, options.suite)
@@ -115,9 +115,9 @@ def command_binaries(options):
 
 
 def create_parser(formatter_class=None):
-    '''Create Debcheck CLI argument parser'''
+    """Create Debcheck CLI argument parser"""
 
-    parser = ArgumentParser(description='Import existing static data into the Laniakea database')
+    parser = ArgumentParser(description='Check package dependencies and generate issue reports.')
     subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
 
     # generic arguments
