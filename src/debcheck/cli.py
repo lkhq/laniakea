@@ -48,9 +48,9 @@ def _create_debcheck(session, repo_name: T.Optional[str], suite_name: T.Optional
     else:
         rss_matches = (
             session.query(ArchiveRepoSuiteSettings)
-            .filter(ArchiveRepoSuiteSettings.repo_id == repo.id, ArchiveRepoSuiteSettings.frozen == False)
+            .filter(ArchiveRepoSuiteSettings.repo_id == repo.id, ArchiveRepoSuiteSettings.frozen == False)  # noqa: E712
             .all()
-        )  # noqa: E712
+        )
         scan_suites = [rss.suite for rss in rss_matches]
 
     return DoseDebcheck(session, repo), repo, scan_suites
