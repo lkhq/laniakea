@@ -73,6 +73,7 @@ def _add_update_sync_config(
     sync_enabled: bool = True,
     sync_auto_enabled: bool = True,
     sync_binaries: bool = False,
+    auto_cruft_remove: bool = True,
 ):
     with session_scope() as session:
         repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
@@ -106,6 +107,7 @@ def _add_update_sync_config(
         sync_conf.sync_auto_enabled = sync_auto_enabled
         sync_conf.sync_enabled = sync_enabled
         sync_conf.sync_binaries = sync_binaries
+        sync_conf.auto_cruft_remove = auto_cruft_remove
 
 
 @synchrotron.command()
@@ -144,6 +146,7 @@ def update_task():
                 sync_enabled=input_bool('Enable synchronization?'),
                 sync_auto_enabled=input_bool('Enable automatic synchronization?'),
                 sync_binaries=input_bool('Synchronize binary packages?'),
+                auto_cruft_remove=input_bool('Attempt to auto-remove orphaned packages?'),
             )
 
             add_sync_tasks = input_bool('Add another sync task?')
