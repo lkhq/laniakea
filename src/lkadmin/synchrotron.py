@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import click
+import tomlkit
 from rich.prompt import Prompt
 
 import laniakea.typing as T
@@ -17,13 +18,32 @@ from laniakea.db import (
     SyncBlacklistEntry,
     session_scope,
 )
+from laniakea.logging import log
 
 from .utils import input_str, input_bool, input_list, print_note, print_error_exit
 
 
 @click.group()
 def synchrotron():
-    '''Adjust package synchronization settings.'''
+    """Adjust package synchronization settings."""
+
+
+def _add_update_source(os_name, repo_url, suite_name, components: T.List[str], architectures: T.List[str]):
+    with session_scope() as session:
+        sync_source = (
+            session.query(SynchrotronSource)
+            .filter(SynchrotronSource.os_name == os_name, SynchrotronSource.suite_name == suite_name)
+            .one_or_none()
+        )
+        if not sync_source:
+            sync_source = SynchrotronSource()
+            sync_source.os_name = os_name
+            sync_source.suite_name = suite_name
+            session.add(sync_source)
+
+        sync_source.repo_url = repo_url
+        sync_source.components = components
+        sync_source.architectures = architectures
 
 
 @synchrotron.command()
@@ -35,20 +55,57 @@ def add_source():
 
     add_suite = input_bool('Add a new source suite?')
     while add_suite:
-        with session_scope() as session:
-            sync_source = SynchrotronSource()
+        suite_name = input_str('Adding a new source suite. Please set a name')
+        components = input_list('List of components for suite \'{}\''.format(suite_name))
+        architectures = input_list('List of architectures for suite \'{}\''.format(suite_name))
 
-            sync_source.os_name = source_distro_name
-            sync_source.repo_url = source_repo_url
-            sync_source.suite_name = input_str('Adding a new source suite. Please set a name')
+        _add_update_source(source_distro_name, source_repo_url, suite_name, components, architectures)
 
-            sync_source.components = input_list('List of components for suite \'{}\''.format(sync_source.suite_name))
-            sync_source.architectures = input_list(
-                'List of architectures for suite \'{}\''.format(sync_source.suite_name)
+        add_suite = input_bool('Add another suite?')
+
+
+def _add_update_sync_config(
+    repo_name: str,
+    source_os: str,
+    source_suite: str,
+    target_suite: str,
+    *,
+    sync_enabled: bool = True,
+    sync_auto_enabled: bool = True,
+    sync_binaries: bool = False,
+):
+    with session_scope() as session:
+        repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
+
+        sync_source = (
+            session.query(SynchrotronSource)
+            .filter(SynchrotronSource.os_name == source_os, SynchrotronSource.suite_name == source_suite)
+            .one()
+        )
+
+        dest_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == target_suite).one()
+
+        sync_conf = (
+            session.query(SynchrotronConfig)
+            .filter(
+                SynchrotronConfig.repo_id == repo.id,
+                SynchrotronConfig.source_id == sync_source.id,
+                SynchrotronConfig.destination_suite_id == dest_suite.id,
             )
+            .one_or_none()
+        )
+        if sync_conf:
+            log.info('Found existing sync configuration, updating it.')
+        else:
+            sync_conf = SynchrotronConfig()
+            sync_conf.repo = repo
+            sync_conf.source = sync_source
+            sync_conf.destination_suite = dest_suite
+            session.add(sync_conf)
 
-            session.add(sync_source)
-            add_suite = input_bool('Add another suite?')
+        sync_conf.sync_auto_enabled = sync_auto_enabled
+        sync_conf.sync_enabled = sync_enabled
+        sync_conf.sync_binaries = sync_binaries
 
 
 @synchrotron.command()
@@ -59,7 +116,6 @@ def update_task():
     while add_sync_tasks:
         with session_scope() as session:
             repo_name = Prompt.ask('Repository name to add sync task for', default=LocalConfig().master_repo_name)
-            repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
 
             sync_source = None
             while not sync_source:
@@ -80,27 +136,15 @@ def update_task():
                 if not dest_suite:
                     print_note('Could not find suite with name "{}"'.format(dest_suite_name))
 
-            autosync = (
-                session.query(SynchrotronConfig)
-                .filter(
-                    SynchrotronConfig.repo_id == repo.id,
-                    SynchrotronConfig.source_id == sync_source.id,
-                    SynchrotronConfig.destination_suite_id == dest_suite.id,
-                )
-                .one_or_none()
+            _add_update_sync_config(
+                repo_name,
+                src_os,
+                src_suite,
+                dest_suite_name,
+                sync_enabled=input_bool('Enable synchronization?'),
+                sync_auto_enabled=input_bool('Enable automatic synchronization?'),
+                sync_binaries=input_bool('Synchronize binary packages?'),
             )
-            if autosync:
-                print('Found existing sync configuration, updating it in the next steps.')
-            else:
-                autosync = SynchrotronConfig()
-                autosync.repo = repo
-                autosync.source = sync_source
-                autosync.destination_suite = dest_suite
-                session.add(autosync)
-
-            autosync.sync_auto_enabled = input_bool('Enable automatic synchronization?')
-            autosync.sync_enabled = input_bool('Enable synchronization?')
-            autosync.sync_binaries = input_bool('Synchronize binary packages?')
 
             add_sync_tasks = input_bool('Add another sync task?')
 
@@ -186,3 +230,16 @@ def blacklist_remove(src_os_name, src_suite_name, repo_name, dest_suite_name, pk
             session.delete(entry)
         else:
             print_note('The selected package was not blacklisted. Nothing was removed.')
+
+
+@synchrotron.command()
+@click.argument('config_fname', nargs=1)
+def add_from_config(config_fname):
+    '''Add/update all archive settings from a TOML config file.'''
+    with open(config_fname, 'r', encoding='utf-8') as f:
+        conf = tomlkit.load(f)
+
+    for source_d in conf.get('Sources', []):
+        _add_update_source(**source_d)
+    for conf_d in conf.get('Configurations', []):
+        _add_update_sync_config(**conf_d)
