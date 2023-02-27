@@ -520,7 +520,7 @@ class PackageImporter:
         """
         self._ensure_not_frozen()
 
-        log.info('Attempting import of binary: %s', deb_fname)
+        log.debug('Attempting import of binary: %s', deb_fname)
         pkg_type = DebType.DEB
         if os.path.splitext(deb_fname)[1] == '.udeb':
             pkg_type = DebType.UDEB

@@ -80,11 +80,11 @@ class RepositoryReader:
         if not trusted_keyrings:
             trusted_keyrings = []
 
-        lconf = LocalConfig()
+        self._lconf = LocalConfig()
         if not repo_name:
             repo_name = 'unknown'
         if is_remote_url(location):
-            self._root_dir = os.path.join(lconf.cache_dir, 'repo_cache', repo_name)
+            self._root_dir = os.path.join(self._lconf.cache_dir, 'repo_cache', repo_name)
             os.makedirs(self._root_dir, exist_ok=True)
             self._repo_url = location
         else:
@@ -122,6 +122,13 @@ class RepositoryReader:
         self._trusted = trusted
         if self._trusted:
             log.debug('Explicitly marked repository "{}" as trusted.'.format(self.location))
+
+    def cleanup(self):
+        """Remove any cruft from temporary locations."""
+        import shutil
+
+        if self._repo_url and self._root_dir.startswith(self._lconf.cache_dir):
+            shutil.rmtree(self._root_dir)
 
     def _fetch_repo_file_internal(self, location, check=False):
         '''

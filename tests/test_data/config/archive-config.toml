@@ -1,3 +1,5 @@
+DistroTag = "utest"
+
 [[Repositories]]
 name = "master"
 origin = "ACME Inc."

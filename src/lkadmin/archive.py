@@ -20,6 +20,7 @@ from laniakea.db import (
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
     session_scope,
+    config_set_distro_tag,
 )
 from laniakea.logging import log
 
@@ -533,11 +534,21 @@ def section_add(name: str, summary: str):
 
 
 @archive.command()
+@click.argument('tag', nargs=1)
+def set_distro_tag(tag):
+    """Set tag for this distribution, used to identify it in version numbers."""
+
+    config_set_distro_tag(tag.lower())
+
+
+@archive.command()
 @click.argument('config_fname', nargs=1)
 def add_from_config(config_fname):
     '''Add/update all archive settings from a TOML config file.'''
     with open(config_fname, 'r', encoding='utf-8') as f:
         conf = tomlkit.load(f)
+
+    config_set_distro_tag(conf.get('DistroTag', '').lower())
 
     for repo_d in conf.get('Repositories', []):
         _add_repo(**repo_d)
