@@ -32,7 +32,7 @@ class JobsRegistry:
     @contextmanager
     def lock_publish_job(self):
         """Prevent publishing from being run simultaneously."""
-        with process_file_lock('scheduler_publish-repos'):
+        with process_file_lock('scheduler_publish-repos', wait=True):
             yield
 
 

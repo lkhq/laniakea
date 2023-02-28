@@ -680,7 +680,7 @@ def publish_suite_dists_async(
     # reconfigure logging
     configure_pkg_archive_logger()
 
-    with process_file_lock('{}-{}'.format(repo_name, suite_name)):
+    with process_file_lock('publish_{}-{}'.format(repo_name, suite_name), wait=True):
         with session_scope() as session:
             rss = repo_suite_settings_for(session, repo_name, suite_name)
             _publish_suite_dists(lconf, session, rss, dep11_src_dir=dep11_src_dir, force=force)
@@ -695,7 +695,7 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
     :return:
     """
 
-    with process_file_lock(repo.name):
+    with process_file_lock('publish_{}'.format(repo.name), wait=True):
         # remove possible remnants of an older publish operation
         lconf = LocalConfig()
         temp_dists_dir = os.path.join(lconf.archive_root_dir, repo.name, 'zzz-meta')

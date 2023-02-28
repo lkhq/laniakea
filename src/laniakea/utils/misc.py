@@ -7,6 +7,7 @@
 import os
 import re
 import sys
+import time
 import fcntl
 import collections
 from datetime import datetime
@@ -15,6 +16,7 @@ from contextlib import contextmanager
 import requests
 
 import laniakea.typing as T
+from laniakea.logging import log
 
 
 def get_dir_shorthand_for_uuid(uuid):
@@ -173,6 +175,17 @@ class ProcessFileLock:
         self._lock_file_fd = fd
         return True
 
+    def acquire_wait(self):
+        if self.acquire(raise_error=False):
+            return
+        log.info(
+            'Waiting on lock "%s". Will continue once the other operation holding the lock has completed.', self._name
+        )
+        while True:
+            time.sleep(5)
+            if self.acquire(raise_error=False):
+                return
+
     def release(self):
         """Release an acquired lock. Does nothing if no lock was taken."""
         if self._lock_file_fd <= 0:
@@ -183,9 +196,12 @@ class ProcessFileLock:
 
 
 @contextmanager
-def process_file_lock(name: str, *, raise_error=True):
+def process_file_lock(name: str, *, raise_error=True, wait=False):
     flock = ProcessFileLock(name)
-    flock.acquire(raise_error)
+    if wait:
+        flock.acquire_wait()
+    else:
+        flock.acquire(raise_error)
     try:
         yield flock
     finally:

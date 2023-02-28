@@ -734,10 +734,11 @@ class SyncEngine:
         """Synchronize all packages between source and destination."""
 
         with process_file_lock('sync_{}'.format(self._repo_name)):
-            with session_scope() as session:
-                ret = self._autosync_internal(session, remove_cruft)
+            with process_file_lock('publish_{}-{}'.format(self._repo_name, self._target_suite_name), wait=True):
+                with session_scope() as session:
+                    ret = self._autosync_internal(session, remove_cruft)
 
-            # cleanup cruft, as we may have downloaded a lot of packages
-            self._source_reader.cleanup()
+                # cleanup cruft, as we may have downloaded a lot of packages
+                self._source_reader.cleanup()
 
-            return ret
+                return ret
