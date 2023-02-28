@@ -880,7 +880,7 @@ class ArchiveVersionMemory(Base):
 
     id = Column(Integer, primary_key=True)
 
-    pkgname = Column(String(200))  # Name of the source package
+    pkgname = Column(String(200))  # Name of the package, prefixed with "src:" if source package
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     repo = relationship('ArchiveRepository')

@@ -85,15 +85,22 @@ def pop_split(d, key, s):
     return split_strip(value, s)
 
 
-def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkgname: str, version: str):
+def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[SourcePackage, BinaryPackage]):
     """
-    Mark package as published. Currently, this only updates the version memory.
+    Mark package as published.
+
+    This updates the version memory and sets a publication date for the package..
 
     :param session: SQLAlchemy session
     :param rss: RepoSuite settings for this package
-    :param pkgname: Package name
-    :param version: Package version
+    :param pkg: Source or binary package.
     """
+
+    if isinstance(pkg, SourcePackage):
+        pkgname = 'src:' + pkg.name
+    else:
+        pkgname = pkg.name
+
     vmem = (
         session.query(ArchiveVersionMemory)
         .filter(ArchiveVersionMemory.repo_id == rss.repo_id, ArchiveVersionMemory.pkgname == pkgname)
@@ -103,14 +110,16 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkgname: str,
     if vmem:
         # safety check, so we don't downgrade a version number accidentally (e.g. in case we were
         # ignoring previous version sanity checks)
-        if version_compare(version, vmem.highest_version) > 0:
-            vmem.highest_version = version
+        if version_compare(pkg.version, vmem.highest_version) > 0:
+            vmem.highest_version = pkg.version
     else:
         vmem = ArchiveVersionMemory()
         vmem.repo = rss.repo
         vmem.pkgname = pkgname
-        vmem.highest_version = version
+        vmem.highest_version = pkg.version
         session.add(vmem)
+
+    pkg.time_published = datetime.utcnow()
 
 
 def verify_hashes(file: T.Union[ChangesFileEntry, ArchiveFile], local_fname: T.Union[os.PathLike, str]):
@@ -254,7 +263,7 @@ class PackageImporter:
             self._session.query(ArchiveVersionMemory.highest_version)
             .filter(
                 ArchiveVersionMemory.repo_id == self._rss.repo_id,
-                ArchiveVersionMemory.pkgname == pkgname,
+                ArchiveVersionMemory.pkgname == 'src:' + pkgname,
                 ArchiveVersionMemory.highest_version > version,
             )
             .one_or_none()
@@ -265,7 +274,7 @@ class PackageImporter:
             if not ignore_version_check:
                 raise ArchiveImportError(
                     'Unable to import package "{}": '
-                    'We have already seen higher version "{}" in this repository before.'.format(pkgname, result)
+                    'We have already seen higher version "{}" in this repository before.'.format(pkgname, result[0])
                 )
 
         if not component_name:
@@ -494,8 +503,7 @@ class PackageImporter:
                 )
             )
         else:
-            package_mark_published(self._session, self._rss, spkg.name, spkg.version)
-            spkg.time_published = datetime.utcnow()
+            package_mark_published(self._session, self._rss, spkg)
             self._rss.changes_pending = True
             log.info(
                 'Added source `{}/{}` to {}/{}.'.format(
@@ -754,8 +762,7 @@ class PackageImporter:
         self._session.add(af)
         self._session.add(bpkg)
 
-        package_mark_published(self._session, deb_rss, bpkg.name, bpkg.version)
-        bpkg.time_published = datetime.utcnow()
+        package_mark_published(self._session, deb_rss, bpkg)
         deb_rss.changes_pending = True
         log.info('Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, deb_rss.repo.name, deb_rss.suite.name))
         self._session.commit()
@@ -890,7 +897,7 @@ class UploadHandler:
             self._session.query(ArchiveVersionMemory.highest_version)
             .filter(
                 ArchiveVersionMemory.repo_id == rss.repo_id,
-                ArchiveVersionMemory.pkgname == changes.source_name,
+                ArchiveVersionMemory.pkgname == 'src:' + changes.source_name,
                 ArchiveVersionMemory.highest_version >= changes.changes['Version'],
             )
             .one_or_none()
