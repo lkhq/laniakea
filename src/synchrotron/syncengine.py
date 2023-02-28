@@ -137,13 +137,19 @@ class SyncEngine:
             )  # always append arch:all packages
         return make_newest_packages_dict(bpkgs)
 
-    def _get_source_repo_source_package_map(self, suite_name: str, component_name: str):
-        '''Get an associative array of the newest source packages present in a repository.'''
+    def _get_source_repo_source_packages(self, suite_name: str, component_name: str):
+        """Get a list of all source packages present in the source repository."""
 
-        log.debug('Retrieving source package map for source suite: %s/%s', suite_name, component_name)
+        log.debug('Retrieving source packages for source suite: %s/%s', suite_name, component_name)
         suite = ArchiveSuite(suite_name)
         component = ArchiveComponent(component_name)
-        spkgs = self._source_reader.source_packages(suite, component)
+        return self._source_reader.source_packages(suite, component)
+
+    def _get_source_repo_source_package_map(self, suite_name: str, component_name: str):
+        """Get an associative array of the newest source packages present in the source repository."""
+
+        spkgs = self._get_source_repo_source_packages(suite_name, component_name)
+        log.debug('Retrieving source package map for source suite: %s/%s', suite_name, component_name)
         return make_newest_packages_dict(spkgs)
 
     def _get_target_source_package_map(self, session, component_name: str, *, suite_name: T.Optional[str] = None):
@@ -202,7 +208,13 @@ class SyncEngine:
         if not suite_name:
             suite_name = self._target_suite_name
 
-        log.debug('Retrieving binary packages for destination suite: %s/%s/%s', suite_name, component_name, arch_name)
+        log.debug(
+            'Retrieving binary packages for destination suite: %s/%s/%s (%s)',
+            suite_name,
+            component_name,
+            arch_name,
+            'udeb' if deb_type == DebType.UDEB else 'deb',
+        )
         suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one()
         bpkg_filter = [
             BinaryPackage.deb_type == deb_type,
@@ -567,21 +579,31 @@ class SyncEngine:
         pkgip.keep_source_packages = True
 
         for component in rss.suite.components:
+            if component.name not in sync_source.components:
+                log.warning(
+                    'Will not sync packages from component "%s" to target %s: Component does not exist in source suite.',
+                    component.name,
+                    rss.suite.name,
+                )
+                continue
+
             dest_pkg_map = self._get_target_source_package_map(session, component.name)
 
             # The source package lists contains many different versions, some source package
             # versions are explicitly kept for GPL-compatibility.
             # Sometimes a binary package migrates into another suite, dragging a newer source-package
-            # that it was built against with itslf into the target suite.
+            # that it was built against with itself into the target suite.
             # These packages then have a source with a high version number, but might not have any
             # binaries due to them migrating later.
             # We need to care for that case when doing binary syncs (TODO: and maybe safeguard against it
             # when doing source-only syncs too?), That's why we don't filter out the newest packages in
             # binary-sync-mode.
             if sync_conf.sync_binaries:
-                src_pkg_range = self._source_reader.source_packages(ArchiveSuite(self._source_suite_name), component)
+                src_pkg_range = self._get_source_repo_source_packages(self._source_suite_name, component.name)
             else:
-                src_pkg_range = self._get_source_repo_source_package_map(self._source_suite_name, component).values()
+                src_pkg_range = self._get_source_repo_source_package_map(
+                    self._source_suite_name, component.name
+                ).values()
 
             for spkg in src_pkg_range:
                 # ignore blacklisted packages in automatic sync
@@ -652,6 +674,8 @@ class SyncEngine:
 
         # check which packages are present in the target, but not in the source suite
         for component in rss.suite.components:
+            if component.name not in sync_source.components:
+                continue
             src_pkg_map = self._get_source_repo_source_package_map(self._source_suite_name, component.name)
             for pkgname in src_pkg_map.keys():
                 target_pkg_index.pop(pkgname, None)
