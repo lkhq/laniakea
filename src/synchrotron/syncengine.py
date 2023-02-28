@@ -306,7 +306,7 @@ class SyncEngine:
         sync_conf: SynchrotronConfig,
         pkgip: PackageImporter,
         component: str,
-        spkgs: T.List[T.Union[SourcePackage, bool]],
+        spkgs: T.List[T.Tuple[SourcePackage, bool]],
         ignore_target_changes: bool = False,
     ) -> bool:
         '''Import binary packages for the given set of source packages into the archive.'''
