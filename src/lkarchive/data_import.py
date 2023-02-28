@@ -28,6 +28,7 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     session_scope,
 )
+from laniakea.utils import process_file_lock
 from laniakea.archive import repo_suite_settings_for, repo_suite_settings_for_debug
 from laniakea.logging import log
 from laniakea.archive.manage import (
@@ -171,95 +172,97 @@ def import_heidi_result(
             )
             sys.exit(4)
 
-        spkg_einfo, bpkg_einfo = retrieve_suite_package_maxver_baseinfo(session, rss)
+        # only import Heidi result file if we aren't in the middle of a publish run
+        with process_file_lock('publish_{}-{}'.format(rss.repo.name, rss.target_suite.name), wait=True):
+            spkg_einfo, bpkg_einfo = retrieve_suite_package_maxver_baseinfo(session, rss)
 
-        spkg_eset = {}
-        for info in spkg_einfo:
-            spkg_eset[info[0]] = info[1]
+            spkg_eset = {}
+            for info in spkg_einfo:
+                spkg_eset[info[0]] = info[1]
 
-        bpkg_eset = {}
-        for info in bpkg_einfo:
-            bpkg_eset[info[0] + '/' + info[2]] = (info[0], info[1], info[2])
+            bpkg_eset = {}
+            for info in bpkg_einfo:
+                bpkg_eset[info[0] + '/' + info[2]] = (info[0], info[1], info[2])
 
-        arch_ref = {}
-        for arch in rss.suite.architectures:
-            arch_ref[arch.name] = arch
+            arch_ref = {}
+            for arch in rss.suite.architectures:
+                arch_ref[arch.name] = arch
 
-        with open(heidi_fname, 'r', encoding='utf-8') as f:
-            while line := f.readline():
-                line = line.rstrip()
-                if not line:
-                    # this may be the end of the file or the file might be completely empty
-                    continue
-                pkgname, pkgversion, arch_name = line.split(' ', 3)
-
-                if arch_name == 'source':
-                    # handle source package migration
-                    e_version = spkg_eset.pop(pkgname, None)
-                    if not e_version or pkgversion != e_version:
-                        # package not present in target, or is present in a different version.
-                        # Let's look for this version in the current repository and copy it to the target
-                        spkg = (
-                            session.query(SourcePackage)
-                            .filter(
-                                SourcePackage.repo_id == rss.repo_id,
-                                SourcePackage.name == pkgname,
-                                SourcePackage.version == pkgversion,
-                            )
-                            .one()
-                        )
-                        copy_source_package(session, spkg, rss, include_binaries=False)
+            with open(heidi_fname, 'r', encoding='utf-8') as f:
+                while line := f.readline():
+                    line = line.rstrip()
+                    if not line:
+                        # this may be the end of the file or the file might be completely empty
                         continue
-                else:
-                    _, e_version, e_arch_name = bpkg_eset.pop(pkgname + '/' + arch_name, (None, None, None))
-                    if not e_version or e_version != pkgversion:
-                        arch = arch_ref[arch_name]
-                        bpkg = (
-                            session.query(BinaryPackage)
-                            .filter(
-                                BinaryPackage.repo_id == rss.repo_id,
-                                BinaryPackage.name == pkgname,
-                                BinaryPackage.version == pkgversion,
-                                BinaryPackage.architecture.has(id=arch.id),
+                    pkgname, pkgversion, arch_name = line.split(' ', 3)
+
+                    if arch_name == 'source':
+                        # handle source package migration
+                        e_version = spkg_eset.pop(pkgname, None)
+                        if not e_version or pkgversion != e_version:
+                            # package not present in target, or is present in a different version.
+                            # Let's look for this version in the current repository and copy it to the target
+                            spkg = (
+                                session.query(SourcePackage)
+                                .filter(
+                                    SourcePackage.repo_id == rss.repo_id,
+                                    SourcePackage.name == pkgname,
+                                    SourcePackage.version == pkgversion,
+                                )
+                                .one()
                             )
-                            .one()
+                            copy_source_package(session, spkg, rss, include_binaries=False)
+                            continue
+                    else:
+                        _, e_version, e_arch_name = bpkg_eset.pop(pkgname + '/' + arch_name, (None, None, None))
+                        if not e_version or e_version != pkgversion:
+                            arch = arch_ref[arch_name]
+                            bpkg = (
+                                session.query(BinaryPackage)
+                                .filter(
+                                    BinaryPackage.repo_id == rss.repo_id,
+                                    BinaryPackage.name == pkgname,
+                                    BinaryPackage.version == pkgversion,
+                                    BinaryPackage.architecture.has(id=arch.id),
+                                )
+                                .one()
+                            )
+                            copy_binary_package(session, bpkg, rss)
+                            # FIXME: We also need to move the debug package here, if one that corresponds to the binary package exists
+                            continue
+
+            if allow_delete:
+                for pkgname_rm, version_rm in spkg_eset.items():
+                    spkg = (
+                        session.query(SourcePackage)
+                        .filter(
+                            SourcePackage.repo_id == rss.repo_id,
+                            SourcePackage.name == pkgname_rm,
+                            SourcePackage.version == version_rm,
+                            SourcePackage.suites.any(id=rss.suite_id),
                         )
-                        copy_binary_package(session, bpkg, rss)
-                        # FIXME: We also need to move the debug package here, if one that corresponds to the binary package exists
+                        .one_or_none()
+                    )
+                    if not spkg:
                         continue
+                    package_mark_delete(session, rss, spkg)
 
-        if allow_delete:
-            for pkgname_rm, version_rm in spkg_eset.items():
-                spkg = (
-                    session.query(SourcePackage)
-                    .filter(
-                        SourcePackage.repo_id == rss.repo_id,
-                        SourcePackage.name == pkgname_rm,
-                        SourcePackage.version == version_rm,
-                        SourcePackage.suites.any(id=rss.suite_id),
+                for pkgname_rm, version_rm, arch_name_rm in bpkg_eset.values():
+                    arch_rm = arch_ref[arch_name_rm]
+                    bpkg = (
+                        session.query(BinaryPackage)
+                        .filter(
+                            BinaryPackage.repo_id == rss.repo_id,
+                            BinaryPackage.name == pkgname_rm,
+                            BinaryPackage.version == version_rm,
+                            BinaryPackage.suites.any(id=rss.suite_id),
+                            BinaryPackage.architecture.has(id=arch_rm.id),
+                        )
+                        .one_or_none()
                     )
-                    .one_or_none()
-                )
-                if not spkg:
-                    continue
-                package_mark_delete(session, rss, spkg)
-
-            for pkgname_rm, version_rm, arch_name_rm in bpkg_eset.values():
-                arch_rm = arch_ref[arch_name_rm]
-                bpkg = (
-                    session.query(BinaryPackage)
-                    .filter(
-                        BinaryPackage.repo_id == rss.repo_id,
-                        BinaryPackage.name == pkgname_rm,
-                        BinaryPackage.version == version_rm,
-                        BinaryPackage.suites.any(id=rss.suite_id),
-                        BinaryPackage.architecture.has(id=arch_rm.id),
-                    )
-                    .one_or_none()
-                )
-                if not bpkg:
-                    continue
-                package_mark_delete(session, rss, bpkg)
+                    if not bpkg:
+                        continue
+                    package_mark_delete(session, rss, bpkg)
 
 
 @click.command('export-list')
