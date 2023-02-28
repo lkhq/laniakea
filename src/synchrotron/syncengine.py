@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import re
-from typing import List
 
 from apt_pkg import version_compare
 from sqlalchemy import and_, func, exists
@@ -315,7 +314,7 @@ class SyncEngine:
         sync_conf: SynchrotronConfig,
         pkgip: PackageImporter,
         component: str,
-        spkgs: T.List[T.Tuple[SourcePackage, bool]],
+        spkgs: T.Sequence[T.Tuple[SourcePackage, bool]],
         ignore_target_changes: bool = False,
     ) -> bool:
         '''Import binary packages for the given set of source packages into the archive.'''
@@ -427,7 +426,7 @@ class SyncEngine:
 
         return True
 
-    def _sync_packages_internal(self, session, component_name: str, pkgnames: List[str], force: bool = False):
+    def _sync_packages_internal(self, session, component_name: str, pkgnames: list[str], force: bool = False):
         self._synced_source_pkgs = []
 
         sync_source = self._get_sync_source(session)
@@ -510,7 +509,7 @@ class SyncEngine:
         )
         return ret
 
-    def sync_packages(self, component_name: str, pkgnames: List[str], force: bool = False):
+    def sync_packages(self, component_name: str, pkgnames: list[str], force: bool = False):
         """Sync a select set of packages manually."""
 
         with process_file_lock('sync_{}'.format(self._repo_name)):
