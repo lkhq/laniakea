@@ -179,6 +179,14 @@ class PackageImporter:
         self._ensure_not_frozen()
 
     @property
+    def current_session(self):
+        return self._session
+
+    @property
+    def repo_suite_settings(self) -> ArchiveRepoSuiteSettings:
+        return self._rss
+
+    @property
     def keep_source_packages(self) -> bool:
         """True if source packages should be moved after import, otherwise they are kept in their original location."""
         return self._keep_source_packages

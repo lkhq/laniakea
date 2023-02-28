@@ -8,7 +8,7 @@ import re
 from typing import List
 
 from apt_pkg import version_compare
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, exists
 
 import laniakea.typing as T
 from laniakea import LkModule, LocalConfig
@@ -29,7 +29,7 @@ from laniakea.db import (
     config_get_distro_tag,
 )
 from laniakea.utils import process_file_lock
-from laniakea.archive import PackageImporter
+from laniakea.archive import PackageImporter, copy_source_package
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 from laniakea.reporeader import (
@@ -56,7 +56,7 @@ class SyncEngine:
         self._source_suite_name = source_suite_name
         self._source_os_name = source_os_name
         self._distro_tag = config_get_distro_tag()
-        self._synced_source_pkgs: list[SourcePackage] = []
+        self._synced_source_pkgs: T.List[T.Tuple[SourcePackage, bool]] = []  # tuples of (SourcePackage, isCopied)
 
         if not self._distro_tag:
             log.warning('No distribution tag is set! We may override any manual uploads.')
@@ -105,7 +105,7 @@ class SyncEngine:
     def _publish_synced_spkg_events(self, src_os, src_suite, dest_suite, forced=False):
         '''Submit events for the synced source packages to the message stream'''
 
-        for spkg in self._synced_source_pkgs:
+        for spkg, _ in self._synced_source_pkgs:
             data = {
                 'name': spkg.name,
                 'version': spkg.version,
@@ -278,8 +278,26 @@ class SyncEngine:
             )
             return False
 
-        pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW)
-        self._synced_source_pkgs.append(spkg)
+        # check if the package already exists in our current repository
+        rss = pkgip.repo_suite_settings
+        session = pkgip.current_session
+        ret = session.query(
+            exists().where(
+                SourcePackage.repo_id == rss.repo_id,
+                SourcePackage.name == spkg.name,
+                SourcePackage.version == spkg.version,
+            )
+        ).scalar()
+        if ret:
+            # the package already exists in this exact version, so we don't need to import it
+            # and just need to make it available in the new suite!
+            copy_source_package(session, spkg, rss, include_binaries=True)
+            self._synced_source_pkgs.append((spkg, True))
+        else:
+            # the package is new to this repository, just import it
+            pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW)
+            self._synced_source_pkgs.append((spkg, False))
+
         return True
 
     def _import_binaries_for_source(
@@ -288,7 +306,7 @@ class SyncEngine:
         sync_conf: SynchrotronConfig,
         pkgip: PackageImporter,
         component: str,
-        spkgs: List[SourcePackage],
+        spkgs: T.List[T.Union[SourcePackage, bool]],
         ignore_target_changes: bool = False,
     ) -> bool:
         '''Import binary packages for the given set of source packages into the archive.'''
@@ -314,7 +332,12 @@ class SyncEngine:
                 session, self._target_suite_name, component, aname
             )
 
-        for spkg in spkgs:
+        for spkg, is_copied in spkgs:
+            # if a package has been copied, we do not need to attempt
+            # to sync any binary packages
+            if is_copied:
+                continue
+
             bin_files_synced = False
             existing_packages = False
             for arch_name in target_archs:

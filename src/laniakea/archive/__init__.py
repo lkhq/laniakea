@@ -3,7 +3,7 @@ from laniakea.archive.utils import (
     find_latest_source_package,
     repo_suite_settings_for_debug,
 )
-from laniakea.archive.manage import remove_source_package
+from laniakea.archive.manage import copy_source_package, remove_source_package
 from laniakea.archive.pkgimport import (
     UploadHandler,
     PackageImporter,
@@ -16,6 +16,7 @@ __all__ = [
     'PackageImporter',
     'UploadHandler',
     'ArchiveImportError',
+    'copy_source_package',
     'remove_source_package',
     'repo_suite_settings_for',
     'repo_suite_settings_for_debug',
