@@ -314,7 +314,7 @@ class SyncEngine:
         sync_conf: SynchrotronConfig,
         pkgip: PackageImporter,
         component: str,
-        spkgs: T.Sequence[T.Tuple[SourcePackage, bool]],
+        spkgs_info: T.Sequence[T.Tuple[SourcePackage, bool]],
         ignore_target_changes: bool = False,
     ) -> bool:
         '''Import binary packages for the given set of source packages into the archive.'''
@@ -340,7 +340,7 @@ class SyncEngine:
                 session, self._target_suite_name, component, aname
             )
 
-        for spkg, is_copied in spkgs:
+        for spkg, is_copied in spkgs_info:
             # if a package has been copied, we do not need to attempt
             # to sync any binary packages
             if is_copied:
@@ -533,7 +533,9 @@ class SyncEngine:
         """Synchronize all packages between source and destination."""
 
         self._synced_source_pkgs = []
-        active_src_pkgs = []  # source packages which should have their binary packages updated
+        active_src_pkgs: T.List[
+            T.Tuple[SourcePackage, bool]
+        ] = []  # source packages which should have their binary packages updated
         known_issues = []
 
         sync_source = self._get_sync_source(session)
@@ -618,20 +620,20 @@ class SyncEngine:
                         continue
 
                 # sync source package
-                # the source package must always be known to dak first
+                # the source package must always be known first
                 ret = self._import_source_package(pkgip, spkg, component.name)
                 if not ret:
                     return False
 
-                # a new source package is always active and needs it's binary packages synced, in
+                # a new source package is always active and needs its binary packages synced, in
                 # case we do binary syncs.
-                active_src_pkgs.append(spkg)
+                active_src_pkgs.append((spkg, True))
 
             # all packages in the target distribution are considered active, as long as they don't
             # have modifications.
             for spkg in dest_pkg_map.values():
                 if self._distro_tag in version_revision(spkg.version):
-                    active_src_pkgs.append(spkg)
+                    active_src_pkgs.append((spkg, True))
 
             # import binaries as well. We test for binary updates for all available active source packages,
             # as binNMUs might have happened in the source distribution.
