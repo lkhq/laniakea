@@ -308,7 +308,7 @@ def copy_source_package(
     """
 
     if spkg.repo_id != dest_rss.repo_id:
-        raise ArchiveError('Can not directory copy a package between repositories.')
+        raise ArchiveError('Directly copying a package between repositories is not allowed.')
 
     dest_suite = dest_rss.suite
     if dest_suite not in spkg.suites:

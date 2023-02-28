@@ -173,7 +173,7 @@ def import_heidi_result(
             sys.exit(4)
 
         # only import Heidi result file if we aren't in the middle of a publish run
-        with process_file_lock('publish_{}-{}'.format(rss.repo.name, rss.target_suite.name), wait=True):
+        with process_file_lock('publish_{}-{}'.format(rss.repo.name, rss.suite.name), wait=True):
             spkg_einfo, bpkg_einfo = retrieve_suite_package_maxver_baseinfo(session, rss)
 
             spkg_eset = {}
