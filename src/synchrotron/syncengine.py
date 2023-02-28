@@ -122,7 +122,7 @@ class SyncEngine:
     ):
         '''Get an associative array of the newest binary packages present in a repository.'''
 
-        log.debug('Retrieving binary package map for source suite %s/%s/%s', suite_name, component_name, arch_name)
+        log.debug('Retrieving binary package map for source suite: %s/%s/%s', suite_name, component_name, arch_name)
         suite = ArchiveSuite(suite_name)
         component = ArchiveComponent(component_name)
         arch = ArchiveArchitecture(arch_name)
@@ -141,7 +141,7 @@ class SyncEngine:
     def _get_source_repo_source_package_map(self, suite_name: str, component_name: str):
         '''Get an associative array of the newest source packages present in a repository.'''
 
-        log.debug('Retrieving source package map for source suite %s/%s', suite_name, component_name)
+        log.debug('Retrieving source package map for source suite: %s/%s', suite_name, component_name)
         suite = ArchiveSuite(suite_name)
         component = ArchiveComponent(component_name)
         spkgs = self._source_reader.source_packages(suite, component)
@@ -153,7 +153,7 @@ class SyncEngine:
         if not suite_name:
             suite_name = self._target_suite_name
 
-        log.debug('Retrieving source package map for destination suite %s', suite_name)
+        log.debug('Retrieving source package map for destination suite: %s', suite_name)
         target_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one()
         spkg_filters = [
             SourcePackage.repo.has(name=self._repo_name),
@@ -203,7 +203,7 @@ class SyncEngine:
         if not suite_name:
             suite_name = self._target_suite_name
 
-        log.debug('Retrieving binary packages for destination suite %s/%s/%s', suite_name, component_name, arch_name)
+        log.debug('Retrieving binary packages for destination suite: %s/%s/%s', suite_name, component_name, arch_name)
         suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one()
         bpkg_filter = [
             BinaryPackage.deb_type == deb_type,
@@ -241,7 +241,9 @@ class SyncEngine:
     def _get_target_binary_package_map(
         self, session, suite_name: str, component_name: str, arch_name: str = None, with_installer: bool = True
     ):
-        log.debug('Retrieving binary package map for destination suite %s/%s/%s', suite_name, component_name, arch_name)
+        log.debug(
+            'Retrieving binary package map for destination suite: %s/%s/%s', suite_name, component_name, arch_name
+        )
         bpkgs = self._get_target_binary_packages(session, suite_name, component_name, arch_name, deb_type=DebType.DEB)
         if with_installer:
             bpkgs.extend(
