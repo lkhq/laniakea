@@ -256,13 +256,13 @@ class SyncEngine:
 
         return bpkg_map
 
-    def _import_source_package(self, pkgip: PackageImporter, spkg: SourcePackage, component: str) -> bool:
+    def _import_source_package(self, pkgip: PackageImporter, origin_pkg: SourcePackage, component: str) -> bool:
         """
         Import a source package from the source repository into the
         target repo.
         """
         dscfile = None
-        for f in spkg.files:
+        for f in origin_pkg.files:
             # the source repository might be on a remote location, so we need to
             # request each file to be there.
             # (dak will fetch the files referenced in the .dsc file from the same directory)
@@ -273,7 +273,7 @@ class SyncEngine:
         if not dscfile:
             log.error(
                 'Critical consistency error: Source package {}/{} in repository {} has no .dsc file.'.format(
-                    spkg.name, spkg.version, self._source_reader.base_dir
+                    origin_pkg.name, origin_pkg.version, self._source_reader.base_dir
                 )
             )
             return False
@@ -284,19 +284,28 @@ class SyncEngine:
         ret = session.query(
             exists().where(
                 SourcePackage.repo_id == rss.repo_id,
-                SourcePackage.name == spkg.name,
-                SourcePackage.version == spkg.version,
+                SourcePackage.name == origin_pkg.name,
+                SourcePackage.version == origin_pkg.version,
             )
         ).scalar()
         if ret:
             # the package already exists in this exact version, so we don't need to import it
             # and just need to make it available in the new suite!
+            spkg = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.name == origin_pkg.name,
+                    SourcePackage.version == origin_pkg.version,
+                )
+                .one()
+            )
             copy_source_package(session, spkg, rss, include_binaries=True)
-            self._synced_source_pkgs.append((spkg, True))
+            self._synced_source_pkgs.append((origin_pkg, True))
         else:
             # the package is new to this repository, just import it
             pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW)
-            self._synced_source_pkgs.append((spkg, False))
+            self._synced_source_pkgs.append((origin_pkg, False))
 
         return True
 
