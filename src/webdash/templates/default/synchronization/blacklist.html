@@ -6,24 +6,37 @@
 {% block breadcrumbs %}
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item">
+        <li>
             <a href="{{ url_for('overview.index') }}">Home</a>
         </li>
-        <li class="breadcrumb-item" aria-current="page">
+        <li>
             <a href="{{ url_for('synchronization.index') }}">Sync</a>
         </li>
-        <li class="breadcrumb-item active" aria-current="page">
-            Blacklist
+        <li>
+          <p class="px-2">{{sconf.repo.name}}</p>
+        </li>
+        <li>
+          <p class="px-2">{{sconf.destination_suite.name}} (from {{sconf.source.os_name}} {{sconf.source.suite_name}})</p>
+        </li>
+        <li class="is-active">
+          <a href="#" aria-current="page">Denylist</a>
         </li>
     </ol>
 </nav>
 {% endblock %}
 
 {% block body_header %}
-<h1 class="title">Packages Blacklisted From Synchronization</h1>
+<h1 class="title">Packages Prevented From Synchronization</h1>
 {% endblock %}
 
 {% block body %}
+{% if not entries %}
+<article class="message is-success">
+    <div class="message-header">
+        <p><span class="fa fa-check" aria-hidden="true"></span> Any package is permitted to enter the destination suite.</p>
+    </div>
+</article>
+{% else %}
 
 <table class="table is-striped is-hoverable">
     <thead>
@@ -44,4 +57,5 @@
     </tbody>
 </table>
 
+{% endif %}
 {% endblock %}

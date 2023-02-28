@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from flask import Blueprint, render_template
+from flask import Blueprint, abort, render_template
 
 from laniakea.db import (
     ArchiveSuite,
@@ -28,22 +28,28 @@ def index():
         return render_template('synchronization/index.html', sync_configs=sync_configs)
 
 
-@synchronization.route('/<suite_name>')
-def issues_table(suite_name):
+@synchronization.route('<int:config_id>/issues')
+def issues_table(config_id: int):
     with session_scope() as session:
-        issues = session.query(SynchrotronIssue).filter(SynchrotronIssue.target_suite == suite_name).all()
+        sync_config = session.query(SynchrotronConfig).filter(SynchrotronConfig.id == config_id).one_or_none()
+        if not sync_config:
+            abort(404)
+        issues = session.query(SynchrotronIssue).filter(SynchrotronIssue.config_id == sync_config.id).all()
 
         return render_template(
             'synchronization/sync_issue_table.html',
             issues=issues,
             SyncIssueKind=SynchrotronIssueKind,
-            target_suite_name=suite_name,
+            sconf=sync_config,
         )
 
 
-@synchronization.route('/blacklist')
-def blacklist():
+@synchronization.route('<int:config_id>/blacklist/')
+def blacklist(config_id: int):
     with session_scope() as session:
-        entries = session.query(SyncBlacklistEntry).all()
+        sync_config = session.query(SynchrotronConfig).filter(SynchrotronConfig.id == config_id).one_or_none()
+        if not sync_config:
+            abort(404)
+        entries = session.query(SyncBlacklistEntry).filter(SyncBlacklistEntry.config_id == sync_config.id).all()
 
-        return render_template('synchronization/blacklist.html', entries=entries)
+        return render_template('synchronization/blacklist.html', entries=entries, sconf=sync_config)

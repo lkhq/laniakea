@@ -6,11 +6,11 @@
 {% block breadcrumbs %}
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item">
+        <li>
             <a href="{{ url_for('overview.index') }}">Home</a>
         </li>
-        <li class="breadcrumb-item active" aria-current="page">
-            Sync
+        <li class="is-active">
+            <a href="#" aria-current="page">Sync</a>
         </li>
     </ol>
 </nav>
@@ -29,30 +29,30 @@
 
     <div class="card">
     <header class="card-header">
-        <p class="card-header-title">
-        <i class="fas fa-compress-arrows-alt"></i>&nbsp;{{sconf.destination_suite.name}}
-        </p>
+      <p class="card-header-title">
+        <i class="fas fa-compress-arrows-alt"></i>&nbsp;{{sconf.destination_suite.name}}&nbsp;&nbsp;<span class="has-text-weight-light">from&nbsp;<i class="fas fa-expand-arrows-alt"></i>&nbsp;{{sconf.source.os_name}} {{sconf.source.suite_name}}</span>
+      </p>
+      <div class="p-3">
+       <span class="tag is-rounded is-light"><i class="fa-solid fa-box-archive"></i>&nbsp;{{sconf.repo.name}}</span>
+      </div>
     </header>
 
     <div class="card-content py-2">
         <div class="content">
-            <p class="mb-1"><i class="fas fa-expand-arrows-alt"></i>&nbsp;&nbsp;<b>{{sconf.source.os_name}} {{sconf.source.suite_name}}</b></p>
-            <ul class="mt-0">
-                <li>Synchronization allowed:&nbsp;&nbsp;{% if sconf.sync_enabled %}<font class="fas fa-check" aria-hidden="true" color="green"></font>{% else %}<font class="fas fa-times" aria-hidden="true" color="orange"></font>{% endif %}</li>
-                <li>Automatic sync enabled:&nbsp;&nbsp;{% if sconf.sync_auto_enabled %}<font class="fas fa-check" aria-hidden="true" color="green"></font>{% else %}<font class="fas fa-times" aria-hidden="true" color="orange"></font>{% endif %}</li>
-                <li>Pull binaries from source:&nbsp;&nbsp;{% if sconf.sync_binaries %}<font class="fas fa-check" aria-hidden="true" color="green"></font>{% else %}<font class="fas fa-times" aria-hidden="true" color="orange"></font>{% endif %}</li>
-                <li>Attempt auto cruft removal:&nbsp;&nbsp;{% if sconf.auto_cruft_remove %}<font class="fas fa-check" aria-hidden="true" color="green"></font>{% else %}<font class="fas fa-times" aria-hidden="true" color="orange"></font>{% endif %}</li>
-            </ul>
+            <p class="mb-1"></p>
+            {% if sconf.sync_enabled %}<font class="fas fa-check" aria-hidden="true" color="green"></font>{% else %}<font class="fas fa-times" aria-hidden="true" color="orange"></font>{% endif %} Synchronization allowed<br/>
+            {% if sconf.sync_auto_enabled %}<font class="fas fa-check" aria-hidden="true" color="green"></font>{% else %}<font class="fas fa-times" aria-hidden="true" color="orange"></font>{% endif %} Automatic synchronization<br/>
+            {% if sconf.sync_binaries %}<font class="fas fa-check" aria-hidden="true" color="green"></font>{% else %}<font class="fas fa-times" aria-hidden="true" color="orange"></font>{% endif %} Pull binaries from origin<br/>
+            {% if sconf.auto_cruft_remove %}<font class="fas fa-check" aria-hidden="true" color="green"></font>{% else %}<font class="fas fa-times" aria-hidden="true" color="orange"></font>{% endif %} Attempt auto cruft removal
         </div>
     </div>
     <footer class="card-footer">
-        <a href="{{ url_for('synchronization.issues_table', suite_name=sconf.destination_suite.name) }}" class="card-footer-item">Suite Sync Issue Table</a>
+        <a href="{{ url_for('synchronization.issues_table', config_id=sconf.id) }}" class="card-footer-item">Suite Sync Issue Table</a>
     </footer>
     </div>
 
     </div>
 
     {% endfor %}
-
 </div>
 {% endblock %}

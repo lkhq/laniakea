@@ -1,19 +1,25 @@
 {% extends 'layouts/base.html' %}
 
 {% set active_menu = 'synchronization' %}
-{% set page_title = 'Synchronization Issue Overview / ' + target_suite_name %}
+{% set page_title = 'Synchronization Issue Overview / ' + sconf.destination_suite.name + ' (from ' + sconf.source.os_name + ' ' + sconf.source.suite_name %}
 
 {% block breadcrumbs %}
 <nav class="pt-3" aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="{{ url_for('overview.index') }}">Home</a>
+        <li>
+          <a href="{{ url_for('overview.index') }}">Home</a>
         </li>
-        <li class="breadcrumb-item">
-            <a href="{{ url_for('synchronization.index') }}">Sync</a>
+        <li>
+          <a href="{{ url_for('synchronization.index') }}">Sync</a>
         </li>
-        <li class="breadcrumb-item active" aria-current="page">
-            {{target_suite_name}}
+        <li>
+          <p class="px-2">{{sconf.repo.name}}</p>
+        </li>
+        <li>
+          <p class="px-2">{{sconf.destination_suite.name}} (from {{sconf.source.os_name}} {{sconf.source.suite_name}})</p>
+        </li>
+        <li class="is-active">
+          <a href="#" aria-current="page">Issues</a>
         </li>
     </ol>
 </nav>
@@ -21,7 +27,7 @@
 
 {% block body_header %}
 <h1 class="title">Package Synchronization Issue Overview</h1>
-<h2 class="subtitle is-4">for target {{target_suite_name}}</h2>
+<h2 class="subtitle is-4">for target <i>{{sconf.destination_suite.name}}</i> from source <i>{{sconf.source.os_name}} {{sconf.source.suite_name}}</i></h2>
 {% endblock %}
 
 {% block body %}
@@ -50,13 +56,21 @@
         </div>
         <div class="dropdown-menu" id="settings-menu" role="menu">
             <div class="dropdown-content">
-                <a class="dropdown-item" href="{{ url_for('synchronization.blacklist') }}">Ignored packages</a>
+                <a class="dropdown-item" href="{{ url_for('synchronization.blacklist', config_id=sconf.id) }}">Ignored packages</a>
             </div>
         </div>
     </div>
 
   </div>
 </div>
+
+{% if not issues %}
+<article class="message is-success">
+    <div class="message-header">
+        <p><span class="fa fa-check" aria-hidden="true"></span> No issues found!</p>
+    </div>
+</article>
+{% else %}
 
 <table class="table is-striped is-hoverable is-narrow">
     <thead>
@@ -92,6 +106,8 @@
     {% endfor %}
     </tbody>
 </table>
+
+{% endif %}
 
 </div>
 </div>
