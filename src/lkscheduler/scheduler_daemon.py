@@ -165,6 +165,26 @@ def task_debcheck(registry: JobsRegistry):
             scheduler_log.error('Debcheck binaries check: Error: %s', str(proc.stdout, 'utf-8'))
 
 
+def task_synchrotron_autosync(registry: JobsRegistry):
+    """Run automatic package synchronization."""
+    import subprocess
+
+    with registry.lock_publish_job():
+        conf = SchedulerConfig()
+
+        # run autosync
+        proc = subprocess.run(
+            [conf.synchtrotron_exe, 'autosync'],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            scheduler_log.error('Synchrotron Autosync: Error: %s', str(proc.stdout, 'utf-8'))
+
+
 def task_configure_rotate_logfile():
     """Configure the logger and set the right persistent log file."""
     lconf = LocalConfig()
@@ -218,13 +238,32 @@ class SchedulerDaemon:
         self._configure_job(task_debcheck, 'debcheck', 'Check package dependencies', jitter=30)
 
         with session_scope() as session:
-            from laniakea.db import SpearsMigrationTask
+            from laniakea.db import SynchrotronConfig, SpearsMigrationTask
 
+            # Spears
             mtask_ids = session.query(SpearsMigrationTask.id).all()
             if mtask_ids:
                 self._configure_job(task_spears_migrate, 'spears-migrate', 'Migrate packages between suites', jitter=20)
             else:
                 log.info('Not creating Spears migration job: No migration tasks configured.')
+
+            # Synchrotron
+            sconf_ids = (
+                session.query(SynchrotronConfig.id)
+                .filter(
+                    SynchrotronConfig.sync_enabled == True, SynchrotronConfig.sync_auto_enabled == True  # noqa: E712
+                )
+                .all()
+            )
+            if sconf_ids:
+                self._configure_job(
+                    task_synchrotron_autosync,
+                    'synchrotron-autosync',
+                    'Automatically synchronize packages with an origin OS',
+                    jitter=60,
+                )
+            else:
+                log.info('Not creating Synchrotron autosync job: No autosync tasks configured.')
 
         # internal maintenance tasks
         self._scheduler.add_job(

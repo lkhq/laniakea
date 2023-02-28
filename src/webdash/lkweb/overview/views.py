@@ -100,6 +100,9 @@ def index():
             job = jobstore.lookup_job('debcheck')
             debcheck_nextrun_time = humanized_job_timediff(job)
 
+            job = jobstore.lookup_job('synchrotron-autosync')
+            synchrotron_nextrun_time = humanized_job_timediff(job)
+
         return render_template(
             'index.html',
             repo_count=repo_count,

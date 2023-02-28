@@ -47,27 +47,36 @@ class SchedulerConfig:
             # check the archive for dependency issues every 3h
             self._intervals_min['debcheck'] = cintervals.get('debcheck', 3 * 60)
 
+            # check the archive for dependency issues every 12h
+            self._intervals_min['synchrotron-autosync'] = cintervals.get('synchrotron-autosync', 12 * 60)
+
             # find executables
             my_dir = os.path.dirname(os.path.realpath(__file__))
             self._lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'lkarchive', 'lk-archive.py'))
             if not os.path.isfile(self._lk_archive_exe):
                 self._lk_archive_exe = shutil.which('lk-archive')
             if not self._lk_archive_exe:
-                raise ValueError('Unable to find `lk-archive` binary. Check your Laniakea installation!')
+                raise ValueError('Unable to find the `lk-archive` binary. Check your Laniakea installation!')
 
             self._rubicon_exe = os.path.normpath(os.path.join(my_dir, '..', 'rubicon', 'rubicon'))
             if not os.path.isfile(self._rubicon_exe):
                 self._rubicon_exe = shutil.which('rubicon')
             if not self._rubicon_exe:
-                raise ValueError('Unable to find `rubicon` binary. Check your Laniakea installation!')
+                raise ValueError('Unable to find the `rubicon` binary. Check your Laniakea installation!')
 
             self._spears_exe = os.path.normpath(os.path.join(my_dir, '..', 'spears', 'spears'))
             if not self._spears_exe:
-                raise ValueError('Unable to find `spears` binary. Check your Laniakea installation!')
+                raise ValueError('Unable to find the `spears` binary. Check your Laniakea installation!')
 
             self._debcheck_exe = os.path.normpath(os.path.join(my_dir, '..', 'debcheck', 'debcheck'))
             if not self._debcheck_exe:
-                raise ValueError('Unable to find `debcheck` binary. Check your Laniakea installation!')
+                raise ValueError('Unable to find the `debcheck` binary. Check your Laniakea installation!')
+
+            self._synchrotron_exe = os.path.normpath(os.path.join(my_dir, '..', 'synchrotron', 'synchrotron'))
+            if not os.path.isfile(self._synchrotron_exe):
+                self._synchrotron_exe = shutil.which('synchrotron')
+            if not self._synchrotron_exe:
+                raise ValueError('Unable to find the `synchrotron` binary. Check your Laniakea installation!')
 
         @property
         def lk_archive_exe(self) -> T.PathUnion:
@@ -88,6 +97,11 @@ class SchedulerConfig:
         def debcheck_exe(self) -> T.PathUnion:
             """Executable path for debcheck"""
             return self._debcheck_exe
+
+        @property
+        def synchrotron_exe(self) -> T.PathUnion:
+            """Executable path for synchrotron"""
+            return self._synchrotron_exe
 
         @property
         def intervals_min(self) -> T.Dict[str, T.Optional[int]]:
