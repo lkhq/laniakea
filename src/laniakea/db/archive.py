@@ -854,6 +854,22 @@ class SourcePackage(Base):
         return '{}:source/{}/{}'.format(repo_name, self.name, self.version)
 
 
+# Index to speed up source package searches
+idx_pkgs_source_repo_component = Index(
+    'idx_pkgs_source_repo_component',
+    SourcePackage.repo_id,
+    SourcePackage.component_id,
+    SourcePackage.time_deleted,
+)
+
+idx_pkgs_source_repo_name_version = Index(
+    'idx_pkgs_source_repo_name_version',
+    SourcePackage.repo_id,
+    SourcePackage.name,
+    SourcePackage.version,
+)
+
+
 class ArchiveVersionMemory(Base):
     """
     Remember the highest version number for a source package that a repository has seen.
@@ -1018,7 +1034,20 @@ class BinaryPackage(Base):
 
 # Index to speed up data exports, where packages belonging to a certain repository/arch
 # combination are requested.
-pkgs_binary_repo_arch_index = Index('idx_pkgs_binary_repo_arch', BinaryPackage.repo_id, BinaryPackage.architecture_id)
+idx_pkgs_binary_repo_arch = Index(
+    'idx_pkgs_binary_repo_component_arch',
+    BinaryPackage.repo_id,
+    BinaryPackage.component_id,
+    BinaryPackage.architecture_id,
+    BinaryPackage.time_deleted,
+)
+
+idx_pkgs_binary_repo_name_version = Index(
+    'idx_pkgs_binary_repo_name_version',
+    BinaryPackage.repo_id,
+    BinaryPackage.name,
+    BinaryPackage.version,
+)
 
 
 class SoftwareComponent(Base):
