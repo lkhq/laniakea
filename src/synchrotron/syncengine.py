@@ -630,13 +630,27 @@ class SyncEngine:
                         )
 
                         # add information that this package needs to be merged to the issue list
-                        issue = SynchrotronIssue()
+                        issue = (
+                            session.query(SynchrotronIssue)
+                            .filter(
+                                SynchrotronIssue.config_id == sync_conf.id, SynchrotronIssue.package_name == dpkg.name
+                            )
+                            .one_or_none()
+                        )
+                        issue_new = False
+                        if not issue:
+                            issue = SynchrotronIssue()
+                            issue.config = sync_conf
+                            issue.package_name = spkg.name
+                            issue_new = True
+                            session.add(issue)
                         issue.kind = SynchrotronIssueKind.MERGE_REQUIRED
-                        issue.package_name = spkg.name
                         issue.source_version = spkg.version
                         issue.target_version = dpkg.version
                         issue.source_suite = self._source_suite_name
                         issue.target_suite = self._target_suite_name
+                        if issue_new:
+                            self._emit_new_issue_event(sync_conf, issue)
 
                         known_issues.append(issue)
                         continue
