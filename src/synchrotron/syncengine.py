@@ -311,7 +311,7 @@ class SyncEngine:
                 )
                 .one()
             )
-            copy_source_package(session, spkg, rss, include_binaries=True)
+            copy_source_package(session, spkg, rss, include_binaries=True, allow_missing_debug=True)
             self._synced_source_pkgs.append((origin_pkg, True))
         else:
             # the package is new to this repository, just import it

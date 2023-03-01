@@ -294,7 +294,12 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
 
 
 def copy_source_package(
-    session, spkg: SourcePackage, dest_rss: ArchiveRepoSuiteSettings, *, include_binaries: bool = True
+    session,
+    spkg: SourcePackage,
+    dest_rss: ArchiveRepoSuiteSettings,
+    *,
+    include_binaries: bool = True,
+    allow_missing_debug: bool = False,
 ):
     """Copies a source package (and linked binaries) into a destination suite.
     It is only allowed to move a package within a repository this way - moving a package between
@@ -304,6 +309,7 @@ def copy_source_package(
     :param spkg: Source package to copy
     :param dest_rss: Destination repository/suite
     :param include_binaries: True if binaries built by this source package should be copied with it.
+    :param allow_missing_debug: True if it is okay if the destination has no corresponding debug suite.
     :raise:
     """
 
@@ -324,6 +330,9 @@ def copy_source_package(
         )
     if include_binaries:
         for bpkg in spkg.binaries:
+            # ignore debug packages if the destination has no debug suite and allow_missing_debug is set
+            if bpkg.repo.is_debug and not dest_suite.debug_suite and allow_missing_debug:
+                continue
             copy_binary_package(session, bpkg, dest_rss)
 
 

@@ -97,6 +97,7 @@ def check_verbose(options):
 
 
 def run(mainfile, args):
+    from laniakea.logging import configure_pkg_archive_logger
     from laniakea.utils.misc import ensure_laniakea_master_user
 
     global __mainfile
@@ -105,6 +106,9 @@ def run(mainfile, args):
     if len(args) == 0:
         print('Need a subcommand to proceed!')
         sys.exit(1)
+
+    # configure the archive action file logging
+    configure_pkg_archive_logger()
 
     # configure multiprocessing
     mp.set_start_method('forkserver', force=True)
