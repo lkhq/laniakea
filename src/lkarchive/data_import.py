@@ -477,7 +477,9 @@ def _import_repo_into_suite(
                     bpkg_dst.suites.append(rss_dest_real.suite)
                 log.info('Processed binary: %s/%s on %s', bpkg_dst.name, bpkg_dst.version, arch.name)
             else:
-                pi.import_binary(fname, target_component_name, override_section=bpkg_src.override.section)
+                pi.import_binary(
+                    fname, target_component_name, override_section=bpkg_src.override.section, ignore_version_check=True
+                )
 
         # commit after each architecture was processed
         session.commit()

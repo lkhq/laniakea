@@ -876,14 +876,15 @@ class ArchiveVersionMemory(Base):
     """
 
     __tablename__ = 'archive_pkg_version_memory'
-    __table_args__ = (UniqueConstraint('pkgname', 'repo_id', name='_pkgname_repo_uc'),)
+    __table_args__ = (UniqueConstraint('repo_suite_id', 'pkg_type', 'pkg_name', name='_rss_pkg_uc'),)
 
     id = Column(Integer, primary_key=True)
 
-    pkgname = Column(String(200))  # Name of the package, prefixed with "src:" if source package
+    repo_suite_id = Column(Integer, ForeignKey('archive_repo_suite_settings.id'), nullable=False)
+    repo_suite = relationship('ArchiveRepoSuiteSettings')
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
-    repo = relationship('ArchiveRepository')
+    pkg_type = Column(Enum(PackageType), default=PackageType.BINARY)
+    pkg_name = Column(String(200))  # Name of the package
 
     highest_version = Column(DebVersion())  # Highest version of the source package that we have seen so far
 

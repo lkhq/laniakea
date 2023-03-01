@@ -24,6 +24,7 @@ from laniakea.db import (
     NewPolicy,
     ArchiveFile,
     PackageInfo,
+    PackageType,
     BinaryPackage,
     SourcePackage,
     ArchiveSection,
@@ -97,13 +98,17 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[
     """
 
     if isinstance(pkg, SourcePackage):
-        pkgname = 'src:' + pkg.name
+        pkg_type = PackageType.SOURCE
     else:
-        pkgname = pkg.name
+        pkg_type = PackageType.BINARY
 
     vmem = (
         session.query(ArchiveVersionMemory)
-        .filter(ArchiveVersionMemory.repo_id == rss.repo_id, ArchiveVersionMemory.pkgname == pkgname)
+        .filter(
+            ArchiveVersionMemory.repo_suite_id == rss.id,
+            ArchiveVersionMemory.pkg_type == pkg_type,
+            ArchiveVersionMemory.pkg_name == pkg.name,
+        )
         .one_or_none()
     )
 
@@ -114,8 +119,9 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[
             vmem.highest_version = pkg.version
     else:
         vmem = ArchiveVersionMemory()
-        vmem.repo = rss.repo
-        vmem.pkgname = pkgname
+        vmem.repo_suite = rss
+        vmem.pkg_type = pkg_type
+        vmem.pkg_name = pkg.name
         vmem.highest_version = pkg.version
         session.add(vmem)
 
@@ -270,8 +276,9 @@ class PackageImporter:
         result = (
             self._session.query(ArchiveVersionMemory.highest_version)
             .filter(
-                ArchiveVersionMemory.repo_id == self._rss.repo_id,
-                ArchiveVersionMemory.pkgname == 'src:' + pkgname,
+                ArchiveVersionMemory.repo_suite_id == self._rss.id,
+                ArchiveVersionMemory.pkg_type == PackageType.SOURCE,
+                ArchiveVersionMemory.pkg_name == pkgname,
                 ArchiveVersionMemory.highest_version > version,
             )
             .one_or_none()
@@ -527,6 +534,7 @@ class PackageImporter:
         component_name: T.Optional[str] = None,
         *,
         ignore_existing: bool = False,
+        ignore_version_check: bool = False,
         override_section: T.Optional[str] = None,
     ) -> T.Optional[BinaryPackage]:
         """Import a binary package into the given suite or its NEW queue.
@@ -599,6 +607,26 @@ class PackageImporter:
             raise ArchivePackageExistsError(
                 'Can not import binary package {}/{}/{}: Already exists.'.format(pkgname, version, pkgarch)
             )
+
+        # ensure we are not downgrading binary package versions
+        high_ver_res = (
+            self._session.query(ArchiveVersionMemory.highest_version)
+            .filter(
+                ArchiveVersionMemory.repo_suite_id == self._rss.id,
+                ArchiveVersionMemory.pkg_type == PackageType.BINARY,
+                ArchiveVersionMemory.pkg_name == pkgname,
+                ArchiveVersionMemory.highest_version > version,
+            )
+            .one_or_none()
+        )
+        if high_ver_res:
+            if not ignore_version_check:
+                raise ArchiveImportError(
+                    'Unable to import binary package "{}": '
+                    'We have already seen higher version "{}" in this repository before.'.format(
+                        pkgname, high_ver_res[0]
+                    )
+                )
 
         bpkg = BinaryPackage(pkgname, version, deb_rss.repo)
 
@@ -904,8 +932,9 @@ class UploadHandler:
         result = (
             self._session.query(ArchiveVersionMemory.highest_version)
             .filter(
-                ArchiveVersionMemory.repo_id == rss.repo_id,
-                ArchiveVersionMemory.pkgname == 'src:' + changes.source_name,
+                ArchiveVersionMemory.repo_suite_id == rss.id,
+                ArchiveVersionMemory.pkg_type == PackageType.SOURCE,
+                ArchiveVersionMemory.pkg_name == changes.source_name,
                 ArchiveVersionMemory.highest_version >= changes.changes['Version'],
             )
             .one_or_none()
