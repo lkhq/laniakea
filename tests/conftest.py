@@ -505,18 +505,18 @@ def import_sample_packages(package_samples, database):
         for dsc_fname in sorted(iglob(os.path.join(package_samples, '*.dsc'))):
             if dsc_fname.endswith('~exp.dsc'):
                 continue
-            spkg, _ = pi.import_source(dsc_fname, 'main', new_policy=NewPolicy.NEVER_NEW)
+            spkg, _ = pi.import_source(dsc_fname, 'main', new_policy=NewPolicy.NEVER_NEW, ignore_version_check=True)
             spkg_ids.append(spkg.uuid)
             assert spkg
 
         for deb_fname in iglob(os.path.join(package_samples, '*.deb')):
             if fnmatch(deb_fname, '*~exp_*.deb'):
                 continue
-            bpkg = pi.import_binary(deb_fname)
+            bpkg = pi.import_binary(deb_fname, ignore_version_check=True)
             assert bpkg
             bpkg_ids.append(bpkg.uuid)
         for udeb_fname in iglob(os.path.join(package_samples, '*.udeb')):
-            bpkg = pi.import_binary(udeb_fname)
+            bpkg = pi.import_binary(udeb_fname, ignore_version_check=True)
             assert bpkg
             bpkg_ids.append(bpkg.uuid)
 
