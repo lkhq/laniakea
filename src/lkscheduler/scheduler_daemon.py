@@ -174,7 +174,7 @@ def task_synchrotron_autosync(registry: JobsRegistry):
 
         # run autosync
         proc = subprocess.run(
-            [conf.synchtrotron_exe, 'autosync'],
+            [conf.synchrotron_exe, 'autosync'],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
