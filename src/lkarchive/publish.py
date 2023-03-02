@@ -42,6 +42,10 @@ from laniakea.utils.gpg import sign
 from laniakea.archive.appstream import import_appstream_data
 
 
+class ArchivePublishError(Exception):
+    """Something went wrong while publishing a repository."""
+
+
 @concurrent.process(daemon=False, name='dep11-import', context=mproc.get_context('forkserver'))
 def _retrieve_dep11_data_async(
     repo_name: str, lconf_fname: T.Optional[T.PathUnion] = None
@@ -479,6 +483,7 @@ def _publish_suite_dists(
     rss: ArchiveRepoSuiteSettings,
     *,
     dep11_src_dir: T.Optional[T.PathUnion],
+    only_sources: bool = False,
     force: bool = False,
 ):
     # we must never touch a frozen suite
@@ -493,7 +498,10 @@ def _publish_suite_dists(
         log.info('Not updating %s/%s: No pending changes.', rss.repo.name, rss.suite.name)
         return
 
-    log.info('Publishing suite: %s/%s', rss.repo.name, rss.suite.name)
+    if only_sources:
+        log.info('Publishing only Sources index for suite: %s/%s', rss.repo.name, rss.suite.name)
+    else:
+        log.info('Publishing suite: %s/%s', rss.repo.name, rss.suite.name)
 
     # global settings
     archive_root_dir = lconf.archive_root_dir
@@ -508,6 +516,15 @@ def _publish_suite_dists(
     os.makedirs(suite_temp_dist_dir, exist_ok=True)
     os.makedirs(repo_dists_root, exist_ok=True)
 
+    # sanity check
+    root_rel_fname = os.path.join(suite_temp_dist_dir, 'Release')
+    if only_sources and not os.path.isfile(root_rel_fname):
+        raise ArchivePublishError(
+            'Can not update only sources, since "{}/{}" has never once been fully published.'.format(
+                rss.repo.name, rss.suite.name
+            )
+        )
+
     # update metadata
     meta_files = []
     for component in rss.suite.components:
@@ -521,6 +538,10 @@ def _publish_suite_dists(
         meta_files.append(
             write_release_file_for_arch(suite_temp_dist_dir, dists_sources_subdir, rss, component, 'source')
         )
+
+        # don't write anything else if we only need to update the Sources index
+        if only_sources:
+            continue
 
         dists_dep11_subdir = os.path.join(component.name, 'dep11')
         for arch in rss.suite.architectures:
@@ -559,7 +580,7 @@ def _publish_suite_dists(
                         continue
                     os.makedirs(os.path.join(suite_temp_dist_dir, dists_dep11_subdir), exist_ok=True)
 
-                    # copy metadata and hash and register it
+                    # copy metadata, hash and register it
                     meta_files.extend(
                         import_metadata_file(
                             suite_temp_dist_dir,
@@ -574,7 +595,7 @@ def _publish_suite_dists(
                 import_appstream_data(session, rss, component, arch, repo_dists_dir=temp_dists_root)
 
         # copy AppStream icon tarballs
-        if dep11_src_dir:
+        if dep11_src_dir and not only_sources:
             dep11_suite_component_src_dir = os.path.join(dep11_src_dir, rss.suite.name, component.name)
             for icon_tar_fname in iglob(os.path.join(dep11_suite_component_src_dir, 'icons-*.tar.gz')):
                 icon_tar_fname = os.path.join(dep11_suite_component_src_dir, icon_tar_fname)
@@ -589,31 +610,48 @@ def _publish_suite_dists(
                 )
 
         # create i19n template data
-        dists_i18n_subdir = os.path.join(component.name, 'i18n')
-        suite_component_dists_i18n_dir = os.path.join(suite_temp_dist_dir, dists_i18n_subdir)
-        os.makedirs(suite_component_dists_i18n_dir, exist_ok=True)
-        i18n_data = generate_i18n_template_data(session, rss.repo, rss.suite, component)
-        meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_i18n_subdir, 'Translation-en', i18n_data))
+        if not only_sources:
+            dists_i18n_subdir = os.path.join(component.name, 'i18n')
+            suite_component_dists_i18n_dir = os.path.join(suite_temp_dist_dir, dists_i18n_subdir)
+            os.makedirs(suite_component_dists_i18n_dir, exist_ok=True)
+            i18n_data = generate_i18n_template_data(session, rss.repo, rss.suite, component)
+            meta_files.extend(
+                write_compressed_files(suite_temp_dist_dir, dists_i18n_subdir, 'Translation-en', i18n_data)
+            )
 
     # write root release file
-    root_rel_fname = os.path.join(suite_temp_dist_dir, 'Release')
-    entry = Deb822()
+    if only_sources:
+        # if we are in "only sources" update mode, we patch the existing file instead of writing a new one
+        with open(root_rel_fname, 'r', encoding='utf-8') as f:
+            entry = Deb822(f)
+    else:
+        entry = Deb822()
     set_deb822_value(entry, 'Origin', rss.repo.origin_name)
     set_deb822_value(entry, 'Suite', rss.suite.name)
     set_deb822_value(entry, 'Version', rss.suite.version)
     set_deb822_value(entry, 'Codename', rss.suite.alias)
     set_deb822_value(entry, 'Label', rss.suite.summary)
     entry['Date'] = datetime_to_rfc2822_string(datetime.utcnow())
-    if not rss.frozen:
+    if not rss.frozen and not only_sources:
         entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.utcnow() + timedelta(days=8))
     entry['Acquire-By-Hash'] = 'no'  # FIXME: We need to implement this, then change this line to allow by-hash
     entry['Architectures'] = ' '.join(sorted([a.name for a in rss.suite.architectures]))
     entry['Components'] = ' '.join(sorted([c.name for c in rss.suite.components]))
 
-    metafile_data = [f' {f.sha256sum} {f.size: >8} {f.fname}' for f in sorted(meta_files)]
-    entry['SHA256'] = '\n' + '\n'.join(metafile_data)
+    if only_sources:
+        # patch in the updated sources data
+        metafile_data = entry['SHA256'].split('\n')
+        for i, line in enumerate(metafile_data):
+            for fi in meta_files:
+                if line.endswith(fi.fname):
+                    metafile_data[i] = f' {fi.sha256sum} {fi.size: >8} {fi.fname}'
+        entry['SHA256'] = '\n'.join(metafile_data)
+    else:
+        # add metadata
+        metafile_data = [f' {f.sha256sum} {f.size: >8} {f.fname}' for f in sorted(meta_files)]
+        entry['SHA256'] = '\n' + '\n'.join(metafile_data)
 
-    with open(os.path.join(root_rel_fname), 'w', encoding='utf-8') as f:
+    with open(root_rel_fname, 'w', encoding='utf-8') as f:
         f.write(entry.dump())
 
     # sign our changes
@@ -653,8 +691,12 @@ def _publish_suite_dists(
     # and we will also ensure that a suite gets published at least once
     # every week
     rss.changes_pending = False
-    log.info('Published suite: %s/%s', rss.repo.name, rss.suite.name)
-    archive_log.info('PUBLISHED: %s/%s', rss.repo.name, rss.suite.name)
+    if only_sources:
+        log.info('Published Sources index for suite: %s/%s', rss.repo.name, rss.suite.name)
+        archive_log.info('PUBLISHED-SOURCES: %s/%s', rss.repo.name, rss.suite.name)
+    else:
+        log.info('Published suite: %s/%s', rss.repo.name, rss.suite.name)
+        archive_log.info('PUBLISHED: %s/%s', rss.repo.name, rss.suite.name)
 
 
 @concurrent.process(daemon=False, name='publish-repo-suite-dists', context=mproc.get_context('forkserver'))
@@ -663,6 +705,7 @@ def publish_suite_dists_async(
     suite_name: str,
     *,
     dep11_src_dir: T.Optional[T.PathUnion],
+    only_sources: bool = False,
     force: bool = False,
     lconf_fname: T.Optional[T.PathUnion] = None,
 ):
@@ -672,6 +715,7 @@ def publish_suite_dists_async(
     :param suite_name: Name of the suite in the repository
     :param dep11_src_dir: Source directory for DEP-11 data
     :param force: Force publication
+    :param only_sources: If True, update only the Sources index and ignore everything else.
     :param lconf_fname: Local configuration file to use in a subprocess, or None to use default.
     """
     from laniakea.logging import configure_pkg_archive_logger
@@ -683,15 +727,25 @@ def publish_suite_dists_async(
     with process_file_lock('publish_{}-{}'.format(repo_name, suite_name), wait=True):
         with session_scope() as session:
             rss = repo_suite_settings_for(session, repo_name, suite_name)
-            _publish_suite_dists(lconf, session, rss, dep11_src_dir=dep11_src_dir, force=force)
+            _publish_suite_dists(
+                lconf, session, rss, dep11_src_dir=dep11_src_dir, only_sources=only_sources, force=force
+            )
 
 
-def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Optional[str] = None, force: bool = False):
+def publish_repo_dists(
+    session,
+    repo: ArchiveRepository,
+    *,
+    suite_name: T.Optional[str] = None,
+    only_sources: bool = False,
+    force: bool = False,
+):
     """
     Publish dists/ data for all (modified) suites in a repository.
     :param session: SQLAlchemy session
     :param repo: Repository to publish
     :param suite_name: Name of the suite to publish, or None to publish all.
+    :param only_sources: If True, publish only the Sources index and ignore everything else.
     :return:
     """
 
@@ -704,10 +758,12 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
 
         # import external data in parallel (we may be able to run more data import in parallel here in future,
         # at the moment we just have DEP-11)
-        dep11_future = _retrieve_dep11_data_async(repo.name, lconf.fname)
-        success, error_msg, dep11_dir = dep11_future.result()  # pylint: disable=E1101
-        if not success:
-            raise Exception(error_msg)
+        dep11_dir = None
+        if not only_sources:
+            dep11_future = _retrieve_dep11_data_async(repo.name, lconf.fname)
+            success, error_msg, dep11_dir = dep11_future.result()  # pylint: disable=E1101
+            if not success:
+                raise Exception(error_msg)
 
         async_tasks = []
         for rss in repo.suite_settings:
@@ -716,7 +772,12 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
                 if rss.suite.name != suite_name:
                     continue
             future = publish_suite_dists_async(
-                rss.repo.name, rss.suite.name, dep11_src_dir=dep11_dir, force=force, lconf_fname=lconf.fname
+                rss.repo.name,
+                rss.suite.name,
+                dep11_src_dir=dep11_dir,
+                only_sources=only_sources,
+                force=force,
+                lconf_fname=lconf.fname,
             )
             async_tasks.append(future)
 
@@ -745,12 +806,24 @@ def publish_repo_dists(session, repo: ArchiveRepository, *, suite_name: T.Option
     help='Name of the suite to act on, if not set all suites will be processed',
 )
 @click.option(
+    '--only-sources',
+    default=False,
+    is_flag=True,
+    help='Only update the Sources index and ignore all other metadata updates.',
+)
+@click.option(
     '--force',
     default=False,
     is_flag=True,
     help='Whether to force publication even if it is not yet needed.',
 )
-def publish(repo_name: T.Optional[str] = None, suite_name: T.Optional[str] = None, *, force: bool = False):
+def publish(
+    repo_name: T.Optional[str] = None,
+    suite_name: T.Optional[str] = None,
+    *,
+    only_sources: bool = False,
+    force: bool = False,
+):
     """Publish repository metadata that clients can use."""
 
     with session_scope() as session:
@@ -765,7 +838,7 @@ def publish(repo_name: T.Optional[str] = None, suite_name: T.Optional[str] = Non
 
         for repo in repos:
             try:
-                publish_repo_dists(session, repo, suite_name=suite_name, force=force)
+                publish_repo_dists(session, repo, suite_name=suite_name, only_sources=only_sources, force=force)
             except Exception as e:
                 console = Console()
                 console.print_exception(max_frames=20)
