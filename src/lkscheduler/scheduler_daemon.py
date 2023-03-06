@@ -241,13 +241,18 @@ class SchedulerDaemon:
             from laniakea.db import SynchrotronConfig, SpearsMigrationTask
 
             # Spears
+            migrate_job_id = 'spears-migrate'
             mtask_ids = session.query(SpearsMigrationTask.id).all()
             if mtask_ids:
-                self._configure_job(task_spears_migrate, 'spears-migrate', 'Migrate packages between suites', jitter=20)
+                self._configure_job(task_spears_migrate, migrate_job_id, 'Migrate packages between suites', jitter=20)
             else:
                 log.info('Not creating Spears migration job: No migration tasks configured.')
+                job = self._jobstore.lookup_job(migrate_job_id)
+                if job:
+                    self._jobstore.remove_job(migrate_job_id)
 
             # Synchrotron
+            autosync_job_id = 'synchrotron-autosync'
             sconf_ids = (
                 session.query(SynchrotronConfig.id)
                 .filter(
@@ -258,12 +263,15 @@ class SchedulerDaemon:
             if sconf_ids:
                 self._configure_job(
                     task_synchrotron_autosync,
-                    'synchrotron-autosync',
+                    autosync_job_id,
                     'Automatically synchronize packages with an origin OS',
                     jitter=60,
                 )
             else:
                 log.info('Not creating Synchrotron autosync job: No autosync tasks configured.')
+                job = self._jobstore.lookup_job(autosync_job_id)
+                if job:
+                    self._jobstore.remove_job(autosync_job_id)
 
         # internal maintenance tasks
         self._scheduler.add_job(
