@@ -449,7 +449,7 @@ class ArchiveArchitecture(Base):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String(128), unique=True)  # Name of the architecture
+    name = Column(String(80), unique=True)  # Name of the architecture
     summary = Column(String(200))  # Short description of this architecture
 
     suites = relationship(
@@ -876,15 +876,17 @@ class ArchiveVersionMemory(Base):
     """
 
     __tablename__ = 'archive_pkg_version_memory'
-    __table_args__ = (UniqueConstraint('repo_suite_id', 'pkg_type', 'pkg_name', name='_rss_pkg_uc'),)
+    __table_args__ = (UniqueConstraint('repo_suite_id', 'pkg_name', 'arch_name', name='_rss_pkg_uc'),)
 
     id = Column(Integer, primary_key=True)
 
     repo_suite_id = Column(Integer, ForeignKey('archive_repo_suite_settings.id'), nullable=False)
     repo_suite = relationship('ArchiveRepoSuiteSettings')
 
-    pkg_type = Column(Enum(PackageType), default=PackageType.BINARY)
-    pkg_name = Column(String(200))  # Name of the package
+    pkg_name = Column(String(200), nullable=False)  # Name of the package
+    arch_name = Column(
+        String(80), nullable=False, default='source'
+    )  # Architecture identifier name, such as "amd64" or "source"
 
     highest_version = Column(DebVersion())  # Highest version of the source package that we have seen so far
 

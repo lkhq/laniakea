@@ -24,7 +24,6 @@ from laniakea.db import (
     NewPolicy,
     ArchiveFile,
     PackageInfo,
-    PackageType,
     BinaryPackage,
     SourcePackage,
     ArchiveSection,
@@ -97,17 +96,13 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[
     :param pkg: Source or binary package.
     """
 
-    if isinstance(pkg, SourcePackage):
-        pkg_type = PackageType.SOURCE
-    else:
-        pkg_type = PackageType.BINARY
-
+    arch_name = 'source' if isinstance(pkg, SourcePackage) else pkg.architecture.name
     vmem = (
         session.query(ArchiveVersionMemory)
         .filter(
             ArchiveVersionMemory.repo_suite_id == rss.id,
-            ArchiveVersionMemory.pkg_type == pkg_type,
             ArchiveVersionMemory.pkg_name == pkg.name,
+            ArchiveVersionMemory.arch_name == arch_name,
         )
         .one_or_none()
     )
@@ -120,8 +115,8 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[
     else:
         vmem = ArchiveVersionMemory()
         vmem.repo_suite = rss
-        vmem.pkg_type = pkg_type
         vmem.pkg_name = pkg.name
+        vmem.arch_name = arch_name
         vmem.highest_version = pkg.version
         session.add(vmem)
 
@@ -277,7 +272,7 @@ class PackageImporter:
             self._session.query(ArchiveVersionMemory.highest_version)
             .filter(
                 ArchiveVersionMemory.repo_suite_id == self._rss.id,
-                ArchiveVersionMemory.pkg_type == PackageType.SOURCE,
+                ArchiveVersionMemory.arch_name == 'source',
                 ArchiveVersionMemory.pkg_name == pkgname,
                 ArchiveVersionMemory.highest_version > version,
             )
@@ -613,8 +608,8 @@ class PackageImporter:
             self._session.query(ArchiveVersionMemory.highest_version)
             .filter(
                 ArchiveVersionMemory.repo_suite_id == self._rss.id,
-                ArchiveVersionMemory.pkg_type == PackageType.BINARY,
                 ArchiveVersionMemory.pkg_name == pkgname,
+                ArchiveVersionMemory.arch_name == pkgarch,
                 ArchiveVersionMemory.highest_version > version,
             )
             .one_or_none()
@@ -933,8 +928,8 @@ class UploadHandler:
             self._session.query(ArchiveVersionMemory.highest_version)
             .filter(
                 ArchiveVersionMemory.repo_suite_id == rss.id,
-                ArchiveVersionMemory.pkg_type == PackageType.SOURCE,
                 ArchiveVersionMemory.pkg_name == changes.source_name,
+                ArchiveVersionMemory.arch_name == 'source',
                 ArchiveVersionMemory.highest_version >= changes.changes['Version'],
             )
             .one_or_none()
