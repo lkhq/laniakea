@@ -412,8 +412,10 @@ class SyncEngine:
                     if bin_i.version != bpkg.source_version:
                         log.debug(
                             'Not syncing binary package \'{}\': '
-                            'Version number \'{}\' does not match source package version \'{}\'.'.format(
-                                bpkg.name, bin_i.version, bpkg.source_version
+                            'Assumed source version \'{}\' of binary does not match actual source version \'{}\'.'.format(
+                                bpkg.name,
+                                bin_i.version,
+                                bpkg.source_version,
                             )
                         )
                         continue
