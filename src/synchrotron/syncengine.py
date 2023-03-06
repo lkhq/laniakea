@@ -24,6 +24,7 @@ from laniakea.db import (
     SyncBlacklistEntry,
     ArchiveArchitecture,
     SynchrotronIssueKind,
+    ArchiveRepoSuiteSettings,
     session_scope,
     config_get_distro_tag,
 )
@@ -36,7 +37,10 @@ from laniakea.reporeader import (
     version_revision,
     make_newest_packages_dict,
 )
-from laniakea.archive.utils import repo_suite_settings_for
+from laniakea.archive.utils import (
+    repo_suite_settings_for,
+    repo_suite_settings_for_debug,
+)
 
 
 class SyncEngine:
@@ -203,23 +207,26 @@ class SyncEngine:
         return spkg_map
 
     def _get_target_binary_packages(
-        self, session, suite_name: str, component_name: str, arch_name: str = None, deb_type=DebType.DEB
+        self,
+        session,
+        rss: ArchiveRepoSuiteSettings,
+        component_name: str,
+        arch_name: str = None,
+        *,
+        deb_type=DebType.DEB,
     ):
-        if not suite_name:
-            suite_name = self._target_suite_name
-
         log.debug(
-            'Retrieving binary packages for destination suite: %s/%s/%s (%s)',
-            suite_name,
+            'Retrieving binary packages for destination suite: %s:%s/%s/%s (%s)',
+            rss.repo.name,
+            rss.suite.name,
             component_name,
             arch_name,
             'udeb' if deb_type == DebType.UDEB else 'deb',
         )
-        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one()
         bpkg_filter = [
             BinaryPackage.deb_type == deb_type,
-            BinaryPackage.repo.has(name=self._repo_name),
-            BinaryPackage.suites.any(id=suite.id),
+            BinaryPackage.repo.has(id=rss.repo_id),
+            BinaryPackage.suites.any(id=rss.suite_id),
             BinaryPackage.component.has(name=component_name),
             BinaryPackage.architecture.has(name=arch_name),
             BinaryPackage.time_deleted.is_(None),
@@ -250,16 +257,41 @@ class SyncEngine:
         return bpkgs
 
     def _get_target_binary_package_map(
-        self, session, suite_name: str, component_name: str, arch_name: str = None, with_installer: bool = True
+        self,
+        session,
+        suite_name: str,
+        component_name: str,
+        arch_name: str = None,
+        *,
+        with_installer: bool = True,
+        with_debug: bool = True,
     ):
+        if not suite_name:
+            suite_name = self._target_suite_name
         log.debug(
             'Retrieving binary package map for destination suite: %s/%s/%s', suite_name, component_name, arch_name
         )
-        bpkgs = self._get_target_binary_packages(session, suite_name, component_name, arch_name, deb_type=DebType.DEB)
+
+        rss = repo_suite_settings_for(session, self._repo_name, suite_name)
+        bpkgs = self._get_target_binary_packages(session, rss, component_name, arch_name, deb_type=DebType.DEB)
         if with_installer:
             bpkgs.extend(
-                self._get_target_binary_packages(session, suite_name, component_name, arch_name, deb_type=DebType.UDEB)
+                self._get_target_binary_packages(session, rss, component_name, arch_name, deb_type=DebType.UDEB)
             )
+
+        # include debug repository packages
+        if with_debug:
+            rss_dbg = repo_suite_settings_for_debug(session, rss)
+            if rss_dbg is not None and rss_dbg.id != rss.id:
+                bpkgs.extend(
+                    self._get_target_binary_packages(session, rss_dbg, component_name, arch_name, deb_type=DebType.DEB)
+                )
+                if with_installer:
+                    bpkgs.extend(
+                        self._get_target_binary_packages(
+                            session, rss_dbg, component_name, arch_name, deb_type=DebType.UDEB
+                        )
+                    )
 
         bpkg_map = {}
         for p in bpkgs:
@@ -345,11 +377,11 @@ class SyncEngine:
                 self._source_suite_name, component, aname
             )
 
-        # cache of binary-package mappings from the target repository
+        # cache of binary-package mappings from the target repository/suite/arch
         dest_bpkg_arch_map = {}
         for aname in target_archs:
             dest_bpkg_arch_map[aname] = self._get_target_binary_package_map(
-                session, self._target_suite_name, component, aname
+                session, self._target_suite_name, component, aname, with_installer=True, with_debug=True
             )
 
         for spkg, is_copied in spkgs_info:
