@@ -74,7 +74,9 @@ def create_parser(formatter_class=None):
     sp.add_argument('packages', nargs='+', help='The (source) packages to import')
     sp.set_defaults(func=command_sync)
 
-    sp = subparsers.add_parser('autosync', help='Synchronize a package or set of packages')
+    sp = subparsers.add_parser(
+        'autosync', help='Automatically synchronize all suitable packages for active sync configurations'
+    )
     sp.add_argument('--repo', dest='repo_name', help='Act on the repository with this name.')
     sp.set_defaults(func=command_autosync)
 

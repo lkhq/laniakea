@@ -335,7 +335,7 @@ class SyncEngine:
             log.debug('Skipping binary syncs.')
             return True
 
-        # list of valid architectrures supported by the target
+        # list of valid architectures supported by the target
         target_archs = [a.name for a in sync_conf.destination_suite.architectures]
 
         # cache of binary-package mappings for the source
@@ -545,7 +545,7 @@ class SyncEngine:
         """Synchronize all packages between source and destination."""
 
         self._synced_source_pkgs = []
-        active_src_pkgs: T.List[
+        binary_sync_todo: T.List[
             T.Tuple[SourcePackage, bool]
         ] = []  # source packages which should have their binary packages updated
         known_issues = []
@@ -618,6 +618,13 @@ class SyncEngine:
                                 spkg.name, dpkg.version, spkg.version
                             )
                         )
+
+                        if dpkg.version == spkg.version and self._distro_tag not in version_revision(dpkg.version):
+                            # check if the target package (if an exact match) has its binaries, and try to import them
+                            # again if they are missing. This code exists to recover from incomplete syncs in case a
+                            # previous autosync run was interrupted for any reason.
+                            if not spkg.binaries:
+                                binary_sync_todo.append((spkg, False))
                         continue
 
                     # check if we have a modified target package,
@@ -663,19 +670,13 @@ class SyncEngine:
 
                 # a new source package is always active and needs its binary packages synced, in
                 # case we do binary syncs.
-                active_src_pkgs.append((spkg, True))
-
-            # all packages in the target distribution are considered active, as long as they don't
-            # have modifications.
-            for spkg in dest_pkg_map.values():
-                if self._distro_tag in version_revision(spkg.version):
-                    active_src_pkgs.append((spkg, True))
+                binary_sync_todo.append((spkg, False))
 
             # import binaries as well. We test for binary updates for all available active source packages,
             # as binNMUs might have happened in the source distribution.
             # (an active package in this context is any source package which doesn't have modifications in the
             # target distribution)
-            ret = self._import_binaries_for_source(session, sync_conf, pkgip, component.name, active_src_pkgs)
+            ret = self._import_binaries_for_source(session, sync_conf, pkgip, component.name, binary_sync_todo)
             if not ret:
                 return False
 
