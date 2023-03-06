@@ -109,9 +109,6 @@ def run(mainfile, args):
         print('Need a subcommand to proceed!')
         sys.exit(1)
 
-    # configure the archive action file logging
-    configure_pkg_archive_logger()
-
     # configure multiprocessing
     mp.set_start_method('forkserver', force=True)
 
@@ -122,4 +119,8 @@ def run(mainfile, args):
     check_verbose(args)
 
     ensure_laniakea_master_user(warn_only=True)
+
+    # configure the archive action file logging
+    configure_pkg_archive_logger()
+
     args.func(args)
