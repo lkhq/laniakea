@@ -73,7 +73,7 @@ endif
 py_exe = find_program('python3')
 test('pytest',
     py_exe,
-    args: ['-m', 'pytest'],
+    args: ['-m', 'pytest', '-x'],
     workdir: source_root,
     is_parallel: false,
     suite: 'integration',
