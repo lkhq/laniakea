@@ -281,7 +281,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
         set_deb822_value(entry, 'Format', spkg.format_version)
         set_deb822_value(entry, 'Standards-Version', spkg.standards_version)
 
-        set_deb822_value(entry, 'Section', spkg.section)
+        set_deb822_value(entry, 'Section', spkg.section.name)
         set_deb822_value(entry, 'Homepage', spkg.homepage)
         set_deb822_value(entry, 'Vcs-Browser', spkg.vcs_browser)
         set_deb822_value(entry, 'Vcs-Git', spkg.vcs_git)
@@ -401,6 +401,8 @@ def generate_packages_index(
         entry['Package'] = bpkg.name
         set_deb822_value(entry, 'Source', source_info)
         set_deb822_value(entry, 'Version', bpkg.version)
+        if bpkg_override.essential:
+            set_deb822_value(entry, 'Essential', 'yes')
         set_deb822_value(entry, 'Maintainer', bpkg.maintainer)
         set_deb822_value(entry, 'Original-Maintainer', bpkg.original_maintainer)
         set_deb822_value(entry, 'Description', bpkg.summary)

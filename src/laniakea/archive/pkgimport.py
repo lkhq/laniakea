@@ -364,6 +364,23 @@ class PackageImporter:
                 binary_stubs.append(pi)
             spkg.expected_binaries = binary_stubs
 
+        # set package section, guess it if necessary
+        section_name = safe_strip(src_tf.pop('Section', None))
+        if not section_name and len(spkg.expected_binaries) >= 1:
+            # take section name from the first binary entry
+            section_name = spkg.expected_binaries[0].section
+            if not section_name:
+                # fall back to "misc"
+                log.warning(
+                    'Unable to determine section name for new source `%s/%s` targeted at %s/%s. Assuming `misc`.',
+                    spkg.name,
+                    spkg.version,
+                    self._rss.repo.name,
+                    self._rss.suite.name,
+                )
+                section_name = 'misc'
+        spkg.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == section_name).one()
+
         spkg.directory = pool_dir_from_name_component(pkgname, spkg.component.name)
         files = checksums_list_to_file(src_tf.pop('Files'), 'md5')
         files = checksums_list_to_file(src_tf.pop('Checksums-Sha1'), 'sha1', files)

@@ -784,7 +784,7 @@ class SourcePackage(Base):
         return None
 
     @property
-    def expected_binaries(self):
+    def expected_binaries(self) -> list[PackageInfo]:
         if self._expected_binaries is not None:
             return self._expected_binaries
         data = json.loads(self._expected_binaries_json)
@@ -803,7 +803,7 @@ class SourcePackage(Base):
         return res
 
     @expected_binaries.setter
-    def expected_binaries(self, value):
+    def expected_binaries(self, value: PackageInfo | list[PackageInfo]):
         if not type(value) is list:
             value = [value]
 
