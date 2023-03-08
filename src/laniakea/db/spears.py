@@ -24,6 +24,7 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import JSON, ARRAY, JSONB
 
 from .base import UUID, Base, DebVersion
+from .archive import ArchiveRepository
 
 
 class SpearsHint(Base):
@@ -36,7 +37,7 @@ class SpearsHint(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     migration_id = Column(Integer, ForeignKey('spears_migrations.id'))
-    migration_task = relationship('SpearsMigrationTask')  # Migration task this hint belongs to
+    migration_task: 'SpearsMigrationTask' = relationship('SpearsMigrationTask')  # Migration task this hint belongs to
 
     time = Column(DateTime(), default=datetime.utcnow)  # Time when this hint was created
     hint = Column(Text())  # A Britney hint
@@ -68,7 +69,7 @@ class SpearsMigrationTask(Base):
     id = Column(Integer, primary_key=True)
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo = relationship('ArchiveRepository')  # Repository this migration task is valid for
+    repo: ArchiveRepository = relationship('ArchiveRepository')  # Repository this migration task is valid for
 
     source_suites = relationship(
         'ArchiveSuite', secondary=spears_migration_src_suite_assoc_table

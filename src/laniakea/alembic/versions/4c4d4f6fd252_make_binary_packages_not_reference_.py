@@ -7,6 +7,7 @@ Create Date: 2023-03-07 21:06:51.270191
 """
 import pickle
 import os.path
+from typing import Any
 
 import sqlalchemy as sa
 from alembic import op
@@ -25,7 +26,7 @@ down_revision = 'a5281c40b748'
 branch_labels = None
 depends_on = None
 
-Base = declarative_base()
+Base: Any = declarative_base()
 
 
 class StubArchiveRepoSuiteSettings(Base):
@@ -136,7 +137,16 @@ def upgrade():
             for suite in bpkg.suites:
                 override = old_overrides.get('{}:{}/{}'.format(bpkg.repo.id, suite.id, bpkg.name), None)
                 if override:
-                    session.add(override)
+                    if (
+                        not session.query(PackageOverride)
+                        .filter(
+                            PackageOverride.repo_id == bpkg.repo_id,
+                            PackageOverride.suite_id == suite.id,
+                            PackageOverride.pkg_name == bpkg.name,
+                        )
+                        .all()
+                    ):
+                        session.add(override)
                 else:
                     ov = PackageOverride(bpkg.name)
                     ov.repo = bpkg.repo

@@ -23,6 +23,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 
 from .base import UUID, Base, DebVersion
+from .archive import ArchiveRepository
 
 
 class SynchrotronSource(Base):
@@ -53,7 +54,7 @@ class SynchrotronConfig(Base):
     id = Column(Integer, primary_key=True)
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo = relationship('ArchiveRepository')
+    repo: ArchiveRepository = relationship('ArchiveRepository')
 
     source_id = Column(Integer, ForeignKey('synchrotron_sources.id'), nullable=False)
     source = relationship('SynchrotronSource')

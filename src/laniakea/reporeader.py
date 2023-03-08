@@ -83,7 +83,7 @@ class ExternalSourcePackage:
 
     expected_binaries: list[PackageInfo] = []
 
-    extra_data: dict[str, any] = {}
+    extra_data: dict[str, T.Any] = {}
 
     def __init__(self, name, version):
         self.name = name
@@ -97,6 +97,9 @@ class ExternalBinaryPackage:
 
     name: str  # Package name
     version: str  # Version of this package
+
+    source_name: str  # Name of the corresponding source package
+    source_version: str  # Version of the corresponding source package
 
     repo: ArchiveRepository  # Repository this package belongs to
 
@@ -139,10 +142,12 @@ class ExternalBinaryPackage:
 
     phased_update_percentage: int = 100
 
+    bin_file: ArchiveFile = None
+
     contents: list[str] = []  # List of filenames that this package contains
 
     # Additional key-value metadata that may be specific to this package
-    extra_data: dict[str, any]
+    extra_data: dict[str, T.Any]
 
     def __init__(self, name, version):
         self.name = name
