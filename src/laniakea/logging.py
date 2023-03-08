@@ -18,6 +18,8 @@ _lock = threading.RLock()
 
 archive_log = log.getLogger('pkg_archive')  # special logger to log package archive changes
 
+log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y-%d-%m %H:%M:%S')
+
 
 def set_verbose(enabled):
     global __verbose_logging
