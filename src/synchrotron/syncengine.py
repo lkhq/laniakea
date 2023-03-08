@@ -714,6 +714,9 @@ class SyncEngine:
             if not ret:
                 return False
 
+            # commit after processing each component
+            session.commit()
+
         # test for cruft packages
         target_pkg_index = {}
         for component in rss.suite.components:

@@ -49,6 +49,9 @@ def command_autosync(options):
             if not ret:
                 sys.exit(2)
 
+            # commit pending changes
+            session.commit()
+
 
 def create_parser(formatter_class=None):
     '''Create synchrotron CLI argument parser'''
