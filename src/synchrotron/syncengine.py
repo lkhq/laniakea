@@ -465,7 +465,7 @@ class SyncEngine:
                 if bin_files:
                     bin_files_synced = True
                     for fname in bin_files:
-                        pkgip.import_binary(fname, component)
+                        pkgip.import_binary(fname, component, ignore_missing_override=True)
 
             if not bin_files_synced and not existing_packages:
                 log.warning('No binary packages synced for source {}/{}'.format(spkg.name, spkg.version))

@@ -531,6 +531,7 @@ class PackageImporter:
         ignore_existing: bool = False,
         ignore_version_check: bool = False,
         override_section: T.Optional[str] = None,
+        ignore_missing_override: bool = False,
     ) -> T.Optional[BinaryPackage]:
         """Import a binary package into the given suite or its NEW queue.
 
@@ -539,6 +540,7 @@ class PackageImporter:
         :param ignore_existing: Ignore any already existing binary
         :param ignore_version_check: Ignore version check (import older versions / ones seen before)
         :param override_section: Set a new target section name, overriding the package selection.
+        :param ignore_missing_override: Try to guess & add an override for this binary in case it is missing.
         """
         self._ensure_not_frozen()
 
@@ -757,6 +759,50 @@ class PackageImporter:
                 override.component = component
                 override.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
                 override.priority = PackagePriority.OPTIONAL
+            elif ignore_missing_override:
+                # The override is missing, but we are supposed to ignore that fact.
+                # So we will try our very best to guess a sensible override for this binary.
+
+                # Try to copy an override from another suite in the same repository.
+                eov = (
+                    self._session.query(PackageOverride)
+                    .filter(
+                        PackageOverride.repo_id == bpkg.repo_id,
+                        PackageOverride.pkg_name == bpkg.name,
+                    )
+                    .first()
+                )
+
+                if eov:
+                    log.warning(
+                        'Copying override from other suite for %s in %s:%s.',
+                        bpkg.name,
+                        bpkg.repo.name,
+                        deb_rss.suite.name,
+                    )
+                    override = PackageOverride(bpkg.name)
+                    override.repo = bpkg.repo
+                    override.suite = deb_rss.suite
+                    override.essential = eov.essential
+                    override.priority = eov.priority
+                    override.component = eov.component
+                    override.section = eov.section
+                    self._session.add(override)
+                else:
+                    # we just make up an override from scratch now
+                    log.warning(
+                        'No override found at all for %s in %s:%s, inventing one from scratch.',
+                        bpkg.name,
+                        bpkg.repo.name,
+                        deb_rss.suite,
+                    )
+                    override = PackageOverride(bpkg.name)
+                    override.repo = bpkg.repo
+                    override.suite = deb_rss.suite
+                    override.essential = False
+                    override.component = bpkg.component
+                    override.section = bpkg.source.section
+                    self._session.add(override)
             else:
                 raise ArchiveImportError(
                     'Missing override for `{}/{}`: Please process the source package through NEW first before uploading a binary.'.format(
