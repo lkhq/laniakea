@@ -21,6 +21,7 @@ from pebble import concurrent
 from sqlalchemy import and_, func
 from rich.console import Console
 from debian.deb822 import Deb822
+from sqlalchemy.orm import joinedload
 
 import laniakea.typing as T
 import laniakea.utils.renameat2 as renameat2
@@ -254,6 +255,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
     # get the latest source packages for this configuration
     spkgs = (
         session.query(SourcePackage)
+        .options(joinedload(SourcePackage.section), joinedload(SourcePackage.files))
         .filter(*spkg_filters)
         .join(
             smv_sq,
@@ -365,6 +367,7 @@ def generate_packages_index(
     # get the latest binary packages for this configuration
     bpkgs_overrides = (
         session.query(BinaryPackage, PackageOverride)
+        .options(joinedload(BinaryPackage.bin_file), joinedload(PackageOverride.section))
         .join(
             bmv_sq,
             and_(
