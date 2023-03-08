@@ -52,9 +52,9 @@
                 </form>
             </div>
         </div>
-        <b>Priority:</b> {{PackagePriority.to_string(pkg.override.priority)}}
+        <b>Priority:</b> {{PackagePriority.to_string(pkg_override.priority)}}
         <br/>
-        <b>Section:</b> {{pkg.override.section.name}}
+        <b>Section:</b> {{pkg_override.section.name}}
         <br/>
         <b>Suites:</b> {% for s in suites %}<span class="badge badge-pill badge-info">{{s}}</span>&nbsp;{% endfor %}
         <br/>
@@ -125,7 +125,7 @@
         </p>
         &nbsp;<br/>
         <h3>Versions</h3>
-        {% for vpkg in pkgs_all %}
+        {% for vpkg, _ in all_pkgs_overrides %}
         <a class="border-box" href="{{ vpkg.bin_file.make_url(config.ARCHIVE_URL) }}">{{vpkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{vpkg.architecture.name}}</span></a>
         {% endfor %}
 

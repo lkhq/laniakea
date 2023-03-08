@@ -455,7 +455,7 @@ class PackageImporter:
             if missing_overrides or new_policy == NewPolicy.ALWAYS_NEW:
                 # add to NEW queue (update entry or create new one)
                 if not nq_entry:
-                    nq_entry = ArchiveQueueNewEntry()
+                    nq_entry = ArchiveQueueNewEntry(spkg, self._rss.suite)
                     self._session.add(nq_entry)
 
                 nq_entry.package = spkg
@@ -536,6 +536,9 @@ class PackageImporter:
 
         :param deb_fname: Path to a deb/udeb package to import
         :param component_name: Name of the archive component to import into.
+        :param ignore_existing: Ignore any already existing binary
+        :param ignore_version_check: Ignore version check (import older versions / ones seen before)
+        :param override_section: Set a new target section name, overriding the package selection.
         """
         self._ensure_not_frozen()
 
@@ -738,14 +741,19 @@ class PackageImporter:
         # check for override
         override = (
             self._session.query(PackageOverride)
-            .filter(PackageOverride.repo_suite_id == deb_rss.id, PackageOverride.pkgname == bpkg.name)
+            .filter(
+                PackageOverride.repo_id == deb_rss.repo_id,
+                PackageOverride.suite_id == deb_rss.suite_id,
+                PackageOverride.pkg_name == bpkg.name,
+            )
             .one_or_none()
         )
         if not override:
             if is_debug_pkg:
                 # we have a debug package, so we can auto-generate a new override
                 override = PackageOverride(bpkg.name)
-                override.repo_suite = deb_rss
+                override.repo = deb_rss.repo
+                override.suite = deb_rss.suite
                 override.component = component
                 override.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
                 override.priority = PackagePriority.OPTIONAL
@@ -755,7 +763,6 @@ class PackageImporter:
                         pkgname, version
                     )
                 )
-        bpkg.override = override
 
         # add component
         bpkg.component = component

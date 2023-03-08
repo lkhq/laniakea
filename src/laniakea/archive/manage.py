@@ -15,6 +15,7 @@ from laniakea.db import (
     ArchiveError,
     BinaryPackage,
     SourcePackage,
+    PackageOverride,
     SoftwareComponent,
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
@@ -114,6 +115,29 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
                 )
             # drop the associated binary, even if it might be in a different repository
             remove_binary_package(session, bpkg_rss, bpkg)
+
+            # the source package is *completely* gone from this repository, so there is no need
+            # to keep overrides around - we just drop them if no other source has adopted them.
+            source_ids = (
+                session.query(BinaryPackage.source_id)
+                .filter(BinaryPackage.repo_id == rss.repo_id, BinaryPackage.name == bpkg.name)
+                .all()
+            )
+            binary_adopted = False
+            if source_ids:
+                for sid_tp in source_ids:
+                    if sid_tp[0] != bpkg.source_id:
+                        binary_adopted = True
+                        break
+
+            if not binary_adopted:
+                overrides = (
+                    session.query(PackageOverride)
+                    .filter(PackageOverride.repo_id == rss.repo_id, PackageOverride.pkg_name == bpkg.name)
+                    .all()
+                )
+                for override in overrides:
+                    session.delete(override)
 
         for file in spkg.files:
             # check if any other source package (likely one with a different revision) also holds a reference

@@ -362,10 +362,10 @@ class ArchiveRepoSuiteSettings(Base):
 
     id = Column(Integer, primary_key=True)
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
     repo: ArchiveRepository = relationship('ArchiveRepository', back_populates='suite_settings')
 
-    suite_id = Column(Integer, ForeignKey('archive_suites.id'))
+    suite_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=False)
     suite: ArchiveSuite = relationship('ArchiveSuite', back_populates='repo_settings')
 
     # Override the default suite summary text for the particular repository
@@ -489,13 +489,17 @@ class ArchiveQueueNewEntry(Base):
 
     id = Column(Integer, primary_key=True)
 
-    package_uuid = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
+    package_uuid = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'), nullable=False)
     package = relationship('SourcePackage')
 
-    destination_id = Column(Integer, ForeignKey('archive_suites.id'))
+    destination_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=False)
     destination = relationship('ArchiveSuite')
 
     comment = Column(Text(), nullable=True)
+
+    def __init__(self, spkg: 'SourcePackage', dest: ArchiveSuite):
+        self.package = spkg
+        self.destination = dest
 
 
 class PackageType(enum.Enum):
@@ -897,16 +901,20 @@ class PackageOverride(Base):
     """
 
     __tablename__ = 'archive_pkg_overrides'
+    __table_args__ = (UniqueConstraint('repo_id', 'suite_id', 'pkg_name', name='_repo_suite_pkgname_uc'),)
 
     id = Column(Integer, primary_key=True)
 
-    pkgname = Column(String(200))  # Name of the binary package
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
+    repo = relationship('ArchiveRepository')  # Repository this override belongs to
 
-    repo_suite_id = Column(Integer, ForeignKey('archive_repo_suite_settings.id'))
-    repo_suite = relationship('ArchiveRepoSuiteSettings')
+    suite_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=False)
+    suite = relationship('ArchiveSuite')  # Suite this override belongs to
+
+    pkg_name = Column(String(200))  # Name of the binary package this override belongs to
 
     essential = Column(Boolean(), default=False)  # Whether this package is marked as essential
-    priority = Column(Enum(PackagePriority))  # Priority of the package
+    priority = Column(Enum(PackagePriority), default=PackagePriority.OPTIONAL)  # Priority of the package
 
     component_id = Column(Integer, ForeignKey('archive_components.id'))
     component = relationship('ArchiveComponent')  # Component this override is for
@@ -914,10 +922,16 @@ class PackageOverride(Base):
     section_id = Column(Integer, ForeignKey('archive_sections.id'))
     section = relationship('ArchiveSection')  # Section of the package
 
-    package = relationship('BinaryPackage', back_populates='override')
-
     def __init__(self, pkgname: str):
-        self.pkgname = pkgname
+        self.pkg_name = pkgname
+
+
+idx_pkgs_binary_repo_arch = Index(
+    'idx_overrides_repo_suite_pkgname',
+    PackageOverride.repo_id,
+    PackageOverride.suite_id,
+    PackageOverride.pkg_name,
+)
 
 
 class BinaryPackage(Base):
@@ -933,7 +947,7 @@ class BinaryPackage(Base):
     name = Column(String(200))  # Package name
     version = Column(DebVersion())  # Version of this package
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
+    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
     repo = relationship('ArchiveRepository')  # Repository this package belongs to
 
     suites = relationship(
@@ -943,15 +957,12 @@ class BinaryPackage(Base):
     component_id = Column(Integer, ForeignKey('archive_components.id'))
     component = relationship('ArchiveComponent')  # Component this package is in
 
-    architecture_id = Column(Integer, ForeignKey('archive_architectures.id'))
+    architecture_id = Column(Integer, ForeignKey('archive_architectures.id'), nullable=False)
     # Architecture this binary was built for
     architecture = relationship('ArchiveArchitecture', back_populates='pkgs_binary', cascade=None)
 
     source_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
     source = relationship('SourcePackage', back_populates='binaries')
-
-    override_id = Column(Integer, ForeignKey('archive_pkg_overrides.id'))
-    override = relationship('PackageOverride', back_populates='package')  # Override data for this binary
 
     time_added = Column(DateTime(), default=datetime.utcnow)  # Time when this package was added to the archive
     time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive

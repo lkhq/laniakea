@@ -22,6 +22,7 @@ from laniakea.db import (
     BinaryPackage,
     DebcheckIssue,
     SourcePackage,
+    PackageOverride,
     PackagePriority,
     ArchiveRepository,
     ArchiveArchitecture,
@@ -176,8 +177,14 @@ def bin_package_details(repo_name, suite_name, name):
         if not rss:
             abort(404)
 
-        bpkgs = (
-            session.query(BinaryPackage)
+        bpkgs_overrides = (
+            session.query(BinaryPackage, PackageOverride)
+            .join(
+                PackageOverride,
+                PackageOverride.repo_id == rss.repo_id,
+                PackageOverride.suite_id == rss.suite_id,
+                BinaryPackage.name == PackageOverride.pkg_name,
+            )
             .options(joinedload(BinaryPackage.architecture))
             .options(joinedload(BinaryPackage.bin_file))
             .options(undefer(BinaryPackage.version))
@@ -188,7 +195,7 @@ def bin_package_details(repo_name, suite_name, name):
             .order_by(BinaryPackage.version.desc())
             .all()
         )
-        if not bpkgs:
+        if not bpkgs_overrides:
             abort(404)
 
         suites = [
@@ -200,11 +207,11 @@ def bin_package_details(repo_name, suite_name, name):
         ]
 
         architectures = set()
-        bpkg_rep = bpkgs[0]  # the first package is always the most recent one
-        for bpkg in bpkgs:
-            architectures.add(bpkg.architecture)
+        bpkg_rep = bpkgs_overrides[0]  # the first package is always the most recent one
         if not bpkg_rep:
             abort(404)
+        for bpkg, _ in bpkgs_overrides:
+            architectures.add(bpkg.architecture)
 
         dep_issues = (
             session.query(DebcheckIssue)
@@ -218,9 +225,10 @@ def bin_package_details(repo_name, suite_name, name):
 
         return render_template(
             'packages/bin_details.html',
-            pkg=bpkg_rep,
+            pkg=bpkg_rep[0],
+            pkg_override=bpkg_rep[1],
             pkg_description=bpkg_rep.description.split('\n', 1)[1].replace('\n', '<br/>'),
-            pkgs_all=bpkgs,
+            all_pkgs_overrides=bpkgs_overrides,
             pkg_repo=rss.repo,
             pkg_suite=rss.suite,
             suites=suites,

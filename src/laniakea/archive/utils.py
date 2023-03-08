@@ -141,7 +141,11 @@ def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourceP
     for bin in spkg.expected_binaries:
         res = (
             session.query(PackageOverride.id)
-            .filter(PackageOverride.repo_suite_id == rss.id, PackageOverride.pkgname == bin.name)
+            .filter(
+                PackageOverride.repo_id == rss.repo_id,
+                PackageOverride.suite_id == rss.suite_id,
+                PackageOverride.pkg_name == bin.name,
+            )
             .first()
         )
         if res is not None:
@@ -236,13 +240,17 @@ def register_package_overrides(
             real_rss = rss_dbg
         override = (
             session.query(PackageOverride)
-            .filter(PackageOverride.repo_suite_id == real_rss.id, PackageOverride.pkgname == pi.name)
+            .filter(
+                PackageOverride.repo_id == real_rss.repo_id,
+                PackageOverride.suite_id == real_rss.suite_id,
+                PackageOverride.pkg_name == pi.name,
+            )
             .one_or_none()
         )
         if not override:
             override = PackageOverride(pi.name)
-            override.repo_suite = real_rss
-            override.pkgname = pi.name
+            override.repo = real_rss.repo
+            override.suite = real_rss.suite
             session.add(override)
 
         override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one()

@@ -19,8 +19,8 @@ from laniakea.db import (
     ArchiveFile,
     PackageInfo,
     ArchiveSuite,
-    BinaryPackage,
-    SourcePackage,
+    ArchiveSection,
+    ChangesUrgency,
     PackageOverride,
     PackagePriority,
     ArchiveComponent,
@@ -32,6 +32,121 @@ from laniakea.logging import log
 from laniakea.utils.gpg import SignedFile
 from laniakea.localconfig import LocalConfig
 from laniakea.archive.utils import parse_package_list_str
+
+
+class ExternalSourcePackage:
+    """Describes a source package coming from an external source."""
+
+    name: str  # Source package name
+    version: str  # Version of this package
+
+    repo: ArchiveRepository
+    suites: list[ArchiveSuite] = []  # Suites this package is in
+
+    component: ArchiveComponent  # Component this package is in
+
+    section: ArchiveSection  # Section of the source package
+
+    architectures: list[str] = []  # List of architectures this source package can be built for
+
+    standards_version: T.Optional[str]
+    format_version: T.Optional[str]
+
+    maintainer: str
+    original_maintainer: T.Optional[str]
+    uploaders: list[str] = []
+
+    homepage: T.Optional[str]  # homepage URL of this package
+    vcs_browser: T.Optional[str]  # VCS browser URL
+    vcs_git: T.Optional[str]  # Git repository URL
+
+    summary: T.Optional[str]
+    description: T.Optional[str]
+
+    testsuite: list[str] = []  # list of testsuite types this package contains
+    testsuite_triggers: list[str] = []  # list of package names that trigger the testsuite
+
+    # value for how important it is to upgrade to this package version from previous ones
+    changes_urgency: ChangesUrgency = ChangesUrgency.MEDIUM
+
+    # see https://www.debian.org/doc/debian-policy/ch-relationships.html
+    build_depends: list[str] = []
+    build_depends_indep: list[str] = []
+    build_depends_arch: list[str] = []
+
+    build_conflicts: list[str] = []
+    build_conflicts_indep: list[str] = []
+    build_conflicts_arch: list[str] = []
+
+    directory: T.Optional[str]  # pool directory name for the sources
+    files: list[ArchiveFile]  # Files that make this source package
+
+    expected_binaries: list[PackageInfo] = []
+
+    extra_data: dict[str, any] = {}
+
+    def __init__(self, name, version):
+        self.name = name
+        self.version = version
+
+
+class ExternalBinaryPackage:
+    """Describes a binary package coming from an external source."""
+
+    deb_type: DebType = DebType.DEB  # Deb package type
+
+    name: str  # Package name
+    version: str  # Version of this package
+
+    repo: ArchiveRepository  # Repository this package belongs to
+
+    suites: list[ArchiveSuite] = []  # Suites this package is in
+    component: ArchiveComponent  # Component this package is in
+
+    architecture: ArchiveArchitecture  # Architecture this binary was built for
+
+    source: ExternalSourcePackage
+
+    size_installed: int = 0  # Size of the installed package
+
+    override: PackageOverride
+
+    summary: str
+    description: T.Optional[str]
+    description_md5: T.Optional[str]
+
+    depends: list[str] = []
+    pre_depends: list[str] = []
+
+    replaces: list[str] = []
+    provides: list[str] = []
+    recommends: list[str] = []
+    suggests: list[str] = []
+    enhances: list[str] = []
+    conflicts: list[str] = []
+    breaks: list[str] = []
+
+    built_using: list[str] = []
+    static_built_using: list[str] = []
+
+    build_ids: list[str] = []
+
+    maintainer: T.Optional[str]
+    original_maintainer: T.Optional[str]
+    homepage: T.Optional[str]
+
+    multi_arch: T.Optional[str]
+
+    phased_update_percentage: int = 100
+
+    contents: list[str] = []  # List of filenames that this package contains
+
+    # Additional key-value metadata that may be specific to this package
+    extra_data: dict[str, any]
+
+    def __init__(self, name, version):
+        self.name = name
+        self.version = version
 
 
 def parse_checksums_list(data, base_dir=None):
@@ -242,7 +357,7 @@ class RepositoryReader:
 
         return index_fname
 
-    def source_packages(self, suite: ArchiveSuite, component: ArchiveComponent) -> T.List[SourcePackage]:
+    def source_packages(self, suite: ArchiveSuite, component: ArchiveComponent) -> T.List[ExternalSourcePackage]:
         '''Return a list of all source packages in the given suite and component.'''
         assert type(suite) is ArchiveSuite
         assert type(component) is ArchiveComponent
@@ -261,7 +376,7 @@ class RepositoryReader:
                         'Found invalid block (no Package and Version fields) in Sources file "{}".'.format(index_fname)
                     )
 
-                pkg = SourcePackage(pkgname, pkgversion)
+                pkg = ExternalSourcePackage(pkgname, pkgversion)
                 pkg.repo = self._repo_entity
                 pkg.component = component
                 if suite not in pkg.suites:
@@ -311,14 +426,13 @@ class RepositoryReader:
                     )
 
                 # add package to results set
-                pkg.update_uuid()
                 pkgs.append(pkg)
 
         return pkgs
 
     def _read_binary_packages_from_tf(
         self, tf, tf_fname, suite, component: ArchiveComponent, arch: ArchiveArchitecture, deb_type: DebType
-    ) -> T.List[BinaryPackage]:
+    ) -> T.List[ExternalBinaryPackage]:
         requested_arch_is_all = arch.name == 'all'
 
         pkgs = []
@@ -346,7 +460,7 @@ class RepositoryReader:
                     )
                 )
 
-            pkg = BinaryPackage(pkgname, pkgversion)
+            pkg = ExternalBinaryPackage(pkgname, pkgversion)
             pkg.deb_type = deb_type
             pkg.repo = self._repo_entity
             pkg.component = component
@@ -398,7 +512,6 @@ class RepositoryReader:
                 )
 
             # update UUID and add package to results set
-            pkg.update_uuid()
             pkgs.append(pkg)
 
         return pkgs

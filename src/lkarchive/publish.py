@@ -29,6 +29,7 @@ from laniakea.db import (
     ArchiveSuite,
     BinaryPackage,
     SourcePackage,
+    PackageOverride,
     ArchiveComponent,
     ArchiveRepository,
     ArchiveArchitecture,
@@ -332,6 +333,15 @@ def generate_packages_index(
 
     from laniakea.db.archive import DebType
 
+    rss = (
+        session.query(ArchiveRepoSuiteSettings)
+        .filter(
+            ArchiveRepoSuiteSettings.repo_id == repo.id,
+            ArchiveRepoSuiteSettings.suite_id == suite.id,
+        )
+        .one()
+    )
+
     deb_type = DebType.DEB
     if installer_udeb:
         deb_type = DebType.UDEB
@@ -353,9 +363,8 @@ def generate_packages_index(
     )
 
     # get the latest binary packages for this configuration
-    bpkgs = (
-        session.query(BinaryPackage)
-        .filter(*bpkg_filter)
+    bpkgs_overrides = (
+        session.query(BinaryPackage, PackageOverride)
         .join(
             bmv_sq,
             and_(
@@ -363,12 +372,21 @@ def generate_packages_index(
                 BinaryPackage.version == bmv_sq.c.max_version,
             ),
         )
+        .join(
+            PackageOverride,
+            and_(
+                PackageOverride.repo_id == rss.repo_id,
+                PackageOverride.suite_id == rss.suite_id,
+                BinaryPackage.name == PackageOverride.pkg_name,
+            ),
+        )
+        .filter(*bpkg_filter)
         .order_by(BinaryPackage.name)
         .all()
     )
 
     entries = []
-    for bpkg in bpkgs:
+    for bpkg, bpkg_override in bpkgs_overrides:
         # write sources file
         entry = Deb822()
 
@@ -390,8 +408,8 @@ def generate_packages_index(
         set_deb822_value(entry, 'Homepage', bpkg.homepage)
         set_deb822_value(entry, 'Architecture', arch.name)
         set_deb822_value(entry, 'Multi-Arch', bpkg.multi_arch)
-        set_deb822_value(entry, 'Section', bpkg.override.section.name)
-        set_deb822_value(entry, 'Priority', str(bpkg.override.priority))
+        set_deb822_value(entry, 'Section', bpkg_override.section.name)
+        set_deb822_value(entry, 'Priority', str(bpkg_override.priority))
         set_deb822_value_commalist(entry, 'Pre-Depends', bpkg.pre_depends)
         set_deb822_value_commalist(entry, 'Depends', bpkg.depends)
         set_deb822_value_commalist(entry, 'Replaces', bpkg.replaces)

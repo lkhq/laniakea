@@ -401,14 +401,22 @@ def _import_repo_into_suite(
             # we check the non-debug primary repo-suite config (rss_dest) first
             override = (
                 session.query(PackageOverride)
-                .filter(PackageOverride.repo_suite_id == rss_dest.id, PackageOverride.pkgname == bpkg_src.name)
+                .filter(
+                    PackageOverride.repo_id == rss_dest.repo_id,
+                    PackageOverride.suite_id == rss_dest.suite_id,
+                    PackageOverride.pkg_name == bpkg_src.name,
+                )
                 .one_or_none()
             )
             if not override:
                 # check the corresponding debug suite
                 override = (
                     session.query(PackageOverride)
-                    .filter(PackageOverride.repo_suite_id == rss_dest_dbg.id, PackageOverride.pkgname == bpkg_src.name)
+                    .filter(
+                        PackageOverride.repo_id == rss_dest_dbg.repo_id,
+                        PackageOverride.suite_id == rss_dest_dbg.suite_id,
+                        PackageOverride.pkg_name == bpkg_src.name,
+                    )
                     .one_or_none()
                 )
                 if not override:
@@ -429,7 +437,11 @@ def _import_repo_into_suite(
                     register_package_overrides(session, rss_dest, [pinfo])
                     override = (
                         session.query(PackageOverride)
-                        .filter(PackageOverride.repo_suite_id == rss_dest.id, PackageOverride.pkgname == bpkg_src.name)
+                        .filter(
+                            PackageOverride.repo_id == rss_dest.repo_id,
+                            PackageOverride.suite_id == rss_dest.suite_id,
+                            PackageOverride.pkg_name == bpkg_src.name,
+                        )
                         .one_or_none()
                     )
                     if not override:
@@ -438,8 +450,9 @@ def _import_repo_into_suite(
                             override = (
                                 session.query(PackageOverride)
                                 .filter(
-                                    PackageOverride.repo_suite_id == rss_dest_dbg.id,
-                                    PackageOverride.pkgname == bpkg_src.name,
+                                    PackageOverride.repo_id == rss_dest_dbg.repo_id,
+                                    PackageOverride.suite_id == rss_dest_dbg.suite_id,
+                                    PackageOverride.pkg_name == bpkg_src.name,
                                 )
                                 .one_or_none()
                             )
