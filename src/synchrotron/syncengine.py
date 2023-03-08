@@ -657,7 +657,7 @@ class SyncEngine:
                             # check if the target package (if an exact match) has its binaries, and try to import them
                             # again if they are missing. This code exists to recover from incomplete syncs in case a
                             # previous autosync run was interrupted for any reason.
-                            if not spkg.binaries:
+                            if not dpkg.binaries:
                                 binary_sync_todo.append((spkg, False))
                         continue
 
