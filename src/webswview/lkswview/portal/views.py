@@ -8,7 +8,7 @@ import math
 
 import gi
 from flask import Blueprint, abort, flash, request, url_for, redirect, render_template
-from sqlalchemy import String, cast, func
+from sqlalchemy import String, and_, cast, func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.dialects.postgresql import ARRAY
 
@@ -141,9 +141,11 @@ def section_view(repo_name, suite_name, section_name, page):
             session.query(BinaryPackage)
             .join(
                 PackageOverride,
-                PackageOverride.repo_id == rss.repo_id,
-                PackageOverride.suite_id == rss.suite_id,
-                PackageOverride.pkg_name == BinaryPackage.name,
+                and_(
+                    PackageOverride.repo_id == rss.repo_id,
+                    PackageOverride.suite_id == rss.suite_id,
+                    PackageOverride.pkg_name == BinaryPackage.name,
+                ),
             )
             .filter(BinaryPackage.repo_id == rss.repo_id)
             .filter(BinaryPackage.suites.any(ArchiveSuite.id == rss.suite_id))

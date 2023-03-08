@@ -8,7 +8,7 @@ import math
 
 import humanize
 from flask import Blueprint, abort, url_for, current_app, render_template
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import undefer, joinedload
 
 from laniakea.db import (
@@ -181,9 +181,11 @@ def bin_package_details(repo_name, suite_name, name):
             session.query(BinaryPackage, PackageOverride)
             .join(
                 PackageOverride,
-                PackageOverride.repo_id == rss.repo_id,
-                PackageOverride.suite_id == rss.suite_id,
-                BinaryPackage.name == PackageOverride.pkg_name,
+                and_(
+                    PackageOverride.repo_id == rss.repo_id,
+                    PackageOverride.suite_id == rss.suite_id,
+                    BinaryPackage.name == PackageOverride.pkg_name,
+                ),
             )
             .options(joinedload(BinaryPackage.architecture))
             .options(joinedload(BinaryPackage.bin_file))
