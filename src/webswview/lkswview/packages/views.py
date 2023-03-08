@@ -220,8 +220,8 @@ def bin_package_details(repo_name, suite_name, name):
             .filter(DebcheckIssue.package_type == PackageType.BINARY)
             .filter(DebcheckIssue.repo_id == rss.repo_id)
             .filter(DebcheckIssue.suite_id == rss.suite_id)
-            .filter(DebcheckIssue.package_name == bpkg_rep.name)
-            .filter(DebcheckIssue.package_version == bpkg_rep.version)
+            .filter(DebcheckIssue.package_name == bpkg_rep[0].name)
+            .filter(DebcheckIssue.package_version == bpkg_rep[0].version)
             .all()
         )
 
@@ -229,7 +229,7 @@ def bin_package_details(repo_name, suite_name, name):
             'packages/bin_details.html',
             pkg=bpkg_rep[0],
             pkg_override=bpkg_rep[1],
-            pkg_description=bpkg_rep.description.split('\n', 1)[1].replace('\n', '<br/>'),
+            pkg_description=bpkg_rep[0].description.split('\n', 1)[1].replace('\n', '<br/>'),
             all_pkgs_overrides=bpkgs_overrides,
             pkg_repo=rss.repo,
             pkg_suite=rss.suite,
