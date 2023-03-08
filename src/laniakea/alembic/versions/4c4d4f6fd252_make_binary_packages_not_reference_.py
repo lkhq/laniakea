@@ -135,17 +135,20 @@ def upgrade():
                 orig_override.section = bpkg.source.section
 
             for suite in bpkg.suites:
+                # skip already existing overrides
+                if (
+                    session.query(PackageOverride)
+                        .filter(
+                        PackageOverride.repo_id == bpkg.repo_id,
+                        PackageOverride.suite_id == suite.id,
+                        PackageOverride.pkg_name == bpkg.name,
+                    )
+                        .all()
+                ):
+                    continue
+
                 override = old_overrides.get('{}:{}/{}'.format(bpkg.repo.id, suite.id, bpkg.name), None)
                 if override:
-                    if (
-                        not session.query(PackageOverride)
-                        .filter(
-                            PackageOverride.repo_id == bpkg.repo_id,
-                            PackageOverride.suite_id == suite.id,
-                            PackageOverride.pkg_name == bpkg.name,
-                        )
-                        .all()
-                    ):
                         session.add(override)
                 else:
                     ov = PackageOverride(bpkg.name)
