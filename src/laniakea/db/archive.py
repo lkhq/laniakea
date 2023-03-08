@@ -804,7 +804,7 @@ class SourcePackage(Base):
 
     @expected_binaries.setter
     def expected_binaries(self, value: PackageInfo | list[PackageInfo]):
-        if not type(value) is list:
+        if not isinstance(value, list):
             value = [value]
 
         data = []
