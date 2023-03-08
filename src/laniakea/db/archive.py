@@ -994,7 +994,7 @@ class BinaryPackage(Base):
     original_maintainer = Column(Text(), nullable=True)
     homepage = Column(Text())
 
-    multi_arch = Column(CHAR(32))
+    multi_arch = Column(String(32))
 
     phased_update_percentage = Column(SmallInteger(), default=100)
 
