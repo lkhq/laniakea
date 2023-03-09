@@ -1,6 +1,6 @@
 {% extends 'migrations/layout.html' %}
 
-{% set page_title = 'Migration excuses for {{migration_source_suites_str}} → {{migration.target_suite.name}}' %}
+{% set page_title = 'Migration excuses for ' + migration_source_suites_str + ' → ' + migration.target_suite.name %}
 
 {% block body_header %}
 <h1 class="title">Excuses for {{migration_source_suites_str}} <i class="fas fa-long-arrow-alt-right"></i> {{migration.target_suite.name}}</h1>
