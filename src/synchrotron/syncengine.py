@@ -6,8 +6,10 @@
 
 import re
 
+from pebble import ThreadPool
 from apt_pkg import version_compare
 from sqlalchemy import and_, func, exists
+from sqlalchemy.orm import joinedload
 
 import laniakea.typing as T
 from laniakea import LkModule, LocalConfig
@@ -34,6 +36,7 @@ from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 from laniakea.reporeader import (
     RepositoryReader,
+    ExternalSourcePackage,
     version_revision,
     make_newest_packages_dict,
 )
@@ -181,6 +184,7 @@ class SyncEngine:
         # get the latest source packages for this configuration
         spkgs = (
             session.query(SourcePackage)
+            .options(joinedload(SourcePackage.binaries))
             .filter(*spkg_filters)
             .join(
                 smv_sq,
@@ -575,6 +579,16 @@ class SyncEngine:
 
         self._ev_emitter.submit_event('new-autosync-issue', data)
 
+    def _is_candidate(self, spkg: ExternalSourcePackage, dpkg: SourcePackage):
+        if version_compare(dpkg.version, spkg.version) >= 0:
+            log.debug(
+                'Skipped sync of {}: Target version \'{}\' is equal/newer than source version \'{}\'.'.format(
+                    spkg.name, dpkg.version, spkg.version
+                )
+            )
+            return False
+        return True
+
     def _autosync_internal(self, session, remove_cruft: bool = True) -> bool:
         """Synchronize all packages between source and destination."""
 
@@ -639,28 +653,38 @@ class SyncEngine:
                     self._source_suite_name, component.name
                 ).values()
 
-            for spkg in src_pkg_range:
-                # ignore blacklisted packages in automatic sync
-                if spkg.name in self._sync_blacklist:
-                    continue
+            # determine initial sync candidates - comparing a lot ov versions can be slow,
+            # and since the version comparison is implemented in C, we can use a ThreadPool here
+            # to speed things up slightly.
+            candidates = []
+            with ThreadPool() as pool:
+                tasks_pending = []
+                for spkg in src_pkg_range:
+                    # ignore blacklisted packages in automatic sync
+                    if spkg.name in self._sync_blacklist:
+                        continue
 
-                dpkg = dest_pkg_map.get(spkg.name)
-                if dpkg:
-                    if version_compare(dpkg.version, spkg.version) >= 0:
-                        log.debug(
-                            'Skipped sync of {}: Target version \'{}\' is equal/newer than source version \'{}\'.'.format(
-                                spkg.name, dpkg.version, spkg.version
-                            )
-                        )
-
+                    dpkg = dest_pkg_map.get(spkg.name)
+                    if dpkg:
                         if dpkg.version == spkg.version and self._distro_tag not in version_revision(dpkg.version):
                             # check if the target package (if an exact match) has its binaries, and try to import them
                             # again if they are missing. This code exists to recover from incomplete syncs in case a
                             # previous autosync run was interrupted for any reason.
                             if not dpkg.binaries:
                                 binary_sync_todo.append((spkg, False))
-                        continue
+                            continue
 
+                        tasks_pending.append((spkg, dpkg, pool.schedule(self._is_candidate, (spkg, dpkg))))
+                    else:
+                        candidates.append((spkg, None))
+
+                for spkg, dpkg, is_candidate_future in tasks_pending:
+                    if is_candidate_future.result():
+                        candidates.append((spkg, dpkg))
+
+            # test the initial candidates further and actually sync them if they are suitable
+            for spkg, dpkg in candidates:
+                if dpkg:
                     # check if we have a modified target package,
                     # indicated via its Debian revision, e.g. "1.0-0tanglu1"
                     if self._distro_tag in version_revision(dpkg.version):
@@ -713,9 +737,6 @@ class SyncEngine:
             ret = self._import_binaries_for_source(session, sync_conf, pkgip, component.name, binary_sync_todo)
             if not ret:
                 return False
-
-            # commit after processing each component
-            session.commit()
 
         # test for cruft packages
         target_pkg_index = {}
