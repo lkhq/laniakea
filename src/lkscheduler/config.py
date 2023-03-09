@@ -41,13 +41,13 @@ class SchedulerConfig:
             # expire old data in repos every 3 days by default
             self._intervals_min['expire-repos'] = cintervals.get('expire-repos', 3 * 24 * 60)
 
-            # migrate packages all 6h by default
-            self._intervals_min['spears-migrate'] = cintervals.get('spears-migrate', 6 * 60)
+            # migrate packages every 8h by default
+            self._intervals_min['spears-migrate'] = cintervals.get('spears-migrate', 8 * 60)
 
-            # check the archive for dependency issues every 3h
-            self._intervals_min['debcheck'] = cintervals.get('debcheck', 3 * 60)
+            # check the archive for dependency issues every 6h
+            self._intervals_min['debcheck'] = cintervals.get('debcheck', 6 * 60)
 
-            # check the archive for dependency issues every 12h
+            # sync packages from an origin OS every 12h
             self._intervals_min['synchrotron-autosync'] = cintervals.get('synchrotron-autosync', 12 * 60)
 
             # find executables
