@@ -6,7 +6,7 @@
 
 import re
 
-from pebble import ThreadPool, concurrent
+from pebble import ThreadPool
 from apt_pkg import version_compare
 from sqlalchemy import and_, func, exists
 from sqlalchemy.orm import joinedload
@@ -123,8 +123,7 @@ class SyncEngine:
 
             self._ev_emitter.submit_event('src-package-imported', data)
 
-    @concurrent.thread
-    def _get_source_repo_binary_package_map_async(
+    def _get_source_repo_binary_package_map(
         self, suite_name: str, component_name: str, arch_name: str = None, with_installer: bool = True
     ):
         '''Get an associative array of the newest binary packages present in a repository.'''
@@ -145,8 +144,7 @@ class SyncEngine:
             )  # always append arch:all packages
         return make_newest_packages_dict(bpkgs)
 
-    @concurrent.thread
-    def _get_source_repo_source_packages_async(self, suite_name: str, component_name: str):
+    def _get_source_repo_source_packages(self, suite_name: str, component_name: str):
         """Get a list of all source packages present in the source repository."""
 
         log.debug('Retrieving source packages for source suite: %s/%s', suite_name, component_name)
@@ -154,12 +152,10 @@ class SyncEngine:
         component = ArchiveComponent(component_name)
         return self._source_reader.source_packages(suite, component)
 
-    @concurrent.thread
-    def _get_source_repo_source_package_map_async(self, suite_name: str, component_name: str):
+    def _get_source_repo_source_package_map(self, suite_name: str, component_name: str):
         """Get an associative array of the newest source packages present in the source repository."""
 
-        # pylint: disable=E1101
-        spkgs = self._get_source_repo_source_packages_async(suite_name, component_name).result()
+        spkgs = self._get_source_repo_source_packages(suite_name, component_name)
         log.debug('Retrieving source package map for source suite: %s/%s', suite_name, component_name)
         return make_newest_packages_dict(spkgs)
 
@@ -381,7 +377,7 @@ class SyncEngine:
         # cache of binary-package mappings for the source
         src_bpkg_arch_map = {}
         for aname in target_archs:
-            src_bpkg_arch_map[aname] = self._get_source_repo_binary_package_map_async(
+            src_bpkg_arch_map[aname] = self._get_source_repo_binary_package_map(
                 self._source_suite_name, component, aname
             )
 
@@ -404,7 +400,7 @@ class SyncEngine:
                 if arch_name not in src_bpkg_arch_map:
                     continue
 
-                src_bpkg_map = src_bpkg_arch_map[arch_name].result()
+                src_bpkg_map = src_bpkg_arch_map[arch_name]
                 dest_bpkg_map = dest_bpkg_arch_map[arch_name]
 
                 bin_files = []
@@ -501,9 +497,8 @@ class SyncEngine:
             log.error('Can not synchronize package: Synchronization is disabled for this configuration.')
             return False
 
-        src_pkg_map_future = self._get_source_repo_source_package_map_async(self._source_suite_name, component_name)
         dest_pkg_map = self._get_target_source_package_map(session, component_name)
-        src_pkg_map = src_pkg_map_future.result()  # pylint: disable=E1101
+        src_pkg_map = self._get_source_repo_source_package_map(self._source_suite_name, component_name)
 
         rss = repo_suite_settings_for(session, self._repo_name, self._target_suite_name)
         pkgip = PackageImporter(session, rss)
@@ -640,6 +635,8 @@ class SyncEngine:
                 )
                 continue
 
+            dest_pkg_map = self._get_target_source_package_map(session, component.name)
+
             # The source package lists contains many different versions, some source package
             # versions are explicitly kept for GPL-compatibility.
             # Sometimes a binary package migrates into another suite, dragging a newer source-package
@@ -650,21 +647,11 @@ class SyncEngine:
             # when doing source-only syncs too?), That's why we don't filter out the newest packages in
             # binary-sync-mode.
             if sync_conf.sync_binaries:
-                src_pkg_map_future = None
-                src_pkg_range_future = self._get_source_repo_source_packages_async(
-                    self._source_suite_name, component.name
-                )
+                src_pkg_range = self._get_source_repo_source_packages(self._source_suite_name, component.name)
             else:
-                src_pkg_range_future = None
-                src_pkg_map_future = self._get_source_repo_source_package_map_async(
+                src_pkg_range = self._get_source_repo_source_package_map(
                     self._source_suite_name, component.name
-                )
-
-            dest_pkg_map = self._get_target_source_package_map(session, component.name)
-            if src_pkg_range_future:
-                src_pkg_range = src_pkg_range_future.result()  # pylint: disable=E1101
-            else:
-                src_pkg_range = src_pkg_map_future.result().values()  # pylint: disable=E1101
+                ).values()
 
             # determine initial sync candidates - comparing a lot ov versions can be slow,
             # and since the version comparison is implemented in C, we can use a ThreadPool here
@@ -762,11 +749,7 @@ class SyncEngine:
         for component in rss.suite.components:
             if component.name not in sync_source.components:
                 continue
-
-            # pylint: disable=E1101
-            src_pkg_map = self._get_source_repo_source_package_map_async(
-                self._source_suite_name, component.name
-            ).result()
+            src_pkg_map = self._get_source_repo_source_package_map(self._source_suite_name, component.name)
             for pkgname in src_pkg_map.keys():
                 target_pkg_index.pop(pkgname, None)
 
