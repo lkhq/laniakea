@@ -339,6 +339,11 @@ class RepositoryReader:
         else:
             suite_name = suite
 
+        # if we are using a remote repo, we want to re-fetch the InRelease data,
+        # just in case the remote side has updated its metadata between calls
+        if self._repo_url:
+            self._inrelease.pop(suite_name, None)
+
         ird = self._read_repo_information(suite_name)
         index_fname = self._fetch_repo_file_internal(os.path.join('dists', suite_name, fname))
         if not index_fname:
