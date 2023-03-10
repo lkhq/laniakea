@@ -114,6 +114,7 @@ ignored-modules = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "-x"
 minversion = "6.0"
 log_cli = true
 log_level = "INFO"

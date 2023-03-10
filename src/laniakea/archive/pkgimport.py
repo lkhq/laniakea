@@ -540,6 +540,75 @@ class PackageImporter:
             self._session.commit()
         return ImportSourceResult(spkg, is_new)
 
+    def _find_source_package(
+        self, deb_rss: ArchiveRepoSuiteSettings, source_name: str, source_version: str
+    ) -> T.Tuple[T.Optional[SourcePackage], bool]:
+        """Find the respective binary package.
+
+        This function will find a source package, no matter if it is in a NEW queue, in the same
+        repository as the binary package (e.g. a debug repository) or in the current target.
+        """
+
+        source = (
+            self._session.query(SourcePackage)
+            .filter(
+                SourcePackage.repo_id == deb_rss.repo_id,
+                SourcePackage.suites.any(id=deb_rss.suite_id),
+                SourcePackage.name == source_name,
+                SourcePackage.version == source_version,
+            )
+            .one_or_none()
+        )
+        if source:
+            return source, False
+
+        if deb_rss.id != self._rss.id:
+            # maybe the package is in the non-debug suite?
+            source = (
+                self._session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == self._rss.repo_id,
+                    SourcePackage.suites.any(id=self._rss.suite_id),
+                    SourcePackage.name == source_name,
+                    SourcePackage.version == source_version,
+                )
+                .one_or_none()
+            )
+            if source:
+                return source, False
+
+        # maybe the package is in NEW?
+        nq_entry = (
+            self._session.query(ArchiveQueueNewEntry)
+            .join(ArchiveQueueNewEntry.package)
+            .filter(
+                SourcePackage.repo_id == deb_rss.repo_id,
+                ArchiveQueueNewEntry.destination_id == deb_rss.suite_id,
+                SourcePackage.name == source_name,
+                SourcePackage.version == source_version,
+            )
+            .one_or_none()
+        )
+        if nq_entry:
+            return nq_entry.package, True
+
+        nq_entry = (
+            self._session.query(ArchiveQueueNewEntry)
+            .join(ArchiveQueueNewEntry.package)
+            .filter(
+                SourcePackage.repo_id == self._rss.repo_id,
+                ArchiveQueueNewEntry.destination_id == self._rss.suite_id,
+                SourcePackage.name == source_name,
+                SourcePackage.version == source_version,
+            )
+            .one_or_none()
+        )
+        if nq_entry:
+            return nq_entry.package, True
+
+        # we found nothing
+        return None, False
+
     def import_binary(
         self,
         deb_fname: T.Union[os.PathLike, str],
@@ -668,41 +737,30 @@ class PackageImporter:
             source_name = source_info_raw
             source_version = version
 
-        # find the source package
-        is_new = False
-        bpkg.source = (
-            self._session.query(SourcePackage)
-            .filter(
-                SourcePackage.repo_id == deb_rss.repo_id,
-                SourcePackage.suites.any(id=deb_rss.suite_id),
-                SourcePackage.name == source_name,
-                SourcePackage.version == source_version,
-            )
-            .one_or_none()
-        )
+        # find the corresponding source package
+        bpkg.source, is_new = self._find_source_package(deb_rss, source_name, source_version)
         if not bpkg.source:
-            # maybe the package is in NEW?
-            nq_entry = (
-                self._session.query(ArchiveQueueNewEntry)
-                .join(ArchiveQueueNewEntry.package)
-                .filter(
-                    ArchiveQueueNewEntry.destination_id == deb_rss.suite_id,
-                    SourcePackage.name == source_name,
-                    SourcePackage.version == source_version,
-                    SourcePackage.repo_id == deb_rss.repo_id,
+            if deb_rss.id == self._rss.id:
+                search_msg = 'looked for {}/{} in {}:{}'.format(
+                    source_name, source_version, deb_rss.repo.name, deb_rss.suite.name
                 )
-                .one_or_none()
+            else:
+                search_msg = 'looked for {}/{} in {}:{} and {}:{}'.format(
+                    source_name,
+                    source_version,
+                    deb_rss.repo.name,
+                    deb_rss.suite.name,
+                    self._rss.repo.name,
+                    self._rss.suite.name,
+                )
+            raise ArchiveImportError(
+                'Unable to import binary package `{}/{}/{}`: Could not find corresponding source package ({}).'.format(
+                    pkgname, version, pkgarch, search_msg
+                )
             )
-            if nq_entry:
-                bpkg.source = nq_entry.package
-            if not bpkg.source:
-                raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}/{}`: Could not find corresponding source package (looked for {}/{} in {}:{}).'.format(
-                        pkgname, version, pkgarch, source_name, source_version, deb_rss.repo.name, deb_rss.suite.name
-                    )
-                )
+
+        if is_new:
             self._session.expunge(bpkg)
-            is_new = True
 
         # fetch component this binary package is in
         component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()

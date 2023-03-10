@@ -246,7 +246,7 @@ class TestArchive:
             # try importing a binary that does not have overrides set
             with pytest.raises(ArchiveImportError) as einfo:
                 pi.import_binary(os.path.join(package_samples, 'snowman_0.1-1_all.deb'), 'main')
-            assert 'Could not find corresponding source package.' in str(einfo.value)
+            assert 'Could not find corresponding source package' in str(einfo.value)
             session.commit()
             assert (
                 not session.query(BinaryPackage)
