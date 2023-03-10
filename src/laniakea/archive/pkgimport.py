@@ -673,8 +673,8 @@ class PackageImporter:
         bpkg.source = (
             self._session.query(SourcePackage)
             .filter(
-                SourcePackage.repo_id == self._rss.repo_id,
-                SourcePackage.suites.any(id=self._rss.suite_id),
+                SourcePackage.repo_id == deb_rss.repo_id,
+                SourcePackage.suites.any(id=deb_rss.suite_id),
                 SourcePackage.name == source_name,
                 SourcePackage.version == source_version,
             )
@@ -686,10 +686,10 @@ class PackageImporter:
                 self._session.query(ArchiveQueueNewEntry)
                 .join(ArchiveQueueNewEntry.package)
                 .filter(
-                    ArchiveQueueNewEntry.destination_id == self._rss.suite_id,
+                    ArchiveQueueNewEntry.destination_id == deb_rss.suite_id,
                     SourcePackage.name == source_name,
                     SourcePackage.version == source_version,
-                    SourcePackage.repo_id == self._rss.repo_id,
+                    SourcePackage.repo_id == deb_rss.repo_id,
                 )
                 .one_or_none()
             )
@@ -697,8 +697,8 @@ class PackageImporter:
                 bpkg.source = nq_entry.package
             if not bpkg.source:
                 raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}/{}`: Could not find corresponding source package.'.format(
-                        pkgname, version, pkgarch
+                    'Unable to import binary package `{}/{}/{}`: Could not find corresponding source package (looked for {}/{} in {}:{}).'.format(
+                        pkgname, version, pkgarch, source_name, source_version, deb_rss.repo.name, deb_rss.suite.name
                     )
                 )
             self._session.expunge(bpkg)
@@ -737,7 +737,7 @@ class PackageImporter:
 
             log.info(
                 'Binary `{}/{}` for {}/{} added to NEW queue'.format(
-                    bpkg.name, bpkg.version, self._rss.repo.name, self._rss.suite.name
+                    bpkg.name, bpkg.version, deb_rss.repo.name, deb_rss.suite.name
                 )
             )
             # nothing left to do, we will not register this package with the database
