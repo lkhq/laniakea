@@ -459,19 +459,16 @@ class SpearsEngine:
     def _run_migration_internal(self, session, mtask: SpearsMigrationTask):
         mi_wspace = self._get_migrate_workspace(mtask)
         britney_conf = os.path.join(mi_wspace, 'britney.conf')
+        migration_displayname = self._get_migration_displayname(mtask.repo, mtask.source_suites, mtask.target_suite)
         if not os.path.isfile(britney_conf):
             log.warning(
                 'No Britney config for migration run "{}" - maybe the configuration was not yet updated?'.format(
-                    self._get_migration_displayname(mtask.repo, mtask.source_suites, mtask.target_suite)
+                    migration_displayname
                 )
             )
             return None
 
-        log.info(
-            'Migration run for "{}"'.format(
-                self._get_migration_displayname(mtask.repo, mtask.source_suites, mtask.target_suite)
-            )
-        )
+        log.info('Migration run for "{}"'.format(migration_displayname))
         # ensure prerequisites are met and Britney is fed with all the data it needs
         self._prepare_source_dists_data(session, mi_wspace, mtask)
         self._create_faux_packages(session, mi_wspace, mtask)
@@ -480,12 +477,15 @@ class SpearsEngine:
         self._setup_various(mi_wspace, mtask)
 
         # execute the migration tester
+        log.info('Running Britney (%s)', migration_displayname)
         self._britney.run(mi_wspace, britney_conf)
 
         # prepare result for import
+        log.info('Reading result')
         heidi_result = self._postprocess_heidi_file(mi_wspace)
 
         # tell lk-archive to import the new data (overriding the target suite)
+        log.info('Importing changed data (%s)', migration_displayname)
         proc = subprocess.run(
             [
                 self._lk_archive_exe,
@@ -502,6 +502,7 @@ class SpearsEngine:
         if proc.returncode != 0:
             return None
 
+        log.info('Retrieving excuses (%s)', migration_displayname)
         res = self._retrieve_excuses(session, mi_wspace, mtask)
         return res
 

@@ -52,14 +52,22 @@ class ExcusesFile:
 
             # simple migrations
             if line.startswith('trying:'):
-                current_packages = [line[7:].strip()]
+                pkgid = line[7:].strip()
+                if pkgid.startswith('-'):
+                    pkgid = pkgid[1:]
+                if '/' in pkgid:
+                    pkgid = pkgid.split('/', 2)[0]
+                current_packages = [pkgid]
 
             # autohinter action
             if line.startswith('Trying easy from autohinter:'):
                 pkgs_line = line[28:].strip()
                 for pkgid in pkgs_line.split(' '):
-                    parts = pkgid.split('/')
-                    current_packages.append(parts[0])
+                    if pkgid.startswith('-'):
+                        pkgid = pkgid[1:]
+                    if '/' in pkgid:
+                        pkgid = pkgid.split('/', 2)[0]
+                    current_packages.append(pkgid)
 
             # ignore uninteresting entries
             if not current_packages:
@@ -147,7 +155,7 @@ class ExcusesFile:
                         excuse.other.append(s)
 
             # add log information
-            excuse.log_excerpt = loginfo.get(excuse.source_package)
+            excuse.log_excerpt = loginfo.get(excuse.source_package.name)
 
             res[excuse.make_idname()] = excuse
 
