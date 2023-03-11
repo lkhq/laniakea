@@ -76,16 +76,7 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
         table.add_column('Component')
         table.add_column('Architectures')
 
-        for spkg in spkgs:
-            table.add_row(
-                '[red]' + spkg.name if spkg.time_deleted else spkg.name,
-                spkg.version,
-                spkg.repo.name,
-                ' '.join(sorted([s.name for s in spkg.suites])),
-                spkg.component.name,
-                '[red]source (deleted)' if spkg.time_deleted else 'source',
-            )
-
+        # combine binary package data for display
         bpkg_by_arch: T.Dict[str, T.Any] = {}
         for bpkg in bpkgs:
             bpkid = '{}:{}/{}-{}'.format(bpkg.repo.name, bpkg.component.name, bpkg.name, bpkg.version)
@@ -96,16 +87,37 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
             else:
                 bpkg_by_arch[bpkid] = dict(bpkg=bpkg, archs={arch_str}, suites=set([s.name for s in bpkg.suites]))
 
+        # sort the result list by source-version
+        all_pkg_info = []
         for data in bpkg_by_arch.values():
             bpkg = data['bpkg']
-            table.add_row(
-                bpkg.name,
-                bpkg.version,
-                bpkg.repo.name,
-                ' '.join(sorted(data['suites'])),
-                bpkg.component.name,
-                ' '.join(sorted(data['archs'])),
-            )
+            all_pkg_info.append(('{}-{}'.format(bpkg.source.name, bpkg.source.version), data))
+        for spkg in spkgs:
+            all_pkg_info.append(('{}-{}'.format(spkg.name, spkg.version), spkg))
+        all_pkg_info.sort(key=lambda x: x[0])
+
+        # display the result
+        for _, info in all_pkg_info:
+            if isinstance(info, SourcePackage):
+                spkg = info
+                table.add_row(
+                    '[red]' + spkg.name if spkg.time_deleted else spkg.name,
+                    spkg.version,
+                    spkg.repo.name,
+                    ' '.join(sorted([s.name for s in spkg.suites])),
+                    spkg.component.name,
+                    '[red]source (deleted)' if spkg.time_deleted else 'source',
+                )
+            else:
+                bpkg = info['bpkg']
+                table.add_row(
+                    bpkg.name,
+                    bpkg.version,
+                    bpkg.repo.name,
+                    ' '.join(sorted(info['suites'])),
+                    bpkg.component.name,
+                    ' '.join(sorted(info['archs'])),
+                )
 
         console = Console()
         console.print(table)
