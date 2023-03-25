@@ -13,9 +13,11 @@ from sqlalchemy import and_, func
 import laniakea.typing as T
 from laniakea.db import (
     ArchiveError,
+    ArchiveSuite,
     BinaryPackage,
     SourcePackage,
     PackageOverride,
+    ArchiveRepository,
     SoftwareComponent,
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
@@ -324,6 +326,7 @@ def copy_source_package(
     *,
     include_binaries: bool = True,
     allow_missing_debug: bool = False,
+    overrides_from_suite: T.Optional[str] = None,
 ):
     """Copies a source package (and linked binaries) into a destination suite.
     It is only allowed to move a package within a repository this way - moving a package between
@@ -334,6 +337,7 @@ def copy_source_package(
     :param dest_rss: Destination repository/suite
     :param include_binaries: True if binaries built by this source package should be copied with it.
     :param allow_missing_debug: True if it is okay if the destination has no corresponding debug suite.
+    :param overrides_from_suite: Set a suite name from which binary overrides should be obtained (None to pick any suite)
     :raise:
     """
 
@@ -360,7 +364,59 @@ def copy_source_package(
             copy_binary_package(session, bpkg, dest_rss)
 
 
-def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuiteSettings):
+def copy_binary_package_override(
+    session, bpkg: BinaryPackage, repo: ArchiveRepository, dest_suite: ArchiveSuite, from_suite: T.Optional[str]
+):
+    """Copy override information for a specific binary package from one suite to another.
+
+    :param session: A SQLAlchemy session
+    :param bpkg: Binary package the override information belongs to.
+    :param repo: Repository to act on.
+    :param dest_suite: The destination suite to copy to.
+    :param from_suite: The suite to copy information from, if applicable.
+    :return:
+    """
+    origin_suite_name = from_suite if from_suite else bpkg.suites[0].name
+
+    target_override = (
+        session.query(PackageOverride)
+        .filter(
+            PackageOverride.repo_id == repo.id,
+            PackageOverride.suite_id == dest_suite.id,
+            PackageOverride.pkg_name == bpkg.name,
+        )
+        .one_or_none()
+    )
+    origin_override = (
+        session.query(PackageOverride)
+        .filter(
+            PackageOverride.repo_id == repo.id,
+            PackageOverride.suite.has(name=origin_suite_name),
+            PackageOverride.pkg_name == bpkg.name,
+        )
+        .one_or_none()
+    )
+    if not origin_override:
+        raise ArchiveError(
+            'Can not copy binary package: No override information found in source suite {} for `{}`.'.format(
+                origin_suite_name, bpkg
+            )
+        )
+    if not target_override:
+        target_override = PackageOverride(bpkg.name)
+        session.add(target_override)
+
+    target_override.repo = repo
+    target_override.suite = dest_suite
+    target_override.essential = origin_override.essential
+    target_override.priority = origin_override.priority
+    target_override.component = origin_override.component
+    target_override.section = origin_override.section
+
+
+def copy_binary_package(
+    session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuiteSettings, *, overrides_from_suite: T.Optional[str] = None
+):
     """Copies a binary package into a destination suite.
     It is only allowed to move a package within a repository this way - moving a package between
     repositories is not supported and requires a new upload.
@@ -368,6 +424,7 @@ def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuite
     :param session: SQLAlchemy session
     :param bpkg: Binary package to copy
     :param dest_rss: Destination repository/suite
+    :param overrides_from_suite: Set a suite name from which overrides should be copied (None to pick any suite)
     :raise:
     """
 
@@ -391,6 +448,7 @@ def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuite
                 )
             )
         if dest_debug_suite not in bpkg.suites:
+            copy_binary_package_override(session, bpkg, dest_rss.repo, dest_debug_suite, overrides_from_suite)
             bpkg.suites.append(dest_debug_suite)
             log.info(
                 'Copied dbgsym package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_debug_suite.name
@@ -399,6 +457,7 @@ def copy_binary_package(session, bpkg: BinaryPackage, dest_rss: ArchiveRepoSuite
                 'COPY-BIN-DBG: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_debug_suite.name
             )
     elif dest_suite not in bpkg.suites:
+        copy_binary_package_override(session, bpkg, dest_rss.repo, dest_suite, overrides_from_suite)
         bpkg.suites.append(dest_suite)
         log.info('Copied binary package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_suite.name)
         archive_log.info('COPY-BIN: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_suite.name)
