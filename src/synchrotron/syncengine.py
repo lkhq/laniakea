@@ -391,7 +391,7 @@ class SyncEngine:
         for spkg, is_copied in spkgs_info:
             # if a package has been copied, we do not need to attempt
             # to sync any binary packages
-            if is_copied:
+            if is_copied and not ignore_target_changes:
                 continue
 
             bin_files_synced = False
@@ -441,11 +441,11 @@ class SyncEngine:
                         # distro did a binNMU, we don't want to sync that, even if it's bigger
                         # This rebuild-upload check must only happen if we haven't just updated the source package
                         # (in that case the source package version will be bigger than the existing binary package version)
-                        if version_compare(spkg.version, ebpkg.version) >= 0:
+                        if ebpkg.version.startswith(spkg.version) and version_compare(spkg.version, ebpkg.version) >= 0:
                             if re.match(r'(.*)b([0-9]+)', ebpkg.version) and 'deb' not in ebpkg.version:
                                 log.debug(
                                     'Not syncing binary package \'{}/{}\': '
-                                    'Existing binary package with rebuild upload \'{}\' found.'.format(
+                                    'Existing binary package with rebuild upload found: \'{}\''.format(
                                         bpkg.name, bpkg.version, ebpkg.version
                                     )
                                 )
@@ -519,13 +519,13 @@ class SyncEngine:
                 if version_compare(dpkg.version, spkg.version) >= 0:
                     if force:
                         log.warning(
-                            '{}: Target version \'{}\' is newer/equal than source version \'{}\'.'.format(
+                            '{}: Target version \'{}\' is newer than or equal to source version \'{}\'.'.format(
                                 pkgname, dpkg.version, spkg.version
                             )
                         )
                     else:
                         log.info(
-                            'Can not sync {}: Target version \'{}\' is newer/equal than source version \'{}\'.'.format(
+                            'Can not sync {}: Target version \'{}\' is newer than or equal to source version \'{}\'.'.format(
                                 pkgname, dpkg.version, spkg.version
                             )
                         )
