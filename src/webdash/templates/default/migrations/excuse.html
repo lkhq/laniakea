@@ -38,6 +38,7 @@
     </tbody>
 </table>
 
+{% if excuse.age_current %}
 <div class="card">
   <header class="card-header">
     <p class="card-header-title">
@@ -55,7 +56,7 @@
     </div>
   </div>
 </div>
-
+{% endif %}
 
 {% if excuse.missing_archs_primary or excuse.missing_archs_secondary %}
 <div class="card">
