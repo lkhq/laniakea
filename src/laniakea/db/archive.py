@@ -1063,6 +1063,13 @@ idx_pkgs_binary_repo_name_version = Index(
     BinaryPackage.version,
 )
 
+idx_pkgs_binary_repo_source_arch = Index(
+    'idx_pkgs_binary_repo_source_arch',
+    BinaryPackage.repo_id,
+    BinaryPackage.source_id,
+    BinaryPackage.architecture_id,
+)
+
 
 class SoftwareComponent(Base):
     """
