@@ -24,24 +24,27 @@ from laniakea.db import (
     JobKind,
     JobStatus,
     PackageType,
-    ArchiveSuite,
     BinaryPackage,
     DebcheckIssue,
     SourcePackage,
-    ArchiveRepository,
-    session_factory,
+    ArchiveArchitecture,
+    ArchiveRepoSuiteSettings,
+    session_scope,
     config_get_value,
 )
 from laniakea.utils import any_arch_matches
 
 
-def get_newest_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite):
+def get_newest_sources_index(session, rss: ArchiveRepoSuiteSettings):
     '''
-    Create an index of the most recent source packages, using
-    the source-UUID of source packages.
+    Create an index of the most recent source packages.
     '''
 
-    spkg_filters = [SourcePackage.repo_id == repo.id, SourcePackage.suites.any(id=suite.id)]
+    spkg_filters = [
+        SourcePackage.repo_id == rss.repo_id,
+        SourcePackage.suites.any(id=rss.suite_id),
+        SourcePackage.time_deleted.is_(None),
+    ]
 
     spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
     smv_sq = (
@@ -50,11 +53,12 @@ def get_newest_sources_index(session, repo: ArchiveRepository, suite: ArchiveSui
         .subquery('smv_sq')
     )
 
+    # get the latest source packages for this configuration
     latest_spkg = (
         session.query(SourcePackage)
         .options(undefer(SourcePackage.version))
         .options(undefer(SourcePackage.architectures))
-        .filter(spkg_filters)
+        .filter(*spkg_filters)
         .join(
             smv_sq,
             and_(
@@ -65,29 +69,28 @@ def get_newest_sources_index(session, repo: ArchiveRepository, suite: ArchiveSui
         .all()
     )
 
-    res_spkgs = {}
-    for pkg in latest_spkg:
-        res_spkgs[pkg.uuid] = pkg
-    return res_spkgs
+    return latest_spkg
 
 
-def binaries_exist_for_package(session, repo, spkg, arch):
+def binaries_exist_for_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, arch: ArchiveArchitecture):
     '''
     Get list of binary packages built for the given source package.
     '''
 
     eq = (
         session.query(BinaryPackage)
-        .filter(BinaryPackage.repo_id == repo.id)
-        .filter(BinaryPackage.source_name == spkg.name)
-        .filter(BinaryPackage.source_version == spkg.version)
-        .filter(BinaryPackage.architecture == arch)
+        .filter(BinaryPackage.repo_id == rss.repo.id)
+        .filter(BinaryPackage.suites.any(id=rss.suite.id))
+        .filter(BinaryPackage.source_id == spkg.uuid)
+        .filter(BinaryPackage.architecture_id == arch.id)
         .exists()
     )
     return session.query(eq).scalar()
 
 
-def debcheck_has_issues_for_package(session, suite, spkg, arch):
+def debcheck_has_issues_for_package(
+    session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, arch: ArchiveArchitecture
+):
     '''
     Get Debcheck issues related to the given source package.
     '''
@@ -95,7 +98,8 @@ def debcheck_has_issues_for_package(session, suite, spkg, arch):
     eq = (
         session.query(DebcheckIssue)
         .filter(DebcheckIssue.package_type == PackageType.SOURCE)
-        .filter(DebcheckIssue.suite_id == suite.id)
+        .filter(DebcheckIssue.repo_id == rss.repo.id)
+        .filter(DebcheckIssue.suite_id == rss.suite.id)
         .filter(DebcheckIssue.package_name == spkg.name)
         .filter(DebcheckIssue.package_version == spkg.version)
         .filter(DebcheckIssue.architectures.any(arch.name))
@@ -105,7 +109,14 @@ def debcheck_has_issues_for_package(session, suite, spkg, arch):
 
 
 def schedule_build_for_arch(
-    session, repo, spkg, arch, incoming_suite, *, enforce_indep=False, arch_all=None, simulate=False
+    session,
+    rss: ArchiveRepoSuiteSettings,
+    spkg: SourcePackage,
+    arch: ArchiveArchitecture,
+    *,
+    enforce_indep=False,
+    arch_all=None,
+    simulate=False,
 ):
     '''
     Schedule a job for the given architecture, if the
@@ -114,7 +125,7 @@ def schedule_build_for_arch(
 
     # check if this package has binaries installed already, in that case we don't
     # need a rebuild.
-    if binaries_exist_for_package(session, repo, spkg, arch):
+    if binaries_exist_for_package(session, rss, spkg, arch):
         return False
 
     if enforce_indep:
@@ -122,14 +133,14 @@ def schedule_build_for_arch(
         # we were requested to inforce arch-independent package built on a non-affinity architecture.
         # we have to verify that and check if something hasn't already built arch:all packages in a
         # previous run (or via a package sync) and revise that enforcement hint in such a case.
-        if binaries_exist_for_package(session, repo, spkg, arch_all):
+        if binaries_exist_for_package(session, rss, spkg, arch_all):
             enforce_indep = False
 
     # we have no binaries, looks like we might need to schedule a build job
     #
     # check if all dependencies are there, if not we might create a job anyway and
     # set it to wait for dependencies to become available
-    has_dependency_issues = debcheck_has_issues_for_package(session, incoming_suite, spkg, arch)
+    has_dependency_issues = debcheck_has_issues_for_package(session, rss, spkg, arch)
 
     # check if we have already scheduled a job for this in the past and don't create
     # another one in that case
@@ -177,7 +188,7 @@ def schedule_build_for_arch(
         job.architecture = arch.name
         job.trigger = spkg.source_uuid
 
-        data = {'suite': incoming_suite.name}
+        data = {'suite': rss.suite.name}
         if enforce_indep:
             data['do_indep'] = True  # enforce arch:all build, no matter what Lighthouse thinks
         job.data = data
@@ -223,33 +234,26 @@ def delete_orphaned_jobs(session, simulate=False):
             session.delete(job)
 
 
-def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, limit_architecture=None, limit_count=0):
+def update_package_build_schedule(
+    session, rss: ArchiveRepoSuiteSettings, simulate=False, limit_architecture=None, limit_count=0
+) -> int:
     '''
     Schedule builds for packages in a particular suite.
     '''
 
-    session = session_factory()
-
     # where to build pure arch:all packages?
     arch_indep_affinity = config_get_value(LkModule.ARIADNE, 'indep_arch_affinity')
-
-    repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
-    incoming_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == incoming_suite_name).one_or_none()
-    if not incoming_suite:
-        log.error('Incoming suite "{}" was not found in the database.'.format(incoming_suite_name))
-        return False
-
-    src_packages = get_newest_sources_index(session, repo, incoming_suite)
+    src_packages = get_newest_sources_index(session, rss)
 
     arch_all = None
-    for arch in incoming_suite.architectures:
+    for arch in rss.suite.architectures:
         if arch.name == 'all':
             arch_all = arch
             break
     if not arch_all:
         log.warning(
             'Suite "{}" does not have arch:all in its architecture set, some packages can not be built.'.format(
-                incoming_suite.name
+                rss.suite.name
             )
         )
 
@@ -261,7 +265,7 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
         log.info('Only scheduling maximally {} builds.'.format(limit_count))
 
     scheduled_count = 0
-    for spkg in src_packages.values():
+    for spkg in src_packages:
         # if the package is arch:all only, it needs a dedicated build job
         if len(spkg.architectures) == 1 and spkg.architectures[0] == 'all':
             if not arch_all:
@@ -273,7 +277,7 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
             if not any_arch_matches(arch_all.name, spkg.architectures):
                 continue
 
-            if schedule_build_for_arch(session, repo, spkg, arch_all, incoming_suite, simulate=simulate):
+            if schedule_build_for_arch(session, rss, spkg, arch_all, simulate=simulate):
                 scheduled_count += 1
 
             if limit_count > 0 and scheduled_count >= limit_count:
@@ -283,7 +287,7 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
 
         # deal with all other architectures
         build_for_archs = []
-        for arch in incoming_suite.architectures:
+        for arch in rss.suite.architectures:
             # The pseudo-architecture arch:all is treated specially
             if arch.name == 'all':
                 continue
@@ -310,10 +314,9 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
         for arch in build_for_archs:
             if schedule_build_for_arch(
                 session,
-                repo,
+                rss,
                 spkg,
                 arch,
-                incoming_suite,
                 enforce_indep=force_indep,
                 arch_all=arch_all,
                 simulate=simulate,
@@ -334,43 +337,54 @@ def schedule_builds_for_suite(repo_name, incoming_suite_name, simulate=False, li
 
     log.info('Scheduled {} build jobs.'.format(scheduled_count))
 
-    return True
-
-
-def schedule_builds(repo_name, simulate=False, limit_architecture=None, limit_count=0):
-    '''
-    Schedule builds for packages in the incoming suite.
-    '''
-
-    session = session_factory()
-
-    # FIXME: We need much better ways to select the right suite to synchronize with
-    incoming_suites = session.query(ArchiveSuite).filter(ArchiveSuite.accept_uploads == True).all()  # noqa: E712
-
-    for incoming_suite in incoming_suites:
-        if not schedule_builds_for_suite(repo_name, incoming_suite.name, simulate, limit_architecture, limit_count):
-            return False
-    return True
+    return scheduled_count
 
 
 def command_run(options):
     '''Schedule package builds'''
 
-    # FIXME: Don't hardcode the "master" repository here, fully implement
-    # the "multiple repositories" feature
-    repo_name = 'master'
-
-    suite_name = options.suite
+    repo_name = options.repo_name
+    suite_name = options.suite_name
     limit_count = options.limit_count
     if not limit_count:
         limit_count = 0
 
-    ret = False
-    if not suite_name:
-        ret = schedule_builds(repo_name, options.simulate, options.limit_arch, limit_count)
-    else:
-        ret = schedule_builds_for_suite(repo_name, suite_name, options.simulate, options.limit_arch, limit_count)
-    if not ret:
+    with session_scope() as session:
+        all_rss = session.query(ArchiveRepoSuiteSettings).all()
+
+        processed = False
+        scheduled_count = 0
+        for rss in all_rss:
+            if repo_name:
+                if rss.repo.name != repo_name:
+                    continue
+            if suite_name:
+                if rss.suite.name != suite_name:
+                    continue
+            elif not rss.accept_uploads or rss.frozen:
+                # we don't process information for frozen suites or suites that don't accept uploads
+                continue
+            processed = True
+
+            log.info('Processing {}:{}'.format(rss.repo.name, rss.suite.name))
+            scheduled_count += update_package_build_schedule(
+                session, rss, options.simulate, options.limit_arch, limit_count
+            )
+            if limit_count > 0 and scheduled_count >= limit_count:
+                break
+
+    if not processed:
+        if suite_name and repo_name:
+            print('Unable to find {}:{} to process build jobs for.'.format(suite_name, repo_name), file=sys.stderr)
+        elif repo_name:
+            print(
+                'Unable to find suites in repository {} to process build jobs for.'.format(repo_name), file=sys.stderr
+            )
+        elif suite_name:
+            print(
+                'Unable to find suite {} in any repository to process build jobs for.'.format(suite_name),
+                file=sys.stderr,
+            )
         sys.exit(3)
 
 
@@ -387,7 +401,8 @@ def create_parser(formatter_class=None):
     )
 
     sp = subparsers.add_parser('run', help='Trigger package build jobs for the incoming suite or a specific suite.')
-    sp.add_argument('suite', type=str, help='The suite to schedule builds for.', nargs='?')
+    sp.add_argument('--repo', dest='repo_name', help='Act on the repository with this name.')
+    sp.add_argument('--suite', dest='suite_name', help='The suite to schedule builds for.')
     sp.add_argument(
         '--simulate',
         action='store_true',
@@ -418,13 +433,14 @@ def check_print_version(options):
 
 def check_verbose(options):
     if options.verbose:
-        log.basicConfig(level=log.DEBUG, format="[%(levelname)s] %(message)s")
         from laniakea.logging import set_verbose
 
         set_verbose(True)
 
 
 def run(args):
+    from laniakea.utils.misc import ensure_laniakea_master_user
+
     if len(args) == 0:
         print('Need a subcommand to proceed!')
         sys.exit(1)
@@ -436,6 +452,7 @@ def run(args):
     args = parser.parse_args(args)
     check_print_version(args)
     check_verbose(args)
+    ensure_laniakea_master_user(warn_only=True)
     args.func(args)
 
 
