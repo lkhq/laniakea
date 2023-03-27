@@ -7,7 +7,6 @@ Create Date: 2023-03-27 23:56:40.472374
 """
 # flake8: noqa
 
-import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
