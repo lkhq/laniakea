@@ -20,7 +20,6 @@ from laniakea.db import (
     DebcheckIssue,
     ArchiveRepository,
     ArchiveQueueNewEntry,
-    ArchiveRepoSuiteSettings,
     session_scope,
 )
 
@@ -75,7 +74,10 @@ def index():
             .count()
         )
         debcheck_issues_count = (
-            session.query(DebcheckIssue.uuid).filter(DebcheckIssue.repo_id == master_repo_id).count()
+            session.query(DebcheckIssue.uuid)
+            .filter(DebcheckIssue.repo_id == master_repo_id)
+            .distinct(DebcheckIssue.package_name)
+            .count()
         )
         review_queue_count = (
             session.query(ArchiveQueueNewEntry.id)
