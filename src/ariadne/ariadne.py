@@ -15,7 +15,7 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 import logging as log
 from argparse import ArgumentParser
 
-from sqlalchemy import and_, func, select, bindparam
+from sqlalchemy import and_, func
 from sqlalchemy.orm import undefer
 
 from laniakea import LkModule
@@ -24,7 +24,6 @@ from laniakea.db import (
     JobKind,
     JobStatus,
     PackageType,
-    BinaryPackage,
     DebcheckIssue,
     SourcePackage,
     ArchiveArchitecture,
@@ -33,6 +32,7 @@ from laniakea.db import (
     config_get_value,
 )
 from laniakea.utils import any_arch_matches
+from laniakea.archive import binaries_exist_for_package
 
 
 def get_newest_sources_index(session, rss: ArchiveRepoSuiteSettings):
@@ -70,33 +70,6 @@ def get_newest_sources_index(session, rss: ArchiveRepoSuiteSettings):
     )
 
     return latest_spkg
-
-
-binary_select_query = select(BinaryPackage).where(
-    and_(
-        BinaryPackage.repo_id == bindparam('repo_id'),
-        BinaryPackage.suites.any(id=bindparam('suite_id')),
-        BinaryPackage.source_id == bindparam('source_id'),
-        BinaryPackage.architecture_id == bindparam('arch_id'),
-    )
-)
-
-
-def binaries_exist_for_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, arch: ArchiveArchitecture):
-    '''
-    Get list of binary packages built for the given source package.
-    '''
-
-    return (
-        session.query(binary_select_query.exists())
-        .params(
-            repo_id=rss.repo.id,
-            suite_id=rss.suite.id,
-            source_id=spkg.uuid,
-            arch_id=arch.id,
-        )
-        .scalar()
-    )
 
 
 def debcheck_has_issues_for_package(

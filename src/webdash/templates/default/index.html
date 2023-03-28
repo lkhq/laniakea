@@ -24,33 +24,31 @@
 <section class="info-tiles">
     <div class="tile is-ancestor has-text-centered">
         <div class="tile is-parent">
-	    <article class="tile is-child box">
-                <p class="title">{{package_count}}</p>
-		<p class="subtitle">Packages</p>
+	          <article class="tile is-child box">
+              <p class="title">{{package_count}}</p>
+		          <p class="subtitle">Binary Packages</p>
             </article>
         </div>
-
-        {% if dev_target %}
-        <div class="tile is-parent">
-	    <article class="tile is-child box">
-              <p class="title">{{dev_target.name}}</p>
-              <p class="subtitle">Development Suite</p>
-            </article>
-        </div>
-        {% endif %}
 
         <div class="tile is-parent">
             <article class="tile is-child box">
-              <p class="title">unknown</p>
-              <p class="subtitle">Stable Suite</p>
+              <p class="title">{{review_queue_count}}</p>
+              <p class="subtitle">Pending Reviews</p>
             </article>
         </div>
         <div class="tile is-parent">
             <article class="tile is-child box">
-              <p class="title">??</p>
+              <p class="title">{{jobs_pending_count}}</p>
               <p class="subtitle">Pending Jobs</p>
             </article>
         </div>
+        <div class="tile is-parent">
+            <article class="tile is-child box">
+              <p class="title">{{debcheck_issues_count}}</p>
+              <p class="subtitle">Dependency Issues</p>
+            </article>
+        </div>
+
     </div>
 </section>
 

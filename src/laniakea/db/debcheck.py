@@ -8,7 +8,7 @@ import json
 from uuid import uuid4
 from datetime import datetime
 
-from sqlalchemy import Enum, Text, Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy import Enum, Text, Index, Column, String, Integer, DateTime, ForeignKey
 from marshmallow import EXCLUDE, Schema, fields
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
@@ -114,3 +114,9 @@ class DebcheckIssue(Base):
         self._conflicts = None
         schema = PackageConflict()
         self._conflicts_json = json.dumps([schema.dump(e) for e in v])
+
+
+idx_debcheck_issues_repo = Index(
+    'idx_debcheck_issues_repo',
+    DebcheckIssue.repo_id,
+)

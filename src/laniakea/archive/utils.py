@@ -9,6 +9,7 @@ import os
 import re
 
 import apt_pkg
+from sqlalchemy import and_, select, bindparam
 
 import laniakea.typing as T
 from laniakea import LocalConfig
@@ -18,12 +19,14 @@ from laniakea.db import (
     PackageInfo,
     ArchiveSuite,
     DbgSymPolicy,
+    BinaryPackage,
     SourcePackage,
     ArchiveSection,
     PackageOverride,
     PackagePriority,
     ArchiveComponent,
     ArchiveRepository,
+    ArchiveArchitecture,
     ArchiveQueueNewEntry,
     ArchiveRepoSuiteSettings,
 )
@@ -339,3 +342,30 @@ class AptVersion:
 
     def __ge__(self, other):
         return apt_pkg.version_compare(self.version, other.version) >= 0
+
+
+binary_select_query = select(BinaryPackage).where(
+    and_(
+        BinaryPackage.repo_id == bindparam('repo_id'),
+        BinaryPackage.suites.any(id=bindparam('suite_id')),
+        BinaryPackage.source_id == bindparam('source_id'),
+        BinaryPackage.architecture_id == bindparam('arch_id'),
+    )
+)
+
+
+def binaries_exist_for_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, arch: ArchiveArchitecture):
+    '''
+    Get list of binary packages built for the given source package.
+    '''
+
+    return (
+        session.query(binary_select_query.exists())
+        .params(
+            repo_id=rss.repo.id,
+            suite_id=rss.suite.id,
+            source_id=spkg.uuid,
+            arch_id=arch.id,
+        )
+        .scalar()
+    )

@@ -1,5 +1,6 @@
 from laniakea.archive.utils import (
     repo_suite_settings_for,
+    binaries_exist_for_package,
     find_latest_source_package,
     repo_suite_settings_for_debug,
 )
@@ -21,4 +22,5 @@ __all__ = [
     'repo_suite_settings_for',
     'repo_suite_settings_for_debug',
     'find_latest_source_package',
+    'binaries_exist_for_package',
 ]

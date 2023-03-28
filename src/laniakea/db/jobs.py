@@ -9,7 +9,7 @@ from enum import IntEnum
 from uuid import uuid4
 from datetime import datetime
 
-from sqlalchemy import Enum, Text, Column, String, Integer, DateTime
+from sqlalchemy import Enum, Text, Index, Column, String, Integer, DateTime
 from sqlalchemy.dialects.postgresql import JSON
 
 from .base import UUID, Base, DebVersion
@@ -113,3 +113,9 @@ class Job(Base):
             or self.result == JobResult.FAILURE_PENDING
             or self.result == JobResult.FAILURE_DEPENDENCY
         )
+
+
+idx_jobs_status = Index(
+    'idx_jobs_status',
+    Job.status,
+)

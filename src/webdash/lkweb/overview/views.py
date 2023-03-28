@@ -14,8 +14,12 @@ from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 from laniakea import LocalConfig
 from laniakea.db import (
+    Job,
+    JobStatus,
     BinaryPackage,
+    DebcheckIssue,
     ArchiveRepository,
+    ArchiveQueueNewEntry,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
@@ -56,21 +60,30 @@ def index():
         master_repo_id = (
             session.query(ArchiveRepository.id).filter(ArchiveRepository.name == lconf.master_repo_name).one()[0]
         )
-        repo_count = session.query(ArchiveRepository.id).count()
-        dev_target_rss = (
-            session.query(ArchiveRepoSuiteSettings)
-            .filter(
-                ArchiveRepoSuiteSettings.repo.has(id=master_repo_id),
-                ArchiveRepoSuiteSettings.repo.has(is_debug=False),
-                ArchiveRepoSuiteSettings.devel_target == True,  # noqa: E712
-            )
-            .first()
-        )
-        dev_target = None
-        if dev_target_rss:
-            dev_target = dev_target_rss.suite
 
-        package_count = session.query(BinaryPackage.uuid).distinct(BinaryPackage.name).count()
+        # fetch basic statistics!
+        repo_count = session.query(ArchiveRepository.id).count()
+        package_count = (
+            session.query(BinaryPackage.uuid)
+            .filter(BinaryPackage.repo_id == master_repo_id)
+            .distinct(BinaryPackage.name)
+            .count()
+        )
+        jobs_pending_count = (
+            session.query(Job.uuid)
+            .filter(Job.status.in_([JobStatus.WAITING, JobStatus.DEPWAIT, JobStatus.SCHEDULED]))
+            .count()
+        )
+        debcheck_issues_count = (
+            session.query(DebcheckIssue.uuid).filter(DebcheckIssue.repo_id == master_repo_id).count()
+        )
+        review_queue_count = (
+            session.query(ArchiveQueueNewEntry.id)
+            .filter(
+                ArchiveQueueNewEntry.package.has(repo_id=master_repo_id),
+            )
+            .count()
+        )
 
         # fetch info about scheduled maintenance tasks
         jobstore = get_scheduler_jobstore()
@@ -106,8 +119,10 @@ def index():
         return render_template(
             'index.html',
             repo_count=repo_count,
-            dev_target=dev_target,
             package_count=package_count,
+            review_queue_count=review_queue_count,
+            jobs_pending_count=jobs_pending_count,
+            debcheck_issues_count=debcheck_issues_count,
             rubicon_nextrun_time=rubicon_nextrun_time,
             publish_nextrun_time=publish_nextrun_time,
             expire_nextrun_time=expire_nextrun_time,
