@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import re
+from enum import Enum, auto
 
 from pebble import ThreadPool
 from apt_pkg import version_compare
@@ -46,10 +47,17 @@ from laniakea.archive.utils import (
 )
 
 
+class PackageSyncState(Enum):
+    """Synchronization state of a source package."""
+
+    UNKNOWN = auto()
+    PRESENT = auto()  # source package was already present
+    COPIED = auto()  # source package was copied from within the target repo
+    SYNCED = auto()  # source package was pulled into target from origin
+
+
 class SyncEngine:
-    '''
-    Execute package synchronization in Synchrotron
-    '''
+    """Execute package synchronization in Synchrotron"""
 
     def __init__(self, repo_name: T.Optional[str], target_suite_name: str, source_os_name: str, source_suite_name: str):
         self._lconf = LocalConfig()
@@ -62,7 +70,7 @@ class SyncEngine:
         self._source_suite_name = source_suite_name
         self._source_os_name = source_os_name
         self._distro_tag = config_get_distro_tag()
-        self._synced_source_pkgs: T.List[T.Tuple[SourcePackage, bool]] = []  # tuples of (SourcePackage, isCopied)
+        self._synced_source_pkgs: T.List[T.Tuple[SourcePackage, PackageSyncState]] = []
 
         if not self._distro_tag:
             log.warning('No distribution tag is set! We may override any manual uploads.')
@@ -348,21 +356,21 @@ class SyncEngine:
                 .one()
             )
             copy_source_package(session, spkg, rss, include_binaries=True, allow_missing_debug=True)
-            self._synced_source_pkgs.append((origin_pkg, True))
+            self._synced_source_pkgs.append((origin_pkg, PackageSyncState.COPIED))
         else:
             # the package is new to this repository, just import it
             pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW)
-            self._synced_source_pkgs.append((origin_pkg, False))
+            self._synced_source_pkgs.append((origin_pkg, PackageSyncState.SYNCED))
 
         return True
 
-    def _import_binaries_for_source(
+    def _import_binaries_for_sources(
         self,
         session,
         sync_conf: SynchrotronConfig,
         pkgip: PackageImporter,
         component: str,
-        spkgs_info: T.Sequence[T.Tuple[SourcePackage, bool]],
+        spkgs_info: T.Sequence[T.Tuple[SourcePackage, PackageSyncState]],
         ignore_target_changes: bool = False,
     ) -> bool:
         '''Import binary packages for the given set of source packages into the archive.'''
@@ -388,10 +396,10 @@ class SyncEngine:
                 session, self._target_suite_name, component, aname, with_installer=True, with_debug=True
             )
 
-        for spkg, is_copied in spkgs_info:
+        for spkg, sync_state in spkgs_info:
             # if a package has been copied, we do not need to attempt
             # to sync any binary packages
-            if is_copied and not ignore_target_changes:
+            if sync_state == PackageSyncState.COPIED and not ignore_target_changes:
                 continue
 
             bin_files_synced = False
@@ -427,13 +435,17 @@ class SyncEngine:
                     ebpkg = dest_bpkg_map.get(bpkg.name)
                     if ebpkg:
                         if version_compare(ebpkg.version, bpkg.version) >= 0:
+                            existing_packages = True
+                            if sync_state == PackageSyncState.PRESENT:
+                                # we don't show a message and just skip this for a package that was already present and where we
+                                # are just looking for any binNMUs
+                                continue
                             log.debug(
                                 'Not syncing binary package \'{}/{}\': '
                                 'Existing binary package with bigger/equal version \'{}\' found.'.format(
                                     bpkg.name, bpkg.version, ebpkg.version
                                 )
                             )
-                            existing_packages = True
                             continue
 
                         # Filter out manual rebuild uploads matching the pattern XbY.
@@ -546,7 +558,7 @@ class SyncEngine:
             if not ret:
                 return False
 
-        ret = self._import_binaries_for_source(
+        ret = self._import_binaries_for_sources(
             session, sync_conf, pkgip, component_name, self._synced_source_pkgs, force
         )
 
@@ -594,7 +606,7 @@ class SyncEngine:
 
         self._synced_source_pkgs = []
         binary_sync_todo: T.List[
-            T.Tuple[SourcePackage, bool]
+            T.Tuple[SourcePackage, PackageSyncState]
         ] = []  # source packages which should have their binary packages updated
         known_issues = []
 
@@ -667,11 +679,16 @@ class SyncEngine:
                     dpkg = dest_pkg_map.get(spkg.name)
                     if dpkg:
                         if dpkg.version == spkg.version and self._distro_tag not in version_revision(dpkg.version):
-                            # check if the target package (if an exact match) has its binaries, and try to import them
-                            # again if they are missing. This code exists to recover from incomplete syncs in case a
-                            # previous autosync run was interrupted for any reason.
-                            if not dpkg.binaries and rss.suite in dpkg.suites:
-                                binary_sync_todo.append((spkg, False))
+                            if rss.suite in dpkg.suites:
+                                # check if the target package (if an exact match) has its binaries, and try to import them
+                                # again if they are missing. This code exists to recover from incomplete syncs in case a
+                                # previous autosync run was interrupted for any reason.
+                                if not dpkg.binaries:
+                                    binary_sync_todo.append((spkg, PackageSyncState.SYNCED))
+                                else:
+                                    # we need to add the package here even if nothing was done to it, so we can
+                                    # later sync any binNMUs done in the origin OS in case we do perform binary syncs.
+                                    binary_sync_todo.append((spkg, PackageSyncState.PRESENT))
                             continue
 
                         tasks_pending.append((spkg, dpkg, pool.schedule(self._is_candidate, (spkg, dpkg))))
@@ -728,13 +745,13 @@ class SyncEngine:
 
                 # a new source package is always active and needs its binary packages synced, in
                 # case we do binary syncs.
-                binary_sync_todo.append((spkg, False))
+                binary_sync_todo.append((spkg, PackageSyncState.SYNCED))
 
             # import binaries as well. We test for binary updates for all available active source packages,
             # as binNMUs might have happened in the source distribution.
             # (an active package in this context is any source package which doesn't have modifications in the
             # target distribution)
-            ret = self._import_binaries_for_source(session, sync_conf, pkgip, component.name, binary_sync_todo)
+            ret = self._import_binaries_for_sources(session, sync_conf, pkgip, component.name, binary_sync_todo)
             if not ret:
                 return False
 
