@@ -306,8 +306,16 @@ class SyncEngine:
                     )
 
         bpkg_map = {}
-        for p in bpkgs:
-            bpkg_map[p.name] = p
+        if not with_installer and not with_debug:
+            for p in bpkgs:
+                bpkg_map[p.name] = p
+        else:
+            for p in bpkgs:
+                ep = bpkg_map.get(p.name)
+                if ep and version_compare(ep.version, p.version) >= 0:
+                    # package already in the map is newer, so we skip adding the new one
+                    continue
+                bpkg_map[p.name] = p
 
         return bpkg_map
 
@@ -472,6 +480,7 @@ class SyncEngine:
                                     bin_i.name, bin_i.version
                                 )
                             )
+                            existing_packages = True
                             continue
 
                     fname = self._source_reader.get_file(bpkg.bin_file)
