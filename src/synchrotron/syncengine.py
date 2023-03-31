@@ -32,7 +32,11 @@ from laniakea.db import (
     config_get_distro_tag,
 )
 from laniakea.utils import process_file_lock
-from laniakea.archive import PackageImporter, copy_source_package
+from laniakea.archive import (
+    PackageImporter,
+    ArchivePackageExistsError,
+    copy_source_package,
+)
 from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 from laniakea.reporeader import (
@@ -484,13 +488,41 @@ class SyncEngine:
                             continue
 
                     fname = self._source_reader.get_file(bpkg.bin_file)
-                    bin_files.append(fname)
+                    bin_files.append((bpkg, fname))
 
                 # now import the binary packages, if there is anything to import
                 if bin_files:
                     bin_files_synced = True
-                    for fname in bin_files:
-                        pkgip.import_binary(fname, component, ignore_missing_override=True)
+                    for orig_bpkg, fname in bin_files:
+                        try:
+                            pkgip.import_binary(fname, component, ignore_missing_override=True)
+                        except ArchivePackageExistsError as e:
+                            # package exists, but apparently is located in a different suite
+                            # this may be due to a previous crash or bug, we try to recover from it here
+                            ebpkg = (
+                                session.query(BinaryPackage)
+                                .filter(
+                                    BinaryPackage.name == orig_bpkg.name,
+                                    BinaryPackage.version == orig_bpkg.version,
+                                    BinaryPackage.repo.has(id=pkgip.repo_suite_settings.repo_id),
+                                    BinaryPackage.component.has(name=component),
+                                    BinaryPackage.architecture.has(name=arch_name),
+                                    BinaryPackage.time_deleted.is_(None),
+                                )
+                                .one_or_none()
+                            )
+                            if not ebpkg:
+                                raise e
+
+                            new_suite = pkgip.repo_suite_settings.suite
+                            log.warning(
+                                'Added preexisting binary package %s/%s to new suite %s (assuming it is identical with the otherwise imported file)',
+                                ebpkg.name,
+                                ebpkg.version,
+                                new_suite.name,
+                            )
+                            if new_suite not in ebpkg.suites:
+                                ebpkg.suites.append(new_suite)
 
             if not bin_files_synced and not existing_packages:
                 log.warning('No binary packages synced for source {}/{}'.format(spkg.name, spkg.version))

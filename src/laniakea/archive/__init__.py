@@ -9,6 +9,7 @@ from laniakea.archive.pkgimport import (
     UploadHandler,
     PackageImporter,
     ArchiveImportError,
+    ArchivePackageExistsError,
 )
 from laniakea.archive.uploadermgr import import_key_file_for_uploader
 
@@ -17,6 +18,7 @@ __all__ = [
     'PackageImporter',
     'UploadHandler',
     'ArchiveImportError',
+    'ArchivePackageExistsError',
     'copy_source_package',
     'remove_source_package',
     'repo_suite_settings_for',
