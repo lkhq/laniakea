@@ -5,10 +5,13 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import functools
 from datetime import datetime, timedelta
 from collections import namedtuple
+from dataclasses import field, dataclass
 
 from sqlalchemy import and_, func
+from sqlalchemy.orm import joinedload
 
 import laniakea.typing as T
 from laniakea.db import (
@@ -21,6 +24,7 @@ from laniakea.db import (
     SoftwareComponent,
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
+    package_version_compare,
 )
 from laniakea.logging import log, archive_log
 
@@ -237,11 +241,19 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
     if rss.frozen:
         raise ArchiveError('Will not expire old packages in frozen suite `{}/{}`'.format(rss.repo.name, rss.suite.name))
 
+    log.info("Checking %s:%s: Gathering information", rss.repo.name, rss.suite.name)
+
+    @dataclass
+    class PackageExpireInfo:
+        name: str
+        max_version: str
+        max_version_has_binaries: bool = True
+        rm_candidates: list[SourcePackage] = field(default_factory=list)
+
     spkg_filters = [
         SourcePackage.repo_id == rss.repo_id,
         SourcePackage.suites.any(id=rss.suite_id),
         SourcePackage.time_deleted.is_(None),
-        SourcePackage.binaries.any(),
     ]
 
     spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
@@ -251,10 +263,9 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
         .subquery('smv_sq')
     )
 
-    # fetch the latest source package info
-    # we will only include source packages which actually have binaries built.
-    # TODO: this logic can be improved, e.g, we should make sure the package built on all arches
-    latest_spkg_info = (
+    # get the latest source packages for this configuration
+    log.debug("Retrieving maximum source package version information.")
+    spkg_einfo = (
         session.query(SourcePackage.name, SourcePackage.version)
         .filter(*spkg_filters)
         .join(
@@ -267,23 +278,59 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
         .all()
     )
 
-    # TODO: A lot of this loop can likely be implemented as a more efficient SQL query
-    for spkg_name, spkg_latest_ver in latest_spkg_info:
-        # now drop any lower version that we find
-        old_spkgs = (
-            session.query(SourcePackage)
-            .filter(
-                SourcePackage.name == spkg_name,
-                SourcePackage.repo_id == rss.repo_id,
-                SourcePackage.suites.any(id=rss.suite_id),
-                SourcePackage.version < spkg_latest_ver,
-                SourcePackage.time_deleted.is_(None),
-            )
-            .all()
+    log.debug("Collecting list of all source packages.")
+    all_spkgs = (
+        session.query(SourcePackage)
+        .options(joinedload(SourcePackage.binaries))
+        .filter(
+            SourcePackage.repo_id == rss.repo_id,
+            SourcePackage.suites.any(id=rss.suite_id),
+            SourcePackage.time_deleted.is_(None),
         )
-        if not old_spkgs:
+        .all()
+    )
+
+    log.debug("Determining packages to remove.")
+    # create a map of the latest source package versions
+    pkg_expire_map = {}
+    for info in spkg_einfo:
+        ei = PackageExpireInfo(name=info[0], max_version=info[1])
+        pkg_expire_map[ei.name] = ei
+    del spkg_einfo
+
+    # collect candidates for removal
+    for spkg in all_spkgs:
+        ei = pkg_expire_map[spkg.name]
+
+        # we always want to keep the latest version of a package
+        if spkg.version == ei.max_version:
+            ei.max_version_has_binaries = True if spkg.binaries else False
             continue
-        for old_spkg in old_spkgs:
+        ei.rm_candidates.append(spkg)
+
+    # check removal candidates and drop superseded ones
+    log.info("Marking expired packages as superseded")
+    for ei in pkg_expire_map.values():
+        rm_candidates = ei.rm_candidates
+        if not ei.max_version_has_binaries:
+            # the highest version does not have binaries (yet), so we can only remove
+            # truly superseded packages
+            if len(rm_candidates) == 1:
+                continue
+            candidates_sorted = sorted(rm_candidates, key=functools.cmp_to_key(package_version_compare), reverse=True)
+            rm_candidates = []
+            have_bins = False
+            for candidate in candidates_sorted:
+                if candidate.binaries:
+                    # highest version with binaries was found, everything
+                    # that follows it can be marked for deletion
+                    have_bins = True
+                    continue
+                if have_bins:
+                    rm_candidates.append(candidate)
+
+        # mark all remaining candidates for removal
+        for old_spkg in rm_candidates:
             old_spkg.suites.remove(rss.suite)
             if old_spkg.suites:
                 log.info('Removed superseded package from suite %s: %s', rss.suite.name, str(old_spkg))
@@ -293,7 +340,15 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
                 old_spkg.time_deleted = datetime.utcnow()
                 archive_log.info('EXPIRE-MARK-DELETE: %s', str(old_spkg))
 
-    # grab all the packages that we should actively delete as they have been expired for a while
+        # FIXME: The code above will remove a package as soon as it has a binary built on *any* architecture.
+        # This is often not what we want, so we would need to check that the latest package has built on all
+        # architectures where it has been built before. If we do that though, packages that drop architectures,
+        # or make an arch:any package an arch:all package will get stuck here and not be removed.
+        # Therefore, we are currently a bit aggressive with removals and catch any fallout using Britney and
+        # the Debcheck infrastructure to fix issues quickly. Still, some smarter code would be useful here.
+
+    # grab all the packages that we should physically delete as they have been marked for deletion for a while
+    log.info("Deleting expired packages")
     time_cutoff = datetime.utcnow() - timedelta(days=retention_days)
     spkgs_delete = (
         session.query(SourcePackage)
@@ -313,6 +368,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
         remove_source_package(session, rss, spkg_rm)
 
     # delete orphaned AppStream metadata
+    log.info("Removing expired AppStream component metadata")
     for cpt in session.query(SoftwareComponent).filter(~SoftwareComponent.pkgs_binary.any()).all():
         session.delete(cpt)
         archive_log.info('DELETED-SWCPT-ORPHAN: %s @ %s/%s', cpt.gcid, rss.repo.name, rss.suite.name)

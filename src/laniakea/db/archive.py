@@ -13,6 +13,7 @@ from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
 
+import apt_pkg
 from sqlalchemy import (
     Enum,
     Text,
@@ -1069,6 +1070,11 @@ idx_pkgs_binary_repo_source_arch = Index(
     BinaryPackage.source_id,
     BinaryPackage.architecture_id,
 )
+
+
+def package_version_compare(pkg1: SourcePackage | BinaryPackage, pkg2: SourcePackage | BinaryPackage):
+    """Comparison function helper to compare package versions."""
+    return apt_pkg.version_compare(pkg1.version, pkg2.version)
 
 
 class SoftwareComponent(Base):
