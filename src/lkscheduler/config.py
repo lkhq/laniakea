@@ -50,6 +50,9 @@ class SchedulerConfig:
             # sync packages from an origin OS every 12h
             self._intervals_min['synchrotron-autosync'] = cintervals.get('synchrotron-autosync', 12 * 60)
 
+            # refresh ariadne data all 5h
+            self._intervals_min['ariadne-maintain'] = cintervals.get('ariadne-maintain', 5 * 60)
+
             # find executables
             my_dir = os.path.dirname(os.path.realpath(__file__))
             self._lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'lkarchive', 'lk-archive.py'))
@@ -78,6 +81,10 @@ class SchedulerConfig:
             if not self._synchrotron_exe:
                 raise ValueError('Unable to find the `synchrotron` binary. Check your Laniakea installation!')
 
+            self._ariadne_exe = os.path.normpath(os.path.join(my_dir, '..', 'ariadne', 'ariadne.py'))
+            if not self._ariadne_exe:
+                raise ValueError('Unable to find the `ariadne` binary. Check your Laniakea installation!')
+
         @property
         def lk_archive_exe(self) -> T.PathUnion:
             """Executable path for lk-archive"""
@@ -102,6 +109,11 @@ class SchedulerConfig:
         def synchrotron_exe(self) -> T.PathUnion:
             """Executable path for synchrotron"""
             return self._synchrotron_exe
+
+        @property
+        def ariadne_exe(self) -> T.PathUnion:
+            """Executable path for ariadne"""
+            return self._ariadne_exe
 
         @property
         def intervals_min(self) -> T.Dict[str, T.Optional[int]]:

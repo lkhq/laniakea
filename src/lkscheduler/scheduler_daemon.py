@@ -165,6 +165,26 @@ def task_debcheck(registry: JobsRegistry):
             scheduler_log.error('Debcheck binaries check: Error: %s', str(proc.stdout, 'utf-8'))
 
 
+def task_ariadne_maintain(registry: JobsRegistry):
+    """Make Ariadne verify & update all package autobuild data."""
+    import subprocess
+
+    with registry.lock_publish_job():
+        conf = SchedulerConfig()
+        proc = subprocess.run(
+            [conf.ariadne_exe, 'run'],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            check=False,
+        )
+    if proc.returncode == 0:
+        scheduler_log.info('Ariadne: Success.')
+    else:
+        scheduler_log.error('Ariadne: Error: %s', str(proc.stdout, 'utf-8'))
+
+
 def task_synchrotron_autosync(registry: JobsRegistry):
     """Run automatic package synchronization."""
     import subprocess
@@ -236,6 +256,7 @@ class SchedulerDaemon:
         self._configure_job(task_repository_publish, 'publish-repos', 'Publish all repository data', jitter=20)
         self._configure_job(task_repository_expire, 'expire-repos', 'Expire old repository data', jitter=2 * 60)
         self._configure_job(task_debcheck, 'debcheck', 'Check package dependencies', jitter=30)
+        self._configure_job(task_ariadne_maintain, 'ariadne-maintain', 'Check package autobuild data', jitter=40)
 
         with session_scope() as session:
             from laniakea.db import SynchrotronConfig, SpearsMigrationTask
