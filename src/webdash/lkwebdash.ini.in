@@ -5,9 +5,10 @@ wsgi-file = wsgi.py
 master = true
 processes = 5
 
-socket = /run/laniakea-webswview/webswview.sock
+socket = /run/laniakea-webdash/webdash.sock
 chmod-socket = 660
 vacuum = true
 
 die-on-term = true
 need-app = true
+@LK_VIRTUALENV_HOME_ENTRY@

@@ -22,6 +22,11 @@ option('download-npm',
     value: true,
     description: 'Download web dependencies with NPM when configuring the build'
 )
+option('virtualenv',
+    type: 'string',
+    value: '',
+    description: 'Path to a Python virtualenv to use for services'
+)
 
 #
 # Feature flags
