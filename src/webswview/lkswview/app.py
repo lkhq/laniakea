@@ -11,6 +11,7 @@ from logging.handlers import RotatingFileHandler
 import jinja2
 from flask import Flask, render_template
 
+from .api import rebar
 from .config import INSTANCE_FOLDER_PATH, DebugConfig, DefaultConfig
 from .extensions import cache
 
@@ -31,6 +32,7 @@ def create_app(config=None, app_name=None):
     app = Flask(app_name, instance_path=INSTANCE_FOLDER_PATH, instance_relative_config=True)
     configure_app(app, config)
     cache.init_app(app)
+    rebar.init_app(app)
 
     configure_blueprints(app)
     configure_logging(app)
@@ -71,12 +73,11 @@ def configure_blueprints(app):
     Configure blueprints
     '''
 
-    from .api import api
     from .portal import portal
     from .packages import packages
     from .software import software
 
-    blueprints = [api, portal, packages, software]
+    blueprints = [portal, packages, software]
 
     for bp in blueprints:
         app.register_blueprint(bp)

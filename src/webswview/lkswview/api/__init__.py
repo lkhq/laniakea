@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .views import api
+from .api import rebar
 
-__all__ = ['api']
+__all__ = ['rebar']
