@@ -1,14 +1,14 @@
-APScheduler>=3.7
+APScheduler~=3.9.1
 Pebble>=4.6
 PyGObject
 PyNaCl~=1.5.0
 PyYAML>=5.3.1
-SQLAlchemy>=1.4
+SQLAlchemy<2.0,>=1.4
 alembic~=1.8.1.dev0
 click>=7.1
 firehose~=0.5
 humanize
-marshmallow~=3.18.0
+marshmallow>=3.18
 psycopg2>=2.7.7
 python-apt
 python-debian~=0.1.49

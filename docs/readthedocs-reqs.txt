@@ -19,7 +19,7 @@ voluptuous
 Flask
 Flask-Caching
 Flask-Login
-Flask-RESTful
+flask-rebar
 mautrix
 Pygments
 Sphinx

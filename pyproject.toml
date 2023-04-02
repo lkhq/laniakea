@@ -17,7 +17,7 @@ requires = ["meson"]
 
 [tool.laniakea.dependencies]
 base = [
-    'SQLAlchemy>=1.4',
+    'SQLAlchemy>=1.4,<2.0',
     'alembic',
     'psycopg2>=2.7.7',
     'python-debian',
@@ -42,9 +42,9 @@ base = [
 ]
 web = [
     'Flask',
-    'Flask-RESTful',
     'Flask-Caching>=2.0',
     'Flask-Login',
+    'flask-rebar',
 ]
 matrix = [
     'mautrix>=0.8.18',
