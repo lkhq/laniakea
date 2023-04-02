@@ -516,7 +516,7 @@ class SyncEngine:
 
                             new_suite = pkgip.repo_suite_settings.suite
                             log.warning(
-                                'Added preexisting binary package %s/%s to new suite %s (assuming it is identical with the otherwise imported file)',
+                                'Added preexisting binary package %s/%s to new suite %s (assuming it is identical with file from origin)',
                                 ebpkg.name,
                                 ebpkg.version,
                                 new_suite.name,

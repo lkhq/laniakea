@@ -8,13 +8,8 @@ from flask import Blueprint, abort
 from flask_restful import Api, Resource
 from sqlalchemy.orm import undefer
 
-from laniakea.db import (
-    ArchiveSuite,
-    SourcePackage,
-    session_scope,
-)
+from laniakea.db import ArchiveSuite, SourcePackage, session_scope
 from laniakea.archive import repo_suite_settings_for
-
 
 api = Blueprint('api', __name__, url_prefix='/api')
 api_wrap = Api(api)
@@ -87,10 +82,7 @@ class Suite(Resource):
                 'alias': suite.alias,
                 'summary': suite.summary,
                 'version': suite.version,
-                'architectures': [
-                    { 'name': arch.name }
-                    for arch in suite.architectures
-                ],
+                'architectures': [{'name': arch.name} for arch in suite.architectures],
             }
 
 
