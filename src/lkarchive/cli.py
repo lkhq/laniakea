@@ -65,6 +65,10 @@ def _register_commands():
 
     cli.add_command(process_new)
 
+    import lkarchive.validate as validate
+
+    cli.add_command(validate.check_integrity)
+
 
 def run(mainfile, args):
     from rich.traceback import install

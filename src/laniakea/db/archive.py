@@ -89,7 +89,7 @@ class ArchiveRepository(Base):
 
     debug_repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
     # Indicates the debug-symbol repository that belongs to this repository (if any)
-    debug_repo_for = relationship('ArchiveRepository', backref=backref('debug_repo', remote_side=[id]))
+    debug_repo_for = relationship('ArchiveRepository', backref=backref('debug_repo', remote_side=[id]), uselist=False)
 
     uploaders = relationship('ArchiveUploader', secondary=uploader_repo_assoc_table, back_populates='repos')
 
@@ -317,7 +317,7 @@ class ArchiveSuite(Base):
     components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
 
     debug_suite_id = Column(Integer, ForeignKey('archive_suites.id'))
-    debug_suite_for = relationship('ArchiveSuite', backref=backref('debug_suite', remote_side=[id]))
+    debug_suite_for = relationship('ArchiveSuite', backref=backref('debug_suite', remote_side=[id]), uselist=False)
 
     repo_settings = relationship('ArchiveRepoSuiteSettings', back_populates='suite')
 
