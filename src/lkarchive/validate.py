@@ -16,7 +16,7 @@ from apt_pkg import Hashes
 from rich.panel import Panel
 from rich.table import Table
 from rich.console import Console
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 import laniakea.typing as T
 from laniakea import LocalConfig
@@ -47,9 +47,9 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
     log.debug('Retrieving source packages')
     spkgs = (
         session.query(SourcePackage)
-        .options(joinedload(SourcePackage.files), joinedload(SourcePackage.binaries))
+        .options(selectinload(SourcePackage.files), selectinload(SourcePackage.binaries))
         .filter(SourcePackage.repo_id == repo.id, SourcePackage.time_deleted.is_(None))
-        .all()
+        .yield_per(1000)
     )
 
     log.debug('Verifying source packages')
@@ -86,7 +86,6 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
 
                 # check
                 if suite not in spkg.suites:
-                    print(suite)
                     issues_fixed.append(
                         ('{}/{}/source'.format(spkg.name, spkg.version), 'Missing suite: {}'.format(suite.name))
                     )
@@ -103,9 +102,9 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
     log.debug('Retrieving binary packages')
     bpkgs = (
         session.query(BinaryPackage)
-        .options(joinedload(BinaryPackage.source), joinedload(BinaryPackage.architecture))
+        .options(selectinload(BinaryPackage.source), selectinload(BinaryPackage.architecture))
         .filter(BinaryPackage.repo_id == repo.id, BinaryPackage.time_deleted.is_(None))
-        .all()
+        .yield_per(1000)
     )
 
     log.debug('Verifying binary packages')
@@ -163,9 +162,9 @@ def _verify_files(session, repo: ArchiveRepository) -> list[IssueReport]:
     log.debug('Retrieving all files from database')
     afiles = (
         session.query(ArchiveFile)
-        .options(joinedload(ArchiveFile.pkgs_source), joinedload(ArchiveFile.pkg_binary))
+        .options(selectinload(ArchiveFile.pkgs_source), selectinload(ArchiveFile.pkg_binary))
         .filter(ArchiveFile.repo_id == repo.id)
-        .all()
+        .yield_per(1000)
     )
 
     lconf = LocalConfig()
