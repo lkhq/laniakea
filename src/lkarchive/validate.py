@@ -64,6 +64,9 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                 if bin.repo.is_debug:
                     if suite.debug_suite:
                         suite = suite.debug_suite
+                    else:
+                        # we skip this check in case we don't have a matching suite
+                        continue
 
                 # check
                 if suite not in bin.suites:
