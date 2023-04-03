@@ -23,6 +23,8 @@ from laniakea.db import (
     ArchiveFile,
     BinaryPackage,
     SourcePackage,
+    ArchiveSection,
+    PackageOverride,
     ArchiveRepository,
     ArchiveQueueNewEntry,
     session_scope,
@@ -123,7 +125,7 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
     # free some memory
     del spkgs
 
-    log.info('Finding orphaned binaries for %s', repo.name)
+    log.info('Finding orphaned binaries and missing overrides for %s', repo.name)
     log.debug('Retrieving binary packages')
     bpkgs = (
         session.query(BinaryPackage)
@@ -133,9 +135,57 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
     )
 
     log.debug('Verifying binary packages')
+    debug_section = session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
     for bpkg in bpkgs:
         if not bpkg.source:
             issues.append(('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture), 'No source package'))
+
+        for suite in bpkg.suites:
+            # skip already existing overrides
+            if (
+                session.query(PackageOverride)
+                .filter(
+                    PackageOverride.repo_id == bpkg.repo_id,
+                    PackageOverride.suite_id == suite.id,
+                    PackageOverride.pkg_name == bpkg.name,
+                )
+                .first()
+            ):
+                continue
+
+            # override is missing
+            issues_fixed.append(
+                (
+                    '{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture.name),
+                    'Override missing',
+                )
+            )
+
+            if fix_issues:
+                other_ov = (
+                    session.query(PackageOverride)
+                    .filter(
+                        PackageOverride.repo_id == bpkg.repo_id,
+                        PackageOverride.pkg_name == bpkg.name,
+                    )
+                    .first()
+                )
+                log.debug('FIX: Add new override for %s/%s/%s', bpkg.name, bpkg.version, bpkg.architecture.name)
+                ov = PackageOverride(bpkg.name)
+                ov.repo = bpkg.repo
+                ov.suite = suite
+                ov.pkg_name = bpkg.name
+                if other_ov:
+                    ov.essential = other_ov.essential
+                    ov.component = other_ov.component
+                    ov.section = other_ov.section
+                    ov.priority = other_ov.priority
+                else:
+                    ov.essential = False
+                    ov.component = bpkg.component
+                    ov.section = debug_section if bpkg.repo.is_debug else bpkg.source.section
+                session.add(ov)
+
     del bpkgs
 
     report = IssueReport('Package Consistency')
