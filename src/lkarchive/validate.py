@@ -25,6 +25,7 @@ from laniakea.db import (
     BinaryPackage,
     SourcePackage,
     ArchiveRepository,
+    ArchiveQueueNewEntry,
     session_scope,
 )
 from laniakea.logging import log
@@ -51,9 +52,27 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
         .filter(SourcePackage.repo_id == repo.id, SourcePackage.time_deleted.is_(None))
         .yield_per(1000)
     )
+    queue_spkg_q = (
+        session.query(ArchiveQueueNewEntry.package_uuid)
+        .filter(
+            ArchiveQueueNewEntry.package.has(repo_id=repo.id),
+        )
+        .all()
+    )
+    queue_spkg_uuids = set()
+    for e in queue_spkg_q:
+        queue_spkg_uuids.add(e[0])
+    del queue_spkg_q
 
     log.debug('Verifying source packages')
     for spkg in spkgs:
+        if not spkg.suites:
+            if spkg.uuid in queue_spkg_uuids:
+                continue  # skip packages in NEW queue
+            else:
+                issues.append(('{}/{}/source'.format(spkg.name, spkg.version), 'No suites'))
+                continue
+
         for bin in spkg.binaries:
             if bin.time_deleted:
                 # we ignore deleted binary packages
@@ -170,8 +189,7 @@ def _verify_files(session, repo: ArchiveRepository) -> list[IssueReport]:
         .yield_per(1000)
     )
 
-    lconf = LocalConfig()
-    repo_root = os.path.join(lconf.archive_root_dir, repo.name)
+    repo_root = repo.get_root_dir()
     known_files: set[str] = set()
 
     log.debug('Verifying hashes')
