@@ -215,7 +215,7 @@ def _verify_files(session, repo: ArchiveRepository) -> list[IssueReport]:
     for path, _, files in os.walk(repo_root):
         for file in files:
             fname = os.path.relpath(os.path.join(path, file), repo_root)
-            if fname.startswith('dists/'):
+            if fname.startswith('dists/') or fname.startswith('zzz-meta/'):
                 continue
             if fname not in known_files:
                 lfile_report.issues.append((fname, 'Local file has no database entry'))

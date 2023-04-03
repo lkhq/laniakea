@@ -130,6 +130,35 @@ def set_deb822_value_spacelist(entry: Deb822, key: str, value: T.Optional[T.Iter
         entry[key] = ' '.join(value)
 
 
+def write_by_hash_file(root_path: T.PathUnion, data: bytes, *, sha256_digest=None, md5_digest=None):
+    """Write a by-hash file into the appropriate location, using the provided data.
+
+    :param root_path: Root subdirectory in dists/ where the by-hash folder is located.
+    :param data: The data to write
+    :param sha256_digest: The SHA256 digest of the data (or None)
+    :param md5_digest: The MD5 digest of the data (or None)
+    :return:
+    """
+
+    by_hash_root = os.path.join(root_path, 'by-hash')
+    by_hash_md5_root = os.path.join(by_hash_root, 'MD5Sum')
+    by_hash_sha256_root = os.path.join(by_hash_root, 'SHA256')
+    os.makedirs(by_hash_md5_root, exist_ok=True)
+    os.makedirs(by_hash_sha256_root, exist_ok=True)
+
+    if not sha256_digest:
+        sha256_digest = hashlib.sha256(data).hexdigest()
+    if not md5_digest:
+        md5_digest = hashlib.md5(data).hexdigest()
+
+    # We could use hardlinks here, but if the source file is written to directly, the by-hash files
+    # would change, which we want to avoid at all costs. So instead, we use deep copies here.
+    with open(os.path.join(by_hash_sha256_root, str(sha256_digest)), 'wb') as hash_f:
+        hash_f.write(data)
+    with open(os.path.join(by_hash_md5_root, str(md5_digest)), 'wb') as hash_f:
+        hash_f.write(data)
+
+
 def write_compressed_files(
     root_path: T.PathUnion,
     subdir: str,
@@ -148,28 +177,23 @@ def write_compressed_files(
     :param data: Data the file should contain (usually UTF-8 text)
     """
 
+    if not component:
+        component_name = ''
+        comp_root_path = root_path
+    else:
+        component_name = component if isinstance(component, str) else component.name
+        comp_root_path = os.path.join(root_path, component_name)
+
     finfos = []
     data_bytes = data.encode('utf-8')
-    repo_fname = os.path.join(subdir, basename)
+    repo_fname = os.path.join(component_name, subdir, basename)
+
+    # uncompressed checksums
     finfos.append(RepoFileInfo(repo_fname, len(data_bytes), 'SHA256', hashlib.sha256(data_bytes).hexdigest()))
     finfos.append(RepoFileInfo(repo_fname, len(data_bytes), 'MD5Sum', hashlib.md5(data_bytes).hexdigest()))
 
-    if not component:
-        comp_root_path = root_path
-    else:
-        comp_root_path = (
-            os.path.join(root_path, component)
-            if isinstance(component, str)
-            else os.path.join(root_path, component.name)
-        )
-
-    by_hash_root = os.path.join(comp_root_path, 'by-hash')
-    by_hash_md5_root = os.path.join(by_hash_root, 'MD5Sum')
-    by_hash_sha256_root = os.path.join(by_hash_root, 'SHA256')
-    os.makedirs(by_hash_md5_root, exist_ok=True)
-    os.makedirs(by_hash_sha256_root, exist_ok=True)
-
-    fname_xz = os.path.join(comp_root_path, repo_fname + '.xz')
+    # write compressed data
+    fname_xz = os.path.join(root_path, repo_fname + '.xz')
     with lzma.open(fname_xz, 'w') as f:
         f.write(data_bytes)
     with open(fname_xz, 'rb') as f:
@@ -179,12 +203,7 @@ def write_compressed_files(
         finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), 'SHA256', sha256_digest))
         finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), 'MD5Sum', md5_digest))
 
-        # We could use hardlinks here, but if the source file is written to directly, the by-hash files
-        # would change, which we want to avoid at all costs. So instead, we use deep copies here.
-        with open(os.path.join(by_hash_sha256_root, str(sha256_digest)), 'wb') as hash_f:
-            hash_f.write(xz_bytes)
-        with open(os.path.join(by_hash_md5_root, str(md5_digest)), 'wb') as hash_f:
-            hash_f.write(xz_bytes)
+        write_by_hash_file(comp_root_path, xz_bytes, sha256_digest=sha256_digest, md5_digest=md5_digest)
 
     return finfos
 
@@ -219,8 +238,14 @@ def import_metadata_file(
         with open(source_fname, 'rb') as f:
             data = f.read()
     repo_fname = os.path.join(subdir, basename)
-    finfos.append(RepoFileInfo(repo_fname, len(data), 'SHA256', hashlib.sha256(data).hexdigest()))
-    finfos.append(RepoFileInfo(repo_fname, len(data), 'MD5Sum', hashlib.md5(data).hexdigest()))
+
+    data_md5 = hashlib.md5(data).hexdigest()
+    data_sha256 = hashlib.sha256(data).hexdigest()
+    finfos.append(RepoFileInfo(repo_fname, len(data), 'SHA256', data_sha256))
+    finfos.append(RepoFileInfo(repo_fname, len(data), 'MD5Sum', data_md5))
+
+    comp_root_dir = os.path.normpath(os.path.join(root_path, '..'))
+    write_by_hash_file(comp_root_dir, data, sha256_digest=data_sha256, md5_digest=data_md5)
 
     if only_compression:
         use_exts = [only_compression]
@@ -240,12 +265,11 @@ def import_metadata_file(
 
         with open(fname_z, 'rb') as f:
             z_bytes = f.read()
-            finfos.append(
-                RepoFileInfo(repo_fname + '.' + z_ext, len(z_bytes), 'SHA256', hashlib.sha256(z_bytes).hexdigest())
-            )
-            finfos.append(
-                RepoFileInfo(repo_fname + '.' + z_ext, len(z_bytes), 'MD5Sum', hashlib.md5(z_bytes).hexdigest())
-            )
+            z_bytes_md5 = hashlib.md5(z_bytes).hexdigest()
+            z_bytes_sha256 = hashlib.sha256(z_bytes).hexdigest()
+            finfos.append(RepoFileInfo(repo_fname + '.' + z_ext, len(z_bytes), 'SHA256', z_bytes_sha256))
+            finfos.append(RepoFileInfo(repo_fname + '.' + z_ext, len(z_bytes), 'MD5Sum', z_bytes_md5))
+            write_by_hash_file(comp_root_dir, z_bytes, sha256_digest=z_bytes_sha256, md5_digest=z_bytes_md5)
 
     return finfos
 
@@ -267,10 +291,17 @@ def write_release_file_for_arch(
     finfos = []
     with open(os.path.join(root_path, component.name, subdir, 'Release'), 'wb') as f:
         data = entry.dump().encode('utf-8')
-        release_name = os.path.join(subdir, 'Release')
-        finfos.append(RepoFileInfo(release_name, len(data), 'SHA256', hashlib.sha256(data).hexdigest()))
-        finfos.append(RepoFileInfo(release_name, len(data), 'MD5Sum', hashlib.md5(data).hexdigest()))
+        release_name = os.path.join(component.name, subdir, 'Release')
         f.write(data)
+
+        data_md5 = hashlib.md5(data).hexdigest()
+        data_sha256 = hashlib.sha256(data).hexdigest()
+        finfos.append(RepoFileInfo(release_name, len(data), 'SHA256', data_sha256))
+        finfos.append(RepoFileInfo(release_name, len(data), 'MD5Sum', data_md5))
+        write_by_hash_file(
+            os.path.join(root_path, component.name), data, sha256_digest=data_sha256, md5_digest=data_md5
+        )
+
     return finfos
 
 
@@ -619,7 +650,7 @@ def _publish_suite_dists(
         )
 
     # update metadata
-    meta_files = []
+    meta_files: list[RepoFileInfo] = []
     for component in rss.suite.components:
         suite_component_dists_sources_dir = os.path.join(suite_temp_dist_dir, component.name, 'source')
         os.makedirs(suite_component_dists_sources_dir, exist_ok=True)
@@ -743,24 +774,24 @@ def _publish_suite_dists(
     entry['Components'] = ' '.join(sorted([c.name for c in rss.suite.components]))
 
     meta_files_by_cs: dict[str, list[RepoFileInfo]] = {}
-    for f in sorted(meta_files):
-        if f.checksum_name not in meta_files_by_cs:
-            meta_files_by_cs[f.checksum_name] = []
-        meta_files_by_cs[f.checksum_name].append(f)
+    for fi in sorted(meta_files):
+        if fi.checksum_name not in meta_files_by_cs:
+            meta_files_by_cs[fi.checksum_name] = []
+        meta_files_by_cs[fi.checksum_name].append(fi)
 
     if only_sources:
-        for cs_name, mfiles in meta_files_by_cs.items():
+        for cs_name in sorted(meta_files_by_cs.keys()):
             # patch in the updated sources data
             metafile_data = entry[cs_name].split('\n')
             for i, line in enumerate(metafile_data):
-                for fi in mfiles:
+                for fi in meta_files_by_cs[cs_name]:
                     if line.endswith(fi.fname):
                         metafile_data[i] = f' {fi.checksum} {fi.size: >8} {fi.fname}'
             entry[cs_name] = '\n'.join(metafile_data)
     else:
-        for cs_name, mfiles in meta_files_by_cs.items():
+        for cs_name in sorted(meta_files_by_cs.keys()):
             # add metadata
-            metafile_data = [f' {f.checksum} {f.size: >8} {f.fname}' for f in mfiles]
+            metafile_data = [f' {f.checksum} {f.size: >8} {f.fname}' for f in meta_files_by_cs[cs_name]]
             entry[cs_name] = '\n' + '\n'.join(metafile_data)
 
     with open(root_rel_fname, 'w', encoding='utf-8') as f:
