@@ -19,7 +19,6 @@ from rich.console import Console
 from sqlalchemy.orm import selectinload
 
 import laniakea.typing as T
-from laniakea import LocalConfig
 from laniakea.db import (
     ArchiveFile,
     BinaryPackage,
@@ -97,6 +96,9 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                     )
                     if fix_issues:
                         bin.suites.append(suite)
+                        log.debug(
+                            'FIX: Add suite %s to %s/%s/%s', suite.name, bin.name, bin.version, bin.architecture.name
+                        )
             for suite in bin.suites:
                 # handle the debug-suite special case for binary -> source
                 if bin.repo.is_debug:
@@ -113,6 +115,7 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                     )
                     if fix_issues:
                         spkg.suites.append(suite)
+                        log.debug('FIX: Add suite %s to %s/%s/source', suite.name, spkg.name, spkg.version)
 
         if not spkg.files:
             issues.append(('{}/{}/source'.format(spkg.name, spkg.version), 'No files'))
@@ -255,6 +258,10 @@ def check_integrity(repo_name: T.Optional[str], fix_issues: bool):
                 res.extend(_verify_files(session, repo))
                 repo_reports[repo.name] = res
 
+                # commit any changes
+                if fix_issues:
+                    session.commit()
+
         def print_report_table(title, issues):
             table = Table(box=rich.box.MINIMAL, title=title)
             table.add_column('Entity', no_wrap=True)
@@ -284,17 +291,15 @@ def check_integrity(repo_name: T.Optional[str], fix_issues: bool):
             if issue_count == 0:
                 print('  • No issues')
 
-        print()
-        print(Panel.fit('Summary'))
-        failed = False
-        for repo_name, issue_count in summary.items():
-            if issue_count > 0:
-                print(
-                    '[bold red]✘[/bold red] Found [red]{} errors[/red] in repository {}'.format(issue_count, repo_name)
-                )
-                failed = True
-            else:
-                print('[bold green]✔[/bold green] No problems in repository {}'.format(repo_name))
+    print()
+    print(Panel.fit('Summary'))
+    failed = False
+    for repo_name, issue_count in summary.items():
+        if issue_count > 0:
+            print('[bold red]✘[/bold red] Found [red]{} errors[/red] in repository {}'.format(issue_count, repo_name))
+            failed = True
+        else:
+            print('[bold green]✔[/bold green] No problems in repository {}'.format(repo_name))
 
-        if failed:
-            sys.exit(5)
+    if failed:
+        sys.exit(5)
