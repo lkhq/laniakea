@@ -8,6 +8,7 @@ import os
 import sys
 import gzip
 import lzma
+import time
 import shutil
 import hashlib
 import functools
@@ -127,13 +128,21 @@ def set_deb822_value_spacelist(entry: Deb822, key: str, value: T.Optional[T.Iter
         entry[key] = ' '.join(value)
 
 
-def write_compressed_files(root_path: T.PathUnion, subdir: str, basename: str, data: str) -> T.List[RepoFileInfo]:
+def write_compressed_files(
+    root_path: T.PathUnion,
+    subdir: str,
+    basename: str,
+    *,
+    component: T.Optional[ArchiveComponent | str] = None,
+    data: str,
+) -> T.List[RepoFileInfo]:
     """
     Write archive metadata file and compress it with all supported / applicable
     algorithms. Currently, we only support LZMA.
     :param root_path: Root directory of the repository.
     :param subdir: Subdirectory within the repository.
     :param basename: Base name of the metadata file, e.g. "Packages"
+    :param component: Archive component to write data into
     :param data: Data the file should contain (usually UTF-8 text)
     """
 
@@ -142,12 +151,36 @@ def write_compressed_files(root_path: T.PathUnion, subdir: str, basename: str, d
     repo_fname = os.path.join(subdir, basename)
     finfos.append(RepoFileInfo(repo_fname, len(data_bytes), hashlib.sha256(data_bytes).hexdigest()))
 
-    fname_xz = os.path.join(root_path, repo_fname + '.xz')
+    if not component:
+        comp_root_path = root_path
+    else:
+        comp_root_path = (
+            os.path.join(root_path, component)
+            if isinstance(component, str)
+            else os.path.join(root_path, component.name)
+        )
+
+    by_hash_root = os.path.join(comp_root_path, 'by-hash')
+    by_hash_md5_root = os.path.join(by_hash_root, 'MD5Sum')
+    by_hash_sha256_root = os.path.join(by_hash_root, 'SHA256')
+    os.makedirs(by_hash_md5_root, exist_ok=True)
+    os.makedirs(by_hash_sha256_root, exist_ok=True)
+
+    fname_xz = os.path.join(comp_root_path, repo_fname + '.xz')
     with lzma.open(fname_xz, 'w') as f:
         f.write(data_bytes)
     with open(fname_xz, 'rb') as f:
         xz_bytes = f.read()
-        finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), hashlib.sha256(xz_bytes).hexdigest()))
+        sha256_digest = hashlib.sha256(xz_bytes).hexdigest()
+        md5_digest = hashlib.md5(xz_bytes).hexdigest()
+        finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), sha256_digest))
+
+        # We could use hardlinks here, but if the source file is written to directly, the by-hash files
+        # would change, which we want to avoid at all costs. So instead, we use deep copies here.
+        with open(os.path.join(by_hash_sha256_root, str(sha256_digest)), 'wb') as hash_f:
+            hash_f.write(xz_bytes)
+        with open(os.path.join(by_hash_md5_root, str(md5_digest)), 'wb') as hash_f:
+            hash_f.write(xz_bytes)
 
     return finfos
 
@@ -221,7 +254,7 @@ def write_release_file_for_arch(
     set_deb822_value(entry, 'Component', component.name)
     entry['Architecture'] = arch_name
 
-    with open(os.path.join(root_path, subdir, 'Release'), 'wb') as f:
+    with open(os.path.join(root_path, component.name, subdir, 'Release'), 'wb') as f:
         data = entry.dump().encode('utf-8')
         finfo = RepoFileInfo(os.path.join(subdir, 'Release'), len(data), hashlib.sha256(data).hexdigest())
         f.write(data)
@@ -500,6 +533,30 @@ def generate_i18n_template_data(
     return '\n'.join(i18n_entries)
 
 
+def _expire_by_hash_files(root_path: T.PathUnion, component: ArchiveComponent) -> None:
+    """
+    Expire obsolete files in by-hash directories.
+    :param root_path: Root part to the archive metadata directory.
+    :param component: Archive component to act on.
+    :return:
+    """
+
+    comp_root_path = os.path.join(root_path, component.name)
+    by_hash_root = os.path.join(comp_root_path, 'by-hash')
+    if not os.path.isdir(by_hash_root):
+        log.error('Expected by-hash dir is missing: %s', by_hash_root)
+        return
+
+    two_weeks_ago = time.time() - (14 * 24 * 60 * 60)
+    for path, _, files in os.walk(comp_root_path):
+        for file in files:
+            fname = os.path.join(path, file)
+            ti_m = os.path.getmtime(fname)
+            if ti_m < two_weeks_ago:
+                log.debug('Deleting obsolete by-hash file: %s', fname)
+                os.unlink(fname)
+
+
 def _publish_suite_dists(
     lconf: LocalConfig,
     session,
@@ -551,16 +608,15 @@ def _publish_suite_dists(
     # update metadata
     meta_files = []
     for component in rss.suite.components:
-        dists_sources_subdir = os.path.join(component.name, 'source')
-        suite_component_dists_sources_dir = os.path.join(suite_temp_dist_dir, dists_sources_subdir)
+        suite_component_dists_sources_dir = os.path.join(suite_temp_dist_dir, component.name, 'source')
         os.makedirs(suite_component_dists_sources_dir, exist_ok=True)
 
         # generate Sources
         res = generate_sources_index(session, rss.repo, rss.suite, component)
-        meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_sources_subdir, 'Sources', res))
-        meta_files.append(
-            write_release_file_for_arch(suite_temp_dist_dir, dists_sources_subdir, rss, component, 'source')
+        meta_files.extend(
+            write_compressed_files(suite_temp_dist_dir, 'source', 'Sources', component=component, data=res)
         )
+        meta_files.append(write_release_file_for_arch(suite_temp_dist_dir, 'source', rss, component, 'source'))
 
         # don't write anything else if we only need to update the Sources index
         if only_sources:
@@ -569,24 +625,32 @@ def _publish_suite_dists(
         dists_dep11_subdir = os.path.join(component.name, 'dep11')
         for arch in rss.suite.architectures:
             # generate Packages
-            dists_arch_subdir = os.path.join(component.name, 'binary-' + arch.name)
-            dists_arch_di_subdir = os.path.join(component.name, 'debian-installer', 'binary-' + arch.name)
-            os.makedirs(os.path.join(suite_temp_dist_dir, dists_arch_subdir), exist_ok=True)
+            dists_arch_subdir = 'binary-' + arch.name
+            os.makedirs(os.path.join(suite_temp_dist_dir, component.name, dists_arch_subdir), exist_ok=True)
 
             pkg_data = generate_packages_index(session, rss.repo, rss.suite, component, arch, installer_udeb=False)
-            meta_files.extend(write_compressed_files(suite_temp_dist_dir, dists_arch_subdir, 'Packages', pkg_data))
+            meta_files.extend(
+                write_compressed_files(
+                    suite_temp_dist_dir, dists_arch_subdir, 'Packages', component=component, data=pkg_data
+                )
+            )
             meta_files.append(
                 write_release_file_for_arch(suite_temp_dist_dir, dists_arch_subdir, rss, component, arch.name)
             )
 
             # only add debian-installer data if we are not a debug suite
             if not rss.suite.debug_suite_for:
-                os.makedirs(os.path.join(suite_temp_dist_dir, dists_arch_di_subdir), exist_ok=True)
+                dists_arch_di_subdir = os.path.join('debian-installer', 'binary-' + arch.name)
+                os.makedirs(
+                    os.path.join(suite_temp_dist_dir, os.path.join(component.name, dists_arch_di_subdir)), exist_ok=True
+                )
                 pkg_data_di = generate_packages_index(
                     session, rss.repo, rss.suite, component, arch, installer_udeb=True
                 )
                 meta_files.extend(
-                    write_compressed_files(suite_temp_dist_dir, dists_arch_di_subdir, 'Packages', pkg_data_di)
+                    write_compressed_files(
+                        suite_temp_dist_dir, dists_arch_di_subdir, 'Packages', component=component, data=pkg_data_di
+                    )
                 )
 
             # import AppStream data
@@ -634,13 +698,17 @@ def _publish_suite_dists(
 
         # create i19n template data
         if not only_sources:
-            dists_i18n_subdir = os.path.join(component.name, 'i18n')
-            suite_component_dists_i18n_dir = os.path.join(suite_temp_dist_dir, dists_i18n_subdir)
+            suite_component_dists_i18n_dir = os.path.join(suite_temp_dist_dir, component.name, 'i18n')
             os.makedirs(suite_component_dists_i18n_dir, exist_ok=True)
             i18n_data = generate_i18n_template_data(session, rss.repo, rss.suite, component)
             meta_files.extend(
-                write_compressed_files(suite_temp_dist_dir, dists_i18n_subdir, 'Translation-en', i18n_data)
+                write_compressed_files(
+                    suite_temp_dist_dir, 'i18n', 'Translation-en', component=component, data=i18n_data
+                )
             )
+
+        # expire old by-hash files
+        _expire_by_hash_files(suite_temp_dist_dir, component)
 
     # write root release file
     if only_sources:
@@ -657,7 +725,7 @@ def _publish_suite_dists(
     entry['Date'] = datetime_to_rfc2822_string(datetime.utcnow())
     if not rss.frozen and not only_sources:
         entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.utcnow() + timedelta(days=8))
-    entry['Acquire-By-Hash'] = 'no'  # FIXME: We need to implement this, then change this line to allow by-hash
+    entry['Acquire-By-Hash'] = 'yes'
     entry['Architectures'] = ' '.join(sorted([a.name for a in rss.suite.architectures]))
     entry['Components'] = ' '.join(sorted([c.name for c in rss.suite.components]))
 
