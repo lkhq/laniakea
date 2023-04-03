@@ -74,33 +74,12 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                 issues.append(('{}/{}/source'.format(spkg.name, spkg.version), 'No suites'))
                 continue
 
+        # check that the source package is in a suite along with its binaries
         for bin in spkg.binaries:
             if bin.time_deleted:
                 # we ignore deleted binary packages
                 continue
 
-            for suite in spkg.suites:
-                # handle the debug-suite special case for source -> binary
-                if bin.repo.is_debug:
-                    if suite.debug_suite:
-                        suite = suite.debug_suite
-                    else:
-                        # we skip this check in case we don't have a matching suite
-                        continue
-
-                # check
-                if suite not in bin.suites:
-                    issues_fixed.append(
-                        (
-                            '{}/{}/{}'.format(bin.name, bin.version, bin.architecture.name),
-                            'Missing suite: {}'.format(suite.name),
-                        )
-                    )
-                    if fix_issues:
-                        bin.suites.append(suite)
-                        log.debug(
-                            'FIX: Add suite %s to %s/%s/%s', suite.name, bin.name, bin.version, bin.architecture.name
-                        )
             for suite in bin.suites:
                 # handle the debug-suite special case for binary -> source
                 if bin.repo.is_debug:
