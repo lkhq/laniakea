@@ -99,6 +99,10 @@ class DoseDebcheck:
                 )
                 if fname:
                     res['bg'].append(fname)
+            else:
+                fname = self._repo_reader.index_file(suite, os.path.join(component.name, 'binary-all', 'Packages.xz'))
+                if fname:
+                    res['bg'].append(fname)
 
         # add base suite packages to the background
         for parent in suite.parents:

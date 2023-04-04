@@ -120,3 +120,7 @@ idx_debcheck_issues_repo = Index(
     'idx_debcheck_issues_repo',
     DebcheckIssue.repo_id,
 )
+
+idx_debcheck_issues_repo_suite_type = Index(
+    'idx_debcheck_issues_repo_suite_type', DebcheckIssue.package_type, DebcheckIssue.repo_id, DebcheckIssue.suite_id
+)
