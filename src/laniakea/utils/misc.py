@@ -249,3 +249,13 @@ def ensure_laniakea_master_user(warn_only: bool = False):
         else:
             error_console.print('[bold red]ERROR[/]: This command has to be run as user "{}".'.format(master_username))
             sys.exit(6)
+
+
+def set_process_title(title: str):
+    """Change the current process title, if possible."""
+    try:
+        from setproctitle import setproctitle
+
+        setproctitle(title)
+    except ImportError:
+        pass

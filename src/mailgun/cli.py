@@ -68,6 +68,9 @@ def create_parser():
 
 
 def run(mainfile, args):
+    from laniakea.utils import set_process_title
+
+    set_process_title('laniakea-mailgun')
     global __mainfile
     __mainfile = mainfile
 

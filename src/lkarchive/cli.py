@@ -73,8 +73,9 @@ def _register_commands():
 def run(mainfile, args):
     from rich.traceback import install
 
-    from laniakea.utils.misc import ensure_laniakea_master_user
+    from laniakea.utils.misc import set_process_title, ensure_laniakea_master_user
 
+    set_process_title('lk-archive')
     if len(args) == 0:
         print('Need a subcommand to proceed!')
         sys.exit(1)

@@ -155,6 +155,10 @@ def check_verbose(options):
 
 
 def run(mainfile, args):
+    from laniakea.utils import set_process_title
+
+    set_process_title('laniakea-debcheck')
+
     if len(args) == 0:
         print('Need a subcommand to proceed!')
         sys.exit(1)

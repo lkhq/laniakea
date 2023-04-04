@@ -38,6 +38,7 @@ base = [
     'click>=7.1',
     'rich>=12.4',
     'voluptuous',
+    'setproctitle',
     'gir:AppStream~=1.0',
 ]
 web = [

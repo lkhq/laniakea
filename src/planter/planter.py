@@ -152,6 +152,9 @@ def check_verbose(options):
 
 
 def run(args):
+    from laniakea.utils import set_process_title
+
+    set_process_title('laniakea-planter')
     if len(args) == 0:
         print('Need a subcommand to proceed!')
         sys.exit(1)

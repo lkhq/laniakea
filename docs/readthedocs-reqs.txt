@@ -13,6 +13,7 @@ python-debian
 pyzmq
 requests
 rich
+setproctitle
 tomlkit
 tornado
 voluptuous

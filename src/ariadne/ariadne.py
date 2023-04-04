@@ -441,4 +441,7 @@ def run(args):
 
 
 if __name__ == '__main__':
+    from laniakea.utils import set_process_title
+
+    set_process_title('laniakea-ariadne')
     sys.exit(run(sys.argv[1:]))

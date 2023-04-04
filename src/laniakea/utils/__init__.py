@@ -15,6 +15,7 @@ from laniakea.utils.misc import (
     is_remote_url,
     random_string,
     process_file_lock,
+    set_process_title,
     datetime_to_rfc2822_string,
     get_dir_shorthand_for_uuid,
 )
@@ -60,4 +61,5 @@ __all__ = [
     'process_file_lock',
     'safe_rename',
     'hardlink_or_copy',
+    'set_process_title',
 ]

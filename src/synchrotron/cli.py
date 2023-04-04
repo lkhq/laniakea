@@ -103,8 +103,9 @@ def check_verbose(options):
 
 def run(mainfile, args):
     from laniakea.logging import configure_pkg_archive_logger
-    from laniakea.utils.misc import ensure_laniakea_master_user
+    from laniakea.utils.misc import set_process_title, ensure_laniakea_master_user
 
+    set_process_title('synchrotron')
     global __mainfile
     __mainfile = mainfile
 
