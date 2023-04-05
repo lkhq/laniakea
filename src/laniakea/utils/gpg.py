@@ -342,6 +342,43 @@ def sign(
     subprocess.check_call(args, stdin=infile, stdout=outfile)
 
 
+def list_gpg_fingerprints(gpghome: T.PathUnion, *, only_primary=True) -> list[str]:
+    """Import a GPG (public) keyfile into the keyring set by :gpghome"""
+
+    args = [
+        '/usr/bin/gpg',
+        '--no-default-keyring',
+        '--homedir',
+        str(gpghome),
+        '--no-tty',
+        '--batch',
+        '--status-fd=1',
+        '--with-colons',
+        '--list-keys',
+        '--fingerprint',
+    ]
+
+    proc = subprocess.run(args, capture_output=True, check=False)
+    if proc.returncode != 0:
+        raise GpgException('Unable to list fingerprints: {!r}{!r}'.format(proc.stderr, proc.stdout))
+
+    fingerprints = []
+    ignore_next = False
+    for line in str(proc.stdout, 'utf-8').splitlines():
+        if only_primary and line.startswith('sub'):
+            ignore_next = True
+            continue
+        if line.startswith('fpr'):
+            if ignore_next:
+                ignore_next = False
+                continue
+        else:
+            continue
+        fingerprints.append(line.split(':')[9])
+
+    return fingerprints
+
+
 def import_keyfile(gpghome: T.PathUnion, fname: T.PathUnion) -> List[str]:
     """Import a GPG (public) keyfile into the keyring set by :gpghome"""
 
@@ -370,3 +407,27 @@ def import_keyfile(gpghome: T.PathUnion, fname: T.PathUnion) -> List[str]:
         raise GpgException('Imported key, but unable to determine fingerprint of the new key.:')
 
     return key_fingerprints
+
+
+def delete_gpg_key(gpghome: T.PathUnion, fingerprint: str) -> None:
+    """Delete a key from the keyring using its fingerprint."""
+
+    args = [
+        '/usr/bin/gpg',
+        '--no-default-keyring',
+        '--homedir',
+        str(gpghome),
+        '--no-tty',
+        '--batch',
+        '--status-fd=1',
+        '--delete-key',
+        fingerprint,
+    ]
+
+    proc = subprocess.run(args, capture_output=True, check=False)
+    if proc.returncode != 0:
+        raise GpgException('Unable to delete key {}: {!r}{!r}'.format(fingerprint, proc.stderr, proc.stdout))
+
+    for line in str(proc.stdout, 'utf-8').splitlines():
+        if line.startswith('[GNUPG:] DELETE_PROBLEM'):
+            raise GpgException('Unable to delete GPG key from keyring.')

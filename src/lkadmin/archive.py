@@ -3,9 +3,12 @@
 # Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
+import os.path
+from pathlib import Path
 
 import click
 import tomlkit
+from rich.prompt import Confirm
 
 import laniakea.typing as T
 from laniakea import LocalConfig
@@ -562,3 +565,107 @@ def add_from_config(config_fname):
         _add_suite_to_repo(**rss_d)
     for uploader_d in conf.get('Uploaders', []):
         _add_uploader(**uploader_d)
+
+
+@archive.command()
+@click.option(
+    '--no-confirm',
+    default=False,
+    is_flag=True,
+    help='Do not ask for confirmation.',
+)
+@click.argument('dir_path', nargs=1)
+def update_users_from_dir(dir_path, no_confirm=False):
+    """Sync database user data with contents of directory."""
+
+    from laniakea.archive.uploadermgr import (
+        delete_uploader_key,
+        import_key_file_for_uploader,
+        retrieve_uploader_fingerprints,
+    )
+
+    if not no_confirm:
+        proceed_answer = Confirm.ask(
+            'Update users with data from {}? This will DELETE and users not present in this directory!'.format(dir_path)
+        )
+        if not proceed_answer:
+            return
+
+    with session_scope() as session:
+        repo_index = {}
+        for repo in session.query(ArchiveRepository).all():
+            repo_index[repo.name] = repo
+
+        user_index = {}
+        for user in session.query(ArchiveUploader).all():
+            user_index[user.email] = user
+
+        uploader_fprs = set(retrieve_uploader_fingerprints())
+
+        valid_users_found = False
+        for uconf_fname in Path(dir_path).rglob('user.toml'):
+            uconf_root = os.path.dirname(uconf_fname)
+            with open(uconf_fname, 'r') as f:
+                uconf = tomlkit.load(f)
+
+            email = uconf.get('email', None)
+            fingerprints = uconf.get('fingerprints', [])
+            fingerprints = [fpr.strip() for fpr in fingerprints]
+            repo_names = uconf.get('repositories', [])
+            if not email:
+                raise ValueError('Can not add user from "{}" without email.'.format(uconf_fname))
+            if not fingerprints:
+                raise ValueError('Can not add user from "{}" without GPG fingerprints.'.format(uconf_fname))
+            if not repo_names:
+                raise ValueError('Can not add user from "{}" without allowed repositories.'.format(uconf_fname))
+
+            valid_users_found = True
+            user = user_index.pop(email, None)
+            if not user:
+                log.info('Adding new user: %s', email)
+                user = ArchiveUploader(email)
+                session.add(user)
+            user.name = uconf.get('name', '')
+            user.alias = uconf.get('alias', None)
+            user.pgp_fingerprints = fingerprints
+            user.is_human = uconf.get('is_human', True)
+            user.allow_source_uploads = uconf.get('allow_source_uploads', True)
+            user.allow_binary_uploads = uconf.get('allow_binary_uploads', False)
+            user.always_review = uconf.get('always_review', False)
+            user.allowed_packages = uconf.get('allow_packages', [])
+
+            # remove disallowed
+            for repo in user.repos:
+                if repo.name not in repo_names:
+                    log.info('Removing repository access for %s from %s', repo.name, email)
+                    user.repos.remove(repo)
+
+            # add new allowed
+            for repo_name in repo_names:
+                repo = repo_index.get(repo_name, None)
+                if not repo:
+                    raise ValueError('Repository "{}" does not exist!'.format(repo_name))
+                if repo not in user.repos:
+                    log.info('Adding repository access for %s to %s', repo.name, email)
+                    user.repos.append(repo)
+
+            # update GPG keys
+            for fpr in fingerprints:
+                # check if we already have the key
+                if fpr in uploader_fprs:
+                    uploader_fprs.remove(fpr)
+                    continue
+                log.info('Importing key %s for %s', fpr, email)
+                import_key_file_for_uploader(user, os.path.join(uconf_root, fpr + '.asc'))
+
+        if valid_users_found:
+            # only remove stuff if we found at least one valid user in the new dataset, as safety precaution
+            for user in user_index.values():
+                for fpr in user.pgp_fingerprints:
+                    delete_uploader_key(fpr)
+                log.info('Removing user %s', user.email)
+                session.delete(user)
+
+            for orphan_fpr in uploader_fprs:
+                log.warning('Found orphaned key %s in archive uploader keyring - deleting it.', orphan_fpr)
+                delete_uploader_key(orphan_fpr)
