@@ -3,7 +3,9 @@
 # Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
+import os.path
 
+import laniakea.typing as T
 from laniakea.utils import run_command
 
 
@@ -13,9 +15,9 @@ class Git:
     to perform some basic operations on Git repositories.
     '''
 
-    def __init__(self):
+    def __init__(self, location: T.Optional[T.PathUnion] = None):
         self._git_exe = 'git'
-        self._location = None
+        self._location = location
 
     @property
     def location(self) -> str:
@@ -43,14 +45,26 @@ class Git:
         elif throw_error:
             raise Exception('Failed to run Git ({}): {}\n{}'.format(' '.join(git_cmd), out, err))
 
-    def clone(self, repo_url):
+    def clone(self, repo_url: str):
+        """Clone a Git repository to target location."""
         if not self._location:
             raise Exception('Git clone destination is not set.')
         return self._run_git('clone', [repo_url, self._location])
 
-    def pull(self, origin=None, branch=None):
+    def pull(self, origin: T.Optional[str] = None, branch: T.Optional[str] = None):
+        """Pull from an existing repository."""
         args = []
         if origin and branch:
             args = [origin, branch]
 
         return self._run_git('pull', args, self._location)
+
+    def clone_or_pull(self, repo_url: str, *, origin: T.Optional[str] = None, branch: T.Optional[str] = None):
+        """Clone repository if target location does not exist, pull otherwise."""
+        if not self._location:
+            raise Exception('Git clone destination is not set.')
+
+        if not os.path.exists(self._location) or len(os.listdir(self._location)) == 0:
+            self.clone(repo_url)
+        else:
+            self.pull(origin, branch)

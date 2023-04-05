@@ -166,6 +166,9 @@ class LocalConfig:
                 'UploadersGPGHome', os.path.join(self._workspace, 'keys', 'uploaders')
             )
 
+            # Git repository with archive management hints
+            self._user_hints_git_url = cdata.get('UserHintsGitUrl')
+
         @property
         def workspace(self) -> str:
             return self._workspace
@@ -282,6 +285,10 @@ class LocalConfig:
         @property
         def log_root_dir(self) -> T.PathUnion:
             return os.path.join(self._workspace, 'logs')
+
+        @property
+        def user_hints_git_url(self) -> str:
+            return self._user_hints_git_url
 
     def __init__(self, fname=None):
         if not LocalConfig.instance:

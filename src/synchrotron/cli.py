@@ -9,6 +9,7 @@ import multiprocessing as mp
 from argparse import ArgumentParser
 
 from laniakea.db import SynchrotronConfig, session_scope
+from laniakea.logging import log
 
 from .syncengine import SyncEngine
 
@@ -30,6 +31,15 @@ def command_sync(options):
 
 def command_autosync(options):
     """Automatically synchronize packages"""
+
+    from laniakea.userhints import UserHints
+
+    uhints = UserHints()
+    uhints.load(update=True)
+    try:
+        uhints.update_synchrotron_blacklists()
+    except Exception as e:
+        log.error('Failed to import user hints from Git: %s', str(e))
 
     with session_scope() as session:
         autosyncs_q = (

@@ -88,12 +88,21 @@ class SpearsEngine:
         return os.path.join(self._workspace, mtask.repo.name, mtask.make_migration_shortname())
 
     def update_config(self, update_britney: bool = True):
-        '''
+        """
         Update configuration and distribution
         copy of Britney
-        '''
+        """
+
+        from laniakea.userhints import UserHints
 
         log.info('Updating configuration')
+
+        uhints = UserHints()
+        uhints.load(update=True)
+        try:
+            uhints.update_spears_hints()
+        except Exception as e:
+            log.error('Failed to import user hints from Git: %s', str(e))
 
         with session_scope() as session:
             for mtask in session.query(SpearsMigrationTask).all():
