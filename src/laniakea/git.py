@@ -20,7 +20,7 @@ class Git:
         self._location = location
 
     @property
-    def location(self) -> str:
+    def location(self) -> T.PathUnion:
         '''
         The on-disk location of this Git repository.
         '''
