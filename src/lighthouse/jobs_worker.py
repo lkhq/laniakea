@@ -385,11 +385,11 @@ class JobWorker:
         session.query(SparkWorker).filter(SparkWorker.uuid == client_id).update({'last_ping': datetime.utcnow()})
         session.commit()
 
-    def _process_job_finished_request(self, session, request, success):
-        '''
-        request made when the job has finished and we are expecting results from the worker
+    def _process_job_finished_request(self, session, request, success: bool):
+        """
+        Request made when the job has finished and we are expecting results from the worker
         to be uploaded.
-        '''
+        """
 
         job_id = request.get('uuid')
         client_name = request.get('machine_name')

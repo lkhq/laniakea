@@ -28,12 +28,20 @@ from .import_package import handle_package_upload
 
 
 def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event_emitter: EventEmitter):
-    '''
+    """
     Accept the DUD upload and move its data to the right places.
-    '''
+    """
 
-    job_success = dud.get('X-Spark-Success') == 'Yes'
+    job_result_str = dud.get('X-Spark-Result')
     job_id = dud.get('X-Spark-Job')
+    if not job_result_str:
+        job_result_str = 'success' if dud.get('X-Spark-Success') == 'Yes' else 'failure'
+
+    job_result = JobResult.FAILURE
+    if job_result_str == 'success':
+        job_result = JobResult.SUCCESS
+    elif job_result_str == 'depwait':
+        job_result = JobResult.FAILURE_DEPENDENCY
 
     # mark job as accepted and done
     with session_scope() as session:
@@ -46,7 +54,7 @@ def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event
             # The least harmful thing to do is to just leave the upload alone and try again later.
             return
 
-        job.result = JobResult.SUCCESS if job_success else JobResult.FAILURE
+        job.result = job_result
         job.latest_log_excerpt = None
 
         # move the log file and Firehose reports to the log storage
@@ -71,7 +79,12 @@ def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event
             from .import_isotope import handle_isotope_upload
 
             handle_isotope_upload(
-                session, success=job_success, conf=conf, dud=dud, job=job, event_emitter=event_emitter
+                session,
+                success=job_result == JobResult.SUCCESS,
+                conf=conf,
+                dud=dud,
+                job=job,
+                event_emitter=event_emitter,
             )
 
         elif job.kind == JobKind.PACKAGE_BUILD:
@@ -95,12 +108,16 @@ def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event
                     'suite': suite_target_name,
                     'job_id': job_id,
                 }
-                if job_success:
+                if job_result == JobResult.SUCCESS:
                     event_emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-build-success', event_data)
-                else:
+                elif job_result == JobResult.FAILURE:
                     event_emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-build-failed', event_data)
+                elif job_result == JobResult.FAILURE_DEPENDENCY:
+                    event_emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-build-depwait', event_data)
         else:
-            event_emitter.submit_event('job-upload-accepted', {'job_id': job_id, 'job_failed': not job_success})
+            event_emitter.submit_event(
+                'job-upload-accepted', {'job_id': job_id, 'job_failed': job_result != JobResult.SUCCESS}
+            )
 
     # remove the upload description file from incoming
     os.remove(dud.get_dud_file())
