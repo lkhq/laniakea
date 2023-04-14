@@ -24,7 +24,7 @@ from laniakea.utils import safe_rename, random_string, get_dir_shorthand_for_uui
 from laniakea.msgstream import EventEmitter
 
 from .rubiconfig import RubiConfig
-from .import_package import handle_package_upload
+from .import_package import handle_package_uploads
 
 
 def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event_emitter: EventEmitter):
@@ -66,13 +66,13 @@ def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event
 
                 # move the logfile to its destination and ensure it is named correctly
                 target_fname = os.path.join(log_target_dir, job_id + '.log')
-                safe_rename(fname, target_fname)
+                safe_rename(fname, target_fname, override=True)
             elif fname.endswith('.firehose.xml'):
                 os.makedirs(firehose_target_dir, exist_ok=True)
 
                 # move the firehose report to its own directory and rename it
                 fh_target_fname = os.path.join(firehose_target_dir, job_id + '.firehose.xml')
-                safe_rename(fname, fh_target_fname)
+                safe_rename(fname, fh_target_fname, override=True)
 
         # handle different job data
         if job.module == LkModule.ISOTOPE:
@@ -168,12 +168,12 @@ def reject_dud_upload(
 def import_files_for(
     session, conf: RubiConfig, repo: ArchiveRepository, incoming_dir: T.PathUnion, emitter: EventEmitter
 ):
-    '''
+    """
     Import files from an untrusted incoming source.
 
     IMPORTANT: We assume that the uploader can not edit their files post-upload.
     If they could, we would be vulnerable to timing attacks here.
-    '''
+    """
 
     for dud_file in glob(os.path.join(incoming_dir, '*.dud')):
         dud = Dud(dud_file)
@@ -187,8 +187,10 @@ def import_files_for(
 
         # if we are here, the file is good to go
         accept_dud_upload(conf, repo, dud, emitter)
-    for changes_fname in glob(os.path.join(incoming_dir, '*.changes')):
-        handle_package_upload(session, conf, repo, changes_fname, event_emitter=emitter)
+
+    changes_fnames = glob(os.path.join(incoming_dir, '*.changes'))
+    if changes_fnames:
+        handle_package_uploads(session, conf, repo, changes_fnames, event_emitter=emitter)
 
 
 def import_files(options):

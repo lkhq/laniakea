@@ -338,13 +338,11 @@ class TestArchive:
             uh = UploadHandler(session, repo)
             uh.keep_source_packages = True
 
-            success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch)
-            )
-            assert error is None
-            assert success
-            assert uploader.email == 'snowman@example.com'
-            assert uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
+            res = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch))
+            assert res.error is None
+            assert res.success
+            assert res.uploader.email == 'snowman@example.com'
+            assert res.uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
 
             spkg = (
                 session.query(SourcePackage)
@@ -360,25 +358,21 @@ class TestArchive:
             assert spkg
 
             # try to import the same thing again and watch it fail
-            success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch)
-            )
+            res = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch))
             assert (
-                error
+                res.error
                 == 'We have already seen higher or equal version "0.2-1" of source package "package" in repository "master" before.'
             )
-            assert not success
-            assert uploader.email == 'snowman@example.com'
-            assert uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
+            assert not res.success
+            assert res.uploader.email == 'snowman@example.com'
+            assert res.uploader.pgp_fingerprints == ['589E8FA542378066E944B6222F7C63E8F3A2C549']
 
             # try importing a non-free package, this thing should end up in NEW
-            success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'nonfree-package_0.1-1_%s.changes' % ctx._host_arch)
-            )
-            assert error is None
-            assert success
-            assert uploader.email == 'maint@example.com'
-            assert uploader.pgp_fingerprints == ['993C2870F54D83789E55323C13D986C3912E851C']
+            res = uh.process_changes(os.path.join(package_samples, 'nonfree-package_0.1-1_%s.changes' % ctx._host_arch))
+            assert res.error is None
+            assert res.success
+            assert res.uploader.email == 'maint@example.com'
+            assert res.uploader.pgp_fingerprints == ['993C2870F54D83789E55323C13D986C3912E851C']
 
             spkg = (
                 session.query(SourcePackage)
@@ -448,13 +442,11 @@ class TestArchive:
                 os.rename(pkgnew_orig_moved_fname, pkgnew_orig_fname)
 
             # process another upload, and reject it
-            success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % ctx._host_arch)
-            )
-            assert error is None
-            assert success
-            assert uploader.email == 'maint@example.com'
-            assert uploader.pgp_fingerprints == ['993C2870F54D83789E55323C13D986C3912E851C']
+            res = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % ctx._host_arch))
+            assert res.error is None
+            assert res.success
+            assert res.uploader.email == 'maint@example.com'
+            assert res.uploader.pgp_fingerprints == ['993C2870F54D83789E55323C13D986C3912E851C']
             spkg = (
                 session.query(SourcePackage)
                 .filter(
@@ -490,11 +482,9 @@ class TestArchive:
 
             # process two uploads adding multiple versions
             # pkgnew 0.1-1
-            success, _, error = uh.process_changes(
-                os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % ctx._host_arch)
-            )
-            assert error is None
-            assert success
+            res = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-1_%s.changes' % ctx._host_arch))
+            assert res.error is None
+            assert res.success
             spkg = (
                 session.query(SourcePackage)
                 .filter(SourcePackage.name == 'pkgnew', SourcePackage.version == '0.1-1')
@@ -506,9 +496,9 @@ class TestArchive:
             session.flush()
 
             # pkgnew 0.1-2
-            success, _, error = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-2_source.changes'))
-            assert error is None
-            assert success
+            res = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-2_source.changes'))
+            assert res.error is None
+            assert res.success
             spkg = (
                 session.query(SourcePackage)
                 .filter(SourcePackage.name == 'pkgnew', SourcePackage.version == '0.1-2')
@@ -520,11 +510,9 @@ class TestArchive:
             newqueue_accept(session, rss, spkg, missing_overrides)
 
             # add the missing binaries
-            success, _, error = uh.process_changes(
-                os.path.join(package_samples, 'pkgnew_0.1-2_%s.changes' % ctx._host_arch)
-            )
-            assert error is None
-            assert success
+            res = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-2_%s.changes' % ctx._host_arch))
+            assert res.error is None
+            assert res.success
             bpkg = (
                 session.query(BinaryPackage)
                 .filter(
@@ -542,11 +530,9 @@ class TestArchive:
             # we try to import this wothout imferring the orig.tar file from the upload directory, so we need
             # to move it out of the way temporarily
             os.rename(pkgnew_orig_fname, pkgnew_orig_moved_fname)
-            success, _, error = uh.process_changes(
-                os.path.join(package_samples, 'pkgnew_0.1-3_%s.changes' % ctx._host_arch)
-            )
-            assert error is None
-            assert success
+            res = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-3_%s.changes' % ctx._host_arch))
+            assert res.error is None
+            assert res.success
             spkg = (
                 session.query(SourcePackage)
                 .filter(SourcePackage.name == 'pkgnew', SourcePackage.version == '0.1-3')
@@ -593,11 +579,9 @@ class TestArchive:
             uh.keep_source_packages = True
 
             # add package and verify that is exists in the archive
-            success, uploader, error = uh.process_changes(
-                os.path.join(package_samples, 'grave_0.1-1_%s.changes' % ctx._host_arch)
-            )
-            assert error is None
-            assert success
+            res = uh.process_changes(os.path.join(package_samples, 'grave_0.1-1_%s.changes' % ctx._host_arch))
+            assert res.error is None
+            assert res.success
             spkg = (
                 session.query(SourcePackage)
                 .filter(
@@ -670,11 +654,11 @@ class TestArchive:
             uh.keep_source_packages = True
 
             # add package and verify that is exists in the archive
-            success, uploader, error = uh.process_changes(
+            res = uh.process_changes(
                 os.path.join(package_samples, 'main-contrib-with-debug_0.1-1_%s.changes' % ctx._host_arch)
             )
-            assert error is None
-            assert success
+            assert res.error is None
+            assert res.success
             spkg = (
                 session.query(SourcePackage)
                 .filter(

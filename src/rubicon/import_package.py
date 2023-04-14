@@ -37,20 +37,20 @@ def safe_move_rejected_upload(conf: RubiConfig, changes_fname: T.PathUnion) -> T
 
 
 def handle_package_upload(
-    session, conf: RubiConfig, repo: ArchiveRepository, changes_fname: T.PathUnion, event_emitter: EventEmitter
+    session,
+    conf: RubiConfig,
+    uh: UploadHandler,
+    changes_fname: T.PathUnion,
 ):
-    '''
-    Handle an upload of packages.
-    '''
+    """
+    Handle an upload of a package.
+    """
 
     reject_info_fname = os.path.join(conf.rejected_dir, Path(changes_fname).stem + '.reason')
     os.makedirs(conf.rejected_dir, exist_ok=True)
-    uh = UploadHandler(session, repo, event_emitter)
-    uh.keep_source_packages = False
-    uh.auto_emit_reject = False
 
     try:
-        success, uploader, error = uh.process_changes(changes_fname)
+        upload_result = uh.process_changes(changes_fname)
     except Exception as e:
         # we got an error that we can't attribute to an uploader, so we couldn't even consider this upload
         error_msg = str(e)
@@ -63,14 +63,29 @@ def handle_package_upload(
         return
 
     # the package upload was considered, but rejected anyway
-    if error or not success:
+    if upload_result.error or not upload_result.success:
         move_e = safe_move_rejected_upload(conf, changes_fname)
         if move_e:
-            error += '\nAnother error occurred while moving files: ' + move_e
+            upload_result.error += '\nAnother error occurred while moving files: ' + move_e
         with open(reject_info_fname, 'w', encoding='utf-8') as f:
-            f.write(error + '\n')
-        uh.emit_package_upload_rejected(changes_fname, error, uploader)
+            f.write(upload_result.error + '\n')
+        uh.emit_package_upload_rejected(changes_fname, upload_result.error, upload_result.uploader)
         return
 
     # if we're here, the new package was accepted - the UploadHandler will have handled
     # sending the announcement message
+
+
+def handle_package_uploads(
+    session, conf: RubiConfig, repo: ArchiveRepository, changes_files: list[T.PathUnion], event_emitter: EventEmitter
+):
+    """
+    Handle upload of packages.
+    """
+
+    uh = UploadHandler(session, repo, event_emitter)
+    uh.keep_source_packages = False
+    uh.auto_emit_reject = False
+
+    for fname in changes_files:
+        handle_package_upload(session, conf, uh, fname)

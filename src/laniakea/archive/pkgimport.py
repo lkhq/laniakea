@@ -12,6 +12,7 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 from collections import namedtuple
+from dataclasses import dataclass
 
 from apt_pkg import Hashes, version_compare
 from sqlalchemy import exists
@@ -929,6 +930,15 @@ class PackageImporter:
         return bpkg
 
 
+@dataclass
+class UploadChangesResult:
+    success: bool
+    uploader: ArchiveUploader
+    spkg: SourcePackage | None = None
+    is_new: bool = False
+    error: str | None = None
+
+
 class UploadHandler:
     """
     Verifies an upload and admits it to the archive if basic checks pass.
@@ -975,7 +985,7 @@ class UploadHandler:
             'UPLOAD_REJECT: %s @ %s: %s', event_data['upload_name'], event_data['repo'], event_data['reason']
         )
 
-    def _process_changes_internal(self, fname: T.PathUnion) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
+    def _process_changes_internal(self, fname: T.PathUnion) -> UploadChangesResult:
         """Version of :func:`process_changes` that will not emit message stream messages"""
         from glob import glob
 
@@ -998,19 +1008,19 @@ class UploadHandler:
             )
 
         if changes.weak_signature:
-            return (
+            return UploadChangesResult(
                 False,
                 uploader,
-                'The GPG signature on {} is weak, please sign the upload with a stronger key.'.format(
+                error='The GPG signature on {} is weak, please sign the upload with a stronger key.'.format(
                     os.path.basename(fname)
                 ),
             )
 
         if len(changes.distributions) != 1:
-            return (
+            return UploadChangesResult(
                 False,
                 uploader,
-                (
+                error=(
                     'Invalid amount of distributions set in this changes file. '
                     'We currently can only handle exactly one target (got {}).'
                 ).format(str(changes.distributions)),
@@ -1021,10 +1031,12 @@ class UploadHandler:
             suite_name = self._suite_map[suite_name]
 
         if changes.sourceful and not uploader.allow_source_uploads:
-            return (
+            return UploadChangesResult(
                 False,
                 uploader,
-                'This uploader is not permitted to make sourceful uploads to {}.'.format(str(changes.distributions)),
+                error='This uploader is not permitted to make sourceful uploads to {}.'.format(
+                    str(changes.distributions)
+                ),
             )
 
         # fetch the repository-suite config for this package
@@ -1038,16 +1050,16 @@ class UploadHandler:
         )
 
         if rss.frozen:
-            return (
+            return UploadChangesResult(
                 False,
                 uploader,
-                'Can not accept new upload for frozen suite {} of {}.'.format(rss.suite.name, rss.repo.name),
+                error='Can not accept new upload for frozen suite {} of {}.'.format(rss.suite.name, rss.repo.name),
             )
         if not rss.accept_uploads:
-            return (
+            return UploadChangesResult(
                 False,
                 uploader,
-                'Can not accept new upload for suite {} of {}: The suite does not permit uploads.'.format(
+                error='Can not accept new upload for suite {} of {}: The suite does not permit uploads.'.format(
                     rss.suite.name, rss.repo.name
                 ),
             )
@@ -1063,10 +1075,10 @@ class UploadHandler:
             .one_or_none()
         )
         if changes.sourceful and result:
-            return (
+            return UploadChangesResult(
                 False,
                 uploader,
-                'We have already seen higher or equal version "{}" of source package "{}" in repository "{}" before.'.format(
+                error='We have already seen higher or equal version "{}" of source package "{}" in repository "{}" before.'.format(
                     result[0], changes.source_name, self._repo.name
                 ),
             )
@@ -1079,19 +1091,19 @@ class UploadHandler:
         try:
             files = changes.files
         except InvalidChangesError as e:
-            return (
+            return UploadChangesResult(
                 False,
                 uploader,
-                'This changes file was invalid: {}.'.format(str(e)),
+                error='This changes file was invalid: {}.'.format(str(e)),
             )
 
         if not uploader.allow_binary_uploads:
             for file in files.values():
                 if is_deb_file(file.fname):
-                    return (
+                    return UploadChangesResult(
                         False,
                         uploader,
-                        'This uploader is not allowed to upload binaries. Please upload a source-only package!.',
+                        error='This uploader is not allowed to upload binaries. Please upload a source-only package!.',
                     )
 
         # create a temporary scratch location to copy the files of this upload to.
@@ -1128,10 +1140,10 @@ class UploadHandler:
             # fail here (after the data has been moved out of the way or copied)
             # in case there were any hash issues found
             if hash_issues:
-                return (
+                return UploadChangesResult(
                     False,
                     uploader,
-                    'Upload failed due to a checksum issue: {}'.format('\n'.join([str(e) for e in hash_issues])),
+                    error='Upload failed due to a checksum issue: {}'.format('\n'.join([str(e) for e in hash_issues])),
                 )
 
             # adjust for moved changes file
@@ -1139,19 +1151,19 @@ class UploadHandler:
 
             # actually perform final checks and import the package into the archive
             try:
-                self._import_trusted_changes(rss, changes, uploader)
+                is_new, spkg = self._import_trusted_changes(rss, changes, uploader)
             except (ArchiveImportError, UploadError) as e:
-                return False, uploader, str(e)
+                return UploadChangesResult(False, uploader, error=str(e))
 
         # if we are here, everything went fine and the package is in the archive or NEW now
-        return True, uploader, None
+        return UploadChangesResult(True, uploader, is_new=is_new, spkg=spkg)
 
     def _import_trusted_changes(
         self,
         rss: ArchiveRepoSuiteSettings,
         changes: Changes,
         uploader: ArchiveUploader,
-    ) -> None:
+    ) -> tuple[bool, SourcePackage | None]:
         """This function will import changes from a trusted source.
         We assume that the upload is residing in a temporary scratch space that we can modify and that can not be
         modified by any other party.
@@ -1167,7 +1179,7 @@ class UploadHandler:
 
         # import source package
         is_new = False
-        spkg: T.Optional[SourcePackage] = None
+        spkg: SourcePackage | None = None
         for file in files.values():
             # jump to the dsc file
             if not file.fname.endswith('.dsc'):
@@ -1281,7 +1293,9 @@ class UploadHandler:
             '%s: %s @ %s', 'UPLOAD-NEW' if is_new else 'UPLOAD-ACCEPTED', ev_data['upload_name'], self._repo.name
         )
 
-    def process_changes(self, fname: T.PathUnion) -> T.Tuple[bool, ArchiveUploader, T.Optional[str]]:
+        return is_new, spkg
+
+    def process_changes(self, fname: T.PathUnion) -> UploadChangesResult:
         """
         Verify and import an upload by its .changes file.
         The caller should make sure the changes file is located at a safe location.
@@ -1294,12 +1308,12 @@ class UploadHandler:
         """
 
         try:
-            success, uploader, error = self._process_changes_internal(fname)
+            result = self._process_changes_internal(fname)
         except Exception as e:
             if self.auto_emit_reject:
                 self.emit_package_upload_rejected(fname, str(e), None)
             raise e
-        if not success or error:
+        if not result.success or result.error:
             if self.auto_emit_reject:
-                self.emit_package_upload_rejected(fname, error, uploader)
-        return success, uploader, error
+                self.emit_package_upload_rejected(fname, result.error, result.uploader)
+        return result
