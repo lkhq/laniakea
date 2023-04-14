@@ -188,7 +188,7 @@ def import_files_for(
         # if we are here, the file is good to go
         accept_dud_upload(conf, repo, dud, emitter)
 
-    changes_fnames = glob(os.path.join(incoming_dir, '*.changes'))
+    changes_fnames: list[str] = glob(os.path.join(incoming_dir, '*.changes'))
     if changes_fnames:
         handle_package_uploads(session, conf, repo, changes_fnames, event_emitter=emitter)
 

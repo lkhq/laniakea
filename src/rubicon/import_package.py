@@ -77,7 +77,7 @@ def handle_package_upload(
 
 
 def handle_package_uploads(
-    session, conf: RubiConfig, repo: ArchiveRepository, changes_files: list[T.PathUnion], event_emitter: EventEmitter
+    session, conf: RubiConfig, repo: ArchiveRepository, changes_files: T.Sequence[T.PathUnion], event_emitter: EventEmitter
 ):
     """
     Handle upload of packages.
