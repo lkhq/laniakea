@@ -15,24 +15,10 @@ import laniakea.typing as T
 from laniakea.utils import listify
 
 
-def get_config_file(fname):
-    '''
-    Determine the path of a local Laniakea configuration file.
-    '''
-
-    path = os.path.join('/etc/laniakea/', fname)
-    if os.path.isfile(path):
-        return path
-    path = os.path.join('config', fname)
-    if os.path.isfile(path):
-        return path
-    return None
-
-
 def get_data_file(fname):
-    '''
+    """
     Determine the path of a local Laniakea data file.
-    '''
+    """
     thisfile = __file__
     if not os.path.isabs(thisfile):
         thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
@@ -48,10 +34,24 @@ def get_data_file(fname):
     return path
 
 
+def get_config_file(fname):
+    """
+    Determine the path of a local Laniakea configuration file.
+    """
+
+    path = os.path.join('/etc/laniakea/', fname)
+    if os.path.isfile(path):
+        return path
+    path = get_data_file(fname)
+    if os.path.isfile(path):
+        return path
+    return None
+
+
 class LocalConfig:
-    '''
+    """
     Local, machine-specific configuration for a Laniakea module.
-    '''
+    """
 
     @dataclass
     class LighthouseConfig:
@@ -165,9 +165,6 @@ class LocalConfig:
             self._uploaders_keyring_dir = cdata.get(
                 'UploadersGPGHome', os.path.join(self._workspace, 'keys', 'uploaders')
             )
-
-            # Git repository with archive management hints
-            self._user_hints_git_url = cdata.get('UserHintsGitUrl')
 
         @property
         def workspace(self) -> str:
@@ -286,10 +283,6 @@ class LocalConfig:
         def log_root_dir(self) -> T.PathUnion:
             return os.path.join(self._workspace, 'logs')
 
-        @property
-        def user_hints_git_url(self) -> str:
-            return self._user_hints_git_url
-
     def __init__(self, fname=None):
         if not LocalConfig.instance:
             LocalConfig.instance = LocalConfig.__LocalConfig(fname)
@@ -305,7 +298,7 @@ class ExternalToolsUrls:
 
     def __init__(self, fname=None):
         if not fname:
-            fname = '/usr/share/laniakea/3rd-party.toml'
+            fname = get_config_file('3rd-party.toml')
 
         cdata = {}
         if os.path.isfile(fname):
@@ -316,3 +309,47 @@ class ExternalToolsUrls:
         self.britney_git_repository = cspears.get(
             'britneyGitRepository', 'https://salsa.debian.org/release-team/britney2.git'
         )
+
+
+class UserHintReposConfig:
+    """
+    Git repository URLs that Laniakea can use to auto-apply certain changes.
+    """
+
+    def __init__(self, fname=None):
+        if not fname:
+            fname = get_config_file('config-repos.toml')
+
+        cdata = {}
+        if os.path.isfile(fname):
+            with open(fname) as toml_file:
+                cdata = tomlkit.load(toml_file)
+
+        # Git repository with archive management hints
+        self._user_hints_git_url = cdata.get('UserHintsGitUrl')
+
+    @property
+    def user_hints_git_url(self) -> str:
+        return self._user_hints_git_url
+
+
+class LintianConfig:
+    """
+    Git repository URLs that Laniakea can use to auto-apply certain changes.
+    """
+
+    def __init__(self, fname=None):
+        if not fname:
+            fname = get_config_file('lintian.toml')
+
+        cdata = {}
+        if os.path.isfile(fname):
+            with open(fname) as toml_file:
+                cdata = tomlkit.load(toml_file)
+
+        self._fatal_tags = cdata.get('FatalTags', [])
+
+    @property
+    def fatal_tags(self) -> list[str]:
+        """Tags which lead to a rejection of an uploaded package"""
+        return self._fatal_tags

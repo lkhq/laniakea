@@ -10,7 +10,6 @@ import glob
 import tomlkit
 
 import laniakea.typing as T
-from laniakea import LocalConfig
 from laniakea.db import (
     SpearsHint,
     SynchrotronConfig,
@@ -21,6 +20,7 @@ from laniakea.db import (
 )
 from laniakea.git import Git
 from laniakea.logging import log
+from laniakea.localconfig import LocalConfig, UserHintReposConfig
 
 
 class UserHintsError(Exception):
@@ -30,7 +30,8 @@ class UserHintsError(Exception):
 class UserHints:
     def __init__(self):
         lconf = LocalConfig()
-        self._git_url = lconf.user_hints_git_url
+        hrconf = UserHintReposConfig()
+        self._git_url = hrconf.user_hints_git_url
         self._repo_root = os.path.join(lconf.workspace, 'user-hints-source')
         self._manifest = None
 

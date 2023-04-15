@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import shutil
 
 import pytest
 
@@ -30,10 +31,12 @@ from laniakea.archive import (
     import_key_file_for_uploader,
 )
 from laniakea.utils.gpg import GpgException
+from laniakea.localconfig import LintianConfig
 from lkarchive.data_import import import_heidi_result
 from lkarchive.process_new import newqueue_accept, newqueue_reject
 from laniakea.archive.utils import (
     re_file_orig,
+    lintian_check,
     check_overrides_source,
     repo_suite_settings_for,
     find_package_in_new_queue,
@@ -203,6 +206,52 @@ class TestArchive:
             assert sections[0].name == 'admin'
             assert sections[-1].name == 'zope'
 
+    def test_lintian(self, ctx, package_samples):
+        assert shutil.which('bwrap') and shutil.which('lintian')
+
+        lintian_conf = LintianConfig()
+        fatal_tags = lintian_conf.fatal_tags.copy()
+        assert len(fatal_tags) > 10
+
+        bad_upload_fname = os.path.join(package_samples, 'linux_42.0-1_%s.changes' % ctx._host_arch)
+        lint_success, lintian_tags = lintian_check(bad_upload_fname, tags=['no-copyright-file'])
+        assert lintian_tags == [
+            {'level': 'E', 'package': 'linux-image-all', 'tag': 'no-copyright-file', 'description': ''},
+            {'level': 'E', 'package': 'linux-image-all-signed-template', 'tag': 'no-copyright-file', 'description': ''},
+        ]
+        assert not lint_success
+
+        # try package with a larger filter
+        bad_upload_fname = os.path.join(package_samples, 'pkg-all1_0.1-2_all.deb')
+        lint_success, lintian_tags = lintian_check(bad_upload_fname, tags=fatal_tags)
+        assert lintian_tags == [{'level': 'E', 'package': 'pkg-all1', 'tag': 'no-copyright-file', 'description': ''}]
+        assert not lint_success
+
+        # make check test succeed by allowing the offending issues
+        fatal_tags.remove('no-copyright-file')
+        lint_success, lintian_tags = lintian_check(bad_upload_fname, tags=fatal_tags)
+        assert lintian_tags == []
+        assert lint_success
+
+        # try changes file with a larger filter
+        bad_upload_fname = os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch)
+        lint_success, lintian_tags = lintian_check(bad_upload_fname, tags=fatal_tags)
+        assert lintian_tags == [
+            {
+                'level': 'E',
+                'package': 'package source',
+                'tag': 'required-field',
+                'description': '(in section for source) Standards-Version [debian/control:1]',
+            },
+            {
+                'level': 'E',
+                'package': 'package source',
+                'tag': 'required-field',
+                'description': 'package_0.2-1.dsc Standards-Version',
+            },
+        ]
+        assert not lint_success
+
     def test_package_uploads(self, ctx, package_samples):
         with session_scope() as session:
             rss = repo_suite_settings_for(session, 'master', 'unstable')
@@ -338,6 +387,14 @@ class TestArchive:
             uh = UploadHandler(session, repo)
             uh.keep_source_packages = True
 
+            # fail on a Lintian check
+            uh.skip_lintian_check = False
+            res = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch))
+            assert 'Lintian issues were found' in res.error
+            assert not res.success
+
+            # actually accept the package (by skipping the Lintian check)
+            uh.skip_lintian_check = True
             res = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch))
             assert res.error is None
             assert res.success
@@ -577,6 +634,7 @@ class TestArchive:
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
             uh = UploadHandler(session, repo)
             uh.keep_source_packages = True
+            uh.skip_lintian_check = True
 
             # add package and verify that is exists in the archive
             res = uh.process_changes(os.path.join(package_samples, 'grave_0.1-1_%s.changes' % ctx._host_arch))
@@ -652,6 +710,7 @@ class TestArchive:
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
             uh = UploadHandler(session, repo)
             uh.keep_source_packages = True
+            uh.skip_lintian_check = True
 
             # add package and verify that is exists in the archive
             res = uh.process_changes(

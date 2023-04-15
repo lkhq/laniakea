@@ -19,7 +19,7 @@ from sqlalchemy import exists
 from debian.deb822 import Sources, Packages
 
 import laniakea.typing as T
-from laniakea import LkModule, LocalConfig
+from laniakea import LkModule
 from laniakea.db import (
     DebType,
     NewPolicy,
@@ -42,11 +42,13 @@ from laniakea.db import (
 from laniakea.utils import safe_strip, safe_rename, split_strip, hardlink_or_copy
 from laniakea.logging import log, archive_log
 from laniakea.msgstream import EventEmitter
+from laniakea.localconfig import LocalConfig, LintianConfig
 from laniakea.archive.utils import (
     UploadError,
     is_deb_file,
     split_epoch,
     re_file_orig,
+    lintian_check,
     check_overrides_source,
     checksums_list_to_file,
     parse_package_list_str,
@@ -953,13 +955,18 @@ class UploadHandler:
         self._lconf = LocalConfig()
         if not self._emitter:
             self._emitter = EventEmitter(LkModule.ARCHIVE)
+        self._lintian_conf = LintianConfig()
 
         self.keep_source_packages = False
         self.auto_emit_reject = True
+        self.skip_lintian_check = False
 
         self._suite_map: T.Dict[str, str] = self._repo.upload_suite_map
         if not self._suite_map:
             self._suite_map = {}
+
+        if not shutil.which('bwrap') or not shutil.which('lintian'):
+            raise RuntimeError('Could not find Bubblewrap or Lintian. Please ensure both tools are installed.')
 
     def _add_uploader_event_data(self, event_data: T.Dict[str, str], uploader: T.Optional[ArchiveUploader]):
         """Add relevant uploader data to the event data"""
@@ -1172,6 +1179,21 @@ class UploadHandler:
         """
 
         files: T.Dict[str, ChangesFileEntry] = changes.files
+
+        lint_success = True
+        if not self.skip_lintian_check:
+            lint_success, lintian_tags = lintian_check(
+                os.path.join(changes.directory, changes.filename), tags=self._lintian_conf.fatal_tags
+            )
+        if not lint_success:
+            lintian_lines = []
+            for tag in lintian_tags:
+                lintian_lines.append('{}: {}: {}'.format(tag['level'], tag['tag'], tag['description']))
+            raise UploadError(
+                ('Unable to process upload {}: Lintian issues were found, please resolve them.\n{}').format(
+                    changes.filename, '\n'.join(lintian_lines)
+                )
+            )
 
         pi = PackageImporter(self._session, rss)
         pi.keep_source_packages = self.keep_source_packages

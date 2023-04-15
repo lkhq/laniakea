@@ -7,6 +7,7 @@
 
 import os
 import re
+import tempfile
 
 import apt_pkg
 from sqlalchemy import and_, select, bindparam
@@ -30,7 +31,7 @@ from laniakea.db import (
     ArchiveQueueNewEntry,
     ArchiveRepoSuiteSettings,
 )
-from laniakea.utils import split_strip
+from laniakea.utils import run_command, split_strip
 
 
 class UploadError(Exception):
@@ -369,3 +370,64 @@ def binaries_exist_for_package(session, rss: ArchiveRepoSuiteSettings, spkg: Sou
         )
         .scalar()
     )
+
+
+re_parse_lintian = re.compile(r"^(?P<level>W|E|O|I|P): (?P<package>.*?): (?P<tag>[^ ]*) ?(?P<description>.*)$")
+
+
+def lintian_check(fname: T.PathUnion, *, tags: list[str] = None) -> tuple[bool, list[dict[str, str]]]:
+    """
+    Run Lintian check in a Bubblewrap container on a selected package.
+    :param fname: Name of the file to check
+    :param tags: Tags to verify.
+    :return: A tuple, containing the success as bool and the resulting tags.
+    """
+
+    with tempfile.TemporaryDirectory(prefix='lk-lintian-bwrap_') as tmp_dir:
+        ro_bind = ['/lib', '/bin', '/usr', '/etc/dpkg', '/var/tmp']
+        if os.path.isdir('/lib64'):
+            ro_bind.append('/lib64')
+        command = ['bwrap']
+        for loc in ro_bind:
+            command.extend(['--ro-bind', loc, loc])
+        command.extend(
+            [
+                '--bind',
+                '/tmp',
+                tmp_dir,
+                '--bind',
+                os.path.dirname(fname),
+                '/srv/ws',
+                '--unshare-pid',
+                '--unshare-net',
+                '--unshare-user',
+                '--unshare-ipc',
+                '--proc',
+                '/proc',
+                '--bind',
+                '/dev/urandom',
+                '/dev/random',
+                '--',
+            ]
+        )
+
+        command.extend(['lintian', '-IE', '--pedantic'])
+        if tags:
+            command.extend(['--tags', ','.join(tags)])
+        command.append(os.path.join('/srv/ws', os.path.basename(fname)))
+
+        # run lintian
+        out, err, ret = run_command(command)
+
+        result_tags = []
+        if out:
+            for line in out.splitlines():
+                m = re_parse_lintian.match(line)
+                if m:
+                    result_tags.append(m.groupdict())
+
+        if ret == 1 and not result_tags:
+            raise RuntimeError('Failed to run Lintain (Code: {}, Error: {}{})'.format(ret, err, out))
+
+        # ret will be 2 in case there was any error
+        return (ret == 0, result_tags)

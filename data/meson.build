@@ -69,5 +69,9 @@ if get_option('mirk')
                  install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
 endif
 
-install_data('3rd-party.toml', install_dir: lk_data_dir)
+config_default_files = [
+    '3rd-party.toml',
+    'lintian.toml',
+]
+install_data(config_default_files, install_dir: lk_data_dir)
 install_data('archive-sections.json', install_dir: lk_data_dir)

@@ -34,6 +34,8 @@ eatmydata apt-get install -yq --no-install-recommends \
     debhelper \
     dpkg-dev \
     devscripts \
+    lintian \
+    bubblewrap \
     npm
 
 eatmydata apt-get install -yq --no-install-recommends \
