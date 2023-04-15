@@ -936,6 +936,7 @@ class UploadChangesResult:
     uploader: ArchiveUploader
     spkg: SourcePackage | None = None
     is_new: bool = False
+    target_suite_name: str | None = None
     error: str | None = None
 
 
@@ -1156,7 +1157,7 @@ class UploadHandler:
                 return UploadChangesResult(False, uploader, error=str(e))
 
         # if we are here, everything went fine and the package is in the archive or NEW now
-        return UploadChangesResult(True, uploader, is_new=is_new, spkg=spkg)
+        return UploadChangesResult(True, uploader, is_new=is_new, spkg=spkg, target_suite_name=suite_name)
 
     def _import_trusted_changes(
         self,

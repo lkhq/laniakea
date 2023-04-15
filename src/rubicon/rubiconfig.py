@@ -5,10 +5,12 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import shutil
 
 import tomlkit
 
 from laniakea import LocalConfig, get_config_file
+from laniakea.logging import log
 
 
 class RubiConfig:
@@ -53,6 +55,15 @@ class RubiConfig:
         self.trusted_gpg_keyrings = self._lconf.trusted_gpg_keyrings
 
         self.isotope_root_dir = cdata.get('IsotopeRootDir', None)
+
+        self.schedule_builds = cdata.get('ScheduleBuilds', True)
+
+        my_dir = os.path.dirname(os.path.realpath(__file__))
+        self.lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'lkarchive', 'lk-archive.py'))
+        if not os.path.isfile(self.lk_archive_exe):
+            self.lk_archive_exe = shutil.which('lk-archive')
+        if not self.lk_archive_exe:
+            log.warning('Unable to find the `lk-archive` binary. Check your Laniakea installation!')
 
         self._loaded = True
 
