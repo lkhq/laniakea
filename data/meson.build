@@ -11,7 +11,7 @@ if get_option('lighthouse')
                 configuration: lhsd_data)
 
     install_data(current_build_dir + '/laniakea-lighthouse.service',
-                install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+                install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
 endif
 
 if get_option('scheduler')
@@ -23,7 +23,7 @@ if get_option('scheduler')
                 configuration: lksd_data)
 
     install_data(current_build_dir + '/laniakea-scheduler.service',
-                install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+                install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
 endif
 
 if get_option('webgui')
@@ -40,10 +40,10 @@ if get_option('webgui')
                    configuration: sd_data)
 
     install_data(current_build_dir + '/laniakea-webdash.service',
-                 install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+                 install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
 
     install_data(current_build_dir + '/laniakea-webswview.service',
-                 install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+                 install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
 endif
 
 if get_option('rubicon')
@@ -54,7 +54,7 @@ if get_option('rubicon')
                    output: 'laniakea-webupload.service',
                    configuration: sd_data)
     install_data(current_build_dir + '/laniakea-webupload.service',
-                 install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+                 install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
 endif
 
 if get_option('mirk')
@@ -66,7 +66,7 @@ if get_option('mirk')
                    configuration: mirk_data)
 
     install_data(current_build_dir + '/laniakea-mirk.service',
-                 install_dir: systemd_dep.get_pkgconfig_variable('systemdsystemunitdir'))
+                 install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
 endif
 
 config_default_files = [

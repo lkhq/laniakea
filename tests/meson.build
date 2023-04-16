@@ -24,7 +24,7 @@ if get_option('linting')
     pylint_exe = find_program('pylint')
     test('pylint',
         py,
-        args: [pylint_exe.path(),
+        args: [pylint_exe.full_path(),
                '-f', 'colorized',
                pylint_paths],
         workdir: source_root,
@@ -39,7 +39,7 @@ if get_option('linting')
     endif
     test('mypy',
         py,
-        args: [mypy_exe.path(),
+        args: [mypy_exe.full_path(),
                mypy_typeinst_args,
                join_paths(source_root, 'src'),
                '--exclude', 'src/(webdash|webswview|webupload)/(manage|wsgi)\\.py$|src/laniakea/alembic/env\\.py$',
@@ -52,7 +52,7 @@ if get_option('linting')
     isort_exe = find_program('isort')
     test('isort',
         py,
-        args: [isort_exe.path(),
+        args: [isort_exe.full_path(),
                '--diff', '.'],
         workdir: source_root,
         suite: 'linters',
@@ -62,7 +62,7 @@ if get_option('linting')
     black_exe = find_program('black')
     test('black',
         py,
-        args: [black_exe.path(),
+        args: [black_exe.full_path(),
                '--diff', '.'],
         workdir: source_root,
         suite: 'linters',
