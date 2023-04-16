@@ -183,7 +183,7 @@ swcpt_binpkg_assoc_table = Table(
     Column(
         'sw_cpt_uuid',
         UUID(as_uuid=True),
-        ForeignKey('archive_sw_components.uuid', ondelete='cascade'),
+        ForeignKey('software_components.uuid', ondelete='cascade'),
         primary_key=True,
     ),
     Column(
@@ -1089,7 +1089,7 @@ class SoftwareComponent(Base):
     specification.
     """
 
-    __tablename__ = 'archive_sw_components'
+    __tablename__ = 'software_components'
 
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
