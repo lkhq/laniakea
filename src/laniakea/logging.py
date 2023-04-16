@@ -56,7 +56,7 @@ def configure_pkg_archive_logger():
         archive_log_dir = os.path.join(lconf.log_root_dir, 'archive', date_today.strftime("%Y"))
         os.makedirs(archive_log_dir, exist_ok=True)
 
-        fh = log.FileHandler(os.path.join(archive_log_dir, 'pkgarchive-w{}.log'.format(date_today.isocalendar().week)))
+        fh = log.FileHandler(os.path.join(archive_log_dir, 'pkgarchive-w{:0>2}.log'.format(date_today.isocalendar().week)))
         formatter = log.Formatter('%(levelname).1s: %(asctime)s: %(message)s', datefmt='%Y-%d-%m %H:%M:%S')
         fh.setFormatter(formatter)
         archive_log.handlers.clear()  # we don't want to log this to stdout
