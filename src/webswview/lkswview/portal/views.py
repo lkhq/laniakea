@@ -150,7 +150,7 @@ def section_view(repo_name, suite_name, section_name, page):
             .filter(BinaryPackage.repo_id == rss.repo_id)
             .filter(BinaryPackage.suites.any(ArchiveSuite.id == rss.suite_id))
             .filter(PackageOverride.section.has(name=section_name))
-            .order_by(BinaryPackage.name.desc(), BinaryPackage.version.desc())
+            .order_by(BinaryPackage.name.asc(), BinaryPackage.version.desc())
             .distinct(BinaryPackage.name)
         )
         pkgs_total = pkg_query.count()
