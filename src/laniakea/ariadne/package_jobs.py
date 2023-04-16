@@ -122,8 +122,9 @@ def schedule_build_for_arch(
         job.version = spkg.version
         job.architecture = arch.name
         job.trigger = spkg.source_uuid
+        job.suite = rss.suite
 
-        data = {'suite': rss.suite.name}
+        data = {}
         if enforce_indep:
             data['do_indep'] = True  # enforce arch:all build, no matter what Lighthouse thinks
         job.data = data

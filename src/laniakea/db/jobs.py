@@ -9,10 +9,12 @@ from enum import IntEnum
 from uuid import uuid4
 from datetime import datetime
 
-from sqlalchemy import Enum, Text, Index, Column, String, Integer, DateTime
+from sqlalchemy import Enum, Text, Index, Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSON
 
 from .base import UUID, Base, DebVersion
+from .archive import ArchiveSuite
 
 
 class JobStatus(IntEnum):
@@ -67,9 +69,9 @@ class JobKind:
 
 
 class Job(Base):
-    '''
+    """
     A task to be performed (e.g. by a Spark worker)
-    '''
+    """
 
     __tablename__ = 'jobs'
 
@@ -82,6 +84,8 @@ class Job(Base):
 
     trigger = Column(UUID(as_uuid=True))  # ID of the entity responsible for triggering this job's creation
 
+    suite_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=True)
+    suite: ArchiveSuite = relationship('ArchiveSuite')  # Suite this job is supposed to run on (can be null)
     version = Column(DebVersion())  # Version of the item this job is for (can be null)
 
     # Architecture this job can run on, "any" in case the architecture does not matter
@@ -97,7 +101,7 @@ class Job(Base):
 
     result = Column(Enum(JobResult), default=JobResult.UNKNOWN)  # Result of this job
 
-    data = Column(JSON)  # Job description data
+    data = Column(JSON)  # Job-specific payload data
 
     latest_log_excerpt = Column(Text())  # An excerpt of the current job log
 
@@ -118,4 +122,13 @@ class Job(Base):
 idx_jobs_status = Index(
     'idx_jobs_status',
     Job.status,
+)
+
+idx_jobs_status_result_trigger_ver_arch = Index(
+    'idx_jobs_status_result_trigger_ver_arch',
+    Job.status,
+    Job.result,
+    Job.trigger,
+    Job.version,
+    Job.architecture,
 )

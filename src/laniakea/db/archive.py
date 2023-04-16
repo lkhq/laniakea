@@ -874,6 +874,12 @@ idx_pkgs_source_repo_name_version = Index(
     SourcePackage.version,
 )
 
+idx_pkgs_source_source_id_version = Index(
+    'idx_pkgs_source_source_id_version',
+    SourcePackage.source_uuid,
+    SourcePackage.version,
+)
+
 
 class ArchiveVersionMemory(Base):
     """

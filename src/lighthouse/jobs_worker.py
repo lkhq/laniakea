@@ -89,7 +89,7 @@ class JobWorker:
         session.commit()
         return res
 
-    def _get_job_details(self, session, job_dict) -> dict[str, T.Any]:
+    def _get_job_details(self, session, job_dict) -> dict[str, T.Any] | None:
         '''
         Retrieve additional information about a given job.
         '''
@@ -122,7 +122,7 @@ class JobWorker:
                 # This is a server error, no need to inform the client about it as well
                 return None
 
-            spkg = (
+            spkg: SourcePackage | None = (
                 session.query(SourcePackage)
                 .filter(SourcePackage.source_uuid == trigger_uuid)
                 .filter(SourcePackage.version == job_version)
@@ -148,13 +148,15 @@ class JobWorker:
                 # This not an error the client needs to know about
                 return None
 
-            suite_target_name = job.data.get('suite')
-            if not suite_target_name:
+            if job.suite:
+                suite_target_name = job.suite.name
+            else:
                 suite_target_name = self._default_incoming_suite_name
 
             jdata['package_name'] = spkg.name
             jdata['package_version'] = spkg.version
             jdata['maintainer'] = spkg.maintainer
+            jdata['repo'] = spkg.repo.name
             jdata['suite'] = suite_target_name
             jdata['dsc_url'] = None
 
@@ -187,7 +189,7 @@ class JobWorker:
                 # This not an error the client needs to know about
                 return None
         elif job_kind == JobKind.OS_IMAGE_BUILD:
-            recipe: T.Optional[ImageBuildRecipe] = (
+            recipe: ImageBuildRecipe | None = (
                 session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid == trigger_uuid).one_or_none()
             )
             if not recipe:

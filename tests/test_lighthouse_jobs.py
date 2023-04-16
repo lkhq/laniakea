@@ -109,6 +109,7 @@ class TestLighthouseJobRequests:
                 'maintainer': 'A Maintainer <maint@example.com>',
                 'package_name': 'pkgnew',
                 'package_version': '0.1-3',
+                'repo': 'master',
                 'suite': 'unstable',
             },
             'kind': 'package-build',
