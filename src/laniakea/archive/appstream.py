@@ -25,38 +25,18 @@ from laniakea.db import (
     ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
 )
+from laniakea.utils import process_file_lock
 from laniakea.logging import log
 
 
-def import_appstream_data(
-    session,
-    rss: ArchiveRepoSuiteSettings,
-    component: ArchiveComponent,
-    arch: ArchiveArchitecture,
-    *,
-    repo_dists_dir: T.Optional[T.PathUnion] = None,
+def _update_appstream_components_internal(
+    session, rss: ArchiveRepoSuiteSettings, component: ArchiveComponent, arch: ArchiveArchitecture, cpts, cid_map
 ):
-    """
-    Import AppStream metadata about software components and associate it with the
-    binary packages the data belongs to.
-
-    :param session: SQLAlchemy session
-    :param rss: Repo/suite configuration to act on (must match the local repository)
-    :param component: Component to import data for
-    :param arch: Architecture to act on
-    """
-
-    if arch.name == 'all':
-        # arch:all has no AppStream components, those are always associated with an architecture
-        # and are included in arch-specific files (even if the package they belong to is arch:all)
+    if len(cpts) == 0:
         return
 
+    suite = rss.suite
     arch_all = session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == 'all').one()
-
-    mdata_read = AppStream.Metadata()
-    mdata_read.set_locale('ALL')
-    mdata_read.set_format_style(AppStream.FormatStyle.CATALOG)
-    mdata_read.set_parse_flags(AppStream.ParseFlags.IGNORE_MEDIABASEURL)
 
     mdata_write = AppStream.Metadata()
     mdata_write.set_locale('ALL')
@@ -64,31 +44,6 @@ def import_appstream_data(
     mdata_write.set_parse_flags(AppStream.ParseFlags.IGNORE_MEDIABASEURL)
     mdata_write.set_write_header(False)
 
-    suite = rss.suite
-    if not repo_dists_dir:
-        repo_dists_dir = os.path.join(rss.repo.get_root_dir(), 'dists')
-
-    dep11_dists_dir = os.path.join(repo_dists_dir, suite.name, component.name, 'dep11')
-    yaml_fname = os.path.join(dep11_dists_dir, 'Components-{}.yml.xz'.format(arch.name))
-    if not os.path.isfile(yaml_fname):
-        return
-
-    cidmap_fname = os.path.join(dep11_dists_dir, 'CID-Index-{}.json.xz'.format(arch.name))
-    if not os.path.isfile(cidmap_fname):
-        return
-
-    with lzma.open(cidmap_fname, 'rb') as f:
-        cid_map = json.loads(f.read())
-    with lzma.open(yaml_fname, 'r') as f:
-        yaml_catalog_data = str(f.read(), 'utf-8')
-
-    mdata_read.clear_components()
-    mdata_read.parse(yaml_catalog_data, AppStream.FormatKind.YAML)
-    cpts = mdata_read.get_components()
-    if len(cpts) == 0:
-        return
-
-    log.debug('Found {} software components in {}/{}'.format(len(cpts), suite.name, component.name))
     for cpt in cpts:
         cpt.set_active_locale('C')
 
@@ -208,5 +163,60 @@ def import_appstream_data(
         session.add(dcpt)
         log.info('Added new software component \'{}\' to database'.format(dcpt.cid))
 
-        # we commit the change here to reduce the chance of race conditions when data is added in parallel
+
+def import_appstream_data(
+    session,
+    rss: ArchiveRepoSuiteSettings,
+    component: ArchiveComponent,
+    arch: ArchiveArchitecture,
+    *,
+    repo_dists_dir: T.Optional[T.PathUnion] = None,
+):
+    """
+    Import AppStream metadata about software components and associate it with the
+    binary packages the data belongs to.
+
+    :param session: SQLAlchemy session
+    :param rss: Repo/suite configuration to act on (must match the local repository)
+    :param component: Component to import data for
+    :param arch: Architecture to act on
+    """
+
+    if arch.name == 'all':
+        # arch:all has no AppStream components, those are always associated with an architecture
+        # and are included in arch-specific files (even if the package they belong to is arch:all)
+        return
+
+    mdata_read = AppStream.Metadata()
+    mdata_read.set_locale('ALL')
+    mdata_read.set_format_style(AppStream.FormatStyle.CATALOG)
+    mdata_read.set_parse_flags(AppStream.ParseFlags.IGNORE_MEDIABASEURL)
+
+    if not repo_dists_dir:
+        repo_dists_dir = os.path.join(rss.repo.get_root_dir(), 'dists')
+
+    dep11_dists_dir = os.path.join(repo_dists_dir, rss.suite.name, component.name, 'dep11')
+    yaml_fname = os.path.join(dep11_dists_dir, 'Components-{}.yml.xz'.format(arch.name))
+    if not os.path.isfile(yaml_fname):
+        return
+
+    cidmap_fname = os.path.join(dep11_dists_dir, 'CID-Index-{}.json.xz'.format(arch.name))
+    if not os.path.isfile(cidmap_fname):
+        return
+
+    with lzma.open(cidmap_fname, 'rb') as f:
+        cid_map = json.loads(f.read())
+    with lzma.open(yaml_fname, 'r') as f:
+        yaml_catalog_data = str(f.read(), 'utf-8')
+
+    mdata_read.clear_components()
+    mdata_read.parse(yaml_catalog_data, AppStream.FormatKind.YAML)
+    cpts = mdata_read.get_components()
+
+    log.debug('Found {} software components in {}/{}'.format(len(cpts), rss.suite.name, component.name))
+    if len(cpts) == 0:
+        return
+
+    with process_file_lock('import_as', wait=True, noisy=False):
+        _update_appstream_components_internal(session, rss, component, arch, cpts, cid_map)
         session.commit()

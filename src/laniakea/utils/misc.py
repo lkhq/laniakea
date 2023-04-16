@@ -128,13 +128,14 @@ class ProcessFileLock:
     Simple wy to prevent multiple processes from executing the same code via a file lock.
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, noisy: bool = True):
         """
         :param name: Unique name of the lock.
         """
         self._name = name
         self._lock_file_fd = -1
         self._lock_dir = os.path.join('/usr/user', str(os.geteuid()))
+        self._noisy = noisy
         if not os.path.isdir(self._lock_dir):
             from laniakea import LocalConfig
 
@@ -178,11 +179,17 @@ class ProcessFileLock:
     def acquire_wait(self):
         if self.acquire(raise_error=False):
             return
-        log.info(
-            'Waiting on lock "%s". Will continue once the other operation holding the lock has completed.', self._name
-        )
+
+        if self._noisy:
+            log.info(
+                'Waiting on lock "%s". Will continue once the other operation holding the lock has completed.',
+                self._name,
+            )
+        else:
+            log.debug('Waiting on lock: %s', self._name)
+
         while True:
-            time.sleep(5)
+            time.sleep(4)
             if self.acquire(raise_error=False):
                 return
 
@@ -196,8 +203,8 @@ class ProcessFileLock:
 
 
 @contextmanager
-def process_file_lock(name: str, *, raise_error=True, wait=False):
-    flock = ProcessFileLock(name)
+def process_file_lock(name: str, *, raise_error=True, wait=False, noisy=True):
+    flock = ProcessFileLock(name, noisy=noisy)
     if wait:
         flock.acquire_wait()
     else:
