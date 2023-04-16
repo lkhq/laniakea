@@ -86,11 +86,6 @@ option('planter',
     value: true,
     description: 'Build the "Planter" metapackage seed / Germinator integration'
 )
-option('ariadne',
-    type: 'boolean',
-    value: true,
-    description: 'Build the "Ariadne" package build planner'
-)
 option('mirk',
     type: 'boolean',
     value: false,

@@ -68,11 +68,6 @@ if (get_option('synchrotron'))
     subdir('synchrotron')
 endif
 
-# Ariadne
-if (get_option('ariadne'))
-    subdir('ariadne')
-endif
-
 # mIrk
 if (get_option('mirk'))
     subdir('mirk')

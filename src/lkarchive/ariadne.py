@@ -1,20 +1,13 @@
-#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-import os
 import sys
-
-thisfile = __file__
-if not os.path.isabs(thisfile):
-    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
-sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
-
 import logging as log
-from argparse import ArgumentParser
 
+import click
 from sqlalchemy import and_, func
 from sqlalchemy.orm import undefer
 
@@ -151,17 +144,56 @@ def update_package_build_schedule(
     # write all changes to database
     session.commit()
 
-    log.info('Scheduled {} build jobs.'.format(scheduled_count))
+    if simulate:
+        log.info('Would have scheduled {} build jobs.'.format(scheduled_count))
+    else:
+        log.info('Scheduled {} build jobs.'.format(scheduled_count))
 
     return scheduled_count
 
 
-def command_run(options):
-    '''Schedule package builds'''
+@click.command('update-jobs')
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set all repositories will be checked',
+)
+@click.option(
+    '--suite',
+    'suite_name',
+    default=None,
+    help='The suite to schedule builds for, if not set all repositories will be checked',
+)
+@click.option(
+    '--simulate',
+    'simulate',
+    is_flag=True,
+    default=False,
+    help='Run simulation, don\'t schedule any jobs and instead just display what would be done.',
+)
+@click.option(
+    '--limit-count',
+    'limit_count',
+    type=int,
+    default=0,
+    help='Limit the amount of builds scheduled at a time to a certain number.',
+)
+@click.option(
+    '--limit-architecture',
+    'limit_arch',
+    default=None,
+    help='Only schedule builds for the selected architecture.',
+)
+def update_jobs(
+    repo_name: str | None,
+    suite_name: str | None,
+    limit_count: int = 0,
+    limit_arch: str | None = None,
+    simulate: bool = False,
+):
+    """Schedule & update package build jobs."""
 
-    repo_name = options.repo_name
-    suite_name = options.suite_name
-    limit_count = options.limit_count
     if not limit_count:
         limit_count = 0
 
@@ -183,9 +215,7 @@ def command_run(options):
             processed = True
 
             log.info('Processing {}:{}'.format(rss.repo.name, rss.suite.name))
-            scheduled_count += update_package_build_schedule(
-                session, rss, options.simulate, options.limit_arch, limit_count
-            )
+            scheduled_count += update_package_build_schedule(session, rss, simulate, limit_arch, limit_count)
             if limit_count > 0 and scheduled_count >= limit_count:
                 break
 
@@ -202,78 +232,3 @@ def command_run(options):
                 file=sys.stderr,
             )
         sys.exit(3)
-
-
-def create_parser(formatter_class=None):
-    '''Create Ariadne CLI argument parser'''
-
-    parser = ArgumentParser(description='Schedule package build jobs.')
-    subparsers = parser.add_subparsers(dest='sp_name', title='subcommands')
-
-    # generic arguments
-    parser.add_argument('--verbose', action='store_true', dest='verbose', help='Enable debug messages.')
-    parser.add_argument(
-        '--version', action='store_true', dest='show_version', help='Display the version of Laniakea itself.'
-    )
-
-    sp = subparsers.add_parser('run', help='Trigger package build jobs for the incoming suite or a specific suite.')
-    sp.add_argument('--repo', dest='repo_name', help='Act on the repository with this name.')
-    sp.add_argument('--suite', dest='suite_name', help='The suite to schedule builds for.')
-    sp.add_argument(
-        '--simulate',
-        action='store_true',
-        dest='simulate',
-        help='Run simulation, don\'t schedule any jobs and instead just display what would be done.',
-    )
-    sp.add_argument(
-        '--limit-count',
-        type=int,
-        dest='limit_count',
-        help='Limit the amount of builds scheduled at a time to a certain number.',
-    )
-    sp.add_argument(
-        '--limit-architecture', type=str, dest='limit_arch', help='Only schedule builds for the selected architecture.'
-    )
-    sp.set_defaults(func=command_run)
-
-    return parser
-
-
-def check_print_version(options):
-    if options.show_version:
-        from laniakea import __version__
-
-        print(__version__)
-        sys.exit(0)
-
-
-def check_verbose(options):
-    if options.verbose:
-        from laniakea.logging import set_verbose
-
-        set_verbose(True)
-
-
-def run(args):
-    from laniakea.utils.misc import ensure_laniakea_master_user
-
-    if len(args) == 0:
-        print('Need a subcommand to proceed!')
-        sys.exit(1)
-
-    log.basicConfig(level=log.INFO, format="[%(levelname)s] %(message)s")
-
-    parser = create_parser()
-
-    args = parser.parse_args(args)
-    check_print_version(args)
-    check_verbose(args)
-    ensure_laniakea_master_user(warn_only=True)
-    args.func(args)
-
-
-if __name__ == '__main__':
-    from laniakea.utils import set_process_title
-
-    set_process_title('laniakea-ariadne')
-    sys.exit(run(sys.argv[1:]))

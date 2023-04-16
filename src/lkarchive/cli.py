@@ -69,6 +69,10 @@ def _register_commands():
 
     cli.add_command(validate.check_integrity)
 
+    import lkarchive.ariadne as ariadne
+
+    cli.add_command(ariadne.update_jobs)
+
 
 def run(mainfile, args):
     from rich.traceback import install
