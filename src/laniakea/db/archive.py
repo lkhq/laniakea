@@ -1132,6 +1132,11 @@ class SoftwareComponent(Base):
 
     __table_args__ = (Index('idx_sw_components_fts', __ts_vector__, postgresql_using='gin'),)
 
+    @staticmethod
+    def uuid_for_gcid(gcid: str):
+        """Create an entity UUID from a component GCID"""
+        return uuid.uuid5(UUID_NS_SWCOMPONENT, gcid)
+
     def update_uuid(self):
         """
         Update the unique identifier for this component.
@@ -1139,7 +1144,7 @@ class SoftwareComponent(Base):
         if not self.gcid:
             raise Exception('Global component ID is not set for this component. Can not create UUID.')
 
-        self.uuid = uuid.uuid5(UUID_NS_SWCOMPONENT, self.gcid)
+        self.uuid = SoftwareComponent.uuid_for_gcid(self.gcid)
         return self.uuid
 
     @property

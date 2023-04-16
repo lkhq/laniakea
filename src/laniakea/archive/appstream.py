@@ -106,31 +106,64 @@ def import_appstream_data(
         # fetch package this component belongs to
         bin_pkg = (
             session.query(BinaryPackage)
-            .filter(BinaryPackage.name == pkgname)
-            .filter(BinaryPackage.repo_id == rss.repo.id)
-            .filter(BinaryPackage.architecture_id.in_((arch.id, arch_all.id)))
-            .filter(BinaryPackage.component_id == component.id)
-            .filter(BinaryPackage.suites.any(ArchiveSuite.id == suite.id))
+            .filter(
+                BinaryPackage.name == pkgname,
+                BinaryPackage.repo_id == rss.repo.id,
+                BinaryPackage.architecture_id.in_((arch.id, arch_all.id)),
+                BinaryPackage.component_id == component.id,
+                BinaryPackage.suites.any(ArchiveSuite.id == suite.id),
+            )
             .order_by(BinaryPackage.version.desc())
             .first()
         )
 
+        is_orphaned = False
         if not bin_pkg:
             log.info('Found orphaned DEP-11 component in {}/{}: {}'.format(suite.name, component.name, cpt.get_id()))
-            continue
+            is_orphaned = True
 
-        dcpt = SoftwareComponent()
-        dcpt.kind = int(cpt.get_kind())
-        dcpt.cid = cpt.get_id()
-
-        dcpt.gcid = cid_map.get(dcpt.cid)
-        if not dcpt.gcid:
+        # determine the global component ID (GCID)
+        cid = cpt.get_id()
+        gcid = cid_map.get(cid)
+        if not gcid:
             log.warning(
                 'Found DEP-11 component without GCID in {}:{}/{}: {}'.format(
                     rss.repo.name, suite.name, component.name, cpt.get_id()
                 )
             )
             continue
+
+        # see if a component already exists in the database
+        cpt_uuid = SoftwareComponent.uuid_for_gcid(gcid)
+        existing_dcpt: SoftwareComponent | None = (
+            session.query(SoftwareComponent).filter(SoftwareComponent.uuid == cpt_uuid).one_or_none()
+        )
+        if existing_dcpt:
+            if is_orphaned:
+                # remove our orphaned component, if necessary
+                if not existing_dcpt.pkgs_binary:
+                    log.info('Deleted component: %s', existing_dcpt.gcid)
+                    session.delete(existing_dcpt)
+                continue
+            elif bin_pkg in existing_dcpt.pkgs_binary:
+                # The binary package is already registered with this component, or the component is
+                # orphaned. We have nothing left to do.
+                continue
+
+            log.debug('Component "%s" is now also available in package "%s"', cid, str(bin_pkg))
+            existing_dcpt.pkgs_binary.append(bin_pkg)
+            continue  # we already have this component, no need to add it again
+
+        if is_orphaned:
+            # if the component is orphaned, we need to stop processing here and shouldn't add
+            # it to the database
+            continue
+
+        dcpt = SoftwareComponent()
+        dcpt.gcid = gcid
+        dcpt.uuid = cpt_uuid
+        dcpt.kind = int(cpt.get_kind())
+        dcpt.cid = cid
 
         # Generate JSON representation for this component
         # We want the whole component data in the database for quick reference,
@@ -140,16 +173,6 @@ def import_appstream_data(
         mdata_write.add_component(cpt)
         y_data = yaml.safe_load(mdata_write.components_to_collection(AppStream.FormatKind.YAML))
         dcpt.data = json.dumps(y_data)  # type: ignore[assignment]
-
-        # create UUID for this component (based on GCID or XML data)
-        dcpt.update_uuid()
-
-        existing_dcpt = session.query(SoftwareComponent).filter(SoftwareComponent.uuid == dcpt.uuid).one_or_none()
-        if existing_dcpt:
-            if bin_pkg in existing_dcpt.pkgs_binary:
-                continue  # the binary package is already registered with this component
-            existing_dcpt.pkgs_binary.append(bin_pkg)
-            continue  # we already have this component, no need to add it again
 
         # add new software component to database
         dcpt.name = cpt.get_name()
@@ -180,8 +203,10 @@ def import_appstream_data(
         for cat in cpt.get_categories():
             dcpt.categories.append(cat)
 
-        dcpt.pkgs_binary = [bin_pkg]
+        dcpt.pkgs_binary.append(bin_pkg)
 
         session.add(dcpt)
         log.info('Added new software component \'{}\' to database'.format(dcpt.cid))
+
+        # we commit the change here to reduce the chance of race conditions when data is added in parallel
         session.commit()
