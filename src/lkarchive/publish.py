@@ -38,7 +38,11 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     session_scope,
 )
-from laniakea.utils import process_file_lock, datetime_to_rfc2822_string
+from laniakea.utils import (
+    hardlink_or_copy,
+    process_file_lock,
+    datetime_to_rfc2822_string,
+)
 from laniakea.archive import repo_suite_settings_for
 from laniakea.logging import log, archive_log
 from laniakea.utils.gpg import sign
@@ -130,33 +134,47 @@ def set_deb822_value_spacelist(entry: Deb822, key: str, value: T.Optional[T.Iter
         entry[key] = ' '.join(value)
 
 
-def write_by_hash_file(root_path: T.PathUnion, data: bytes, *, sha256_digest=None, md5_digest=None):
-    """Write a by-hash file into the appropriate location, using the provided data.
+def create_by_hash_for(
+    root_path: T.PathUnion, repo_fname: T.PathUnion, component: ArchiveComponent | str
+) -> list[RepoFileInfo]:
+    """Write a by-hash file into the appropriate location, replacing the original with a symlink.
 
-    :param root_path: Root subdirectory in dists/ where the by-hash folder is located.
-    :param data: The data to write
-    :param sha256_digest: The SHA256 digest of the data (or None)
-    :param md5_digest: The MD5 digest of the data (or None)
-    :return:
+    :param root_path: Root subdirectory in dists/ where the components folders are located.
+    :param repo_fname: The location below root_path for this file.
+    :param component: The component we are working on.
+
+    :return: List of generated RepoFileInfo for the selected hashes and source file.
     """
 
-    by_hash_root = os.path.join(root_path, 'by-hash')
+    component_name = component if isinstance(component, str) else component.name
+    by_hash_root = os.path.join(root_path, component_name, 'by-hash')
     by_hash_md5_root = os.path.join(by_hash_root, 'MD5Sum')
     by_hash_sha256_root = os.path.join(by_hash_root, 'SHA256')
     os.makedirs(by_hash_md5_root, exist_ok=True)
     os.makedirs(by_hash_sha256_root, exist_ok=True)
 
-    if not sha256_digest:
-        sha256_digest = hashlib.sha256(data).hexdigest()
-    if not md5_digest:
-        md5_digest = hashlib.md5(data).hexdigest()
+    fname_full = os.path.join(root_path, repo_fname)
+    with open(fname_full, 'rb') as f:
+        data = f.read()
+
+    sha256_digest = hashlib.sha256(data).hexdigest()
+    md5_digest = hashlib.md5(data).hexdigest()
+    finfos = [
+        RepoFileInfo(repo_fname, len(data), 'SHA256', sha256_digest),
+        RepoFileInfo(repo_fname, len(data), 'MD5Sum', md5_digest),
+    ]
 
     # We could use hardlinks here, but if the source file is written to directly, the by-hash files
     # would change, which we want to avoid at all costs. So instead, we use deep copies here.
-    with open(os.path.join(by_hash_sha256_root, str(sha256_digest)), 'wb') as hash_f:
-        hash_f.write(data)
-    with open(os.path.join(by_hash_md5_root, str(md5_digest)), 'wb') as hash_f:
-        hash_f.write(data)
+    sha256_fname = os.path.join(by_hash_sha256_root, str(sha256_digest))
+    # replace original with symlink
+    os.rename(fname_full, sha256_fname)
+    os.symlink(os.path.relpath(sha256_fname, os.path.join(fname_full, '..')), fname_full)
+
+    # hardlink other aliases
+    hardlink_or_copy(sha256_fname, os.path.join(by_hash_md5_root, str(md5_digest)), override=True)
+
+    return finfos
 
 
 def write_compressed_files(
@@ -179,10 +197,8 @@ def write_compressed_files(
 
     if not component:
         component_name = ''
-        comp_root_path = root_path
     else:
         component_name = component if isinstance(component, str) else component.name
-        comp_root_path = os.path.join(root_path, component_name)
 
     finfos = []
     data_bytes = data.encode('utf-8')
@@ -194,17 +210,13 @@ def write_compressed_files(
 
     # write compressed data
     fname_xz = os.path.join(root_path, repo_fname + '.xz')
+    if os.path.islink(fname_xz):
+        os.unlink(fname_xz)
     with lzma.open(fname_xz, 'w') as f:
         f.write(data_bytes)
-    with open(fname_xz, 'rb') as f:
-        xz_bytes = f.read()
-        sha256_digest = hashlib.sha256(xz_bytes).hexdigest()
-        md5_digest = hashlib.md5(xz_bytes).hexdigest()
-        finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), 'SHA256', sha256_digest))
-        finfos.append(RepoFileInfo(repo_fname + '.xz', len(xz_bytes), 'MD5Sum', md5_digest))
 
-        write_by_hash_file(comp_root_path, xz_bytes, sha256_digest=sha256_digest, md5_digest=md5_digest)
-
+    # write by-hash data and finish
+    finfos.extend(create_by_hash_for(root_path, repo_fname + '.xz', component=component))
     return finfos
 
 
@@ -213,6 +225,7 @@ def import_metadata_file(
     subdir: str,
     basename: str,
     source_fname: T.PathUnion,
+    component: ArchiveComponent | str,
     *,
     only_compression: T.Optional[str] = None,
 ) -> T.List[RepoFileInfo]:
@@ -222,7 +235,8 @@ def import_metadata_file(
     :param root_path: Root directory of the repository.
     :param subdir: Subdirectory within the repository.
     :param basename: Base name of the metadata file, e.g. "Packages"
-    :param data: Data the file should contain (usually UTF-8 text)
+    :param source_fname: The source file to import.
+    :param component: The component to import into.
     """
 
     source_fname = str(source_fname)
@@ -239,21 +253,23 @@ def import_metadata_file(
             data = f.read()
     repo_fname = os.path.join(subdir, basename)
 
+    # add uncompressed checksums
     data_md5 = hashlib.md5(data).hexdigest()
     data_sha256 = hashlib.sha256(data).hexdigest()
     finfos.append(RepoFileInfo(repo_fname, len(data), 'SHA256', data_sha256))
     finfos.append(RepoFileInfo(repo_fname, len(data), 'MD5Sum', data_md5))
 
-    comp_root_dir = os.path.normpath(os.path.join(root_path, '..'))
-    write_by_hash_file(comp_root_dir, data, sha256_digest=data_sha256, md5_digest=data_md5)
-
+    # comp_root_dir = os.path.normpath(os.path.join(root_path, '..'))
     if only_compression:
         use_exts = [only_compression]
     else:
         use_exts = ['xz', 'gz']
 
     for z_ext in use_exts:
-        fname_z = os.path.join(root_path, repo_fname + '.' + z_ext)
+        repo_fname_comp = repo_fname + '.' + z_ext
+        fname_z = os.path.join(root_path, repo_fname_comp)
+        if os.path.islink(fname_z):
+            os.unlink(fname_z)
         if z_ext == 'gz':
             with gzip.open(fname_z, 'w') as f:
                 f.write(data)
@@ -263,13 +279,8 @@ def import_metadata_file(
         else:
             raise Exception('Unknown compressed file extension: ' + z_ext)
 
-        with open(fname_z, 'rb') as f:
-            z_bytes = f.read()
-            z_bytes_md5 = hashlib.md5(z_bytes).hexdigest()
-            z_bytes_sha256 = hashlib.sha256(z_bytes).hexdigest()
-            finfos.append(RepoFileInfo(repo_fname + '.' + z_ext, len(z_bytes), 'SHA256', z_bytes_sha256))
-            finfos.append(RepoFileInfo(repo_fname + '.' + z_ext, len(z_bytes), 'MD5Sum', z_bytes_md5))
-            write_by_hash_file(comp_root_dir, z_bytes, sha256_digest=z_bytes_sha256, md5_digest=z_bytes_md5)
+        # make by-hash data
+        finfos.extend(create_by_hash_for(root_path, repo_fname_comp, component=component))
 
     return finfos
 
@@ -289,19 +300,15 @@ def write_release_file_for_arch(
     entry['Architecture'] = arch_name
 
     finfos = []
-    with open(os.path.join(root_path, component.name, subdir, 'Release'), 'wb') as f:
+    release_name = os.path.join(component.name, subdir, 'Release')
+    release_path_full = os.path.join(root_path, release_name)
+    if os.path.islink(release_path_full):
+        os.unlink(release_path_full)
+    with open(release_path_full, 'wb') as f:
         data = entry.dump().encode('utf-8')
-        release_name = os.path.join(component.name, subdir, 'Release')
         f.write(data)
 
-        data_md5 = hashlib.md5(data).hexdigest()
-        data_sha256 = hashlib.sha256(data).hexdigest()
-        finfos.append(RepoFileInfo(release_name, len(data), 'SHA256', data_sha256))
-        finfos.append(RepoFileInfo(release_name, len(data), 'MD5Sum', data_md5))
-        write_by_hash_file(
-            os.path.join(root_path, component.name), data, sha256_digest=data_sha256, md5_digest=data_md5
-        )
-
+    finfos.extend(create_by_hash_for(root_path, release_name, component=component))
     return finfos
 
 
@@ -577,13 +584,17 @@ def generate_i18n_template_data(
     return '\n'.join(i18n_entries)
 
 
-def _expire_by_hash_files(root_path: T.PathUnion, component: ArchiveComponent) -> None:
+def _expire_by_hash_files(root_path: T.PathUnion, component: ArchiveComponent, meta_files: list[RepoFileInfo]) -> None:
     """
     Expire obsolete files in by-hash directories.
     :param root_path: Root part to the archive metadata directory.
     :param component: Archive component to act on.
     :return:
     """
+
+    active_cs = set()
+    for fi in meta_files:
+        active_cs.add(str(fi.checksum))
 
     comp_root_path = os.path.join(root_path, component.name)
     by_hash_root = os.path.join(comp_root_path, 'by-hash')
@@ -592,8 +603,12 @@ def _expire_by_hash_files(root_path: T.PathUnion, component: ArchiveComponent) -
         return
 
     two_weeks_ago = time.time() - (14 * 24 * 60 * 60)
-    for path, _, files in os.walk(comp_root_path):
+    for path, _, files in os.walk(by_hash_root):
         for file in files:
+            # we do nothing to a hash file if it is actively referenced
+            if file in active_cs:
+                continue
+
             fname = os.path.join(path, file)
             ti_m = os.path.getmtime(fname)
             if ti_m < two_weeks_ago:
@@ -718,6 +733,7 @@ def _publish_suite_dists(
                             dists_dep11_subdir,
                             dep11_basename,
                             dep11_src_fname,
+                            component,
                             only_compression='xz' if dep11_basename.startswith('CID-Index') else None,
                         )
                     )
@@ -736,6 +752,7 @@ def _publish_suite_dists(
                         dists_dep11_subdir,
                         Path(icon_tar_fname).stem,
                         icon_tar_fname,
+                        component,
                         only_compression='gz',
                     )
                 )
@@ -751,8 +768,9 @@ def _publish_suite_dists(
                 )
             )
 
-        # expire old by-hash files
-        _expire_by_hash_files(suite_temp_dist_dir, component)
+        if not only_sources:
+            # expire old by-hash files
+            _expire_by_hash_files(suite_temp_dist_dir, component, meta_files)
 
     # write root release file
     if only_sources:
@@ -794,6 +812,8 @@ def _publish_suite_dists(
             metafile_data = [f' {f.checksum} {f.size: >8} {f.fname}' for f in meta_files_by_cs[cs_name]]
             entry[cs_name] = '\n' + '\n'.join(metafile_data)
 
+    if os.path.islink(root_rel_fname):
+        os.unlink(root_rel_fname)
     with open(root_rel_fname, 'w', encoding='utf-8') as f:
         f.write(entry.dump())
 

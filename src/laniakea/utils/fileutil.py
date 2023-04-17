@@ -32,11 +32,16 @@ def check_filepath_safe(path: T.PathUnion) -> bool:
     return True
 
 
-def hardlink_or_copy(src: T.PathUnion, dst: T.PathUnion):
+def hardlink_or_copy(src: T.PathUnion, dst: T.PathUnion, *, override: bool = True):
     """Hardlink a file :src to :dst or copy the file in case linking is not possible"""
 
     try:
         os.link(src, dst)
+    except FileExistsError as e:
+        if not override:
+            raise e
+        os.unlink(dst)
+        hardlink_or_copy(src, dst, override=override)
     except (PermissionError, OSError):
         shutil.copy2(src, dst)
         shutil.chown(dst, user=os.getuid(), group=os.getgid())

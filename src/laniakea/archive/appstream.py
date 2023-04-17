@@ -217,6 +217,6 @@ def import_appstream_data(
     if len(cpts) == 0:
         return
 
-    with process_file_lock('import_as', wait=True, noisy=False):
+    with process_file_lock('import_dep11', wait=True, noisy=False):
         _update_appstream_components_internal(session, rss, component, arch, cpts, cid_map)
         session.commit()
