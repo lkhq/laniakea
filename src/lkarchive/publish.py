@@ -616,6 +616,17 @@ def _expire_by_hash_files(root_path: T.PathUnion, component: ArchiveComponent, m
                 os.unlink(fname)
 
 
+def _ensure_byhash_compat_link(component_arch_subdir_full: T.PathUnion):
+    """Ensure a by-hash compat symlink exists in an arch-specific directory of a component."""
+    byhash_dir_link = os.path.join(component_arch_subdir_full, 'by-hash')
+    if os.path.islink(byhash_dir_link):
+        return
+
+    if os.path.exists(byhash_dir_link):
+        shutil.rmtree(byhash_dir_link)
+    os.symlink(os.path.join('..', 'by-hash'), byhash_dir_link)
+
+
 def _publish_suite_dists(
     lconf: LocalConfig,
     session,
@@ -670,6 +681,9 @@ def _publish_suite_dists(
         suite_component_dists_sources_dir = os.path.join(suite_temp_dist_dir, component.name, 'source')
         os.makedirs(suite_component_dists_sources_dir, exist_ok=True)
 
+        # create link in directory pointing to the shared by-hash folder for compatibility
+        _ensure_byhash_compat_link(suite_component_dists_sources_dir)
+
         # generate Sources
         res = generate_sources_index(session, rss.repo, rss.suite, component)
         meta_files.extend(
@@ -685,7 +699,11 @@ def _publish_suite_dists(
         for arch in rss.suite.architectures:
             # generate Packages
             dists_arch_subdir = 'binary-' + arch.name
-            os.makedirs(os.path.join(suite_temp_dist_dir, component.name, dists_arch_subdir), exist_ok=True)
+            suite_component_dists_arch_dir_full = os.path.join(suite_temp_dist_dir, component.name, dists_arch_subdir)
+            os.makedirs(suite_component_dists_arch_dir_full, exist_ok=True)
+
+            # create link in directory pointing to the shared by-hash folder for compatibility
+            _ensure_byhash_compat_link(suite_component_dists_arch_dir_full)
 
             pkg_data = generate_packages_index(session, rss.repo, rss.suite, component, arch, installer_udeb=False)
             meta_files.extend(
