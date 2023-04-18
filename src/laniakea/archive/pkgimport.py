@@ -1121,13 +1121,9 @@ class UploadHandler:
                 fname_src = os.path.join(changes.directory, os.path.basename(file.fname))
                 fname_dst = os.path.join(tmp_dir, os.path.basename(file.fname))
 
-                # move or copy file
-                if self.keep_source_packages:
-                    shutil.copy(fname_src, fname_dst)
-                    shutil.chown(fname_dst, user=os.getuid(), group=os.getgid())
-                    os.chmod(fname_dst, 0o755)
-                else:
-                    safe_rename(fname_src, fname_dst)
+                shutil.copy(fname_src, fname_dst)
+                shutil.chown(fname_dst, user=os.getuid(), group=os.getgid())
+                os.chmod(fname_dst, 0o755)
 
                 # verify checksum
                 # validate hashes mentioned in the changes file
@@ -1138,12 +1134,9 @@ class UploadHandler:
 
             # copy the changes file itself
             changes_fname_dst = os.path.join(tmp_dir, changes.filename)
-            if self.keep_source_packages:
-                shutil.copy(fname, changes_fname_dst)
-                shutil.chown(fname_dst, user=os.getuid(), group=os.getgid())
-                os.chmod(fname_dst, 0o755)
-            else:
-                safe_rename(fname, changes_fname_dst)
+            shutil.copy(fname, changes_fname_dst)
+            shutil.chown(fname_dst, user=os.getuid(), group=os.getgid())
+            os.chmod(fname_dst, 0o755)
 
             # fail here (after the data has been moved out of the way or copied)
             # in case there were any hash issues found
@@ -1162,6 +1155,13 @@ class UploadHandler:
                 is_new, spkg = self._import_trusted_changes(rss, changes, uploader)
             except (ArchiveImportError, UploadError) as e:
                 return UploadChangesResult(False, uploader, error=str(e))
+
+            # everything went fine
+            if not self.keep_source_packages:
+                for file in files.values():
+                    fname_src = os.path.join(changes.directory, os.path.basename(file.fname))
+                    os.unlink(fname_src)
+                os.unlink(fname)
 
         # if we are here, everything went fine and the package is in the archive or NEW now
         return UploadChangesResult(True, uploader, is_new=is_new, spkg=spkg, target_suite_name=suite_name)
