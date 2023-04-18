@@ -12,14 +12,14 @@ from laniakea.localconfig import LocalConfig, ExternalToolsUrls
 
 
 class Britney:
-    '''
+    """
     Interface to Debian's Archive Migrator (Britney2)
-    '''
+    """
 
     def __init__(self):
         lconf = LocalConfig()
 
-        self._britney_dir = os.path.join(lconf.workspace, 'dist', 'britney2')
+        self._britney_dir = os.path.join(lconf.workspace, 'tools', 'britney2')
         self._britney_exe = os.path.join(self._britney_dir, 'britney.py')
 
     def update_dist(self):
