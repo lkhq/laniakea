@@ -20,7 +20,12 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.dud import Dud
-from laniakea.utils import safe_rename, random_string, get_dir_shorthand_for_uuid
+from laniakea.utils import (
+    safe_rename,
+    random_string,
+    process_file_lock,
+    get_dir_shorthand_for_uuid,
+)
 from laniakea.msgstream import EventEmitter
 
 from .rubiconfig import RubiConfig
@@ -218,11 +223,12 @@ def import_files(options):
             repos = session.query(ArchiveRepository).all()
 
         for repo in repos:
-            if repo.name == master_repo_name:
-                # for the master repository we process the root directory as well for
-                # backwards compatibility
-                import_files_for(session, conf, repo, incoming_dir, emitter=emitter)
-            repo_incoming_dir = os.path.join(incoming_dir, repo.name)
-            if not os.path.isdir(repo_incoming_dir):
-                os.makedirs(repo_incoming_dir, exist_ok=True)
-            import_files_for(session, conf, repo, repo_incoming_dir, emitter=emitter)
+            with process_file_lock('rubicon_{}'.format(repo.name), wait=True):
+                if repo.name == master_repo_name:
+                    # for the master repository we process the root directory as well for
+                    # backwards compatibility
+                    import_files_for(session, conf, repo, incoming_dir, emitter=emitter)
+                repo_incoming_dir = os.path.join(incoming_dir, repo.name)
+                if not os.path.isdir(repo_incoming_dir):
+                    os.makedirs(repo_incoming_dir, exist_ok=True)
+                import_files_for(session, conf, repo, repo_incoming_dir, emitter=emitter)
