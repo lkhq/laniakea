@@ -1003,7 +1003,7 @@ class UploadHandler:
             require_signature=True,
         )
 
-        uploader: T.Optional[ArchiveUploader] = (
+        uploader: ArchiveUploader | None = (
             self._session.query(ArchiveUploader)
             .filter(ArchiveUploader.pgp_fingerprints.any(changes.primary_fingerprint))
             .one_or_none()
@@ -1091,8 +1091,8 @@ class UploadHandler:
                 ),
             )
 
-        # FIXME: We should maybe also preemptively check the binaries and their versions here, rather
-        # than possibly uncleanly failing at a later stage.
+        # FIXME: We should maybe also preemptively check the binaries and their versions here,
+        #  rather than possibly uncleanly failing at a later stage.
         # At the moment there is a chance that we partially import the package, if any kind of failure
         # happens at a later stage.
 
@@ -1115,10 +1115,11 @@ class UploadHandler:
                     )
 
         # create a temporary scratch location to copy the files of this upload to.
+        orig_changes_dir = changes.directory
         with tempfile.TemporaryDirectory(prefix='lk-pkgupload_') as tmp_dir:
             hash_issues = []
             for file in files.values():
-                fname_src = os.path.join(changes.directory, os.path.basename(file.fname))
+                fname_src = os.path.join(orig_changes_dir, os.path.basename(file.fname))
                 fname_dst = os.path.join(tmp_dir, os.path.basename(file.fname))
 
                 shutil.copy(fname_src, fname_dst)
@@ -1159,7 +1160,7 @@ class UploadHandler:
             # everything went fine
             if not self.keep_source_packages:
                 for file in files.values():
-                    fname_src = os.path.join(changes.directory, os.path.basename(file.fname))
+                    fname_src = os.path.join(orig_changes_dir, os.path.basename(file.fname))
                     os.unlink(fname_src)
                 os.unlink(fname)
 
@@ -1180,13 +1181,20 @@ class UploadHandler:
 
         # first do some last verification and validation steps
         files: T.Dict[str, ChangesFileEntry] = changes.files
+        dsc_cfe: ChangesFileEntry | None = None
         for file in files.values():
             # jump to the dsc file
             if not file.fname.endswith('.dsc'):
                 continue
+            dsc_cfe = file
+            # there should only be one source package per changes file
+            break
 
-            if '/' in file.fname:
-                raise UploadError('Invalid source package filename: {}'.format(str(file.fname)))
+        if dsc_cfe:
+            # we have a source package in the upload!
+
+            if '/' in dsc_cfe.fname:
+                raise UploadError('Invalid source package filename: {}'.format(str(dsc_cfe.fname)))
 
             # check for orig tarball
             has_orig_tar = False
@@ -1199,14 +1207,14 @@ class UploadHandler:
                 # the archive which provides this file, so let's look for it!
                 # In case this is a native package, the dsc file will not have an orig reference, and we will just
                 # skip this section automatically.
-                with open(os.path.join(changes.directory, file.fname), 'r') as f:
+                with open(os.path.join(changes.directory, dsc_cfe.fname), 'r') as f:
                     dsc = Sources(f)
                     dsc_files = checksums_list_to_file(dsc.get('Checksums-Sha1'), 'sha1')
                     dsc_files = checksums_list_to_file(dsc.get('Checksums-Sha256'), 'sha256', dsc_files)
                 for dscf_basename, dsc_f in dsc_files.items():
                     if re_file_orig.match(dscf_basename):
                         orig_poolname = os.path.join(
-                            pool_dir_from_name_component(dsc.get('Source'), file.component), dscf_basename
+                            pool_dir_from_name_component(dsc.get('Source'), dsc_cfe.component), dscf_basename
                         )
                         afile_orig = (
                             self._session.query(ArchiveFile)
@@ -1259,26 +1267,22 @@ class UploadHandler:
                     )
                 )
 
-        # actually run the package import, starting with the source package (dsc file)
+        # prepare package importer
         pi = PackageImporter(self._session, rss)
         pi.keep_source_packages = self.keep_source_packages
-
         changes_urgency = ChangesUrgency.from_string(changes.changes.get('Urgency', 'low'))  #
 
-        is_new = False
+        # actually run the package import, starting with the source package (dsc file)
         spkg: SourcePackage | None = None
-        for file in files.values():
-            # jump to the dsc file
-            if not file.fname.endswith('.dsc'):
-                continue
-
+        is_new: bool = False
+        if dsc_cfe:
             try:
                 new_policy = rss.new_policy
                 # uploader policy beats suite policy
                 if uploader.always_review:
                     new_policy = NewPolicy.ALWAYS_NEW
                 spkg, is_new = pi.import_source(
-                    os.path.join(changes.directory, file.fname), file.component, new_policy=new_policy
+                    os.path.join(changes.directory, dsc_cfe.fname), dsc_cfe.component, new_policy=new_policy
                 )
                 spkg.changes_urgency = changes_urgency
                 if is_new:
@@ -1289,8 +1293,6 @@ class UploadHandler:
                     )
             except Exception as e:
                 raise UploadError('Failed to import source package: {}'.format(str(e)))
-            # there should only be one source package per changes file
-            break
 
         # import binary packages
         for file in files.values():
