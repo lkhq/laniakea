@@ -198,7 +198,7 @@ In order to configure the web dashboard service, create the necessary configurat
     TESTING = False
 
 Set the caching backend you want (filesystem, redis, memcached, ...) and ensure you generate a new
-secret key. Generating a secret key is asy with this Python snippet:
+secret key. Generating a secret key is easy with this Python snippet:
 
 .. code-block:: python
 
