@@ -223,7 +223,7 @@ Software Viewer Service
 
 Just like with the web dashboard service, we create a configuration file for the software
 viewer web application:
-``/var/lib/laniakea/webdash/config.cfg``:
+``/var/lib/laniakea/webswview/config.cfg``:
 
 .. code-block:: python
 
