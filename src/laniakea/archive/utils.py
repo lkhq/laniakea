@@ -429,5 +429,11 @@ def lintian_check(fname: T.PathUnion, *, tags: list[str] = None) -> tuple[bool, 
         if ret == 1 and not result_tags:
             raise RuntimeError('Failed to run Lintain (Code: {}, Error: {}{})'.format(ret, err, out))
 
+        if not out and ret != 0:
+            # create a fake error with the crash information
+            result_tags.append(
+                {'level': 'E', 'package': '_internal', 'tag': 'x-internal-issue-running-lintian', 'error': err}
+            )
+
         # ret will be 2 in case there was any error
         return (ret == 0, result_tags)
