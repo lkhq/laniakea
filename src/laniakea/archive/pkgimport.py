@@ -1178,31 +1178,8 @@ class UploadHandler:
         This function is only to be called internally.
         """
 
+        # first do some last verification and validation steps
         files: T.Dict[str, ChangesFileEntry] = changes.files
-
-        lint_success = True
-        if not self.skip_lintian_check:
-            lint_success, lintian_tags = lintian_check(
-                os.path.join(changes.directory, changes.filename), tags=self._lintian_conf.fatal_tags
-            )
-        if not lint_success:
-            lintian_lines = []
-            for tag in lintian_tags:
-                lintian_lines.append('{}: {}: {}'.format(tag['level'], tag['tag'], tag['description']))
-            raise UploadError(
-                ('Unable to process upload {}: Lintian issues were found, please resolve them.\n{}').format(
-                    changes.filename, '\n'.join(lintian_lines)
-                )
-            )
-
-        pi = PackageImporter(self._session, rss)
-        pi.keep_source_packages = self.keep_source_packages
-
-        changes_urgency = ChangesUrgency.from_string(changes.changes.get('Urgency', 'low'))
-
-        # import source package
-        is_new = False
-        spkg: SourcePackage | None = None
         for file in files.values():
             # jump to the dsc file
             if not file.fname.endswith('.dsc'):
@@ -1266,6 +1243,35 @@ class UploadHandler:
                                 os.path.join(rss.repo.get_root_dir(), afile_orig.fname),
                                 os.path.join(changes.directory, dscf_basename),
                             )
+
+        # validate the new upload with Lintian
+        lint_success = True
+        if not self.skip_lintian_check:
+            lint_success, lintian_tags = lintian_check(
+                os.path.join(changes.directory, changes.filename), tags=self._lintian_conf.fatal_tags
+            )
+        if not lint_success:
+            lintian_lines = []
+            for tag in lintian_tags:
+                lintian_lines.append('{}: {}: {}'.format(tag['level'], tag['tag'], tag['description']))
+            raise UploadError(
+                ('Unable to process upload {}: Lintian issues were found, please resolve them.\n{}').format(
+                    changes.filename, '\n'.join(lintian_lines)
+                )
+            )
+
+        # actually run the package import, starting with the source package (dsc file)
+        pi = PackageImporter(self._session, rss)
+        pi.keep_source_packages = self.keep_source_packages
+
+        changes_urgency = ChangesUrgency.from_string(changes.changes.get('Urgency', 'low'))  #
+
+        is_new = False
+        spkg: SourcePackage | None = None
+        for file in files.values():
+            # jump to the dsc file
+            if not file.fname.endswith('.dsc'):
+                continue
 
             try:
                 new_policy = rss.new_policy
