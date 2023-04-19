@@ -1245,20 +1245,19 @@ class UploadHandler:
                             )
 
         # validate the new upload with Lintian
-        lint_success = True
         if not self.skip_lintian_check:
             lint_success, lintian_tags = lintian_check(
                 os.path.join(changes.directory, changes.filename), tags=self._lintian_conf.fatal_tags
             )
-        if not lint_success:
-            lintian_lines = []
-            for tag in lintian_tags:
-                lintian_lines.append('{}: {}: {}'.format(tag['level'], tag['tag'], tag['description']))
-            raise UploadError(
-                ('Unable to process upload {}: Lintian issues were found, please resolve them.\n{}').format(
-                    changes.filename, '\n'.join(lintian_lines)
+            if not lint_success:
+                lintian_lines = []
+                for tag in lintian_tags:
+                    lintian_lines.append('{}: {}: {}'.format(tag['level'], tag['tag'], tag['description']))
+                raise UploadError(
+                    ('Unable to process upload {}: Lintian issues were found, please resolve them.\n{}').format(
+                        changes.filename, '\n'.join(lintian_lines)
+                    )
                 )
-            )
 
         # actually run the package import, starting with the source package (dsc file)
         pi = PackageImporter(self._session, rss)
