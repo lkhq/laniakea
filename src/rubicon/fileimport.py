@@ -6,6 +6,7 @@
 
 import os
 import sys
+import time
 import logging as log
 from glob import glob
 
@@ -198,6 +199,27 @@ def import_files_for(
         handle_package_uploads(session, conf, repo, changes_fnames, event_emitter=emitter)
 
 
+def expire_orphaned_uploads(conf: RubiConfig, incoming_dir: T.PathUnion, emitter: EventEmitter) -> None:
+    """
+    Expire obsolete files in the upload directory.
+    """
+
+    if not os.path.isdir(incoming_dir):
+        log.error('Incoming upload dir is missing: %s', incoming_dir)
+        return
+
+    two_days_ago = time.time() - (2 * 24 * 60 * 60)
+    for path, _, files in os.walk(incoming_dir):
+        for file in files:
+            fname = os.path.join(path, file)
+            if os.path.isdir(fname):
+                continue
+            ti_m = os.path.getmtime(fname)
+            if ti_m < two_days_ago:
+                log.debug('Deleting orphaned uploaded file: %s', fname)
+                os.unlink(fname)
+
+
 def import_files(options):
     conf = RubiConfig()
 
@@ -228,7 +250,10 @@ def import_files(options):
                     # for the master repository we process the root directory as well for
                     # backwards compatibility
                     import_files_for(session, conf, repo, incoming_dir, emitter=emitter)
+                    expire_orphaned_uploads(conf, incoming_dir, emitter=emitter)
+
                 repo_incoming_dir = os.path.join(incoming_dir, repo.name)
                 if not os.path.isdir(repo_incoming_dir):
                     os.makedirs(repo_incoming_dir, exist_ok=True)
                 import_files_for(session, conf, repo, repo_incoming_dir, emitter=emitter)
+                expire_orphaned_uploads(conf, repo_incoming_dir, emitter=emitter)
