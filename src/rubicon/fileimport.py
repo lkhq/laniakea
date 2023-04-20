@@ -8,7 +8,7 @@ import os
 import sys
 import time
 import logging as log
-from glob import glob
+from glob import glob, iglob
 
 import laniakea.typing as T
 from laniakea import LkModule
@@ -209,15 +209,13 @@ def expire_orphaned_uploads(conf: RubiConfig, incoming_dir: T.PathUnion, emitter
         return
 
     two_days_ago = time.time() - (2 * 24 * 60 * 60)
-    for path, _, files in os.walk(incoming_dir):
-        for file in files:
-            fname = os.path.join(path, file)
-            if os.path.isdir(fname):
-                continue
-            ti_m = os.path.getmtime(fname)
-            if ti_m < two_days_ago:
-                log.debug('Deleting orphaned uploaded file: %s', fname)
-                os.unlink(fname)
+    for fname in iglob(os.path.join(incoming_dir, '*')):
+        if os.path.isdir(fname):
+            continue
+        ti_m = os.path.getmtime(fname)
+        if ti_m < two_days_ago:
+            log.debug('Deleting orphaned uploaded file: %s', fname)
+            os.unlink(fname)
 
 
 def import_files(options):
