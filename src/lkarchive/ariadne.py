@@ -24,9 +24,9 @@ from laniakea.ariadne import schedule_package_builds_for_source
 
 
 def get_newest_sources_index(session, rss: ArchiveRepoSuiteSettings):
-    '''
+    """
     Create an index of the most recent source packages.
-    '''
+    """
 
     spkg_filters = [
         SourcePackage.repo_id == rss.repo_id,
@@ -135,7 +135,7 @@ def update_package_build_schedule(
             simulate=simulate,
             arch_indep_affinity=arch_indep_affinity,
         )
-        if scheduled_count >= limit_count:
+        if limit_count != 0 and scheduled_count >= limit_count:
             break
 
     # cleanup
