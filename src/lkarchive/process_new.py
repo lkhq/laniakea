@@ -6,7 +6,6 @@
 
 import os
 import sys
-import shutil
 
 import rich
 import click
@@ -61,7 +60,9 @@ def newqueue_accept(
             pi.import_binary(bpkg_fname)
         for bpkg_fname in glob(os.path.join(spkg_queue_dir, '*.udeb')):
             pi.import_binary(bpkg_fname)
-    shutil.rmtree(spkg_queue_dir)
+
+    if os.path.isdir(spkg_queue_dir) and len(os.listdir(spkg_queue_dir)) == 0:
+        os.rmdir(spkg_queue_dir)
     archive_log.info(
         'ACCEPTED: %s/%s -> %s/%s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name, spkg.component.name
     )
@@ -81,13 +82,15 @@ def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage)
     if not nq_entry:
         raise ValueError('Unable to find NEW queue entry for package {}/{}!'.format(spkg.name, spkg.version))
 
-    shutil.rmtree(spkg_queue_dir)
+    if os.path.isdir(spkg_queue_dir) and len(os.listdir(spkg_queue_dir)) == 0:
+        os.rmdir(spkg_queue_dir)
     session.delete(nq_entry)
     for file in spkg.files:
         session.delete(file)
     spkg.files = []
     session.delete(spkg)
-    session.flush()
+    session.commit()
+
     archive_log.info(
         'REJECTED: %s/%s (aimed at %s/%s/%s)',
         spkg.name,
