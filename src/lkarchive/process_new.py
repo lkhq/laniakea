@@ -23,13 +23,44 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.archive import PackageImporter
-from laniakea.logging import archive_log
+from laniakea.logging import log, archive_log
 from laniakea.archive.utils import (
     check_overrides_source,
     find_package_in_new_queue,
     register_package_overrides,
 )
-from laniakea.archive.changes import parse_changes
+from laniakea.archive.changes import Changes, parse_changes
+
+
+def _get_changes_for_queue_package(rss: ArchiveRepoSuiteSettings, spkg: SourcePackage) -> Changes | None:
+    """Get a changes file information object for a package in a NEW queue."""
+
+    spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
+    changes_fname = os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version))
+    changes = None
+    if os.path.isfile(changes_fname):
+        changes = parse_changes(changes_fname, require_signature=False)
+    return changes
+
+
+def _delete_files_in_queue(rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, *, changes: Changes | None = None):
+    """
+    Remove packages from a queue, using the .changes file of an enqueued source package.
+    """
+    if not changes:
+        changes = _get_changes_for_queue_package(rss, spkg)
+
+        if not changes:
+            return
+
+    spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
+    for file in changes.files.values():
+        full_fname = os.path.join(spkg_queue_dir, file.fname)
+        # we may have deleted some files previously, so we check for their existence again
+        if os.path.isfile(full_fname):
+            os.unlink(full_fname)
+    os.unlink(os.path.join(changes.directory, changes.filename))
+    log.debug('Removed queued package with changes file: %s', changes.filename)
 
 
 def newqueue_accept(
@@ -41,7 +72,6 @@ def newqueue_accept(
     include_binaries: bool = False,
 ):
     """Accept a selected package into its target suite, applying the selected overrides"""
-    from glob import glob
 
     dsc_file = spkg.dsc_file
     if not dsc_file:
@@ -55,14 +85,25 @@ def newqueue_accept(
     pi.import_source(spkg_fname, spkg.component.name, error_if_new=True)
     session.commit()
 
-    if include_binaries:
-        for bpkg_fname in glob(os.path.join(spkg_queue_dir, '*.deb')):
-            pi.import_binary(bpkg_fname)
-        for bpkg_fname in glob(os.path.join(spkg_queue_dir, '*.udeb')):
+    changes = _get_changes_for_queue_package(rss, spkg)
+    if not changes and include_binaries:
+        log.error(
+            'Can not include binaries in NEW queue accept for %s/%s: No changes file was found.',
+            spkg.name,
+            spkg.version,
+        )
+    elif include_binaries:
+        for file in changes.files.values():
+            if not file.fname.endswith('.deb') and not file.fname.endswith('.udeb'):
+                continue
+            bpkg_fname = os.path.join(spkg_queue_dir, file.fname)
             pi.import_binary(bpkg_fname)
 
+    # cleanup, the package has been accepted & imported
+    _delete_files_in_queue(rss, spkg, changes=changes)
     if os.path.isdir(spkg_queue_dir) and len(os.listdir(spkg_queue_dir)) == 0:
         os.rmdir(spkg_queue_dir)
+
     archive_log.info(
         'ACCEPTED: %s/%s -> %s/%s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name, spkg.component.name
     )
@@ -76,20 +117,29 @@ def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage)
         raise ValueError('Source package {}/{} has no registered dsc file.'.format(spkg.name, spkg.version))
 
     # TODO: Don't completely delete the package and maybe just move it to the morgue
-    spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
+    repo_queue_root = rss.repo.get_new_queue_dir()
+    spkg_queue_dir = os.path.join(repo_queue_root, spkg.directory)
 
     nq_entry = find_package_in_new_queue(session, rss, spkg)
     if not nq_entry:
         raise ValueError('Unable to find NEW queue entry for package {}/{}!'.format(spkg.name, spkg.version))
 
-    if os.path.isdir(spkg_queue_dir) and len(os.listdir(spkg_queue_dir)) == 0:
-        os.rmdir(spkg_queue_dir)
     session.delete(nq_entry)
     for file in spkg.files:
         session.delete(file)
+        full_fname = os.path.join(repo_queue_root, file.fname)
+        if os.path.isfile(full_fname):
+            os.unlink(full_fname)
     spkg.files = []
     session.delete(spkg)
     session.commit()
+
+    # cleanup all other files, including binaries in the queue
+    _delete_files_in_queue(rss, spkg)
+
+    # cleanup an orphaned directory
+    if os.path.isdir(spkg_queue_dir) and len(os.listdir(spkg_queue_dir)) == 0:
+        os.rmdir(spkg_queue_dir)
 
     archive_log.info(
         'REJECTED: %s/%s (aimed at %s/%s/%s)',
@@ -148,7 +198,7 @@ def _process_new(repo_name: T.Optional[str] = None):
                 rich.print('[bold]Target Component:[/bold] [italic]{}[/italic]'.format(spkg.component.name))
                 rich.print('[bold]Maintainer:[/bold]', spkg.maintainer)
                 if spkg.uploaders:
-                    rich.print('[bold]Uploaders:[/bold]', '\n          '.join([u for u in spkg.uploaders]))
+                    rich.print('[bold]Uploaders:[/bold]', '\n           '.join([u for u in spkg.uploaders]))
                 if changes_found:
                     rich.print('[bold]Changed By:[/bold]', changes.changes['Changed-By'])
                 rich.print('[bold]New Overrides:[/bold]')

@@ -517,13 +517,16 @@ class TestArchive:
             )
             assert spkg
 
-            pkg_pool_subdir = os.path.join('pool', 'main', 'p', 'pkgnew', 'pkgnew_0.1-1.dsc')
-            assert os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subdir))
-            assert not os.path.isfile(os.path.join(ctx._archive_root, 'master', pkg_pool_subdir))
+            pkg_pool_subdir = os.path.join('pool', 'main', 'p', 'pkgnew')
+            pkg_pool_subloc = os.path.join(pkg_pool_subdir, 'pkgnew_0.1-1')
+            assert os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subloc + '.dsc'))
+            assert not os.path.isfile(os.path.join(ctx._archive_root, 'master', pkg_pool_subloc + '.dsc'))
 
             newqueue_reject(session, rss, spkg)
-            assert not os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subdir))
-            assert not os.path.isfile(os.path.join(ctx._archive_root, 'master', pkg_pool_subdir))
+            assert not os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subloc + '.dsc'))
+            assert not os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subloc + '.changes'))
+            assert not os.path.isfile(os.path.join(ctx._archive_root, 'master', pkg_pool_subloc + '.dsc'))
+            assert not os.path.isfile(os.path.join(pkg_pool_subdir, 'pkg-all1_0.1-1_all.deb'))
             spkg = (
                 session.query(SourcePackage)
                 .filter(
@@ -564,7 +567,11 @@ class TestArchive:
             missing_overrides = check_overrides_source(session, rss, spkg)
             # this package has 4 new binary packages
             assert len(missing_overrides) == 4
+            assert os.path.isfile(os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subdir, 'pkgnew_0.1-2.dsc'))
             newqueue_accept(session, rss, spkg, missing_overrides)
+            assert not os.path.isfile(
+                os.path.join(ctx._queue_root, 'master', 'new', pkg_pool_subdir, 'pkgnew_0.1-2.dsc')
+            )
 
             # add the missing binaries
             res = uh.process_changes(os.path.join(package_samples, 'pkgnew_0.1-2_%s.changes' % ctx._host_arch))
