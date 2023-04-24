@@ -140,6 +140,7 @@ def _process_new(repo_name: T.Optional[str] = None):
                 if changes_found:
                     changes = parse_changes(changes_fname, require_signature=False)
 
+                rich.print()
                 rich.print('[bold]Package:[/bold]', spkg.name)
                 rich.print('[bold]Version:[/bold]', spkg.version)
                 rich.print('[bold]Repository:[/bold]', spkg.repo.name)
@@ -147,7 +148,7 @@ def _process_new(repo_name: T.Optional[str] = None):
                 rich.print('[bold]Target Component:[/bold] [italic]{}[/italic]'.format(spkg.component.name))
                 rich.print('[bold]Maintainer:[/bold]', spkg.maintainer)
                 if spkg.uploaders:
-                    rich.print('[bold]Uploaders:[/bold]', [u for u in spkg.uploaders])
+                    rich.print('[bold]Uploaders:[/bold]', '\n          '.join([u for u in spkg.uploaders]))
                 if changes_found:
                     rich.print('[bold]Changed By:[/bold]', changes.changes['Changed-By'])
                 rich.print('[bold]New Overrides:[/bold]')
