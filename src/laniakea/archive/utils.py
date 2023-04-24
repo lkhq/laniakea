@@ -142,16 +142,28 @@ def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourceP
     :return: List of missing overrides, or None
     """
     missing = []
+    rss_dbg = repo_suite_settings_for_debug(session, rss)
     for bin in spkg.expected_binaries:
-        res = (
-            session.query(PackageOverride.id)
-            .filter(
-                PackageOverride.repo_id == rss.repo_id,
-                PackageOverride.suite_id == rss.suite_id,
-                PackageOverride.pkg_name == bin.name,
+        if rss_dbg and bin.section == 'debug':
+            res = (
+                session.query(PackageOverride.id)
+                .filter(
+                    PackageOverride.repo_id == rss_dbg.repo_id,
+                    PackageOverride.suite_id == rss_dbg.suite_id,
+                    PackageOverride.pkg_name == bin.name,
+                )
+                .first()
             )
-            .first()
-        )
+        else:
+            res = (
+                session.query(PackageOverride.id)
+                .filter(
+                    PackageOverride.repo_id == rss.repo_id,
+                    PackageOverride.suite_id == rss.suite_id,
+                    PackageOverride.pkg_name == bin.name,
+                )
+                .first()
+            )
         if res is not None:
             # override exists
             continue
