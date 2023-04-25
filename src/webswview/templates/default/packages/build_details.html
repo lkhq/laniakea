@@ -13,7 +13,7 @@
             <a href="{{ url_for('portal.repo_index', repo_name=spkg.repo.name) }}">Packages in {{spkg.repo.name}}</a>
         </li>
         <li class="breadcrumb-item">
-            <a href="{{ url_for('packages.src_package_details', suite_name=suite_name, name=spkg.name) }}">{{spkg.name}}</a>
+            <a href="{{ url_for('packages.src_package_details', repo_name=spkg.repo.name, suite_name=suite_name, name=spkg.name) }}">{{spkg.name}}</a>
         </li>
         <li class="breadcrumb-item">
             <a href="{{ url_for('packages.builds_list', name=spkg.name, page=1) }}">Builds</a>

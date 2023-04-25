@@ -365,19 +365,18 @@ def build_details(uuid):
             abort(404)
 
         suite_name = 'unknown'
-        if job.data:
-            suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == job.data.get('suite')).one_or_none()
-            suite_name = suite.name
-
-        dep_issues = (
-            session.query(DebcheckIssue)
-            .filter(DebcheckIssue.package_type == PackageType.SOURCE)
-            .filter(DebcheckIssue.suite_id == suite.id)
-            .filter(DebcheckIssue.package_name == spkg.name)
-            .filter(DebcheckIssue.package_version == spkg.version)
-            .filter(DebcheckIssue.architectures.overlap([job.architecture, 'any']))
-            .all()
-        )
+        dep_issues = []
+        if job.suite:
+            suite_name = job.suite.name
+            dep_issues = (
+                session.query(DebcheckIssue)
+                .filter(DebcheckIssue.package_type == PackageType.SOURCE)
+                .filter(DebcheckIssue.suite_id == job.suite.id)
+                .filter(DebcheckIssue.package_name == spkg.name)
+                .filter(DebcheckIssue.package_version == spkg.version)
+                .filter(DebcheckIssue.architectures.overlap([job.architecture, 'any']))
+                .all()
+            )
 
         return render_template(
             'packages/build_details.html',

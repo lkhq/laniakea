@@ -125,8 +125,8 @@ def job(uuid):
                 job_title = 'Build {} {} on {}'.format(spkg.name, job.version, job.architecture)
 
             suite_name = 'unknown'
-            if job.data:
-                suite_name = job.data.get('suite')
+            if job.suite:
+                suite_name = job.suite.name
 
             return render_template(
                 'jobs/job_pkgbuild.html',
