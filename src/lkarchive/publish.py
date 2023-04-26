@@ -85,7 +85,7 @@ def _retrieve_dep11_data_async(
     env['LK_REPO_NAME'] = repo_name
     proc = subprocess.run(hook_script, check=False, capture_output=True, cwd=dep11_tmp_target, env=env)
     if proc.returncode != 0:
-        return False, 'Hook script failed: {}{}'.format(str(proc.stdout), str(proc.stderr)), None
+        return False, 'Hook script failed: {}{}'.format(str(proc.stdout, 'utf-8'), str(proc.stderr, 'utf-8')), None
 
     if not any(os.scandir(dep11_tmp_target)):
         log.debug('No DEP-11 data received for repository %s', repo_name)
