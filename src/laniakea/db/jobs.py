@@ -79,8 +79,8 @@ class Job(Base):
 
     status = Column(Enum(JobStatus), default=JobStatus.WAITING)  # Status of this job
 
-    module = Column(String(256), nullable=False)  # the name of the module responsible for this job
-    kind = Column(String(256), nullable=False)  # kind of the job
+    module = Column(String(100), nullable=False)  # the name of the module responsible for this job
+    kind = Column(String(200), nullable=False)  # kind of the job
 
     trigger = Column(UUID(as_uuid=True))  # ID of the entity responsible for triggering this job's creation
 
@@ -89,7 +89,7 @@ class Job(Base):
     version = Column(DebVersion())  # Version of the item this job is for (can be null)
 
     # Architecture this job can run on, "any" in case the architecture does not matter
-    architecture = Column(Text(), default='any')
+    architecture = Column(String(80), default='any')
 
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this job was created.
     time_assigned = Column(DateTime())  # Time when this job was assigned to a worker.

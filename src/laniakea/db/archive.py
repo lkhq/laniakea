@@ -83,8 +83,8 @@ class ArchiveRepository(Base):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String(128), unique=True)  # Name of the repository
-    origin_name = Column(String(200))  # Name of the origin of this repository (e.g. "Purism")
+    name = Column(String(100), unique=True)  # Name of the repository
+    origin_name = Column(String(100))  # Name of the origin of this repository (e.g. "Purism")
     is_debug = Column(Boolean(), default=False)  # If True, this repository is used for debug suites
 
     debug_repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
@@ -213,6 +213,8 @@ class ArchiveUploader(Base):
 
     allow_source_uploads = Column(Boolean(), default=True)  # Whether source uploads are permitted
     allow_binary_uploads = Column(Boolean(), default=True)  # Whether binary package uploads are permitted
+    allow_flatpak_uploads = Column(Boolean(), default=True)  # Whether binary Flatpak bundle uploads are permitted
+
     # Whether uploads of this entity should always end up in the NEW queue
     always_review = Column(Boolean(), default=False)
     # Names of source packages that this entity is allowed to touch, empty to allow all
@@ -305,10 +307,10 @@ class ArchiveSuite(Base):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String(128), unique=True)  # Name of the suite, usually the codename e.g. "sid"
-    alias = Column(String(128), unique=True, nullable=True)  # Alternative name of the suite, e.g. "unstable"
+    name = Column(String(120), unique=True)  # Name of the suite, usually the codename e.g. "sid"
+    alias = Column(String(120), unique=True, nullable=True)  # Alternative name of the suite, e.g. "unstable"
     summary = Column(String(200), nullable=True)  # Short description string for this suite
-    version = Column(String(64), nullable=True)  # Version string applicable for this suite
+    version = Column(String(80), nullable=True)  # Version string applicable for this suite
     dbgsym_policy = Column(
         Enum(DbgSymPolicy), default=DbgSymPolicy.NO_DEBUG
     )  # Set how debug symbol packages should be handled for this suite
@@ -421,7 +423,7 @@ class ArchiveComponent(Base):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String(128), unique=True)  # Name of the repository
+    name = Column(String(100), unique=True)  # Name of the repository
     summary = Column(String(200), nullable=True)  # Short explanation of this component's purpose
 
     suites = relationship('ArchiveSuite', secondary=suite_component_assoc_table, back_populates='components')
@@ -473,7 +475,7 @@ class ArchiveSection(Base):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String(128), unique=True)  # Name of the section
+    name = Column(String(100), unique=True)  # Name of the section
     summary = Column(String(200), nullable=True)  # Short description of this section
 
     def __init__(self, name: str, summary: str = None):
@@ -726,10 +728,10 @@ class SourcePackage(Base):
     section_id = Column(Integer, ForeignKey('archive_sections.id'))
     section = relationship('ArchiveSection')  # Section of the source package
 
-    architectures = Column(ARRAY(String(64)))  # List of architectures this source package can be built for
+    architectures = Column(ARRAY(String(80)))  # List of architectures this source package can be built for
 
-    standards_version = Column(String(256), nullable=True)
-    format_version = Column(String(64))
+    standards_version = Column(String(80), nullable=True)
+    format_version = Column(String(80))
 
     maintainer = Column(Text())
     original_maintainer = Column(Text(), nullable=True)
@@ -1001,7 +1003,7 @@ class BinaryPackage(Base):
     original_maintainer = Column(Text(), nullable=True)
     homepage = Column(Text())
 
-    multi_arch = Column(String(32))
+    multi_arch = Column(String(40))
 
     phased_update_percentage = Column(SmallInteger(), default=100)
 
@@ -1119,7 +1121,7 @@ class SoftwareComponent(Base):
         back_populates='sw_cpts',
     )  # Packages this software component is contained in
 
-    flatpakref_uuid = Column(UUID(as_uuid=True), ForeignKey('flatpak_refs.uuid'))
+    flatpakref_uuid = Column(UUID(as_uuid=True), ForeignKey('flatpak_refs.uuid'), nullable=True)
     flatpakref = relationship('FlatpakRef')
 
     _data = Column('data', JSON)  # JSON representation of AppStream's collection data for this component

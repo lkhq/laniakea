@@ -43,7 +43,7 @@ class SpearsHint(Base):
     hint = Column(Text())  # A Britney hint
     reason = Column(Text())  # Reason why the package is blacklisted
 
-    user = Column(String(256))  # Person who created this hint
+    user = Column(String(200))  # Person who created this hint
 
 
 spears_migration_src_suite_assoc_table = Table(
@@ -135,9 +135,9 @@ class SpearsExcuse(Base):
     version_old = Column(DebVersion())  # old package version in the target suite
 
     # list of primary architectures where the package has not been built
-    missing_archs_primary = Column(ARRAY(String(128)))
+    missing_archs_primary = Column(ARRAY(String(80)))
     # list of secondary architectures where the package has not been built
-    missing_archs_secondary = Column(ARRAY(String(128)))
+    missing_archs_secondary = Column(ARRAY(String(80)))
 
     old_binaries = Column(JSON)  # Superseded cruft binaries that need to be garbage-collected
 

@@ -72,7 +72,7 @@ class DebcheckIssue(Base):
     # Architectures this issue affects, may be a wildcard like "any" or (list of) architecture expressions
     architectures = Column(ARRAY(Text()), default=['any'])
 
-    package_name = Column(String(256))  # Name of the package this issue affects
+    package_name = Column(String(200))  # Name of the package this issue affects
     package_version = Column(DebVersion())  # Version of the package this issue affects
 
     _missing_json = Column('missing', JSON)  # information about missing packages

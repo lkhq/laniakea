@@ -37,9 +37,9 @@ class SynchrotronSource(Base):
     id = Column(Integer, primary_key=True)
 
     os_name = Column(Text(), nullable=False)  # Name of the source OS (usually "Debian")
-    suite_name = Column(String(256), nullable=False)
-    architectures = Column(ARRAY(String(64)))
-    components = Column(ARRAY(String(128)))
+    suite_name = Column(String(100), nullable=False)
+    architectures = Column(ARRAY(String(40)))
+    components = Column(ARRAY(String(100)))
     repo_url = Column(Text(), nullable=False)
 
 
@@ -80,11 +80,11 @@ class SyncBlacklistEntry(Base):
     config_id = Column(Integer, ForeignKey('synchrotron_config.id'))
     config = relationship('SynchrotronConfig', cascade='all, delete')
 
-    pkgname = Column(String(256))  # Name of the blacklisted package
+    pkgname = Column(String(120))  # Name of the blacklisted package
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when the package was blacklisted
     reason = Column(Text())  # Reason why the package is blacklisted
 
-    user = Column(String(256))  # Person who marked this to be ignored
+    user = Column(String(200))  # Person who marked this to be ignored
 
 
 class SynchrotronIssueKind(enum.IntEnum):

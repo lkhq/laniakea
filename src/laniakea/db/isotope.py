@@ -45,9 +45,9 @@ class ImageBuildRecipe(Base):
     suite = Column(Text(), nullable=False)  # Suite of the distribution to build an image for
     environment = Column(Text(), nullable=False)  # The environment (GNOME, Plasma, server, ...) to use
     style = Column(Text(), nullable=True)  # Style of the image (e.g. "oem" or "live")
-    architectures = Column(ARRAY(String(128)))  # Architectures to build the image for
+    architectures = Column(ARRAY(String(80)))  # Architectures to build the image for
     # Architecture of the host that is allowed to build the images, or "any"
-    host_architecture = Column(String(128), nullable=False)
+    host_architecture = Column(String(80), nullable=False)
 
     git_url = Column(Text(), nullable=False)  # Git repository URL with the live-build scripts / other build recipes
     result_move_to = Column(Text())  # Local or remote URL to copy the resulting build artifacts to

@@ -23,7 +23,7 @@ class FlatpakRepository(Base):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String(128), unique=True)  # Machine-readable name of the repository (used in directory paths)
+    name = Column(String(100), unique=True)  # Machine-readable name of the repository (used in directory paths)
     collection_id = Column(Text(), unique=True)  # Collection-ID of this repository
 
     title = Column(Text())
@@ -33,10 +33,10 @@ class FlatpakRepository(Base):
     url_homepage = Column(Text())
     url_icon = Column(Text())
 
-    default_branch = Column(String(128), default='stable')
+    default_branch = Column(String(100), default='stable')
     gpg_key_id = Column(Text())  # ID of the GPG key used for signing this repository
 
-    allowed_branches = Column(ARRAY(String(128)))  # List of allowed branch names
+    allowed_branches = Column(ARRAY(String(100)))  # List of allowed branch names
 
     def __init__(self, name):
         self.name = name
@@ -78,7 +78,7 @@ class FlatpakRef(Base):
     name = Column(Text())
     version = Column(DebVersion())  # Version of this Ref
 
-    branch = Column(String(128), default='stable')
+    branch = Column(String(100), default='stable')
     commit = Column(BYTEA())  # OSTree commit ID of this ref
 
     architecture_id = Column(Integer, ForeignKey('archive_architectures.id'))
