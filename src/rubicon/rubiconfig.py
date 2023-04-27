@@ -45,12 +45,12 @@ class RubiConfig:
         if not self.log_storage_dir:
             raise Exception('No "LogStorage" entry in Rubicon configuration: We need to know where to store log files.')
 
-        self.rejected_dir = cdata.get('RejectedDir', os.path.join(self._lconf.workspace, 'archive-rejected'))
+        self.rejected_dir = cdata.get('RejectedDir', self._lconf.upload_rejected_dir)
         if not self.rejected_dir:
             raise Exception(
                 'No "RejectedDir" entry in Rubicon configuration: We need to know where to place rejected files.'
             )
-        self.incoming_dir = cdata.get('IncomingDir', os.path.join(self._lconf.workspace, 'archive-incoming'))
+        self.incoming_dir = cdata.get('IncomingDir', self._lconf.upload_incoming_dir)
 
         self.trusted_gpg_keyrings = self._lconf.trusted_gpg_keyrings
 

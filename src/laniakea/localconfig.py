@@ -98,6 +98,13 @@ class LocalConfig:
             # location for various temporary caches that can be deleted at any time
             self._cache_dir = cdata.get('CacheLocation', '/var/tmp/laniakea')
 
+            self._upload_incoming_dir = carchive.get(
+                'UploadIncomingPath', os.path.join(self._workspace, 'uploads', 'incoming')
+            )
+            self._upload_rejected_dir = carchive.get(
+                'UploadRejectedPath', os.path.join(self._workspace, 'uploads', 'rejected')
+            )
+
             # the user we run most (archive) commands as
             self._master_user_name = cdata.get('MasterUserName', 'lkmaster')
 
@@ -206,6 +213,16 @@ class LocalConfig:
         def archive_queue_url(self) -> str:
             """URL where a human user can view the archive queue(s), like the NEW queue"""
             return self._archive_queue_url
+
+        @property
+        def upload_incoming_dir(self) -> T.PathUnion:
+            """Directory where new uploads are placed."""
+            return self._upload_incoming_dir
+
+        @property
+        def upload_rejected_dir(self) -> T.PathUnion:
+            """Directory where rejected uploads are placed."""
+            return self._upload_rejected_dir
 
         @property
         def archive_flatpak_root_dir(self) -> str:

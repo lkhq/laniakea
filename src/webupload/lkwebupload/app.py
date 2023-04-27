@@ -97,7 +97,7 @@ def configure_app(app, config=None):
 
     gdata = BaseDataCache(app.config['UPLOAD_CHUNK_SIZE'])
     gdata.master_user = lconf.master_user_name
-    gdata.incoming_dir = rcdata.get('IncomingDir', os.path.join(lconf.workspace, 'archive-incoming'))
+    gdata.incoming_dir = rcdata.get('IncomingDir', lconf.upload_incoming_dir)
 
     with session_scope() as session:
         for rss in session.query(ArchiveRepoSuiteSettings).filter(ArchiveRepoSuiteSettings.accept_uploads.is_(True)):
