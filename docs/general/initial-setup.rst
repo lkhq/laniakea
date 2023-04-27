@@ -19,8 +19,8 @@ you can use this command on Debian-based systems (Debian 12 or newer required):
                      python3-marshmallow python3-nacl python3-apt python3-pebble \
                      python3-click python3-requests python3-apscheduler \
                      python3-gi python3-rich python3-tomlkit python3-voluptuous \
-                     python3-pip dose-builddebcheck dose-distcheck
-    sudo apt install --no-install-recommends flatpak
+                     python3-pip dose-builddebcheck dose-distcheck bubblewrap
+    sudo apt install --no-install-recommends flatpak lintian
     sudo apt install flake8 pylint mypy pylint isort black # if you want to add code linting / test support
     sudo pip install firehose
 
@@ -293,6 +293,46 @@ a subdirectory:
         uwsgi_pass  unix:/run/laniakea-upload/webupload.sock;
         uwsgi_param SCRIPT_NAME /_upload;
     }
+
+Message Passing Keys
+********************
+
+In order to have components communicate with each other, ZeroMQ is used to pass messages between components.
+The "Lighthouse" relay daemon is responsible for sending jobs to build workers (``laniakea-spark`` instances)
+as well as publishing messages to the wider world that it has received from other modules.
+Communication with the workers is always fully encrypted using CurveCP, while any outgoing messages are not
+encrypted by only signed with an Ed25519 signature to allow modules verify the authenticity of received messages.
+
+In theory every module can have its own pair of encryption/signing keys, but for simplicity having one pair
+of keys per machine makes sense (except for potentially Lighthouse instances).
+
+Let's generate a pair of keys and install it for all Laniakea modules to use:
+
+.. code-block:: shell-session
+
+    $ lk-keytool key-new --id scratch-general --name PurrOS --email scratch@pureos.net ~/mykeys
+    $ sudo lk-keytool install-service-key general ~/mykeys/scratch-general.key_secret
+
+The key output directory (``~/mykeys`` in this example), will contain a key file with the ``.key_secret`` suffix
+after running the `key-new` command.
+This is the secret key and must never leave the machine it is intended for.
+The public key file however (``.key`` suffix) is free to be distributed to machines which should trust
+communication with the current one.
+
+On the target system, it can be installed using:
+.. code-block:: shell-session
+
+    $ sudo lk-keytool install-trusted-key general ~/incoming_key/scratch-general.key
+
+When setting up spark workers, public keys from the workers need to be registered on the server that is housing
+the `Lighthouse` instance in order for the two systems to trust each other and communicate. This is required
+in addition to registering the worker's GPG key to allow uploads of a worker to be trusted.
+
+In the ``base-config.toml`` configuration file of Laniakea, make sure to set the values under
+``Lighthouse.servers`` to the server(s) that clients should receive messages from or send messages
+to. Also ensure values under ``Lighthouse.endpoints`` are set to ports where messages should be published/received
+from by a running Lighthouse server.
+You can check the example configuration for some good defaults.
 
 Troubleshooting
 ---------------
