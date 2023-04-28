@@ -320,7 +320,7 @@ def _import_repo_into_suite(
 
     pi = PackageImporter(session, rss_dest)
     pi.keep_source_packages = True  # we must not delete the source while importing it
-    pi.prefer_hardlinks = True  # prefer hardlinks if we are on the same drive, to safe space
+    pi.prefer_hardlinks = True  # prefer hardlinks if we are on the same drive, to save space
 
     # import all source packages
     print(Panel.fit('Importing sources'))

@@ -17,9 +17,10 @@ you can use this command on Debian-based systems (Debian 12 or newer required):
                      python3-tornado python3-sqlalchemy python3-alembic  \
                      python3-psycopg2 python3-debian python3-zmq python3-yaml \
                      python3-marshmallow python3-nacl python3-apt python3-pebble \
-                     python3-click python3-requests python3-apscheduler \
-                     python3-gi python3-rich python3-tomlkit python3-voluptuous \
-                     python3-pip dose-builddebcheck dose-distcheck bubblewrap
+                     python3-setproctitle python3-click python3-requests \
+                     python3-apscheduler python3-gi python3-rich python3-tomlkit \
+                     python3-voluptuous python3-pip \
+                     dose-builddebcheck dose-distcheck bubblewrap
     sudo apt install --no-install-recommends flatpak lintian
     sudo apt install flake8 pylint mypy pylint isort black # if you want to add code linting / test support
     sudo pip install firehose
@@ -67,6 +68,19 @@ Build web frontend & Matrix bot only, no tests
           -Dsynchrotron=false -Dariadne=false ..
     ninja
 
+Use a virtual environment for services
+**************************************
+.. code-block:: bash
+
+    mkdir build && cd build
+    meson -Dvirtualenv=/path/to/venv ..
+    ninja
+
+Laniakea can automatically use a Python virtual environment and configure all its services
+to use it. This is nice for installing Python dependencies not available in the system package
+manager. Command-line tools will still need to be run in the venv manually, but all services
+will automatically start using the virtual environment.
+
 Build everything (including test support)
 *****************************************
 .. code-block:: bash
@@ -96,7 +110,7 @@ You will need to add some system users for Laniakea services to use:
     sudo addgroup --system lkmaster
     # generic user for various administrative tasks, e.g. archive creation & management
     # NOTE: This user needs a HOME directory, mostly because of GnuPG silliness
-    sudo adduser --system --disabled-login --disabled-password --ingroup lkmaster lkmaster
+    sudo adduser --system --disabled-login --disabled-password --home /var/lib/laniakea/home --ingroup lkmaster lkmaster
     # user for the "Lighthouse" message relay service & job distribution system
     sudo adduser --system --disabled-login --disabled-password --no-create-home lklighthouse
     # user for web services as well as the Matrix bot
@@ -168,6 +182,71 @@ Autobuilder Setup
 -----------------
 
 TODO
+
+Other Services
+--------------
+
+Laniakea also comes with other services that you will need.
+You can set them up just like the archive itself, using the ``lk-admin``
+command and either configuration files to feed into, or an interactive prompt.
+
+Ariadne (Autobuild master)
+**************************
+
+.. code-block:: shell-session
+
+    $ lk-admin ariadne configure-all
+
+Spears (Package Migrations / QA)
+********************************
+
+.. code-block:: shell-session
+
+    $ lk-admin spears add-from-config ./spears-tasks.toml
+
+The configuration file must contain migration tasks that determine what should
+be migrated from where, and also include the delays (in days) for each package
+to sit in a certain suite before it can migrate.
+Example:
+
+.. code-block:: toml
+
+    [[MigrationTasks]]
+    repo_name = "pureos"
+    target_suite = "crimson"
+    source_suites = ["landing"]
+    delays = {low=8, medium=5, high=2, critical=0, emergency=0}
+
+Synchrotron (Pull packages from a source OS)
+********************************************
+
+.. code-block:: shell-session
+
+    $ lk-admin synchrotron add-from-config ./synchrotron-config.toml
+
+The configuration file needs to set up several synchronization sources and
+sync configurations.
+Example:
+
+.. code-block:: toml
+
+    [[Sources]]
+    os_name = "Debian"
+    repo_url = "https://deb.debian.org/debian/"
+    suite_name = "testing"
+    components = ["main", "contrib", "non-free", "non-free-firmware"]
+    architectures = ["amd64", "armel", "armhf", "i386", "ia64", "mips", "mipsel", "powerpc", "s390", "s390x", "sparc", "m68k", "x32"]
+
+    [[Configurations]]
+    repo_name = "pureos"
+    source_os = "Debian"
+    source_suite = "testing"
+    target_suite = "landing"
+    sync_enabled = true
+    sync_auto_enabled = true
+    sync_binaries = true
+    auto_cruft_remove = true
+
 
 Web Service Setup
 -----------------
