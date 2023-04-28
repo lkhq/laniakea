@@ -32,6 +32,7 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
 )
 from laniakea.utils import run_command, split_strip
+from laniakea.logging import log
 
 
 class UploadError(Exception):
@@ -269,7 +270,17 @@ def register_package_overrides(
             override.suite = real_rss.suite
             session.add(override)
 
-        override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one()
+        override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one_or_none()
+        if not override.component:
+            session.delete(override)
+            log.warning(
+                'Skipping registering override for "%s" in "%s", as its component "%s" is not known.',
+                pi.name,
+                real_rss.repo.name,
+                pi.component,
+            )
+            continue
+
         override.section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one_or_none()
         if not override.section:
             if allow_invalid_section:
