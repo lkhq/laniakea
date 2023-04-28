@@ -263,6 +263,12 @@ def set_process_title(title: str):
     try:
         from setproctitle import setproctitle
 
-        setproctitle(title)
+        args = sys.argv
+        if len(args) <= 1:
+            params_str = ''
+        else:
+            params_str = ' ' + ' '.join(args[1:])
+
+        setproctitle(title + params_str)
     except ImportError:
         pass
