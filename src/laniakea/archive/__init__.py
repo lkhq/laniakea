@@ -1,4 +1,5 @@
 from laniakea.archive.utils import (
+    split_epoch,
     repo_suite_settings_for,
     binaries_exist_for_package,
     find_latest_source_package,
@@ -23,6 +24,7 @@ __all__ = [
     'remove_source_package',
     'repo_suite_settings_for',
     'repo_suite_settings_for_debug',
+    'split_epoch',
     'find_latest_source_package',
     'binaries_exist_for_package',
 ]

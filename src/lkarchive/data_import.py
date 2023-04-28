@@ -29,7 +29,11 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.utils import process_file_lock
-from laniakea.archive import repo_suite_settings_for, repo_suite_settings_for_debug
+from laniakea.archive import (
+    split_epoch,
+    repo_suite_settings_for,
+    repo_suite_settings_for_debug,
+)
 from laniakea.logging import log
 from laniakea.archive.manage import (
     copy_binary_package,
@@ -338,7 +342,7 @@ def _import_repo_into_suite(
         # and we may be importing an ancient archive
         if not dscfile:
             dscfile = src_repo.get_file_insecure(
-                os.path.join(spkg_src.directory, '{}_{}.dsc'.format(spkg_src.name, spkg_src.version))
+                os.path.join(spkg_src.directory, '{}_{}.dsc'.format(spkg_src.name, split_epoch(spkg_src.version)[1]))
             )
 
         if not dscfile:
