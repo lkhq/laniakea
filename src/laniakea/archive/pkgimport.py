@@ -242,6 +242,7 @@ class PackageImporter:
         error_if_new: bool = False,
         ignore_existing: bool = False,
         ignore_version_check: bool = False,
+        ignore_bad_section: bool = False,
     ) -> ImportSourceResult:
         """Import a source package into the given suite or its NEW queue.
 
@@ -382,7 +383,13 @@ class PackageImporter:
                     self._rss.suite.name,
                 )
                 section_name = 'misc'
-        spkg.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == section_name).one()
+        spkg.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == section_name).one_or_none()
+        if not spkg.section:
+            if ignore_bad_section:
+                log.warning('Ignoring bad section "%s" for %s/%s', section_name, pkgname, version)
+                spkg.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == 'misc').one()
+            else:
+                raise ArchiveImportError('Section {} for {}/{} does not exist.'.format(section_name, pkgname, version))
 
         spkg.directory = pool_dir_from_name_component(pkgname, spkg.component.name)
         files = checksums_list_to_file(src_tf.pop('Files'), 'md5')

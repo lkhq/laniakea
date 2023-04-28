@@ -373,7 +373,13 @@ def _import_repo_into_suite(
                 spkg_dst.suites.append(rss_dest.suite)
             log.info('Processed source: %s/%s', spkg_dst.name, spkg_dst.version)
         else:
-            pi.import_source(dscfile, target_component_name, new_policy=NewPolicy.NEVER_NEW, ignore_version_check=True)
+            pi.import_source(
+                dscfile,
+                target_component_name,
+                new_policy=NewPolicy.NEVER_NEW,
+                ignore_version_check=True,
+                ignore_bad_section=True,
+            )
     session.commit()
 
     # import all binary packages
