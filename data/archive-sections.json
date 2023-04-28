@@ -1,61 +1,237 @@
 [
-  {"name": "admin"},
-  {"name": "cli-mono"},
-  {"name": "comm"},
-  {"name": "database"},
-  {"name": "debian-installer"},
-  {"name": "debug"},
-  {"name": "devel"},
-  {"name": "doc"},
-  {"name": "editors"},
-  {"name": "education"},
-  {"name": "electronics"},
-  {"name": "embedded"},
-  {"name": "fonts"},
-  {"name": "games"},
-  {"name": "gnome"},
-  {"name": "gnu-r"},
-  {"name": "gnustep"},
-  {"name": "golang"},
-  {"name": "graphics"},
-  {"name": "hamradio"},
-  {"name": "haskell"},
-  {"name": "httpd"},
-  {"name": "interpreters"},
-  {"name": "introspection"},
-  {"name": "java"},
-  {"name": "javascript"},
-  {"name": "kde"},
-  {"name": "kernel"},
-  {"name": "libdevel"},
-  {"name": "libs"},
-  {"name": "lisp"},
-  {"name": "localization"},
-  {"name": "mail"},
-  {"name": "math"},
-  {"name": "metapackages"},
-  {"name": "misc"},
-  {"name": "net"},
-  {"name": "news"},
-  {"name": "ocaml"},
-  {"name": "oldlibs"},
-  {"name": "otherosfs"},
-  {"name": "perl"},
-  {"name": "php"},
-  {"name": "python"},
-  {"name": "ruby"},
-  {"name": "rust"},
-  {"name": "science"},
-  {"name": "shells"},
-  {"name": "sound"},
-  {"name": "tasks"},
-  {"name": "tex"},
-  {"name": "text"},
-  {"name": "utils"},
-  {"name": "vcs"},
-  {"name": "video"},
-  {"name": "web"},
-  {"name": "x11"},
-  {"name": "xfce"},
-  {"name": "zope"}
+  {"name": "admin",
+   "title": "Administration Utilities",
+   "summary": "Utilities to administer system resources, manage user accounts, etc."},
+
+  {"name": "cli-mono",
+   "title": "Mono/CLI",
+   "summary": "Everything about Mono and the Common Language Infrastructure."},
+
+  {"name": "comm",
+   "title": "Communication Programs",
+   "summary": "Software to use your modem in the old fashioned style."},
+
+  {"name": "database",
+   "title": "Databases",
+   "summary": "Database Servers and Clients."},
+
+  {"name": "debian-installer",
+   "title": "Debian Installer udeb packages",
+   "summary": "Special packages for building customized debian-installer variants. Do not install them on a normal system!"},
+
+  {"name": "debug",
+   "title": "Debug packages",
+   "summary": "Packages providing debugging information for executables and shared libraries."},
+
+  {"name": "devel",
+   "title": "Development",
+   "summary": "Development utilities, compilers, development environments, libraries, etc."},
+
+  {"name": "doc",
+   "title": "Documentation",
+   "summary": "FAQs, HOWTOs and other documents trying to explain everything related to Debian, and software needed to browse documentation (man, info, etc)."},
+
+  {"name": "editors",
+   "title": "Editors",
+   "summary": "Software to edit files. Programming environments."},
+
+  {"name": "education",
+   "title": "Education",
+   "summary": "Software for learning and teaching."},
+
+  {"name": "electronics",
+   "title": "Electronics",
+   "summary": "Electronics utilities."},
+
+  {"name": "embedded",
+   "title": "Embedded software",
+   "summary": "Software suitable for use in embedded applications."},
+
+  {"name": "fonts",
+   "title": "Fonts",
+   "summary": "Font packages."},
+
+  {"name": "games",
+   "title": "Games",
+   "summary": "Programs to spend a nice time with after all this setting up."},
+
+  {"name": "gnome",
+   "title": "GNOME",
+   "summary": "The GNOME desktop environment, a powerful, easy to use set of integrated applications."},
+
+  {"name": "gnu-r",
+   "title": "GNU R",
+   "summary": "Everything about GNU R, a statistical computation and graphics system."},
+
+  {"name": "gnustep",
+   "title": "GNUstep",
+   "summary": "The GNUstep environment."},
+
+  {"name": "golang",
+   "title": "Go",
+   "summary": "Go programming language, libraries, and development tools."},
+
+  {"name": "graphics",
+   "title": "Graphics",
+   "summary": "Editors, viewers, converters... Everything to become an artist."},
+
+  {"name": "hamradio",
+   "title": "Ham Radio",
+   "summary": "Software for ham radio."},
+
+  {"name": "haskell",
+   "title": "Haskell",
+   "summary": "Everything about Haskell."},
+
+  {"name": "httpd",
+   "title": "Web Servers",
+   "summary": "Web servers and their modules."},
+
+  {"name": "interpreters",
+   "title": "Interpreters",
+   "summary": "All kind of interpreters for interpreted languages. Macro processors."},
+
+  {"name": "introspection",
+   "title": "Introspection",
+   "summary": "Machine readable introspection data for use by development tools."},
+
+  {"name": "java",
+   "title": "Java",
+   "summary": "Everything about Java."},
+
+  {"name": "javascript",
+   "title": "JavaScript",
+   "summary": "JavaScript programming language, libraries, and development tools."},
+
+  {"name": "kde",
+   "title": "KDE",
+   "summary": "The K Desktop Environment, a powerful, easy to use set of integrated applications."},
+
+  {"name": "kernel",
+   "title": "Kernels",
+   "summary": "Operating System Kernels and related modules."},
+
+  {"name": "libdevel",
+   "title": "Library development",
+   "summary": "Libraries necessary for developers to write programs that use them."},
+
+  {"name": "libs",
+   "title": "Libraries",
+   "summary": "Libraries to make other programs work. They provide special features to developers."},
+
+  {"name": "lisp",
+   "title": "Lisp",
+   "summary": "Everything about Lisp."},
+
+  {"name": "localization",
+   "title": "Language packs",
+   "summary": "Localization support for big software packages."},
+
+  {"name": "mail",
+   "title": "Mail",
+   "summary": "Programs to route, read, and compose E-mail messages."},
+
+  {"name": "math",
+   "title": "Mathematics",
+   "summary": "Math software."},
+
+  {"name": "metapackages",
+   "title": "Meta packages",
+   "summary": "Packages that mainly provide dependencies on other packages."},
+
+  {"name": "misc",
+   "title": "Miscellaneous",
+   "summary": "Miscellaneous utilities that didn't fit well anywhere else."},
+
+  {"name": "net",
+   "title": "Network",
+   "summary": "Daemons and clients to connect your system to the world."},
+
+  {"name": "news",
+   "title": "Newsgroups",
+   "summary": "Software to access Usenet, to set up news servers, etc."},
+
+  {"name": "ocaml",
+   "title": "OCaml",
+   "summary": "Everything about OCaml, an ML language implementation."},
+
+  {"name": "oldlibs",
+   "title": "Old Libraries",
+   "summary": "Old versions of libraries, kept for backward compatibility with old applications."},
+
+  {"name": "otherosfs",
+   "title": "Other OS's and file systems",
+   "summary": "Software to run programs compiled for other operating systems, and to use their filesystems."},
+
+  {"name": "perl",
+   "title": "Perl",
+   "summary": "Everything about Perl, an interpreted scripting language."},
+
+  {"name": "php",
+   "title": "PHP",
+   "summary": "Everything about PHP."},
+
+  {"name": "python",
+   "title": "Python",
+   "summary": "Everything about Python, an interpreted, interactive object oriented language."},
+
+  {"name": "ruby",
+   "title": "Ruby",
+   "summary": "Everything about Ruby, an interpreted object oriented language."},
+
+  {"name": "rust",
+   "title": "Rust",
+   "summary": "Rust programming language, library crates, and development tools."},
+
+  {"name": "science",
+   "title": "Science",
+   "summary": "Tools for scientific work."},
+
+  {"name": "shells",
+   "title": "Shells",
+   "summary": "Command shells. Friendly user interfaces for beginners."},
+
+  {"name": "sound",
+   "title": "Sound",
+   "summary": "Utilities to deal with sound: mixers, players, recorders, CD players, etc."},
+
+  {"name": "tasks",
+   "title": "Tasks",
+   "summary": "Packages that are used by 'tasksel', a simple interface for users who want to configure their system to perform a specific task."},
+
+  {"name": "tex",
+   "title": "TeX",
+   "summary": "The famous typesetting software and related programs."},
+
+  {"name": "text",
+   "title": "Text Processing",
+   "summary": "Utilities to format and print text documents."},
+
+  {"name": "utils",
+   "title": "Utilities",
+   "summary": "Utilities for file/disk manipulation, backup and archive tools, system monitoring, input systems, etc."},
+
+  {"name": "vcs",
+   "title": "Version Control Systems",
+   "summary": "Version control systems and related utilities."},
+
+  {"name": "video",
+   "title": "Video",
+   "summary": "Video viewers, editors, recording, streaming."},
+
+  {"name": "web",
+   "title": "Web Software",
+   "summary": "Web servers, browsers, proxies, download tools etc."},
+
+  {"name": "x11",
+   "title": "X Window System software",
+   "summary": "X servers, libraries, window managers, terminal emulators and many related applications."},
+
+  {"name": "xfce",
+   "title": "Xfce",
+   "summary": "Xfce, a fast and lightweight Desktop Environment."},
+
+  {"name": "zope",
+   "title": "Zope/Plone Framework",
+   "summary": "Zope Application Server and Plone Content Managment System."}
 ]

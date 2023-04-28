@@ -1,6 +1,6 @@
 {% extends 'layouts/base.html' %}
 
-{% set page_title = 'Section %s in %s:%s (%s)'|format(section_name, repo_suite.repo.name, repo_suite.suite.name, current_page) %}
+{% set page_title = 'Section %s in %s:%s (%s)'|format(section.title, repo_suite.repo.name, repo_suite.suite.name, current_page) %}
 
 {% block body_header %}
 
@@ -19,7 +19,7 @@
             <a href="{{ url_for('portal.sections_index', repo_name=repo_suite.repo.name, suite_name=repo_suite.suite.name) }}">{{repo_suite.suite.name}}</a>
         </li>
         <li class="breadcrumb-item active" aria-current="page">
-            {{section_name}}
+            {{section.title}}
         </li>
     </ol>
 </nav>
@@ -29,7 +29,7 @@
 
 <div class="columns">
     <div class="column">
-        <h2>Contents of section "{{section_name}}" in suite "{{repo_suite.suite.name}}"</h2>
+        <h2>Contents of section "{{section.title}}" in suite "{{repo_suite.suite.name}}"</h2>
     </div>
     <div class="column is-one-quarter-desktop search">
         <form class="form-inline" action="/search_pkg" method="GET">
@@ -88,12 +88,12 @@
     <a class="pagination-previous" href="{{ url_for('portal.section_view',
                                                      repo_name=repo_suite.repo.name,
                                                      suite_name=repo_suite.suite.name,
-                                                     section_name=section_name,
+                                                     section_name=section.name,
                                                      page=current_page-1) if current_page > 1 else '#'}}">Previous</a>
     <a class="pagination-next" href="{{ url_for('portal.section_view',
                                                 repo_name=repo_suite.repo.name,
                                                 suite_name=repo_suite.suite.name,
-                                                section_name=section_name,
+                                                section_name=section.name,
                                                 page=current_page+1) if current_page < page_count else '#'}}">Next page</a>
 
     <ul class="pagination-list">
@@ -101,7 +101,7 @@
             <a class="pagination-link {{'is-current' if 1 == current_page }}" href="{{ url_for('portal.section_view',
                                                                                                repo_name=repo_suite.repo.name,
                                                                                                suite_name=repo_suite.suite.name,
-                                                                                               section_name=section_name, page=1) }}">1</a>
+                                                                                               section_name=section.name, page=1) }}">1</a>
         </li>
 
         {% if page_count > 7 and current_page > 3 %}
@@ -115,7 +115,7 @@
                 <a class="pagination-link {{'is-current' if i == current_page }}" href="{{ url_for('portal.section_view',
                                                                                                     repo_name=repo_suite.repo.name,
                                                                                                     suite_name=repo_suite.suite.name,
-                                                                                                    section_name=section_name, page=i) }}">{{i}}</a>
+                                                                                                    section_name=section.name, page=i) }}">{{i}}</a>
             </li>
 
             {% endif %}
@@ -130,7 +130,7 @@
             <a class="pagination-link {{'is-current' if page_count == current_page }}" href="{{ url_for('portal.section_view',
                                                                                                          repo_name=repo_suite.repo.name,
                                                                                                          suite_name=repo_suite.suite.name,
-                                                                                                         section_name=section_name,
+                                                                                                         section_name=section.name,
                                                                                                          page=page_count) }}">{{page_count}}</a>
         </li>
     </ul>

@@ -135,6 +135,9 @@ def section_view(repo_name, suite_name, section_name, page):
         rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
         if not rss:
             abort(404)
+        section = session.query(ArchiveSection).filter(ArchiveSection.name == section_name).one_or_none()
+        if not section:
+            abort(404)
 
         pkgs_per_page = 50
         pkg_query = (
@@ -149,7 +152,7 @@ def section_view(repo_name, suite_name, section_name, page):
             )
             .filter(BinaryPackage.repo_id == rss.repo_id)
             .filter(BinaryPackage.suites.any(ArchiveSuite.id == rss.suite_id))
-            .filter(PackageOverride.section.has(name=section_name))
+            .filter(PackageOverride.section.has(id=section.id))
             .order_by(BinaryPackage.name.asc(), BinaryPackage.version.desc())
             .distinct(BinaryPackage.name)
         )
@@ -164,7 +167,7 @@ def section_view(repo_name, suite_name, section_name, page):
 
         return render_template(
             'section_view.html',
-            section_name=section_name,
+            section=section,
             repo_suite=rss,
             packages=packages,
             pkgs_per_page=pkgs_per_page,

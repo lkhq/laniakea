@@ -475,11 +475,13 @@ class ArchiveSection(Base):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String(100), unique=True)  # Name of the section
-    summary = Column(String(200), nullable=True)  # Short description of this section
+    name = Column(String(80), unique=True, nullable=False)  # Unique name/ID of the section
+    title = Column(String(100), nullable=False)  # Title of the section
+    summary = Column(Text(), nullable=True)  # Short description of this section
 
-    def __init__(self, name: str, summary: str = None):
+    def __init__(self, name: str, title: str, summary: str = None):
         self.name = name
+        self.title = title
         self.summary = summary
 
 

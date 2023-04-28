@@ -130,14 +130,17 @@ class Database:
                 for jsec in sections_seed:
                     if 'name' not in jsec:
                         raise Exception('Invalid section contained in archive sections file (name missing).')
+                    if 'title' not in jsec:
+                        jsec['title'] = jsec['name']
                     if 'summary' not in jsec:
                         jsec['summary'] = 'The {} section'.format(jsec['name'])
 
                     section = session.query(ArchiveSection).filter(ArchiveSection.name == jsec['name']).one_or_none()
                     if section:
+                        section.title = jsec['title']
                         section.summary = jsec['summary']
                     else:
-                        section = ArchiveSection(jsec['name'], jsec['summary'])
+                        section = ArchiveSection(jsec['name'], jsec['title'], jsec['summary'])
                         session.add(section)
 
                 master_repo_name = self._lconf.master_repo_name
