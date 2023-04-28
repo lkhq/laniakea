@@ -291,6 +291,16 @@ class RepositoryReader:
 
         return fname
 
+    def get_file_insecure(self, fname) -> str:
+        """
+        Get a file from the repository by its filename alone,
+        skipping any consistency and security checks.
+        Returns: An absolute path to the repository file.
+        """
+
+        fname_full = self._fetch_repo_file_internal(fname, check=True)
+        return fname_full
+
     def _read_repo_information(self, suite_name, check=True):
         if suite_name in self._inrelease:
             return self._inrelease[suite_name]

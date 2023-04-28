@@ -334,6 +334,13 @@ def _import_repo_into_suite(
                 dscfile = src_repo.get_file(f)
             src_repo.get_file(f)
 
+        # try to guess dsc file name - very old metadata did not include file information,
+        # and we may be importing an ancient archive
+        if not dscfile:
+            dscfile = src_repo.get_file_insecure(
+                os.path.join(spkg_src.directory, '{}_{}.dsc'.format(spkg_src.name, spkg_src.version))
+            )
+
         if not dscfile:
             log.error(
                 'Critical consistency error: Source package {}/{} in repository {} has no .dsc file.'.format(
