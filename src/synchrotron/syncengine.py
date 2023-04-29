@@ -372,7 +372,7 @@ class SyncEngine:
             self._synced_source_pkgs.append((origin_pkg, PackageSyncState.COPIED))
         else:
             # the package is new to this repository, just import it
-            pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW)
+            pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW, ignore_bad_section=True)
             self._synced_source_pkgs.append((origin_pkg, PackageSyncState.SYNCED))
 
         return True
