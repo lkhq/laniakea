@@ -45,6 +45,10 @@ class BaseDataCache:
 gdata: T.Optional[BaseDataCache] = None
 
 
+def url_not_found(e):
+    return 'upload target not found', 404
+
+
 def create_app(config=None, app_name=None):
     if app_name is None:
         app_name = DefaultConfig.PROJECT
@@ -56,6 +60,8 @@ def create_app(config=None, app_name=None):
 
     configure_blueprints(app)
     configure_logging(app)
+
+    app.register_error_handler(404, url_not_found)
 
     return app
 
@@ -80,12 +86,6 @@ def configure_app(app, config=None):
 
     if config:
         app.config.from_object(config)
-
-    template_dir = os.path.join(INSTANCE_FOLDER_PATH, 'templates')
-    if not os.path.isdir(template_dir):
-        template_dir = os.path.join(app_root_dir, 'templates')
-    app.jinja_loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(template_dir)])
-    app.static_folder = os.path.join(template_dir, 'static')
 
     # cache some data we will need
     lconf = LocalConfig()
