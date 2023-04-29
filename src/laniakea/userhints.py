@@ -32,8 +32,10 @@ class UserHints:
         lconf = LocalConfig()
         hrconf = UserHintReposConfig()
         self._git_url = hrconf.user_hints_git_url
-        self._repo_root = os.path.join(lconf.workspace, 'user-hints-source')
+        self._repo_root = os.path.join(lconf.autoconfig_root_dir, 'user-hints')
         self._manifest = None
+
+        os.makedirs(lconf.autoconfig_root_dir, exist_ok=True)
 
     def update(self):
         """Update user hints from their Git repository."""

@@ -11,7 +11,6 @@ import tomlkit
 from rich.prompt import Confirm
 
 import laniakea.typing as T
-from laniakea import LocalConfig
 from laniakea.db import (
     NewPolicy,
     ArchiveSuite,
@@ -25,7 +24,9 @@ from laniakea.db import (
     session_scope,
     config_set_distro_tag,
 )
+from laniakea.git import Git
 from laniakea.logging import log
+from laniakea.localconfig import LocalConfig, UserHintReposConfig
 
 from .utils import ClickAliasedGroup, input_str, input_list, print_error_exit
 
@@ -574,8 +575,14 @@ def add_from_config(config_fname):
     is_flag=True,
     help='Do not ask for confirmation.',
 )
-@click.argument('dir_path', nargs=1)
-def update_users_from_dir(dir_path, no_confirm=False):
+@click.option(
+    '--auto',
+    default=False,
+    is_flag=True,
+    help='Update automatically from a registered Git repository.',
+)
+@click.argument('dir_path', nargs=1, required=False)
+def update_uploaders(dir_path, auto=False, no_confirm=False):
     """Sync database user data with contents of directory."""
 
     from laniakea.archive.uploadermgr import (
@@ -584,9 +591,32 @@ def update_users_from_dir(dir_path, no_confirm=False):
         retrieve_uploader_fingerprints,
     )
 
+    if not dir_path and not auto:
+        print_error_exit('No directory given, and not in automatic mode either. Can not proceed.')
+    if dir_path and auto:
+        print_error_exit('Automatic mode enabled, but directory was also specified. This is not permitted.')
+
+    git_url = None
+    if auto:
+        lconf = LocalConfig()
+        hrconf = UserHintReposConfig()
+        git_url = hrconf.user_registry_git_url
+        dir_path = os.path.join(lconf.autoconfig_root_dir, 'uploader-registry')
+        os.makedirs(lconf.autoconfig_root_dir, exist_ok=True)
+
+        if not git_url:
+            print_error_exit(
+                'No Git URL for an uploader registry was found in configuration. can not continue in automatic mode.'
+            )
+
+        log.debug('Updating uploader registry Git repository copy')
+        repo = Git(dir_path)
+        repo.clone_or_pull(git_url)
+
     if not no_confirm:
+        data_src = git_url if git_url else dir_path
         proceed_answer = Confirm.ask(
-            'Update users with data from {}? This will DELETE and users not present in this directory!'.format(dir_path)
+            'Update users with data from {}? This will DELETE and users not present in this directory!'.format(data_src)
         )
         if not proceed_answer:
             return

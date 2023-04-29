@@ -98,6 +98,8 @@ class LocalConfig:
             # location for various temporary caches that can be deleted at any time
             self._cache_dir = cdata.get('CacheLocation', '/var/tmp/laniakea')
 
+            self._autoconfig_root_dir = os.path.join(self._workspace, 'autoconfig')
+
             self._upload_incoming_dir = carchive.get(
                 'UploadIncomingPath', os.path.join(self._workspace, 'uploads', 'incoming')
             )
@@ -180,6 +182,11 @@ class LocalConfig:
         @property
         def cache_dir(self) -> str:
             return self._cache_dir
+
+        @property
+        def autoconfig_root_dir(self) -> T.PathUnion:
+            """Directory for autoconfig Git repos"""
+            return self._autoconfig_root_dir
 
         @property
         def database_url(self) -> str:
@@ -342,12 +349,18 @@ class UserHintReposConfig:
             with open(fname) as toml_file:
                 cdata = tomlkit.load(toml_file)
 
-        # Git repository with archive management hints
         self._user_hints_git_url = cdata.get('UserHintsGitUrl')
+        self._user_registry_git_url = cdata.get('UploaderRegistryGitUrl')
 
     @property
     def user_hints_git_url(self) -> str:
+        """Git repository with archive management hints"""
         return self._user_hints_git_url
+
+    @property
+    def user_registry_git_url(self) -> str:
+        """Git repository with registered uploading users"""
+        return self._user_registry_git_url
 
 
 class LintianConfig:
