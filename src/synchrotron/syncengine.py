@@ -46,6 +46,7 @@ from laniakea.reporeader import (
     make_newest_packages_dict,
 )
 from laniakea.archive.utils import (
+    package_mark_published,
     repo_suite_settings_for,
     repo_suite_settings_for_debug,
 )
@@ -523,6 +524,7 @@ class SyncEngine:
                             )
                             if new_suite not in ebpkg.suites:
                                 ebpkg.suites.append(new_suite)
+                                package_mark_published(session, pkgip.repo_suite_settings, ebpkg)
 
             if not bin_files_synced and not existing_packages:
                 log.warning('No binary packages synced for source {}/{}'.format(spkg.name, spkg.version))
