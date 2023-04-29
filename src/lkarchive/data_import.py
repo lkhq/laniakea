@@ -35,6 +35,7 @@ from laniakea.archive import (
     repo_suite_settings_for_debug,
 )
 from laniakea.logging import log
+from laniakea.archive.utils import package_mark_published
 from laniakea.archive.manage import (
     copy_binary_package,
     copy_source_package,
@@ -371,6 +372,7 @@ def _import_repo_into_suite(
         if spkg_dst:
             if rss_dest.suite not in spkg_dst.suites:
                 spkg_dst.suites.append(rss_dest.suite)
+                package_mark_published(session, rss_dest, spkg_dst)
             log.info('Processed source: %s/%s', spkg_dst.name, spkg_dst.version)
         else:
             pi.import_source(
@@ -505,6 +507,7 @@ def _import_repo_into_suite(
             if bpkg_dst:
                 if rss_dest_real.suite not in bpkg_dst.suites:
                     bpkg_dst.suites.append(rss_dest_real.suite)
+                    package_mark_published(session, rss_dest_real, bpkg_dst)
                 log.info('Processed binary: %s/%s on %s', bpkg_dst.name, bpkg_dst.version, arch.name)
             else:
                 pi.import_binary(

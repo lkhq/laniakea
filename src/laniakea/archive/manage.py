@@ -27,6 +27,7 @@ from laniakea.db import (
     package_version_compare,
 )
 from laniakea.logging import log, archive_log
+from laniakea.archive.utils import package_mark_published
 
 
 class ArchiveRemoveError(ArchiveError):
@@ -403,6 +404,7 @@ def copy_source_package(
     dest_suite = dest_rss.suite
     if dest_suite not in spkg.suites:
         spkg.suites.append(dest_suite)
+        package_mark_published(session, dest_rss, spkg)
         log.info('Copied source package %s:%s/%s into %s', spkg.repo.name, spkg.name, spkg.version, dest_suite.name)
         archive_log.info(
             'COPY-SRC: %s/%s in %s to suite %s (%s)',
@@ -515,6 +517,7 @@ def copy_binary_package(
     elif dest_suite not in bpkg.suites:
         copy_binary_package_override(session, bpkg, dest_rss.repo, dest_suite, overrides_from_suite)
         bpkg.suites.append(dest_suite)
+        package_mark_published(session, dest_rss, bpkg)
         log.info('Copied binary package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_suite.name)
         archive_log.info('COPY-BIN: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_suite.name)
 

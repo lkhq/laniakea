@@ -8,8 +8,10 @@
 import os
 import re
 import tempfile
+from datetime import datetime
 
 import apt_pkg
+from apt_pkg import version_compare
 from sqlalchemy import and_, select, bindparam
 
 import laniakea.typing as T
@@ -29,6 +31,7 @@ from laniakea.db import (
     ArchiveRepository,
     ArchiveArchitecture,
     ArchiveQueueNewEntry,
+    ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
 )
 from laniakea.utils import run_command, split_strip
@@ -208,6 +211,45 @@ def repo_suite_settings_for_debug(session, rss: ArchiveRepoSuiteSettings) -> T.O
             )
         )
     return rss_dbg
+
+
+def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[SourcePackage, BinaryPackage]):
+    """
+    Mark package as published.
+
+    This updates the version memory and sets a publication date for the package..
+
+    :param session: SQLAlchemy session
+    :param rss: RepoSuite settings for this package
+    :param pkg: Source or binary package.
+    """
+
+    arch_name = 'source' if isinstance(pkg, SourcePackage) else pkg.architecture.name
+    vmem = (
+        session.query(ArchiveVersionMemory)
+        .filter(
+            ArchiveVersionMemory.repo_suite_id == rss.id,
+            ArchiveVersionMemory.pkg_name == pkg.name,
+            ArchiveVersionMemory.arch_name == arch_name,
+        )
+        .one_or_none()
+    )
+
+    if vmem:
+        # safety check, so we don't downgrade a version number accidentally (e.g. in case we were
+        # ignoring previous version sanity checks)
+        if version_compare(pkg.version, vmem.highest_version) > 0:
+            vmem.highest_version = pkg.version
+    else:
+        vmem = ArchiveVersionMemory()
+        vmem.repo_suite = rss
+        vmem.pkg_name = pkg.name
+        vmem.arch_name = arch_name
+        vmem.highest_version = pkg.version
+        session.add(vmem)
+
+    if not pkg.time_published:
+        pkg.time_published = datetime.utcnow()
 
 
 def find_latest_source_package(session, rss: ArchiveRepoSuiteSettings, pkgname: str) -> T.Optional[SourcePackage]:

@@ -14,7 +14,7 @@ from datetime import datetime
 from collections import namedtuple
 from dataclasses import dataclass
 
-from apt_pkg import Hashes, version_compare
+from apt_pkg import Hashes
 from sqlalchemy import exists
 from debian.deb822 import Sources, Packages
 
@@ -51,6 +51,7 @@ from laniakea.archive.utils import (
     lintian_check,
     check_overrides_source,
     checksums_list_to_file,
+    package_mark_published,
     parse_package_list_str,
     register_package_overrides,
     pool_dir_from_name_component,
@@ -86,44 +87,6 @@ def pop_split(d, key, s):
     if not value:
         return []
     return split_strip(value, s)
-
-
-def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[SourcePackage, BinaryPackage]):
-    """
-    Mark package as published.
-
-    This updates the version memory and sets a publication date for the package..
-
-    :param session: SQLAlchemy session
-    :param rss: RepoSuite settings for this package
-    :param pkg: Source or binary package.
-    """
-
-    arch_name = 'source' if isinstance(pkg, SourcePackage) else pkg.architecture.name
-    vmem = (
-        session.query(ArchiveVersionMemory)
-        .filter(
-            ArchiveVersionMemory.repo_suite_id == rss.id,
-            ArchiveVersionMemory.pkg_name == pkg.name,
-            ArchiveVersionMemory.arch_name == arch_name,
-        )
-        .one_or_none()
-    )
-
-    if vmem:
-        # safety check, so we don't downgrade a version number accidentally (e.g. in case we were
-        # ignoring previous version sanity checks)
-        if version_compare(pkg.version, vmem.highest_version) > 0:
-            vmem.highest_version = pkg.version
-    else:
-        vmem = ArchiveVersionMemory()
-        vmem.repo_suite = rss
-        vmem.pkg_name = pkg.name
-        vmem.arch_name = arch_name
-        vmem.highest_version = pkg.version
-        session.add(vmem)
-
-    pkg.time_published = datetime.utcnow()
 
 
 def verify_hashes(file: T.Union[ChangesFileEntry, ArchiveFile], local_fname: T.Union[os.PathLike, str]):
