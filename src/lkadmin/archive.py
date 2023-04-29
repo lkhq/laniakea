@@ -3,6 +3,7 @@
 # Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
+import shutil
 import os.path
 from pathlib import Path
 
@@ -603,6 +604,7 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
         git_url = hrconf.user_registry_git_url
         dir_path = os.path.join(lconf.autoconfig_root_dir, 'uploader-registry')
         os.makedirs(lconf.autoconfig_root_dir, exist_ok=True)
+        shutil.chown(lconf.autoconfig_root_dir, lconf.master_user_name, lconf.master_user_name)
 
         if not git_url:
             print_error_exit(
