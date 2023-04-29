@@ -18,6 +18,7 @@ from laniakea.db import (
     SparkWorker,
     SourcePackage,
     ImageBuildRecipe,
+    ArchiveRepository,
     ArchiveRepoSuiteSettings,
     session_scope,
     config_get_value,
@@ -35,6 +36,21 @@ class JobWorker:
         self._lconf = LocalConfig()
         self._arch_indep_affinity = config_get_value(LkModule.ARIADNE, 'indep_arch_affinity')
         self._event_pub_queue = event_pub_queue
+
+        upload_url = self._lconf.upload_url
+        self._upload_fqdn = None
+        self._upload_method = None
+        if upload_url:
+            if upload_url.startswith('https://'):
+                self._upload_fqdn = upload_url[8:]
+                self._upload_method = 'https'
+            elif upload_url.startswith('http://'):
+                self._upload_fqdn = upload_url[7:]
+                self._upload_method = 'http'
+            else:
+                raise ValueError(
+                    'Value "{}" for the UploadUrl is no valid HTTP(S) URL. Can not continue, please fix the base configuration.'
+                )
 
         with session_scope() as session:
             # FIXME: We need much better ways to select the right suite to synchronize with
@@ -230,8 +246,8 @@ class JobWorker:
         if not worker:
             worker = SparkWorker()
 
-            # this may throw an exception which is caought and sent back to the worker
-            # (the worker then has the oportunity to fix its UUID)
+            # this may throw an exception which is caught and sent back to the worker
+            # (the worker then has the opportunity to fix its UUID)
             try:
                 worker.uuid = uuid.UUID(client_id)
             except TypeError as e:
@@ -420,6 +436,25 @@ class JobWorker:
 
         return True
 
+    def _process_archive_info_request(self, session, req_data):
+        """
+        Return information about available repositories and where to upload
+        artifacts to.
+        """
+
+        result = {}
+        all_repos = session.query(ArchiveRepository).all()
+
+        repo_data = {}
+        for repo in all_repos:
+            d = {}
+            d['upload_fqdn'] = self._upload_fqdn
+            d['upload_method'] = self._upload_method
+            repo_data[repo.name] = d
+
+        result['archive_repos'] = repo_data
+        return json_compact_dump(result)
+
     def process_client_message(self, request):
         '''
         Process the message / request of a Spark worker.
@@ -431,6 +466,8 @@ class JobWorker:
 
         try:
             with session_scope() as session:
+                if req_kind == 'archive-info':
+                    return self._process_archive_info_request(session, request)
                 if req_kind == 'job':
                     return self._process_job_request(session, request)
                 if req_kind == 'job-accepted':

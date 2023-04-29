@@ -83,16 +83,18 @@ class LocalConfig:
                 with open(fname) as toml_file:
                     cdata = tomlkit.load(toml_file)
 
-            carchive = cdata.get('Archive')
-            if not carchive:
-                raise Exception(
-                    'No "Archive" configuration found in local config file. Please specify archive details!'
-                )
-
             self._workspace = cdata.get('Workspace')
             if not self._workspace:
                 raise Exception(
                     'No "Workspace" directory set in local config file. Please specify a persistent workspace location!'
+                )
+
+            self._upload_url = cdata.get('UploadUrl')
+
+            carchive = cdata.get('Archive')
+            if not carchive:
+                raise Exception(
+                    'No "Archive" configuration found in local config file. Please specify archive details!'
                 )
 
             # location for various temporary caches that can be deleted at any time
@@ -207,6 +209,11 @@ class LocalConfig:
         def master_repo_name(self) -> str:
             '''Name of the master repository for this distribution, that (usually) all other repositories are based on.'''
             return self._master_repo_name
+
+        @property
+        def upload_url(self) -> str:
+            """URL where packages can be uploaded."""
+            return self._upload_url
 
         @property
         def archive_root_dir(self) -> str:

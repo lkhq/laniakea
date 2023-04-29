@@ -80,6 +80,22 @@ class TestLighthouseJobRequests:
 
         return reply
 
+    def test_request_archive_info(self, new_zmq_curve_socket, localconfig):
+        sock = new_zmq_curve_socket(zmq.REQ, localconfig.lighthouse.servers_jobs[0], self._server_key, self._client_key)
+
+        req = self.req_base()
+        req['request'] = 'archive-info'
+
+        # request data
+        reply = self.send_request(sock, req)
+        assert reply == {
+            'archive_repos': {
+                'extra': {'upload_fqdn': 'laniakea.example.org/_upload', 'upload_method': 'https'},
+                'master': {'upload_fqdn': 'laniakea.example.org/_upload', 'upload_method': 'https'},
+                'master-debug': {'upload_fqdn': 'laniakea.example.org/_upload', 'upload_method': 'https'},
+            }
+        }
+
     def test_request_job(self, new_zmq_curve_socket, localconfig):
         sock = new_zmq_curve_socket(zmq.REQ, localconfig.lighthouse.servers_jobs[0], self._server_key, self._client_key)
 
