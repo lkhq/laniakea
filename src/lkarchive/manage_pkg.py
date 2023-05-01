@@ -17,7 +17,9 @@ from laniakea import LocalConfig
 from laniakea.db import (
     BinaryPackage,
     SourcePackage,
+    ArchiveSection,
     PackageOverride,
+    PackagePriority,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
@@ -344,3 +346,63 @@ def show_overrides(pkgname: str, repo_name: T.Optional[str]):
 
         console = Console()
         console.print(table)
+
+
+@click.command('change-override')
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set the default repository will be used.',
+)
+@click.option('--suite', 'suite_name', prompt=True, type=str, help='Name of the suite to work on')
+@click.option('--essential', 'is_essential', type=str, help='Whether the package is marked as essential.')
+@click.argument('pkgname', nargs=1, required=True)
+@click.argument('priority_name', nargs=1, required=True)
+@click.argument('section_name', nargs=1, required=True)
+def change_override(
+    suite_name: str,
+    is_essential: str,
+    pkgname: str,
+    priority_name: str,
+    section_name: str,
+    *,
+    repo_name: T.Optional[str] = None,
+):
+    """Change an override to the given values."""
+
+    if not repo_name:
+        lconf = LocalConfig()
+        repo_name = lconf.master_repo_name
+
+    with session_scope() as session:
+        ov = (
+            session.query(PackageOverride)
+            .filter(
+                PackageOverride.repo.has(name=repo_name),
+                PackageOverride.suite.has(name=suite_name),
+                PackageOverride.pkg_name == pkgname,
+            )
+            .one_or_none()
+        )
+        if not ov:
+            click.echo('Unable to find override for "{}" in {}/{}.'.format(pkgname, repo_name, suite_name), err=True)
+            sys.exit(2)
+
+        priority = PackagePriority.from_string(priority_name)
+        if priority == PackagePriority.UNKNOWN:
+            click.echo('Priority value "{}" is unknown!'.format(priority_name), err=True)
+            sys.exit(2)
+
+        section = session.query(ArchiveSection).filter(ArchiveSection.name == section_name).one_or_none()
+        if not section:
+            click.echo('Section "{}" is unknown!'.format(section_name), err=True)
+            sys.exit(2)
+
+        if is_essential == 'yes':
+            ov.essential = True
+        elif is_essential == 'no':
+            ov.essential = False
+
+        ov.priority = priority
+        ov.section = section

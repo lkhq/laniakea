@@ -60,6 +60,7 @@ def _register_commands():
     cli.add_command(mgr.expire)
     cli.add_command(mgr.cmd_copy_package)
     cli.add_command(mgr.show_overrides)
+    cli.add_command(mgr.change_override)
 
     from lkarchive.process_new import process_new
 
