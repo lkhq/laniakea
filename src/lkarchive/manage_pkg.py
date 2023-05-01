@@ -17,6 +17,7 @@ from laniakea import LocalConfig
 from laniakea.db import (
     BinaryPackage,
     SourcePackage,
+    PackageOverride,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
@@ -296,3 +297,50 @@ def cmd_copy_package(
 
         # now copy the package between suites
         copy_source_package(session, spkg, rss_dest)
+
+
+@click.command('show-overrides')
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set all repositories will be checked',
+)
+@click.argument('pkgname', nargs=1)
+def show_overrides(pkgname: str, repo_name: T.Optional[str]):
+    """Show override information."""
+
+    with session_scope() as session:
+        # find source packages
+        override_q = session.query(PackageOverride).filter(PackageOverride.pkg_name == pkgname)
+        if repo_name:
+            override_q = override_q.filter(PackageOverride.repo.has(name=repo_name))
+
+        overrides = override_q.all()
+        if not overrides:
+            click.echo('Nothing found.', err=True)
+            sys.exit(2)
+
+        table = Table(box=rich.box.MINIMAL, title='Overrides for {}'.format(pkgname))
+        table.add_column('Repo/Suite', no_wrap=True)
+        table.add_column('Essential')
+        table.add_column('Priority')
+        table.add_column('Component')
+        table.add_column('Section')
+
+        overrides_sort = []
+        for ov in overrides:
+            overrides_sort.append(('{}/{}'.format(ov.repo.name, ov.suite.name), ov))
+        overrides_sort.sort(key=lambda x: x[0])
+
+        for suite_repo, ov in overrides_sort:
+            table.add_row(
+                suite_repo,
+                'yes' if ov.essential else 'no',
+                str(ov.priority),
+                ov.component.name,
+                ov.section.name,
+            )
+
+        console = Console()
+        console.print(table)
