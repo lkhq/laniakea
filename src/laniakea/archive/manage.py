@@ -506,8 +506,8 @@ def copy_binary_package(
                 )
             )
         if dest_debug_suite not in bpkg.suites:
-            copy_binary_package_override(session, bpkg, dest_rss.repo, dest_debug_suite, overrides_from_suite)
             bpkg.suites.append(dest_debug_suite)
+            copy_binary_package_override(session, bpkg, dest_rss.repo, dest_debug_suite, overrides_from_suite)
             log.info(
                 'Copied dbgsym package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_debug_suite.name
             )
@@ -515,8 +515,8 @@ def copy_binary_package(
                 'COPY-BIN-DBG: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_debug_suite.name
             )
     elif dest_suite not in bpkg.suites:
-        copy_binary_package_override(session, bpkg, dest_rss.repo, dest_suite, overrides_from_suite)
         bpkg.suites.append(dest_suite)
+        copy_binary_package_override(session, bpkg, dest_rss.repo, dest_suite, overrides_from_suite)
         package_mark_published(session, dest_rss, bpkg)
         log.info('Copied binary package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_suite.name)
         archive_log.info('COPY-BIN: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_suite.name)
