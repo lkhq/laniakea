@@ -41,6 +41,7 @@ from laniakea.logging import log
 from laniakea.msgstream import EventEmitter
 from laniakea.reporeader import (
     RepositoryReader,
+    ExternalBinaryPackage,
     ExternalSourcePackage,
     version_revision,
     make_newest_packages_dict,
@@ -75,7 +76,7 @@ class SyncEngine:
         self._source_suite_name = source_suite_name
         self._source_os_name = source_os_name
         self._distro_tag = config_get_distro_tag()
-        self._synced_source_pkgs: T.List[T.Tuple[SourcePackage, PackageSyncState]] = []
+        self._synced_source_pkgs: list[T.Tuple[ExternalSourcePackage, PackageSyncState]] = []
 
         if not self._distro_tag:
             log.warning('No distribution tag is set! We may override any manual uploads.')
@@ -138,7 +139,7 @@ class SyncEngine:
 
     def _get_source_repo_binary_package_map(
         self, suite_name: str, component_name: str, arch_name: str = None, with_installer: bool = True
-    ):
+    ) -> dict[str, ExternalBinaryPackage]:
         '''Get an associative array of the newest binary packages present in a repository.'''
 
         log.debug('Retrieving binary package map for source suite: %s/%s/%s', suite_name, component_name, arch_name)
@@ -157,7 +158,7 @@ class SyncEngine:
             )  # always append arch:all packages
         return make_newest_packages_dict(bpkgs)
 
-    def _get_source_repo_source_packages(self, suite_name: str, component_name: str):
+    def _get_source_repo_source_packages(self, suite_name: str, component_name: str) -> list[ExternalSourcePackage]:
         """Get a list of all source packages present in the source repository."""
 
         log.debug('Retrieving source packages for source suite: %s/%s', suite_name, component_name)
@@ -324,7 +325,7 @@ class SyncEngine:
 
         return bpkg_map
 
-    def _import_source_package(self, pkgip: PackageImporter, origin_pkg: SourcePackage, component: str) -> bool:
+    def _import_source_package(self, pkgip: PackageImporter, origin_pkg: ExternalSourcePackage, component: str) -> bool:
         """
         Import a source package from the source repository into the
         target repo.
@@ -383,7 +384,7 @@ class SyncEngine:
         sync_conf: SynchrotronConfig,
         pkgip: PackageImporter,
         component: str,
-        spkgs_info: T.Sequence[T.Tuple[SourcePackage, PackageSyncState]],
+        spkgs_info: T.Sequence[T.Tuple[ExternalSourcePackage, PackageSyncState]],
         ignore_target_changes: bool = False,
     ) -> bool:
         '''Import binary packages for the given set of source packages into the archive.'''
@@ -424,7 +425,7 @@ class SyncEngine:
                 src_bpkg_map = src_bpkg_arch_map[arch_name]
                 dest_bpkg_map = dest_bpkg_arch_map[arch_name]
 
-                bin_files = []
+                bin_files: list[ExternalBinaryPackage] = []
                 for bin_i in spkg.expected_binaries:
                     if bin_i.name not in src_bpkg_map:
                         if bin_i.name in dest_bpkg_map:
@@ -488,13 +489,34 @@ class SyncEngine:
                             existing_packages = True
                             continue
 
-                    fname = self._source_reader.get_file(bpkg.bin_file)
-                    bin_files.append((bpkg, fname))
+                    bin_files.append(bpkg)
+
+                # check if we're only missing debug packages, if we have existing binaries, but also
+                # some missing binaries
+                if existing_packages and bin_files:
+                    only_debug_missing = True
+                    for orig_bpkg in bin_files:
+                        if orig_bpkg.override.section != 'debug':
+                            only_debug_missing = False
+                            break
+                    if only_debug_missing:
+                        # If only debug packages are missing, it indicates that we maybe do not accept them in their
+                        # destinations at all, so we just short-circuit here and skip remaining syncs.
+                        # A better solution would probably be to detect earlier and not even get here for debug
+                        # packages designated to a non-debug-accepting suite/repo combination.
+                        log.debug(
+                            'Only debug packages missing for %s/%s in %s, not syncing remaining binaries.',
+                            arch_name,
+                            spkg.name,
+                            spkg.version,
+                        )
+                        continue
 
                 # now import the binary packages, if there is anything to import
                 if bin_files:
                     bin_files_synced = True
-                    for orig_bpkg, fname in bin_files:
+                    for orig_bpkg in bin_files:
+                        fname = self._source_reader.get_file(orig_bpkg.bin_file)
                         try:
                             pkgip.import_binary(fname, component, ignore_missing_override=True)
                         except ArchivePackageExistsError as e:
@@ -513,15 +535,20 @@ class SyncEngine:
                             )
                             if not ebpkg:
                                 raise e
-
-                            new_suite = pkgip.repo_suite_settings.suite
-                            log.warning(
-                                'Added preexisting binary package %s/%s to new suite %s (assuming it is identical with file from origin)',
+                            log.debug(
+                                'Found preexisting binary package %s/%s in repo after trying to import an already exisiting package into our target suite.',
                                 ebpkg.name,
                                 ebpkg.version,
-                                new_suite.name,
                             )
+
+                            new_suite = pkgip.repo_suite_settings.suite
                             if new_suite not in ebpkg.suites:
+                                log.warning(
+                                    'Added preexisting binary package %s/%s to new suite %s (assuming it is identical with file from origin)',
+                                    ebpkg.name,
+                                    ebpkg.version,
+                                    new_suite.name,
+                                )
                                 ebpkg.suites.append(new_suite)
                                 # we "undelete" a package here in case it has been expired in the target and we still
                                 # sync it - this may happen especially when syncing updates/security suites
@@ -650,8 +677,8 @@ class SyncEngine:
         """Synchronize all packages between source and destination."""
 
         self._synced_source_pkgs = []
-        binary_sync_todo: T.List[
-            T.Tuple[SourcePackage, PackageSyncState]
+        binary_sync_todo: list[
+            T.Tuple[ExternalSourcePackage, PackageSyncState]
         ] = []  # source packages which should have their binary packages updated
         known_issues = []
 

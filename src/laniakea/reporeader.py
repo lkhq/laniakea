@@ -21,7 +21,6 @@ from laniakea.db import (
     ArchiveSuite,
     ArchiveSection,
     ChangesUrgency,
-    PackageOverride,
     PackagePriority,
     ArchiveComponent,
     ArchiveRepository,
@@ -90,6 +89,19 @@ class ExternalSourcePackage:
         self.version = version
 
 
+class ExternalPackageOverride:
+    """
+    Organization data of an external binary package.
+    """
+
+    essential: bool
+    priority: PackagePriority = PackagePriority.OPTIONAL
+
+    component: ArchiveComponent
+
+    section: str
+
+
 class ExternalBinaryPackage:
     """Describes a binary package coming from an external source."""
 
@@ -112,7 +124,7 @@ class ExternalBinaryPackage:
 
     size_installed: int = 0  # Size of the installed package
 
-    override: PackageOverride
+    override: ExternalPackageOverride
 
     summary: str
     description: T.Optional[str]
@@ -508,7 +520,7 @@ class RepositoryReader:
 
             pkg.homepage = e.get('Homepage')
 
-            pkg.override = PackageOverride(pkg.name)
+            pkg.override = ExternalPackageOverride()
             pkg.override.section = e['Section']
             pkg.override.priority = PackagePriority.from_string(e['Priority'])
             pkg.override.component = component
@@ -536,7 +548,9 @@ class RepositoryReader:
 
         return pkgs
 
-    def binary_packages(self, suite, component, arch, *, shadow_arch: T.Optional[ArchiveArchitecture] = None):
+    def binary_packages(
+        self, suite, component, arch, *, shadow_arch: T.Optional[ArchiveArchitecture] = None
+    ) -> list[ExternalBinaryPackage]:
         '''
         Get a list of binary package information for the given repository suite,
         component and architecture.
