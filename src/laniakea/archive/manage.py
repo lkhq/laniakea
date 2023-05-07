@@ -218,11 +218,22 @@ def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[Bin
         )
     if is_src_pkg:
         for bpkg in pkg.binaries:
+            rm_suite_names = []
             if rss.suite in bpkg.suites:
                 bpkg.suites.remove(rss.suite)
+                rm_suite_names.append(rss.suite.name)
+            if rss.suite.debug_suite:
+                if rss.suite.debug_suite in bpkg.suites:
+                    bpkg.suites.remove(rss.suite.debug_suite)
+                    rm_suite_names.append(rss.suite.debug_suite.name)
+
             if bpkg.suites:
                 archive_log.info(
-                    'DELETED-SUITE-BIN: %s/%s @ %s/%s', bpkg.name, bpkg.version, rss.repo.name, rss.suite.name
+                    'DELETED-SUITE-BIN: %s/%s @ %s/%s',
+                    bpkg.name,
+                    bpkg.version,
+                    rss.repo.name,
+                    ' & '.join(rm_suite_names),
                 )
             else:
                 log.info('Marking binary for removal: %s', str(bpkg))
@@ -438,7 +449,7 @@ def copy_source_package(
             # ignore debug packages if the destination has no debug suite and allow_missing_debug is set
             if bpkg.repo.is_debug and not dest_suite.debug_suite and allow_missing_debug:
                 continue
-            copy_binary_package(session, bpkg, dest_rss)
+            copy_binary_package(session, bpkg, dest_rss, overrides_from_suite=overrides_from_suite)
 
 
 def copy_binary_package_override(
