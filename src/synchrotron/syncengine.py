@@ -653,7 +653,9 @@ class SyncEngine:
     def sync_packages(self, component_name: str, pkgnames: list[str], force: bool = False):
         """Sync a select set of packages manually."""
 
-        with process_file_lock('sync_{}'.format(self._repo_name)):
+        with process_file_lock('sync_{}'.format(self._repo_name)), process_file_lock(
+            'archive_expire-{}'.format(self._repo_name), wait=True
+        ):
             with session_scope() as session:
                 return self._sync_packages_internal(session, component_name, pkgnames, force)
 
@@ -959,12 +961,15 @@ class SyncEngine:
     def autosync(self, remove_cruft: bool = True) -> bool:
         """Synchronize all packages between source and destination."""
 
-        with process_file_lock('sync_{}'.format(self._repo_name)):
-            with process_file_lock('publish_{}-{}'.format(self._repo_name, self._target_suite_name), wait=True):
-                with session_scope() as session:
-                    ret = self._autosync_internal(session, remove_cruft)
+        with (
+            process_file_lock('sync_{}'.format(self._repo_name)),
+            process_file_lock('publish_{}-{}'.format(self._repo_name, self._target_suite_name), wait=True),
+            process_file_lock('archive_expire-{}'.format(self._repo_name), wait=True),
+        ):
+            with session_scope() as session:
+                ret = self._autosync_internal(session, remove_cruft)
 
-                # cleanup cruft, as we may have downloaded a lot of packages
-                self._source_reader.cleanup()
+            # cleanup cruft, as we may have downloaded a lot of packages
+            self._source_reader.cleanup()
 
-                return ret
+            return ret
