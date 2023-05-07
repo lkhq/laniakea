@@ -23,6 +23,7 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     session_scope,
 )
+from laniakea.utils import process_file_lock
 from laniakea.archive import (
     remove_source_package,
     repo_suite_settings_for,
@@ -217,24 +218,26 @@ def expire(repo_name: T.Optional[str] = None):
     """Expire old package versions and delete them from the archive."""
 
     with session_scope() as session:
-        if repo_name:
-            repo_suite = (
-                session.query(ArchiveRepoSuiteSettings)
-                .filter(ArchiveRepoSuiteSettings.repo.has(name=repo_name))
-                .one_or_none()
-            )
-            if not repo_suite:
-                click.echo('Unable to find suites for repository with name {}!'.format(repo_name), err=True)
-                sys.exit(1)
-            repo_suites = [repo_suite]
-        else:
-            repo_suites = session.query(ArchiveRepoSuiteSettings).all()
+        with process_file_lock('archive_expire', wait=True):
+            if repo_name:
+                repo_suite = (
+                    session.query(ArchiveRepoSuiteSettings)
+                    .filter(ArchiveRepoSuiteSettings.repo.has(name=repo_name))
+                    .one_or_none()
+                )
+                if not repo_suite:
+                    click.echo('Unable to find suites for repository with name {}!'.format(repo_name), err=True)
+                    sys.exit(1)
+                repo_suites = [repo_suite]
+            else:
+                repo_suites = session.query(ArchiveRepoSuiteSettings).all()
 
-        for rss in repo_suites:
-            if rss.frozen:
-                continue
-            expire_superseded(session, rss)
-            session.commit()
+            for rss in repo_suites:
+                if rss.frozen:
+                    continue
+                with process_file_lock('publish_{}-{}'.format(rss.repo.name, rss.suite.name), wait=True):
+                    expire_superseded(session, rss)
+                    session.commit()
 
 
 @click.command('copy-package')
