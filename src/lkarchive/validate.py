@@ -92,7 +92,10 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                 # check
                 if suite not in spkg.suites:
                     issues_fixed.append(
-                        ('{}/{}/source'.format(spkg.name, spkg.version), 'Missing suite: {}'.format(suite.name))
+                        (
+                            '{}/{}/source'.format(spkg.name, spkg.version),
+                            'Missing suite: {} (via {})'.format(suite.name, bin.name),
+                        )
                     )
                     if fix_issues:
                         spkg.suites.append(suite)

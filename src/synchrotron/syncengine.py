@@ -536,7 +536,10 @@ class SyncEngine:
                             if not ebpkg:
                                 raise e
                             log.debug(
-                                'Found preexisting binary package %s/%s in repo after trying to import an already exisiting package into our target suite.',
+                                (
+                                    'Found preexisting binary package %s/%s in repo after trying to import '
+                                    'an already exisiting package into our target suite.'
+                                ),
                                 ebpkg.name,
                                 ebpkg.version,
                             )
@@ -544,7 +547,10 @@ class SyncEngine:
                             new_suite = pkgip.repo_suite_settings.suite
                             if new_suite not in ebpkg.suites:
                                 log.warning(
-                                    'Added preexisting binary package %s/%s to new suite %s (assuming it is identical with file from origin)',
+                                    (
+                                        'Added preexisting binary package %s/%s to new suite %s '
+                                        '(assuming it is identical with file from origin)'
+                                    ),
                                     ebpkg.name,
                                     ebpkg.version,
                                     new_suite.name,
