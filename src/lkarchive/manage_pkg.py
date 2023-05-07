@@ -234,6 +234,7 @@ def expire(repo_name: T.Optional[str] = None):
             if rss.frozen:
                 continue
             expire_superseded(session, rss)
+            session.commit()
 
 
 @click.command('copy-package')
