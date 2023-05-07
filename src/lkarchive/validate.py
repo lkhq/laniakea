@@ -263,7 +263,10 @@ def _verify_files(session, repo: ArchiveRepository) -> list[IssueReport]:
     help='Name of the repository to act on, if not set all repositories will be checked',
 )
 @click.option('--fix/--no-fix', 'fix_issues', default=False, help='Attempt to fix some of the found issues')
-def check_integrity(repo_name: T.Optional[str], fix_issues: bool):
+@click.option(
+    '--verify-files/--no-verify-files', 'verify_files', default=True, help='Verify file integrity, locations and hashes'
+)
+def check_integrity(repo_name: T.Optional[str], fix_issues: bool, verify_files: bool = True):
     """Verify database and file integrity & consistency."""
 
     with session_scope() as session:
@@ -287,7 +290,8 @@ def check_integrity(repo_name: T.Optional[str], fix_issues: bool):
             for repo in repos:
                 res = []
                 res.extend(_ensure_package_consistency(session, repo, fix_issues))
-                res.extend(_verify_files(session, repo))
+                if verify_files:
+                    res.extend(_verify_files(session, repo))
                 repo_reports[repo.name] = res
 
                 # commit any changes
