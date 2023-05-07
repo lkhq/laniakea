@@ -248,7 +248,9 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
     class PackageExpireInfo:
         name: str
         max_version: str
-        max_version_has_binaries: bool = True
+        is_arch_indep: bool = False
+        max_version_binary_archs: set = field(default_factory=set)
+        all_binary_archs: set = field(default_factory=set)
         rm_candidates: list[SourcePackage] = field(default_factory=list)
 
     spkg_filters = [
@@ -282,7 +284,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
     log.debug("Collecting list of all source packages.")
     all_spkgs = (
         session.query(SourcePackage)
-        .options(joinedload(SourcePackage.binaries))
+        .options(joinedload(SourcePackage.binaries).subqueryload(BinaryPackage.architecture))
         .filter(
             SourcePackage.repo_id == rss.repo_id,
             SourcePackage.suites.any(id=rss.suite_id),
@@ -303,50 +305,67 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
     for spkg in all_spkgs:
         ei = pkg_expire_map[spkg.name]
 
+        current_archs = set()
+        for bin in spkg.binaries:
+            current_archs.add(bin.architecture.name)
+        ei.all_binary_archs.update(current_archs)
+
         # we always want to keep the latest version of a package
         if spkg.version == ei.max_version:
-            ei.max_version_has_binaries = True if spkg.binaries else False
+            if len(spkg.architectures) == 1 and spkg.architectures[0] == 'all':
+                ei.is_arch_indep = True
+            ei.max_version_binary_archs = current_archs
             continue
         ei.rm_candidates.append(spkg)
 
     # check removal candidates and drop superseded ones
     log.info("Marking expired packages as superseded")
     for ei in pkg_expire_map.values():
-        rm_candidates = ei.rm_candidates
-        if not ei.max_version_has_binaries:
-            # the highest version does not have binaries (yet), so we can only remove
-            # truly superseded packages
-            if len(rm_candidates) == 1:
+        removal_todo = ei.rm_candidates
+
+        if (ei.is_arch_indep and len(ei.max_version_binary_archs) == 1) or (
+            ei.max_version_binary_archs == ei.all_binary_archs
+        ):
+            # The current latest version of the source package has binaries on all architectures - we can delete
+            # everything else in the following steps.
+            pass
+        else:
+            # the highest version does not have all binaries (yet), so we can only remove
+            # truly superseded packages.
+            if len(ei.rm_candidates) == 1:
+                # only one other source package exists, we can skip any further checks as we will not
+                # remove any source package for this package name.
                 continue
-            candidates_sorted = sorted(rm_candidates, key=functools.cmp_to_key(package_version_compare), reverse=True)
-            rm_candidates = []
-            have_bins = False
+
+            candidates_sorted = sorted(
+                ei.rm_candidates, key=functools.cmp_to_key(package_version_compare), reverse=True
+            )
+            removal_todo = []
+            highest_bin_version_found = False
             for candidate in candidates_sorted:
-                if candidate.binaries:
-                    # highest version with binaries was found, everything
-                    # that follows it can be marked for deletion
-                    have_bins = True
-                    continue
-                if have_bins:
-                    rm_candidates.append(candidate)
+                if highest_bin_version_found:
+                    removal_todo.append(candidate)
+                else:
+                    if candidate.binaries:
+                        if ei.is_arch_indep:
+                            # we have binaries on an indep-only package, so we can delete subsequent lower versions
+                            highest_bin_version_found = True
+                            continue
+
+                        bins_arch = set()
+                        for bin in candidate.binaries:
+                            bins_arch.add(bin.architecture.name)
+                        if bins_arch == ei.all_binary_archs:
+                            highest_bin_version_found = True
+                        if highest_bin_version_found:
+                            # highest version with binaries was found, everything
+                            # that follows it can be marked for deletion
+                            # if it builds no packages or built for the same architecture
+                            continue
 
         # mark all remaining candidates for removal
-        for old_spkg in rm_candidates:
-            old_spkg.suites.remove(rss.suite)
-            if old_spkg.suites:
-                log.info('Removed superseded package from suite %s: %s', rss.suite.name, str(old_spkg))
-                archive_log.info('EXPIRE-SUITE-REMOVED: %s from %s', rss.suite.name, str(old_spkg))
-            else:
-                log.info('Marking superseded package for removal: %s', str(old_spkg))
-                old_spkg.time_deleted = datetime.utcnow()
-                archive_log.info('EXPIRE-MARK-DELETE: %s', str(old_spkg))
-
-        # FIXME: The code above will remove a package as soon as it has a binary built on *any* architecture.
-        # This is often not what we want, so we would need to check that the latest package has built on all
-        # architectures where it has been built before. If we do that though, packages that drop architectures,
-        # or make an arch:any package an arch:all package will get stuck here and not be removed.
-        # Therefore, we are currently a bit aggressive with removals and catch any fallout using Britney and
-        # the Debcheck infrastructure to fix issues quickly. Still, some smarter code would be useful here.
+        for obsolete_spkg in removal_todo:
+            package_mark_delete(session, rss, obsolete_spkg)
 
     # grab all the packages that we should physically delete as they have been marked for deletion for a while
     log.info("Deleting expired packages")
