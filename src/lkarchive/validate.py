@@ -72,7 +72,7 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
             if spkg.uuid in queue_spkg_uuids:
                 continue  # skip packages in NEW queue
             else:
-                issues.append(('{}/{}/source'.format(spkg.name, spkg.version), 'No suites'))
+                issues_fixed.append(('{}/{}/source'.format(spkg.name, spkg.version), 'No suites'))
                 if fix_issues:
                     spkg.time_deleted = datetime.utcnow()
                     archive_log.info('%s: %s/%s @ %s', 'MARKED-REMOVAL-SRC', spkg.name, spkg.version, repo.name)
