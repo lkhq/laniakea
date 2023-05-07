@@ -6,6 +6,7 @@
 
 import os
 import sys
+from datetime import datetime
 from dataclasses import field, dataclass
 
 import rich
@@ -29,7 +30,7 @@ from laniakea.db import (
     ArchiveQueueNewEntry,
     session_scope,
 )
-from laniakea.logging import log
+from laniakea.logging import log, archive_log
 
 
 @dataclass
@@ -72,6 +73,12 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                 continue  # skip packages in NEW queue
             else:
                 issues.append(('{}/{}/source'.format(spkg.name, spkg.version), 'No suites'))
+                if fix_issues:
+                    spkg.time_deleted = datetime.utcnow()
+                    archive_log.info('%s: %s/%s @ %s', 'MARKED-REMOVAL-SRC', spkg.name, spkg.version, repo.name)
+                    for bpkg in spkg.binaries:
+                        bpkg.time_deleted = datetime.utcnow()
+                        archive_log.info('MARKED-REMOVAL-BIN: %s/%s @ %s', bpkg.name, bpkg.version, repo.name)
                 continue
 
         # check that the source package is in a suite along with its binaries
