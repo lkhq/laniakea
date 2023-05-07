@@ -230,6 +230,33 @@ def pretty_binary_package_published(tag, data):
     return tmpl.format(**data)
 
 
+def pretty_package_upload_accepted(tag, data):
+    if data['is_new']:
+        tmpl = (
+            'Accepted upload {upload_name} by {uploader_name} containing {source_name}/{source_version} into the '
+            + purple('review queue')
+            + ' for {repo}. '
+            'Changes:<br/><blockquote>{changes}</blockquote><br/>'
+            + purple('Review')
+            + ' the upload <a href="{url_webview}/review">here</a>'
+        )
+    else:
+        tmpl = (
+            green('Accepted')
+            + ' upload {upload_name} by {uploader_name} containing {source_name}/{source_version} into {repo}. '
+            'Changes:<br/><blockquote>{changes}</blockquote>'
+        )
+    return tmpl.format(**data)
+
+
+def pretty_package_upload_rejected(tag, data):
+    tmpl = (
+        red('Rejected')
+        + ' upload {upload_name} by {uploader_name} into {repo}. Reason:<br/><blockquote>{reason}</blockquote>'
+    )
+    return tmpl.format(**data)
+
+
 templates_archive = {
     '_lk.archive.package-build-success': (
         'Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> was '
@@ -267,6 +294,8 @@ templates_archive = {
     '_lk.archive.package-src-removed': (
         'Source package <b>{pkg_name}/{pkg_version}</b> was ' + red('deleted') + ' from <em>{repo}</em>.'
     ),
+    '_lk.archive.package-upload-accepted': pretty_package_upload_accepted,
+    '_lk.archive.package-upload-rejected': pretty_package_upload_rejected,
 }
 
 
