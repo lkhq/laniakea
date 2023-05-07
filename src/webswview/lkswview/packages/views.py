@@ -225,11 +225,16 @@ def bin_package_details(repo_name, suite_name, name):
             .all()
         )
 
+        if '\n' in bpkg_rep[0].description:
+            pkg_description = bpkg_rep[0].description.split('\n', 1)[1].replace('\n', '<br/>')
+        else:
+            pkg_description = bpkg_rep[0].description
+
         return render_template(
             'packages/bin_details.html',
             pkg=bpkg_rep[0],
             pkg_override=bpkg_rep[1],
-            pkg_description=bpkg_rep[0].description.split('\n', 1)[1].replace('\n', '<br/>'),
+            pkg_description=pkg_description,
             all_pkgs_overrides=bpkgs_overrides,
             pkg_repo=rss.repo,
             pkg_suite=rss.suite,
