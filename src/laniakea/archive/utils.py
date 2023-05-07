@@ -248,6 +248,10 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[
         vmem.highest_version = pkg.version
         session.add(vmem)
 
+    # "undelete" package, just in case it is marked as deleted
+    pkg.time_deleted = None
+
+    # set publication time
     if not pkg.time_published:
         pkg.time_published = datetime.utcnow()
 

@@ -544,6 +544,10 @@ class SyncEngine:
                                 ebpkg.version,
                             )
 
+                            # we "undelete" a package here in case it has been expired in the target and we still
+                            # sync it - this may happen especially when syncing updates/security suites
+                            ebpkg.time_deleted = None
+
                             new_suite = pkgip.repo_suite_settings.suite
                             if new_suite not in ebpkg.suites:
                                 log.warning(
@@ -556,9 +560,6 @@ class SyncEngine:
                                     new_suite.name,
                                 )
                                 ebpkg.suites.append(new_suite)
-                                # we "undelete" a package here in case it has been expired in the target and we still
-                                # sync it - this may happen especially when syncing updates/security suites
-                                ebpkg.time_deleted = None
                                 package_mark_published(session, pkgip.repo_suite_settings, ebpkg)
 
             if not bin_files_synced and not existing_packages:
