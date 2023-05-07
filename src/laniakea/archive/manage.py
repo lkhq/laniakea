@@ -254,7 +254,6 @@ def package_mark_delete(
                 'pkg_name': pkg.name,
                 'pkg_version': pkg.version,
                 'repo': rss.repo.name,
-                'suite': rss.suite.name,
             }
             emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-marked-removal', event_data)
     if is_src_pkg:

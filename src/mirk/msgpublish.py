@@ -125,7 +125,15 @@ class MatrixPublisher:
                 else:
                     text = templ.format(**sdata)
             except Exception as e:
-                text = '[<font color="#ed1515">FORMATTING_FAILED</font>] ' + str(e) + ' :: ' + str(sdata)
+                text = (
+                    '[<font color="#ed1515">FORMATTING_FAILED</font>] '
+                    + str(e)
+                    + ' :: tag: '
+                    + tag
+                    + ' data: <code>'
+                    + str(sdata)
+                    + '</code>'
+                )
         else:
             text = 'Received event type <code>{}</code> with data <code>{}</code>'.format(tag, str(event))
 

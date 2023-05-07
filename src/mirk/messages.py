@@ -258,6 +258,15 @@ templates_archive = {
     + ' was '
     + orange('removed')
     + ' from the archive.',
+    '_lk.archive.package-src-suite-deleted': (
+        'Source package <b>{pkg_name}/{pkg_version}</b> was deleted from <em>{suite}</em> in <em>{repo}</em>.'
+    ),
+    '_lk.archive.package-src-marked-removal': (
+        'Source package <b>{pkg_name}/{pkg_version}</b> was ' + red('marked for removal') + ' in <em>{repo}</em>.'
+    ),
+    '_lk.archive.package-src-removed': (
+        'Source package <b>{pkg_name}/{pkg_version}</b> was ' + red('deleted') + ' from <em>{repo}</em>.'
+    ),
 }
 
 
@@ -278,10 +287,13 @@ def pretty_excuse_change(tag, data):
         else:
             old_ver_info = 'Version in target is: {version_old}'
 
+        suites_source_str = ' & '.join(data['suites_source'])
         tmpl = (
             'Package <b>{source_package}</b> {version_new} was '
             + red('blocked')
-            + ' from its <em>{suite_source}</em> → <em>{suite_target}</em> '
+            + ' from its <em>'
+            + suites_source_str
+            + '</em> → <em>{suite_target}</em> '
             'migration. '
             + old_ver_info
             + ' | <a href="{url_webview}/migrations/excuse/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>'
@@ -299,8 +311,13 @@ def pretty_excuse_change(tag, data):
             else:
                 old_ver_info = 'Previous version in target was: {version_old}'
 
+            suites_source_str = ' & '.join(data['suites_source'])
             tmpl = (
-                tmpl + ' The package migrated from <em>{suite_source}</em> → <em>{suite_target}</em>. ' + old_ver_info
+                tmpl
+                + ' The package migrated from <em>'
+                + suites_source_str
+                + '</em> → <em>{suite_target}</em>. '
+                + old_ver_info
             )
 
     return tmpl.format(**data)
