@@ -20,6 +20,7 @@ from laniakea.db import (
     PackageConflict,
     ArchiveRepository,
 )
+from laniakea.utils import process_file_lock
 from laniakea.logging import log
 from laniakea.reporeader import RepositoryReader
 from laniakea.localconfig import LocalConfig
@@ -310,7 +311,8 @@ class DoseDebcheck:
         '''Get a list of build-dependency issues affecting the suite'''
 
         issues = []
-        issues_yaml = self._generate_build_depcheck_yaml(suite)
+        with process_file_lock('publish_{}-{}'.format(self._repo.name, suite.name), wait=True):
+            issues_yaml = self._generate_build_depcheck_yaml(suite)
         for arch_name, yaml_data in issues_yaml.items():
             issues.extend(self._dose_yaml_to_issues(yaml_data, suite, arch_name))
 
@@ -320,7 +322,8 @@ class DoseDebcheck:
         '''Get a list of dependency issues affecting the suite'''
 
         issues = []
-        issues_yaml = self._generate_depcheck_yaml(suite)
+        with process_file_lock('publish_{}-{}'.format(self._repo.name, suite.name), wait=True):
+            issues_yaml = self._generate_depcheck_yaml(suite)
         for arch_name, yaml_data in issues_yaml.items():
             issues.extend(self._dose_yaml_to_issues(yaml_data, suite, arch_name))
 
