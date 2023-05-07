@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload
 
 import laniakea.typing as T
 from laniakea.db import (
+    LkModule,
     ArchiveError,
     ArchiveSuite,
     BinaryPackage,
@@ -27,6 +28,7 @@ from laniakea.db import (
     package_version_compare,
 )
 from laniakea.logging import log, archive_log
+from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import package_mark_published
 
 
@@ -70,7 +72,9 @@ def remove_binary_package(session, rss, bpkg: BinaryPackage) -> bool:
     return True
 
 
-def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage) -> bool:
+def remove_source_package(
+    session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, *, emitter: EventEmitter | None = None
+) -> bool:
     """Delete package from the archive
     This will completely remove the selected source package from a repository/suite configuration.
     :param session: SQLAlchemy session
@@ -93,11 +97,21 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
             )
         )
 
+    if not emitter:
+        emitter = EventEmitter(LkModule.ARCHIVE)
+
     if spkg.suites:
         log.info('Removing package %s from suite %s', str(spkg), rss.suite.name)
         spkg.suites.remove(rss.suite)
         if spkg.suites:
             archive_log.info('DELETED-SRC-SUITE: %s/%s @ %s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name)
+            event_data = {
+                'pkg_name': spkg.name,
+                'pkg_version': spkg.version,
+                'repo': rss.repo.name,
+                'suite': rss.suite.name,
+            }
+            emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-suite-deleted', event_data)
     if not spkg.suites:
         log.info('Deleting orphaned package %s', str(spkg))
         # the package no longer is in any suites, remove it completely
@@ -162,11 +176,19 @@ def remove_source_package(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePa
             os.rmdir(srcpkg_repo_dir)
         session.delete(spkg)
         archive_log.info('DELETED-SRC: %s/%s @ %s', spkg.name, spkg.version, rss.repo.name)
+        event_data = {'pkg_name': spkg.name, 'pkg_version': spkg.version, 'repo': rss.repo.name}
+        emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-removed', event_data)
 
     return True
 
 
-def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[BinaryPackage, SourcePackage]):
+def package_mark_delete(
+    session,
+    rss: ArchiveRepoSuiteSettings,
+    pkg: T.Union[BinaryPackage, SourcePackage],
+    *,
+    emitter: EventEmitter | None = None,
+):
     """Mark a package for removal from the selected suite.
     The package will be removed from the selected repo/suite immediately, and if it is dropped from
     the repository entirely it will be marked for garbage collection rather than being deleted instantly.
@@ -191,6 +213,9 @@ def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[Bin
             )
         )
 
+    if not emitter:
+        emitter = EventEmitter(LkModule.ARCHIVE)
+
     is_src_pkg = type(pkg) is SourcePackage
 
     log.info('Removing package %s from suite %s', str(pkg), rss.suite.name)
@@ -205,6 +230,14 @@ def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[Bin
             rss.repo.name,
             rss.suite.name,
         )
+        if is_src_pkg:
+            event_data = {
+                'pkg_name': pkg.name,
+                'pkg_version': pkg.version,
+                'repo': rss.repo.name,
+                'suite': rss.suite.name,
+            }
+            emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-suite-deleted', event_data)
     else:
         log.info('Marking package for removal: %s', str(pkg))
         pkg.time_deleted = datetime.utcnow()
@@ -216,6 +249,14 @@ def package_mark_delete(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[Bin
             rss.repo.name,
             rss.suite.name,
         )
+        if is_src_pkg:
+            event_data = {
+                'pkg_name': pkg.name,
+                'pkg_version': pkg.version,
+                'repo': rss.repo.name,
+                'suite': rss.suite.name,
+            }
+            emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-marked-removal', event_data)
     if is_src_pkg:
         for bpkg in pkg.binaries:
             rm_suite_names = []
@@ -254,6 +295,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
         raise ArchiveError('Will not expire old packages in frozen suite `{}/{}`'.format(rss.repo.name, rss.suite.name))
 
     log.info("Checking %s:%s: Gathering information", rss.repo.name, rss.suite.name)
+    emitter = EventEmitter(LkModule.ARCHIVE)
 
     @dataclass
     class PackageExpireInfo:
@@ -376,7 +418,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
 
         # mark all remaining candidates for removal
         for obsolete_spkg in removal_todo:
-            package_mark_delete(session, rss, obsolete_spkg)
+            package_mark_delete(session, rss, obsolete_spkg, emitter=emitter)
 
     # grab all the packages that we should physically delete as they have been marked for deletion for a while
     log.info("Deleting expired packages")
@@ -396,7 +438,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
 
     for spkg_rm in spkgs_delete:
         log.info('Removing package marked for removal for %s days: %s', retention_days, str(spkg_rm))
-        remove_source_package(session, rss, spkg_rm)
+        remove_source_package(session, rss, spkg_rm, emitter=emitter)
 
     # delete orphaned AppStream metadata
     log.info("Removing expired AppStream component metadata")

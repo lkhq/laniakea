@@ -16,6 +16,7 @@ from rich.prompt import Confirm
 import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import (
+    LkModule,
     NewPolicy,
     PackageInfo,
     ArchiveSuite,
@@ -35,6 +36,7 @@ from laniakea.archive import (
     repo_suite_settings_for_debug,
 )
 from laniakea.logging import log
+from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import package_mark_published
 from laniakea.archive.manage import (
     copy_binary_package,
@@ -168,6 +170,7 @@ def import_heidi_result(
     if not repo_name:
         lconf = LocalConfig()
         repo_name = lconf.master_repo_name
+    emitter = EventEmitter(LkModule.ARCHIVE)
 
     with session_scope() as session:
         rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
@@ -250,7 +253,7 @@ def import_heidi_result(
                     )
                     if not spkg:
                         continue
-                    package_mark_delete(session, rss, spkg)
+                    package_mark_delete(session, rss, spkg, emitter=emitter)
 
                 for pkgname_rm, version_rm, arch_name_rm in bpkg_eset.values():
                     arch_rm = arch_ref[arch_name_rm]
@@ -267,7 +270,7 @@ def import_heidi_result(
                     )
                     if not bpkg:
                         continue
-                    package_mark_delete(session, rss, bpkg)
+                    package_mark_delete(session, rss, bpkg, emitter=emitter)
 
 
 @click.command('export-list')
