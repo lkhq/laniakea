@@ -772,25 +772,103 @@ class TestArchive:
         with session_scope() as session:
             repo_suites = session.query(ArchiveRepoSuiteSettings).all()
 
-            # check that there are no packages marked for deletion
-            deleted_pkgs = (
-                session.query(SourcePackage.name, SourcePackage.version)
-                .filter(~SourcePackage.time_deleted.is_(None))
-                .all()
-            )
-            assert deleted_pkgs == []
+            def fetch_deleted_pkg_info():
+                deleted_pkgs_src = (
+                    session.query(SourcePackage.name, SourcePackage.version)
+                    .filter(~SourcePackage.time_deleted.is_(None))
+                    .order_by(SourcePackage.name, SourcePackage.version)
+                    .all()
+                )
+                deleted_pkgs_bin = (
+                    session.query(BinaryPackage.name, BinaryPackage.version)
+                    .filter(~BinaryPackage.time_deleted.is_(None))
+                    .order_by(BinaryPackage.name, BinaryPackage.version)
+                    .all()
+                )
+                return deleted_pkgs_src, deleted_pkgs_bin
 
+            def fetch_pkg_suiteinfo():
+                pkgs_src_suiteinfo = (
+                    session.query(SourcePackage.name, SourcePackage.version, ArchiveSuite.name)
+                    .join(SourcePackage.suites)
+                    .order_by(SourcePackage.name, SourcePackage.version)
+                    .all()
+                )
+                pkgs_bin_suiteinfo = (
+                    session.query(BinaryPackage.name, BinaryPackage.version, ArchiveSuite.name)
+                    .join(BinaryPackage.suites)
+                    .order_by(BinaryPackage.name, BinaryPackage.version)
+                    .all()
+                )
+                return pkgs_src_suiteinfo, pkgs_bin_suiteinfo
+
+            # check that there are no packages marked for deletion
+            deleted_pkgs_src, deleted_pkgs_bin = fetch_deleted_pkg_info()
+            assert deleted_pkgs_src == []
+            assert deleted_pkgs_bin == []
+            pkgs_src_suiteinfo, pkgs_bin_suiteinfo = fetch_pkg_suiteinfo()
+            assert pkgs_src_suiteinfo == [
+                ('main-contrib-with-debug', '0.1-1', 'unstable'),
+                ('nonfree-package', '0.1-1', 'unstable'),
+                ('package', '0.1-1', 'unstable'),
+                ('package', '0.2-1', 'unstable'),
+                ('pkgnew', '0.1-1', 'unstable'),
+                ('pkgnew', '0.1-2', 'unstable'),
+                ('pkgnew', '0.1-3', 'unstable'),
+                ('snowman', '0.1-1', 'unstable'),
+            ]
+            assert pkgs_bin_suiteinfo == [
+                ('contrib-with-debug', '0.1-1', 'unstable'),
+                ('contrib-with-debug-dbgsym', '0.1-1', 'unstable-debug'),
+                ('main-package', '0.1-1', 'unstable'),
+                ('package', '0.1-1', 'unstable'),
+                ('package', '0.2-1', 'unstable'),
+                ('pkg-all1', '0.1-3', 'unstable'),
+                ('pkg-all2', '0.1-3', 'unstable'),
+                ('pkg-all3', '0.1-3', 'unstable'),
+                ('pkg-any1', '0.1-2', 'unstable'),
+                ('pkg-any1', '0.1-3', 'unstable'),
+                ('pkg-any2', '0.1-2', 'unstable'),
+                ('pkg-any2', '0.1-3', 'unstable'),
+                ('pkg-any3', '0.1-2', 'unstable'),
+                ('pkg-any3', '0.1-3', 'unstable'),
+                ('pkg-any4', '0.1-2', 'unstable'),
+            ]
+
+            # expire packages!
             for rss in repo_suites:
                 expire_superseded(session, rss)
 
             # superseded versions should now be marked for removal
-            deleted_pkgs = (
-                session.query(SourcePackage.name, SourcePackage.version)
-                .filter(~SourcePackage.time_deleted.is_(None))
-                .order_by(SourcePackage.name, SourcePackage.version)
-                .all()
-            )
-            assert deleted_pkgs == [('package', '0.1-1'), ('pkgnew', '0.1-1'), ('pkgnew', '0.1-2')]
+            deleted_pkgs_src, deleted_pkgs_bin = fetch_deleted_pkg_info()
+            assert deleted_pkgs_src == [('package', '0.1-1'), ('pkgnew', '0.1-1'), ('pkgnew', '0.1-2')]
+            assert deleted_pkgs_bin == [
+                ('package', '0.1-1'),
+                ('pkg-any1', '0.1-2'),
+                ('pkg-any2', '0.1-2'),
+                ('pkg-any3', '0.1-2'),
+                ('pkg-any4', '0.1-2'),
+            ]
+            pkgs_src_suiteinfo, pkgs_bin_suiteinfo = fetch_pkg_suiteinfo()
+            assert pkgs_src_suiteinfo == [
+                ('main-contrib-with-debug', '0.1-1', 'unstable'),
+                ('nonfree-package', '0.1-1', 'unstable'),
+                ('package', '0.2-1', 'unstable'),
+                ('pkgnew', '0.1-3', 'unstable'),
+                ('snowman', '0.1-1', 'unstable'),
+            ]
+            assert pkgs_bin_suiteinfo == [
+                ('contrib-with-debug', '0.1-1', 'unstable'),
+                ('contrib-with-debug-dbgsym', '0.1-1', 'unstable-debug'),
+                ('main-package', '0.1-1', 'unstable'),
+                ('package', '0.2-1', 'unstable'),
+                ('pkg-all1', '0.1-3', 'unstable'),
+                ('pkg-all2', '0.1-3', 'unstable'),
+                ('pkg-all3', '0.1-3', 'unstable'),
+                ('pkg-any1', '0.1-3', 'unstable'),
+                ('pkg-any2', '0.1-3', 'unstable'),
+                ('pkg-any3', '0.1-3', 'unstable'),
+            ]
 
     def test_heidi_import(self, ctx, samples_dir):
         # test import of Britney's Heidi report

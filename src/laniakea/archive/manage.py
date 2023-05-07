@@ -453,7 +453,17 @@ def copy_binary_package_override(
     :param from_suite: The suite to copy information from, if applicable.
     :return:
     """
-    origin_suite_name = from_suite if from_suite else bpkg.suites[0].name
+
+    if from_suite:
+        origin_suite_name = from_suite
+    else:
+        origin_suite_name = None
+        for s in bpkg.suites:
+            if s.name != dest_suite.name:
+                origin_suite_name = s.name
+                break
+        if not origin_suite_name:
+            raise ArchiveError('Can not copy binary package: No override origin suite found for `{}`.'.format(bpkg))
 
     target_override = (
         session.query(PackageOverride)
