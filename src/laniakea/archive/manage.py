@@ -375,6 +375,15 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
     for ei in pkg_expire_map.values():
         removal_todo = ei.rm_candidates
 
+        if not ei.is_arch_indep:
+            # An arch:any source package may build an arch:all package in previous versions,
+            # but the stop building it in later versions. Since arch:all is still listed as "missing",
+            # we will never clean up the old package.
+            # The solution is to remove the package if it has builds on arch:any, and ignore arch:all completely,
+            # but if and only if the package isn't completely architecture-independent and only available on arch:all.
+            ei.max_version_binary_archs.discard('all')
+            ei.all_binary_archs.discard('all')
+
         if (ei.is_arch_indep and len(ei.max_version_binary_archs) == 1) or (
             ei.max_version_binary_archs == ei.all_binary_archs
         ):
