@@ -26,6 +26,7 @@ from laniakea.db import (
     PackageOverride,
     ArchiveComponent,
     ArchiveRepository,
+    ArchiveArchitecture,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
@@ -297,11 +298,30 @@ def export_package_list(suite_name: str, result_fname: T.PathUnion, repo_name: T
             )
             sys.exit(4)
 
-        spkg_einfo, bpkg_einfo = retrieve_suite_package_maxver_baseinfo(session, rss)
+        spkg_info = (
+            session.query(SourcePackage.name, SourcePackage.version)
+            .filter(
+                SourcePackage.repo_id == rss.repo_id,
+                SourcePackage.suites.any(id=rss.suite_id),
+                SourcePackage.time_deleted.is_(None),
+            )
+            .all()
+        )
+        bpkg_info = (
+            session.query(BinaryPackage.name, BinaryPackage.version, ArchiveArchitecture.name)
+            .filter(
+                BinaryPackage.repo_id == rss.repo_id,
+                BinaryPackage.suites.any(id=rss.suite_id),
+                BinaryPackage.time_deleted.is_(None),
+            )
+            .join(BinaryPackage.architecture)
+            .all()
+        )
+
         with open(os.path.abspath(result_fname), 'w', encoding='utf-8') as f:
-            for info in spkg_einfo:
+            for info in spkg_info:
                 f.write('{} {} source\n'.format(info[0], info[1]))
-            for info in bpkg_einfo:
+            for info in bpkg_info:
                 f.write('{} {} {}\n'.format(info[0], info[1], info[2]))
 
 
