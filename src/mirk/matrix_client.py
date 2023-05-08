@@ -4,6 +4,7 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import asyncio
 import logging as log
 from typing import Optional
 
@@ -16,6 +17,7 @@ from mautrix.types import (
     TextMessageEventContent,
 )
 from mautrix.client import Client as MatrixClient
+from mautrix.errors import MLimitExceeded
 
 from .config import MirkConfig
 
@@ -62,11 +64,22 @@ class MirkMatrixClient:
         )
 
     async def send_simple_html(self, room_id: RoomID, html: str):
-        '''Publish a simple HTML message in the selected room.'''
+        """Publish a simple HTML message in the selected room."""
         from mautrix.types import Format
 
         # pylint: disable=unexpected-keyword-arg
         content = TextMessageEventContent(msgtype=MessageType.TEXT)
         content.format = Format.HTML
         content.formatted_body = html
-        await self._client.send_message(room_id=room_id, content=content)
+
+        message_sent = False
+        for delay in range(8, 16, 20):
+            try:
+                await self._client.send_message(room_id=room_id, content=content)
+                await asyncio.sleep(0.2)  # we force a delay here to not trigger message limits too quickly
+                message_sent = True
+                break
+            except MLimitExceeded:
+                await asyncio.sleep(delay)
+        if not message_sent:
+            await self._client.send_message(room_id=room_id, content=content)
