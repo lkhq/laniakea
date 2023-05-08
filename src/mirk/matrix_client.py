@@ -82,4 +82,7 @@ class MirkMatrixClient:
             except MLimitExceeded:
                 await asyncio.sleep(delay)
         if not message_sent:
-            await self._client.send_message(room_id=room_id, content=content)
+            try:
+                await self._client.send_message(room_id=room_id, content=content)
+            except MLimitExceeded:
+                log.error('Message limit exceeded, dropped message: [%s] - %s', str(room_id), content)
