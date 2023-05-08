@@ -103,16 +103,17 @@ def remove_source_package(
     if spkg.suites:
         log.info('Removing package %s from suite %s', str(spkg), rss.suite.name)
         spkg.suites.remove(rss.suite)
-        if spkg.suites:
-            archive_log.info('DELETED-SRC-SUITE: %s/%s @ %s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name)
-            event_data = {
-                'pkg_name': spkg.name,
-                'pkg_version': spkg.version,
-                'repo': rss.repo.name,
-                'suite': rss.suite.name,
-            }
-            emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-suite-deleted', event_data)
-    if not spkg.suites:
+
+    if spkg.suites:
+        archive_log.info('DELETED-SRC-SUITE: %s/%s @ %s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name)
+        event_data = {
+            'pkg_name': spkg.name,
+            'pkg_version': spkg.version,
+            'repo': rss.repo.name,
+            'suite': rss.suite.name,
+        }
+        emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-suite-deleted', event_data)
+    else:
         log.info('Deleting orphaned package %s', str(spkg))
         # the package no longer is in any suites, remove it completely
         repo_root_dir = rss.repo.get_root_dir()
