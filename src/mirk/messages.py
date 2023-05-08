@@ -294,6 +294,9 @@ templates_archive = {
     '_lk.archive.package-src-removed': (
         'Source package <b>{pkg_name}/{pkg_version}</b> was ' + red('deleted') + ' from <em>{repo}</em>.'
     ),
+    '_lk.archive.package-src-copied': (
+        'Copied source package <b>{pkg_name}/{pkg_version}</b> in <em>{repo}</em> to suite <b>{dest_suite}</b>.'
+    ),
     '_lk.archive.package-upload-accepted': pretty_package_upload_accepted,
     '_lk.archive.package-upload-rejected': pretty_package_upload_rejected,
 }

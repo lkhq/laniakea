@@ -220,7 +220,7 @@ def import_heidi_result(
                                 )
                                 .one()
                             )
-                            copy_source_package(session, spkg, rss, include_binaries=False)
+                            copy_source_package(session, spkg, rss, include_binaries=False, emitter=emitter)
                             continue
                     else:
                         _, e_version, e_arch_name = bpkg_eset.pop(pkgname + '/' + arch_name, (None, None, None))

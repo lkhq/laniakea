@@ -452,6 +452,7 @@ def copy_source_package(
     spkg: SourcePackage,
     dest_rss: ArchiveRepoSuiteSettings,
     *,
+    emitter: EventEmitter | None = None,
     include_binaries: bool = True,
     allow_missing_debug: bool = False,
     overrides_from_suite: T.Optional[str] = None,
@@ -463,6 +464,7 @@ def copy_source_package(
     :param session: SQLAlchemy session
     :param spkg: Source package to copy
     :param dest_rss: Destination repository/suite
+    :param emitter: An event emitter, or None
     :param include_binaries: True if binaries built by this source package should be copied with it.
     :param allow_missing_debug: True if it is okay if the destination has no corresponding debug suite.
     :param overrides_from_suite: Set a suite name from which binary overrides should be obtained (None to pick any suite)
@@ -471,6 +473,9 @@ def copy_source_package(
 
     if spkg.repo_id != dest_rss.repo_id:
         raise ArchiveError('Directly copying a package between repositories is not allowed.')
+
+    if not emitter:
+        emitter = EventEmitter(LkModule.ARCHIVE)
 
     dest_suite = dest_rss.suite
     if dest_suite not in spkg.suites:
@@ -485,6 +490,14 @@ def copy_source_package(
             dest_suite.name,
             'with-binaries' if include_binaries else 'no-binaries',
         )
+        event_data = {
+            'pkg_name': spkg.name,
+            'pkg_version': spkg.version,
+            'repo': spkg.repo.name,
+            'dest_suite': dest_suite.name,
+            'with_binaries': include_binaries,
+        }
+        emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-copied', event_data)
     if include_binaries:
         for bpkg in spkg.binaries:
             # ignore debug packages if the destination has no debug suite and allow_missing_debug is set
