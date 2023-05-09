@@ -20,7 +20,11 @@ from laniakea.msgstream import (
 )
 
 from .config import MirkConfig
-from .messages import message_templates, message_prestyle_event_data
+from .messages import (
+    message_templates,
+    render_template_colors,
+    message_prestyle_event_data,
+)
 from .matrix_client import MirkMatrixClient
 
 
@@ -123,7 +127,7 @@ class MatrixPublisher:
                 if callable(templ):
                     text = templ(tag, sdata)
                 else:
-                    text = templ.format(**sdata)
+                    text = render_template_colors(templ).format(**sdata)
             except Exception as e:
                 text = (
                     '[<font color="#ed1515">FORMATTING_FAILED</font>] '

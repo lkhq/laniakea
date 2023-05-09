@@ -5,35 +5,29 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 
-__all__ = ['message_templates', 'message_prestyle_event_data']
+import laniakea.typing as T
+
+__all__ = ['message_templates', 'message_prestyle_event_data', 'render_template_colors']
 
 
-def green(m):
-    return '<font color="#27ae60">{}</font>'.format(m)
+COLORS = [
+    ('green', '#27ae60'),
+    ('orange', '#f39c1f'),
+    ('red', '#da4453'),
+    ('purple', '#8e44ad'),
+    ('lbgrey', '#34495e'),
+    ('bgrey', '#2c3e50'),
+    ('dgrey', '#31363b'),
+]
 
 
-def orange(m):
-    return '<font color="#f39c1f">{}</font>'.format(m)
-
-
-def red(m):
-    return '<font color="#da4453">{}</font>'.format(m)
-
-
-def purple(m):
-    return '<font color="#8e44ad">{}</font>'.format(m)
-
-
-def lbgrey(m):
-    return '<font color="#34495e">{}</font>'.format(m)
-
-
-def bgrey(m):
-    return '<font color="#2c3e50">{}</font>'.format(m)
-
-
-def dgrey(m):
-    return '<font color="#31363b">{}</font>'.format(m)
+def render_template_colors(template: str) -> str:
+    """Replace color tags with their HTML equivalents."""
+    result = template
+    for cname, ccode in COLORS:
+        result = result.replace('<%s>' % cname, '<font color="%s">' % ccode)
+        result = result.replace('</%s>' % cname, '</font>')
+    return result
 
 
 def message_prestyle_event_data(data):
@@ -41,6 +35,12 @@ def message_prestyle_event_data(data):
     Invoked at the very start and allows styling some aspects
     of the data already.
     '''
+
+    def lbgrey(m):
+        return '<font color="#34495e">%s</font>' % m
+
+    def dgrey(m):
+        return '<font color="#31363b">%s</font>' % m
 
     # color all version numbers the same way
     if 'version' in data:
@@ -75,14 +75,12 @@ templates_jobs = {
         'on architecture {job_architecture} to <em>{client_name}</em>'
     ),
     '_lk.jobs.job-accepted': (
-        'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was '
-        + green('accepted')
-        + ' by <em>{client_name}</em>'
+        'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was <green>accepted</green> '
+        'by <em>{client_name}</em>'
     ),
     '_lk.jobs.job-rejected': (
-        'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was '
-        + red('rejected')
-        + ' by <em>{client_name}</em>'
+        'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> was <red>rejected</red> '
+        'by <em>{client_name}</em>'
     ),
     '_lk.jobs.job-finished': (
         'Job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a> finished with result <em>{result}</em>'
@@ -107,13 +105,13 @@ def pretty_package_imported(tag, data):
 templates_synchrotron = {
     '_lk.synchrotron.src-package-imported': pretty_package_imported,
     '_lk.synchrotron.new-autosync-issue': (
-        'New automatic synchronization issue for ' + red('<b>{name}</b>') + ' from {src_os} '
+        'New automatic synchronization issue for <red><b>{name}</b></red> from {src_os} '
         '<em>{suite_src}</em> → <em>{suite_dest}</em> (source: {version_src}, '
         'destination: {version_dest}). Type: {kind}'
     ),
     '_lk.synchrotron.resolved-autosync-issue': (
         'The <em>{kind}</em> synchronization issue for <b>{name}</b> from {src_os} '
-        '<em>{suite_src}</em> → <em>{suite_dest}</em> was ' + green('resolved') + '.'
+        '<em>{suite_src}</em> → <em>{suite_dest}</em> was <green>resolved</green>.'
     ),
 }
 
@@ -125,18 +123,13 @@ templates_synchrotron = {
 
 def pretty_job_upload_accepted(tag, data):
     if data.get('job_failed'):
-        tmpl = (
-            'Accepted upload for '
-            + red('failed')
-            + ' job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
-        )
+        tmpl = 'Accepted upload for <red>failed</red> job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
     else:
         tmpl = (
-            'Accepted upload for '
-            + green('successful')
-            + ' job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
+            'Accepted upload for <green>successful</green> '
+            'job <a href="{url_webview}/jobs/job/{job_id}">{job_id:11.11}</a>.'
         )
-    return tmpl.format(**data)
+    return render_template_colors(tmpl).format(**data)
 
 
 templates_rubicon = {
@@ -161,18 +154,16 @@ templates_isotope = {
         '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
     ),
     '_lk.isotope.image-build-failed': (
-        'A <code>{format}</code> image for {distribution} '
-        + red('failed')
-        + ' to build for <b>{suite}</b>, environment '
+        'A <code>{format}</code> image for {distribution} <red>failed</red> '
+        'to build for <b>{suite}</b>, environment '
         '<b>{environment}</b>/{style} on {architecture}. '
         '| <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
     ),
     '_lk.isotope.image-build-success': (
-        'A <code>{format}</code> image for {distribution} was built ' + green('successfully') + ' for <b>{suite}</b>, '
+        'A <code>{format}</code> image for {distribution} was built <green>successfully</green> for <b>{suite}</b>, '
         'environment <b>{environment}</b>/{style} on {architecture}. '
-        'The image has been '
-        + green('published')
-        + ' for download. | <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
+        'The image has been <green>published</green> for download.'
+        ' | <a href="{url_webview}/jobs/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
     ),
 }
 
@@ -186,8 +177,8 @@ def pretty_source_package_published(tag, data):
     data['suites_str'] = ', '.join(data['suites'])
 
     tmpl = (
-        'Source package <b>{name}</b> {version} was ' + green('published') + ' in the archive, available in suites '
-        '<em>{suites_str}</em> ' + bgrey('<em>[{component}]</em>') + '.'
+        'Source package <b>{name}</b> {version} was <green>published</green> in the archive, available in suites '
+        '<em>{suites_str}</em> <bgrey><em>[{component}]</em></bgrey>.'
     )
     if data['suites']:
         first_suite = data['suites'][0]
@@ -201,7 +192,7 @@ def pretty_source_package_published(tag, data):
             + '_changelog">\N{DOCUMENT}</a>'
         )
 
-    return tmpl.format(**data)
+    return render_template_colors(tmpl).format(**data)
 
 
 def pretty_binary_package_published(tag, data):
@@ -209,11 +200,8 @@ def pretty_binary_package_published(tag, data):
 
     tmpl = (
         'Binary package <b>{name}</b> {version} from <b>'
-        + bgrey('{source_name}')
-        + '</b> was '
-        + green('published')
-        + ' in the archive '
-        'for {architecture} in suite <em>{suites_str}</em> ' + bgrey('<em>[{component}]</em>') + '.'
+        '<bgrey>{source_name}</bgrey></b> was <green>published</green> in the archive '
+        'for {architecture} in suite <em>{suites_str}</em> <bgrey><em>[{component}]</em></bgrey>.'
     )
     if data['suites']:
         first_suite = data['suites'][0]
@@ -227,73 +215,58 @@ def pretty_binary_package_published(tag, data):
             + '_changelog">\N{DOCUMENT}</a>'
         )
 
-    return tmpl.format(**data)
+    return render_template_colors(tmpl).format(**data)
 
 
 def pretty_package_upload_accepted(tag, data):
     data['changes'] = data['changes'].replace('\n', '<br/>')
     if data['is_new']:
         tmpl = (
-            'Accepted upload <code>{upload_name}</code> by {uploader_name} containing <b>{source_name}</b>/{source_version} into the '
-            + purple('review queue')
-            + ' for {repo}. '
+            'Accepted upload <code>{upload_name}</code> by {uploader_name} containing <b>{source_name}</b>/{source_version} '
+            'into the <purple>review queue</purple> for {repo}. '
             'Changes:<br/><blockquote>{changes}</blockquote><br/>'
-            + purple('Review')
-            + ' the upload <a href="{url_webview}/review">here</a>'
+            '<purple>Review</purple> the upload <a href="{url_webview}/review">here</a>'
         )
     else:
         tmpl = (
-            green('Accepted')
-            + ' upload <code>{upload_name}</code> by {uploader_name} containing <b>{source_name}</b>/{source_version} into {repo}. '
+            '<green>Accepted</green> upload <code>{upload_name}</code> by {uploader_name} containing '
+            '<b>{source_name}</b>/{source_version} into {repo}. '
             'Changes:<br/><blockquote>{changes}</blockquote>'
         )
-    return tmpl.format(**data)
+    return render_template_colors(tmpl).format(**data)
 
 
 def pretty_package_upload_rejected(tag, data):
-    tmpl = (
-        red('Rejected')
-        + ' upload {upload_name} by {uploader_name} into {repo}. Reason:<br/><blockquote>{reason}</blockquote>'
-    )
-    return tmpl.format(**data)
+    tmpl = '<red>Rejected</red> upload {upload_name} by {uploader_name} into {repo}. Reason:<br/><blockquote>{reason}</blockquote>'
+    return render_template_colors(tmpl).format(**data)
 
 
 templates_archive = {
     '_lk.archive.package-build-success': (
         'Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> was '
-        + green('successful')
-        + '. '
+        '<green>successful</green>. '
         '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
     ),
     '_lk.archive.package-build-failed': (
-        'Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> has ' + red('failed') + '. '
+        'Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> has <red>failed</red>. '
         '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
     ),
     '_lk.archive.binary-package-published': pretty_binary_package_published,
     '_lk.archive.source-package-published': pretty_source_package_published,
     '_lk.archive.source-package-published-in-suite': 'Source package <b>{name}</b> {version} was '
-    + green('added')
-    + ' to suite <em>{suite_new}</em> '
-    + bgrey('<em>[{component}]</em>')
-    + '.',
+    '<green>added</green> to suite <em>{suite_new}</em> <bgrey><em>[{component}]</em></bgrey>.',
     '_lk.archive.source-package-suite-removed': 'Source package <b>{name}</b> {version} was '
-    + red('removed')
-    + ' from suite <em>{suite_old}</em> '
-    + bgrey('<em>[{component}]</em>')
-    + '.',
+    '<red>removed</red> from suite <em>{suite_old}</em> <bgrey><em>[{component}]</em></bgrey>.',
     '_lk.archive.removed-source-package': 'Package <b>{name}</b> {version} '
-    + bgrey('<em>[{component}]</em>')
-    + ' was '
-    + orange('removed')
-    + ' from the archive.',
+    '<bgrey><em>[{component}]</em></bgrey> was <orange>removed</orange> from the archive.',
     '_lk.archive.package-src-suite-deleted': (
         'Source package <b>{pkg_name}/{pkg_version}</b> was deleted from <em>{suite}</em> in <em>{repo}</em>.'
     ),
     '_lk.archive.package-src-marked-removal': (
-        'Source package <b>{pkg_name}/{pkg_version}</b> was ' + red('marked for removal') + ' in <em>{repo}</em>.'
+        'Source package <b>{pkg_name}/{pkg_version}</b> was <red>marked for removal</red> in <em>{repo}</em>.'
     ),
     '_lk.archive.package-src-removed': (
-        'Source package <b>{pkg_name}/{pkg_version}</b> was ' + red('deleted') + ' from <em>{repo}</em>.'
+        'Source package <b>{pkg_name}/{pkg_version}</b> was <red>deleted</red> from <em>{repo}</em>.'
     ),
     '_lk.archive.package-src-copied': (
         'Copied source package <b>{pkg_name}/{pkg_version}</b> in <em>{repo}</em> to suite <b>{dest_suite}</b>.'
@@ -311,36 +284,33 @@ templates_archive = {
 def pretty_excuse_change(tag, data):
     removal = False
     if data.get('version_new') == '-':
-        data['version_new'] = '(' + red('removal') + ')'
+        data['version_new'] = '(<red>removal</red>)'
         removal = True
 
     if tag == '_lk.spears.new-excuse':
         if data.get('version_old') == '-':
-            old_ver_info = 'Package is ' + green('new') + ' to target!'
+            old_ver_info = 'Package is <green>new</green> to target!'
         else:
             old_ver_info = 'Version in target is: {version_old}'
 
         suites_source_str = ' & '.join(data['suites_source'])
         tmpl = (
             'Package <b>{source_package}</b> {version_new} was '
-            + red('blocked')
-            + ' from its <em>'
-            + suites_source_str
-            + '</em> → <em>{suite_target}</em> '
+            '<red>blocked</red> from its <em>' + suites_source_str + '</em> → <em>{suite_target}</em> '
             'migration. '
             + old_ver_info
             + ' | <a href="{url_webview}/migrations/excuse/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>'
         )
 
     elif tag == '_lk.spears.excuse-removed':
-        tmpl = 'Migration excuse for package <b>{source_package}</b> {version_new} was ' + green('invalidated') + '.'
+        tmpl = 'Migration excuse for package <b>{source_package}</b> {version_new} was <green>invalidated</green>.'
         if removal:
             tmpl = (
                 tmpl + ' The package is now deleted from <em>{suite_target}</em>. Previous version was: {version_old}'
             )
         else:
             if data.get('version_old') == '-':
-                old_ver_info = 'This package is ' + green('new') + ' in <em>{suite_target}</em>.'
+                old_ver_info = 'This package is <green>new</green> in <em>{suite_target}</em>.'
             else:
                 old_ver_info = 'Previous version in target was: {version_old}'
 
@@ -355,7 +325,7 @@ def pretty_excuse_change(tag, data):
     else:
         raise ValueError('Found unknown Spears issue tag: {}'.format(tag))
 
-    return tmpl.format(**data)
+    return render_template_colors(tmpl).format(**data)
 
 
 templates_spears = {'_lk.spears.new-excuse': pretty_excuse_change, '_lk.spears.excuse-removed': pretty_excuse_change}
@@ -369,20 +339,19 @@ def pretty_debcheck_issue_change(tag, data):
     if tag == '_lk.debcheck.issue-resolved':
         tmpl = (
             'Dependency issue for <em>{package_type}</em> package <b>{package_name}</b> {package_version} on '
-            '\N{GEAR}{architectures} in <em>{repo}</em> <b>{suite}</b> was ' + green('resolved') + ' 🎉'
+            '\N{GEAR}{architectures} in <em>{repo}</em> <b>{suite}</b> was <green>resolved</green> 🎉'
         )
     elif tag == '_lk.debcheck.issue-found':
         tmpl = (
-            'Found '
-            + red('new dependency issue')
-            + ' for <em>{package_type}</em> package <b>{package_name}</b> {package_version} on '
-            '\N{GEAR}{architectures} in <em>{repo}</em> <b>{suite}</b> '
+            'Found <red>new dependency issue</red> '
+            'for <em>{package_type}</em> package <b>{package_name}</b> {package_version} on '
+            '{architectures} in <em>{repo}</em> <b>{suite}</b> '
             '| <a href="{url_webview}/depcheck/{repo}/{suite}/issue/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>'
         )
     else:
         raise ValueError('Found unknown Debcheck issue tag: {}'.format(tag))
 
-    return tmpl.format(**data)
+    return render_template_colors(tmpl).format(**data)
 
 
 templates_debcheck = {
@@ -394,7 +363,7 @@ templates_debcheck = {
 #
 # Assemble complete template set
 #
-message_templates = {}
+message_templates: dict[str, T.Any] = {}
 message_templates.update(templates_jobs)
 message_templates.update(templates_synchrotron)
 message_templates.update(templates_rubicon)
