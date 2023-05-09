@@ -253,12 +253,18 @@ templates_archive = {
     ),
     '_lk.archive.binary-package-published': pretty_binary_package_published,
     '_lk.archive.source-package-published': pretty_source_package_published,
-    '_lk.archive.source-package-published-in-suite': 'Source package <b>{name}</b> {version} was '
-    '<green>added</green> to suite <em>{suite_new}</em> <bgrey><em>[{component}]</em></bgrey>.',
-    '_lk.archive.source-package-suite-removed': 'Source package <b>{name}</b> {version} was '
-    '<red>removed</red> from suite <em>{suite_old}</em> <bgrey><em>[{component}]</em></bgrey>.',
-    '_lk.archive.removed-source-package': 'Package <b>{name}</b> {version} '
-    '<bgrey><em>[{component}]</em></bgrey> was <orange>removed</orange> from the archive.',
+    '_lk.archive.source-package-published-in-suite': (
+        'Source package <b>{name}</b> {version} was '
+        '<green>added</green> to suite <em>{suite_new}</em> <bgrey><em>[{component}]</em></bgrey>.'
+    ),
+    '_lk.archive.source-package-suite-removed': (
+        'Source package <b>{name}</b> {version} was '
+        '<red>removed</red> from suite <em>{suite_old}</em> <bgrey><em>[{component}]</em></bgrey>.'
+    ),
+    '_lk.archive.removed-source-package': (
+        'Package <b>{name}</b> {version} '
+        '<bgrey><em>[{component}]</em></bgrey> was <orange>removed</orange> from the archive.'
+    ),
     '_lk.archive.package-src-suite-deleted': (
         'Source package <b>{pkg_name}/{pkg_version}</b> was deleted from <em>{suite}</em> in <em>{repo}</em>.'
     ),
@@ -348,6 +354,14 @@ def pretty_debcheck_issue_change(tag, data):
             '{architectures} in <em>{repo}</em> <b>{suite}</b> '
             '| <a href="{url_webview}/depcheck/{repo}/{suite}/issue/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>'
         )
+    elif tag == '_lk.debcheck.check-completed':
+        if data['new_issues_count'] == 0 and data['resolved_issues_count'] == 0:
+            return
+        tmpl = (
+            'Dependency check for <em>{package_type}</em> packages in <em><b>{repo}<b></em>/<b>{suite}</b> completed:<br/>'
+            '<green>{resolved_issues_count}</green> issues were resolved, <red>{new_issues_count}</red> new issues were found. '
+            '| <a href="{url_webview}/depcheck/{repo}/{suite}/{package_type}">\N{CIRCLED INFORMATION SOURCE}</a>'
+        )
     else:
         raise ValueError('Found unknown Debcheck issue tag: {}'.format(tag))
 
@@ -355,8 +369,11 @@ def pretty_debcheck_issue_change(tag, data):
 
 
 templates_debcheck = {
-    '_lk.debcheck.issue-resolved': pretty_debcheck_issue_change,
-    '_lk.debcheck.issue-found': pretty_debcheck_issue_change,
+    # NOTE: These messages are disabled for now, because there are many of them and they generate a lot of noise.
+    # TODO: Make displaying these a configurable setting.
+    # '_lk.debcheck.issue-resolved': pretty_debcheck_issue_change,
+    # '_lk.debcheck.issue-found': pretty_debcheck_issue_change,
+    '_lk.debcheck.check-completed': pretty_debcheck_issue_change
 }
 
 

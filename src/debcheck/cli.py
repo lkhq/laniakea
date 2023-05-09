@@ -133,6 +133,17 @@ def _update_debcheck_issues(session, repo: ArchiveRepository, suite: ArchiveSuit
         event_data['uuid'] = str(new_issue.uuid)
         emitter.submit_event('issue-found', event_data)
 
+    emitter.submit_event(
+        'check-completed',
+        {
+            'package_type': PackageType.to_string(package_type),
+            'repo': repo.name,
+            'suite': suite.name,
+            'new_issues_count': len(newly_added_issues),
+            'resolved_issues_count': len(stale_issues),
+        },
+    )
+
     # make the result persistent
     session.commit()
 

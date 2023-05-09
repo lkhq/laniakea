@@ -6,7 +6,7 @@
 
 import math
 
-from flask import Blueprint, abort, render_template
+from flask import Blueprint, abort, redirect, render_template
 
 from laniakea.db import (
     PackageType,
@@ -34,6 +34,20 @@ def index():
         )
 
         return render_template('depcheck/index.html', repo_suites=repo_suites)
+
+
+@depcheck.route('/<repo_name>/<suite_name>/<ptype>/')
+@depcheck.route('/<repo_name>/<suite_name>/<ptype>')
+def issue_list_shortcut(repo_name, suite_name, ptype):
+    """Convenience redirect to the full issue list page."""
+    with session_scope() as session:
+        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
+        if not suite:
+            abort(404)
+
+        return redirect(
+            '/depcheck/{}/{}/{}/{}/1'.format(repo_name, suite_name, ptype, suite.primary_architecture.name), code=302
+        )
 
 
 @depcheck.route('/<repo_name>/<suite_name>/<ptype>/<arch_name>/<int:page>')
