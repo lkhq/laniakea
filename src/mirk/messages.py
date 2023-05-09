@@ -378,7 +378,7 @@ def pretty_debcheck_issue_change(tag, data):
             + red('new dependency issue')
             + ' for <em>{package_type}</em> package <b>{package_name}</b> {package_version} on '
             '\N{GEAR}{architectures_str} in <em>{repo}</em> <b>{suite}</b> '
-            '| <a href="{url_webview}/depcheck/{suite}/issue/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>'
+            '| <a href="{url_webview}/depcheck/{repo}/{suite}/issue/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>'
         )
     else:
         raise ValueError('Found unknown Debcheck issue tag: {}'.format(tag))

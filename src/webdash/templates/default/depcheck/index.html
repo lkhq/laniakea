@@ -10,46 +10,46 @@
 
 <div class="columns is-multiline is-mobile">
 
-    {% for suite in suites %}
+    {% for rss in repo_suites %}
 
     <div class="column is-5">
 
     <div class="card">
     <header class="card-header">
         <p class="card-header-title">
-        {{suite.name}}
-
+        <span class="has-text-weight-light">{{rss.repo.name}}</span>&nbsp;{{rss.suite.name}}
         &nbsp;
         {% set btn_style = 'btn-secondary' %}
-        {% if suite.parent %}
+        {% if rss.suite.parents %}
           <span class="tag is-light">Child Suite</span>
         {% endif %}
-        {% if suite.accept_uploads %}
+        {% if rss.accept_uploads %}
           <span class="tag is-info">Accepts Uploads</span>
         {% endif %}
-        {% if suite.devel_target %}
+        {% if rss.devel_target %}
           <span class="tag is-primary">Development Target</span>
         {% endif %}
         </p>
     </header>
 
-    {% if suite.parent %}
+    {% if rss.suite.parents %}
     <div class="card-content py-2">
         <div class="content">
-        Overlay for {{suite.parent.name}}
+        Overlay for {% for parent in rss.suite.parents  %}<em>{{ parent.name }}</em>{%- if not loop.last %}, {% endif %}{% endfor %}
         </div>
     </div>
     {% endif %}
     <footer class="card-footer">
-        <a href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='binary', arch_name=suite.primary_architecture.name, page=1) }}" class="card-footer-item">Binary Package Issues</a>
-        <a href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype='source', arch_name=suite.primary_architecture.name, page=1) }}" class="card-footer-item">Source Package Issues</a>
+        <a href="{{ url_for('depcheck.issue_list', repo_name=rss.repo.name, suite_name=rss.suite.name, ptype='binary', arch_name=rss.suite.primary_architecture.name, page=1) }}"
+           class="card-footer-item">Binary Package Issues</a>
+        <a href="{{ url_for('depcheck.issue_list', repo_name=rss.repo.name, suite_name=rss.suite.name, ptype='source', arch_name=rss.suite.primary_architecture.name, page=1) }}"
+           class="card-footer-item">Source Package Issues</a>
     </footer>
     </div>
 
     </div>
 
     {% endfor %}
-
 </div>
 
 {% endblock %}

@@ -12,11 +12,12 @@
     </li>
     {% if suite %}
     <li class="{{'is-active' if not issue}}">
-        <a href="{{ url_for('depcheck.issue_list', suite_name=suite.name, ptype=ptype, arch_name=arch_name, page=1) }}">{{suite.name}} [{{arch_name}}] - {{ptype}}</a>
+        <a href="{{ url_for('depcheck.issue_list',
+                    repo_name=rss.repo.name, suite_name=rss.suite.name, ptype=ptype, arch_name=arch_name, page=1) }}">{{rss.repo.name}}:{{rss.suite.name}} [{{arch_name}}] - {{ptype}}</a>
     </li>
     {% endif %}
     {% if issue %}
-    <li class="is-active">{{issue.package_name}} - {{issue.package_version}}</li>
+    <li class="is-active"><p>{{issue.package_name}} - {{issue.package_version}}</p></li>
     {% endif %}
 </ul>
 {% endblock %}

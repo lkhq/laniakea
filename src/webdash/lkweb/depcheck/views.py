@@ -8,7 +8,14 @@ import math
 
 from flask import Blueprint, abort, render_template
 
-from laniakea.db import PackageType, ArchiveSuite, DebcheckIssue, session_scope
+from laniakea.db import (
+    PackageType,
+    ArchiveSuite,
+    DebcheckIssue,
+    ArchiveRepoSuiteSettings,
+    session_scope,
+)
+from laniakea.archive import repo_suite_settings_for
 
 from ..utils import is_uuid
 
@@ -18,28 +25,35 @@ depcheck = Blueprint('depcheck', __name__, url_prefix='/depcheck')
 @depcheck.route('/')
 def index():
     with session_scope() as session:
-        suites = session.query(ArchiveSuite).all()
+        repo_suites = (
+            session.query(ArchiveRepoSuiteSettings)
+            .join(ArchiveRepoSuiteSettings.suite)
+            .filter(ArchiveRepoSuiteSettings.repo.has(is_debug=False))
+            .order_by(ArchiveSuite.name.desc())
+            .all()
+        )
 
-        return render_template('depcheck/index.html', suites=suites)
+        return render_template('depcheck/index.html', repo_suites=repo_suites)
 
 
-@depcheck.route('/<suite_name>/<ptype>/<arch_name>/<int:page>')
-def issue_list(suite_name, ptype, arch_name, page):
+@depcheck.route('/<repo_name>/<suite_name>/<ptype>/<arch_name>/<int:page>')
+def issue_list(repo_name, suite_name, ptype, arch_name, page):
     if ptype == 'binary':
         package_type = PackageType.BINARY
     else:
         package_type = PackageType.SOURCE
 
     with session_scope() as session:
-        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
-        if not suite:
+        rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
+        if not rss:
             abort(404)
 
         issues_per_page = 50
         issues_total = (
             session.query(DebcheckIssue)
             .filter(DebcheckIssue.package_type == package_type)
-            .filter(DebcheckIssue.suite_id == suite.id)
+            .filter(DebcheckIssue.repo_id == rss.repo.id)
+            .filter(DebcheckIssue.suite_id == rss.suite.id)
             .filter(DebcheckIssue.architectures.any(arch_name))
             .count()
         )
@@ -48,7 +62,8 @@ def issue_list(suite_name, ptype, arch_name, page):
         issues = (
             session.query(DebcheckIssue)
             .filter(DebcheckIssue.package_type == package_type)
-            .filter(DebcheckIssue.suite_id == suite.id)
+            .filter(DebcheckIssue.repo_id == rss.repo.id)
+            .filter(DebcheckIssue.suite_id == rss.suite.id)
             .filter(DebcheckIssue.architectures.any(arch_name))
             .order_by(DebcheckIssue.package_name)
             .slice((page - 1) * issues_per_page, page * issues_per_page)
@@ -59,7 +74,7 @@ def issue_list(suite_name, ptype, arch_name, page):
             'depcheck/issues_list.html',
             ptype=ptype,
             issues=issues,
-            suite=suite,
+            rss=rss,
             arch_name=arch_name,
             issues_per_page=issues_per_page,
             issues_total=issues_total,
@@ -68,19 +83,20 @@ def issue_list(suite_name, ptype, arch_name, page):
         )
 
 
-@depcheck.route('/<suite_name>/issue/<uuid>')
-def issue_details(suite_name, uuid):
+@depcheck.route('/<repo_name>/<suite_name>/issue/<uuid>')
+def issue_details(repo_name, suite_name, uuid):
     if not is_uuid(uuid):
         abort(404)
 
     with session_scope() as session:
-        suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one_or_none()
-        if not suite:
+        rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
+        if not rss:
             abort(404)
 
         issue = (
             session.query(DebcheckIssue)
-            .filter(DebcheckIssue.suite_id == suite.id)
+            .filter(DebcheckIssue.repo_id == rss.repo.id)
+            .filter(DebcheckIssue.suite_id == rss.suite.id)
             .filter(DebcheckIssue.uuid == uuid)
             .one_or_none()
         )
@@ -98,7 +114,7 @@ def issue_details(suite_name, uuid):
             ptype=ptype,
             issue=issue,
             arch_name=', '.join(issue.architectures),
-            suite=suite,
+            rss=rss,
             missing=missing,
             conflicts=conflicts,
         )
