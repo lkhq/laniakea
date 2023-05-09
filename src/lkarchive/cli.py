@@ -55,7 +55,7 @@ def _register_commands():
 
     import lkarchive.manage_pkg as mgr
 
-    cli.add_command(mgr.list)
+    cli.add_command(mgr.cmd_list)
     cli.add_command(mgr.remove)
     cli.add_command(mgr.expire)
     cli.add_command(mgr.cmd_copy_package)

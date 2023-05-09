@@ -63,7 +63,7 @@ def remove_binary_package(session, rss, bpkg: BinaryPackage) -> bool:
             )
         )
 
-    log.info('Deleting orphaned binary package %s', str(bpkg))
+    log.info('Deleting binary package %s', str(bpkg))
     bin_fname_full = os.path.join(rss.repo.get_root_dir(), bpkg.bin_file.fname)
     os.remove(bin_fname_full)
     session.delete(bpkg.bin_file)

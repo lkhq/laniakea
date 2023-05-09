@@ -29,7 +29,12 @@ from laniakea.archive import (
     repo_suite_settings_for,
     find_latest_source_package,
 )
-from laniakea.archive.manage import expire_superseded, copy_source_package
+from laniakea.archive.manage import (
+    expire_superseded,
+    copy_source_package,
+    package_mark_delete,
+    remove_binary_package,
+)
 
 
 @click.command('ls')
@@ -47,7 +52,7 @@ from laniakea.archive.manage import expire_superseded, copy_source_package
     help='Name of the suite to act on, if not set all suites will be processed',
 )
 @click.argument('term', nargs=1)
-def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
+def cmd_list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
     """List repository packages."""
 
     term_q = term.replace('*', '%')
@@ -127,23 +132,28 @@ def list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str]):
         console.print(table)
 
 
-def print_package_details(spkgs: T.List[SourcePackage]):
+def print_package_details(pkgs: list[SourcePackage] | list[BinaryPackage]):
+    is_source = isinstance(pkgs[0], SourcePackage)
+
     table = Table(box=rich.box.MINIMAL)
     table.add_column('Package', no_wrap=True)
     table.add_column('Version', style='magenta', no_wrap=True)
     table.add_column('Repository')
     table.add_column('Suites')
     table.add_column('Component')
-    table.add_column('Binaries')
+    if is_source:
+        table.add_column('Binaries')
+    else:
+        table.add_column('Architecture')
 
-    for spkg in spkgs:
+    for pkg in pkgs:
         table.add_row(
-            spkg.name,
-            spkg.version,
-            spkg.repo.name,
-            ' '.join([s.name for s in spkg.suites]),
-            spkg.component.name,
-            ' '.join([b.name for b in spkg.binaries]),
+            pkg.name if is_source else '{} ({})'.format(pkg.name, pkg.source.name),
+            pkg.version,
+            pkg.repo.name,
+            ' '.join([s.name for s in pkg.suites]),
+            pkg.component.name,
+            ' '.join([b.name for b in pkg.binaries]) if is_source else pkg.architecture.name,
         )
 
     console = Console()
@@ -164,9 +174,10 @@ def print_package_details(spkgs: T.List[SourcePackage]):
     required=True,
     help='Name of the suite to act on.',
 )
-@click.argument('source_pkgname', nargs=1)
-def remove(source_pkgname: str, repo_name: T.Optional[str], suite_name: str):
-    """Delete a source package (and its binaries) from a suite in a repository."""
+@click.option('--binary', 'is_binary', is_flag=True, default=False, help='The targeted package is a binary package')
+@click.argument('pkgname', nargs=1)
+def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary: bool = False):
+    """Delete a source package (and its binaries) or a binary package."""
 
     if not repo_name:
         lconf = LocalConfig()
@@ -185,26 +196,51 @@ def remove(source_pkgname: str, repo_name: T.Optional[str], suite_name: str):
             click.echo('Suite {} not found in repository {}.'.format(suite_name, repo_name), err=True)
             sys.exit(2)
 
-        spkgs = (
-            session.query(SourcePackage)
-            .filter(
-                SourcePackage.repo_id == rss.repo_id,
-                SourcePackage.suites.any(id=rss.suite_id),
-                SourcePackage.name == source_pkgname,
+        if not is_binary:
+            # we want to delete a source package
+            spkgs = (
+                session.query(SourcePackage)
+                .filter(
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.suites.any(id=rss.suite_id),
+                    SourcePackage.name == pkgname,
+                )
+                .all()
             )
-            .all()
-        )
 
-        if not spkgs:
-            click.echo('Package {} not found in repository {}/{}.'.format(source_pkgname, repo_name, suite_name))
-            sys.exit(0)
+            if not spkgs:
+                click.echo('Package {} not found in repository {}/{}.'.format(pkgname, repo_name, suite_name))
+                sys.exit(0)
 
-        print_package_details(spkgs)
-        remove_confirmed = Confirm.ask('Do you really want to delete these packages?', default=False)
+            print_package_details(spkgs)
+            remove_confirmed = Confirm.ask('Do you really want to delete these packages?', default=False)
 
-        if remove_confirmed:
-            for spkg in spkgs:
-                remove_source_package(session, rss, spkg)
+            if remove_confirmed:
+                for spkg in spkgs:
+                    remove_source_package(session, rss, spkg)
+        else:
+            # we want to remove a binary package
+            bpkgs = (
+                session.query(BinaryPackage)
+                .filter(
+                    BinaryPackage.repo_id == rss.repo_id,
+                    BinaryPackage.suites.any(id=rss.suite_id),
+                    BinaryPackage.name == pkgname,
+                )
+                .all()
+            )
+
+            if not bpkgs:
+                click.echo('Binary package {} not found in repository {}/{}.'.format(pkgname, repo_name, suite_name))
+                sys.exit(0)
+
+            print_package_details(bpkgs)
+            remove_confirmed = Confirm.ask('Do you really want to delete these binary packages?', default=False)
+
+            if remove_confirmed:
+                for bpkg in bpkgs:
+                    package_mark_delete(session, rss, bpkg)
+                    remove_binary_package(session, rss, bpkg)
 
 
 @click.command()
