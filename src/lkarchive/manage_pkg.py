@@ -32,7 +32,6 @@ from laniakea.archive import (
 from laniakea.archive.manage import (
     expire_superseded,
     copy_source_package,
-    package_mark_delete,
     remove_binary_package,
 )
 
@@ -239,7 +238,6 @@ def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary:
 
             if remove_confirmed:
                 for bpkg in bpkgs:
-                    package_mark_delete(session, rss, bpkg)
                     remove_binary_package(session, rss, bpkg)
 
 

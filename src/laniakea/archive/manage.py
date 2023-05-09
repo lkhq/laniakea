@@ -36,7 +36,7 @@ class ArchiveRemoveError(ArchiveError):
     """Failed to remove an entity from the package archive."""
 
 
-def remove_binary_package(session, rss, bpkg: BinaryPackage) -> bool:
+def remove_binary_package(session, rss, bpkg: BinaryPackage, *, force_delete=False) -> bool:
     """Remove a binary package from the archive.
     This function will unconditionally delete a specific binary package from the archive.
     If the source package it belongs to is still in many suites, this will lead to issues like
@@ -62,6 +62,21 @@ def remove_binary_package(session, rss, bpkg: BinaryPackage) -> bool:
                 bpkg.name, bpkg.version, rss.repo.name, rss.suite.name
             )
         )
+
+    if rss.suite in bpkg.suites:
+        bpkg.suites.remove(rss.suite)
+        archive_log.info(
+            '%s: %s/%s @ %s/%s',
+            'DELETED-SUITE-BIN',
+            bpkg.name,
+            bpkg.version,
+            rss.repo.name,
+            rss.suite.name,
+        )
+        log.info('Removed binary package from %s:%s: %s', rss.repo.name, rss.suite.name, str(bpkg))
+
+    if bpkg.suites and not force_delete:
+        return True
 
     log.info('Deleting binary package %s', str(bpkg))
     bin_fname_full = os.path.join(rss.repo.get_root_dir(), bpkg.bin_file.fname)
@@ -136,7 +151,7 @@ def remove_source_package(
                     )
                 )
             # drop the associated binary, even if it might be in a different repository
-            remove_binary_package(session, bpkg_rss, bpkg)
+            remove_binary_package(session, bpkg_rss, bpkg, force_delete=True)
 
             # the source package is *completely* gone from this repository, so there is no need
             # to keep overrides around - we just drop them if no other source has adopted them.
