@@ -366,18 +366,17 @@ templates_spears = {'_lk.spears.new-excuse': pretty_excuse_change, '_lk.spears.e
 
 
 def pretty_debcheck_issue_change(tag, data):
-    data['architectures_str'] = ' '.join(data.get('architectures', ['?']))
     if tag == '_lk.debcheck.issue-resolved':
         tmpl = (
             'Dependency issue for <em>{package_type}</em> package <b>{package_name}</b> {package_version} on '
-            '\N{GEAR}{architectures_str} in <em>{repo}</em> <b>{suite}</b> was ' + green('resolved') + ' 🎉'
+            '\N{GEAR}{architectures} in <em>{repo}</em> <b>{suite}</b> was ' + green('resolved') + ' 🎉'
         )
     elif tag == '_lk.debcheck.issue-found':
         tmpl = (
             'Found '
             + red('new dependency issue')
             + ' for <em>{package_type}</em> package <b>{package_name}</b> {package_version} on '
-            '\N{GEAR}{architectures_str} in <em>{repo}</em> <b>{suite}</b> '
+            '\N{GEAR}{architectures} in <em>{repo}</em> <b>{suite}</b> '
             '| <a href="{url_webview}/depcheck/{repo}/{suite}/issue/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>'
         )
     else:
