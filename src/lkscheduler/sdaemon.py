@@ -306,11 +306,12 @@ class SchedulerDaemon:
             coalesce=True,
             replace_existing=True,
         )
-        self._job_setup_todo.remove('internal-log-rotate')
+        self._job_setup_todo.discard('internal-log-rotate')
 
         # remove all jobs that we haven't configured and which are therefore stale
         for job_id in self._job_setup_todo:
             self._jobstore.remove_job(job_id)
+        self._job_setup_todo = set()
 
     def _configure_job(self, func, job_id, job_name, *, jitter):
         """Add or update a job."""
