@@ -161,7 +161,9 @@ def task_debcheck(registry: JobsRegistry):
             start_new_session=True,
             check=False,
         )
-        if proc.returncode != 0:
+        if proc.returncode == 0:
+            scheduler_log.info('Debcheck: Success.')
+        else:
             scheduler_log.error('Debcheck binaries check: Error: %s', str(proc.stdout, 'utf-8'))
 
 
@@ -201,7 +203,9 @@ def task_synchrotron_autosync(registry: JobsRegistry):
             start_new_session=True,
             check=False,
         )
-        if proc.returncode != 0:
+        if proc.returncode == 0:
+            scheduler_log.info('Synchrotron Autosync: Success.')
+        else:
             scheduler_log.error('Synchrotron Autosync: Error: %s', str(proc.stdout, 'utf-8'))
 
 
