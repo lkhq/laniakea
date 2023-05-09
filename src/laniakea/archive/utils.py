@@ -148,7 +148,7 @@ def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourceP
     missing = []
     rss_dbg = repo_suite_settings_for_debug(session, rss)
     for bin in spkg.expected_binaries:
-        if rss_dbg and bin.section == 'debug':
+        if rss_dbg and bin.section == 'debug' and bin.name.endswith('-dbgsym'):
             res = (
                 session.query(PackageOverride.id)
                 .filter(
@@ -293,7 +293,7 @@ def register_package_overrides(
     rss_dbg = None
     for pi in overrides:
         real_rss = rss
-        if pi.section == 'debug':
+        if pi.section == 'debug' and pi.name.endswith('-dbgsym'):
             # we have a debug package, which may live in a different repo/suite
             if not rss_dbg:
                 rss_dbg = repo_suite_settings_for_debug(session, rss)

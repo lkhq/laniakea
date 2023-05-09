@@ -424,7 +424,7 @@ def _import_repo_into_suite(
             fname = src_repo.get_file(bpkg_src.bin_file)
 
             rss_dest_real = rss_dest
-            if bpkg_src.override.section == 'debug':
+            if bpkg_src.override.section == 'debug' and bpkg_src.name.endswith('-dbgsym'):
                 # we have a debug package, which may live in a different repo/suite
                 rss_dest_real = rss_dest_dbg
 

@@ -638,7 +638,7 @@ class PackageImporter:
         section = override_section if override_section else bin_tf.get('Section')
         if '/' in section:
             deb_component, section = section.split('/')
-        is_debug_pkg = True if section == 'debug' else False
+        is_debug_pkg = True if section == 'debug' and pkgname.endswith('-dbgsym') else False
         if is_debug_pkg:
             deb_rss = repo_suite_settings_for_debug(self._session, self._rss)
             if not deb_rss:
