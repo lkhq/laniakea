@@ -516,6 +516,28 @@ class PackageType(enum.Enum):
     SOURCE = enum.auto()
     BINARY = enum.auto()
 
+    @staticmethod
+    def to_string(e):
+        if e == PackageType.SOURCE:
+            return 'source'
+        elif e == PackageType.BINARY:
+            return 'binary'
+        return 'unknown'
+
+    def __str__(self):
+        return PackageType.to_string(self)
+
+    @staticmethod
+    def from_string(s: str) -> 'PackageType':
+        """
+        Convert the text representation into the enumerated type.
+        """
+        if s == 'source':
+            return PackageType.SOURCE
+        elif s == 'binary':
+            return PackageType.BINARY
+        return PackageType.UNKNOWN
+
 
 class DebType(enum.IntEnum):
     """

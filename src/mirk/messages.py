@@ -231,9 +231,10 @@ def pretty_binary_package_published(tag, data):
 
 
 def pretty_package_upload_accepted(tag, data):
+    data['changes'] = data['changes'].replace('\n', '<br/>')
     if data['is_new']:
         tmpl = (
-            'Accepted upload {upload_name} by {uploader_name} containing {source_name}/{source_version} into the '
+            'Accepted upload <code>{upload_name}</code> by {uploader_name} containing <b>{source_name}</b>/{source_version} into the '
             + purple('review queue')
             + ' for {repo}. '
             'Changes:<br/><blockquote>{changes}</blockquote><br/>'
@@ -243,7 +244,7 @@ def pretty_package_upload_accepted(tag, data):
     else:
         tmpl = (
             green('Accepted')
-            + ' upload {upload_name} by {uploader_name} containing {source_name}/{source_version} into {repo}. '
+            + ' upload <code>{upload_name}</code> by {uploader_name} containing <b>{source_name}</b>/{source_version} into {repo}. '
             'Changes:<br/><blockquote>{changes}</blockquote>'
         )
     return tmpl.format(**data)
@@ -351,11 +352,44 @@ def pretty_excuse_change(tag, data):
                 + '</em> → <em>{suite_target}</em>. '
                 + old_ver_info
             )
+    else:
+        raise ValueError('Found unknown Spears issue tag: {}'.format(tag))
 
     return tmpl.format(**data)
 
 
 templates_spears = {'_lk.spears.new-excuse': pretty_excuse_change, '_lk.spears.excuse-removed': pretty_excuse_change}
+
+#
+# Templates for Debcheck
+#
+
+
+def pretty_debcheck_issue_change(tag, data):
+    data['architectures_str'] = ' '.join(data.get('architectures', ['?']))
+    if tag == '_lk.debcheck.issue-resolved':
+        tmpl = (
+            'Dependency issue for <em>{package_type}</em> package <b>{package_name}</b> {package_version} on '
+            '\N{GEAR}{architectures_str} in <em>{repo}</em> <b>{suite}</b> was ' + green('resolved') + ' 🎉'
+        )
+    elif tag == '_lk.debcheck.issue-found':
+        tmpl = (
+            'Found '
+            + red('new dependency issue')
+            + ' for <em>{package_type}</em> package <b>{package_name}</b> {package_version} on '
+            '\N{GEAR}{architectures_str} in <em>{repo}</em> <b>{suite}</b> '
+            '| <a href="{url_webview}/depcheck/{suite}/issue/{uuid}">\N{CIRCLED INFORMATION SOURCE}</a>'
+        )
+    else:
+        raise ValueError('Found unknown Debcheck issue tag: {}'.format(tag))
+
+    return tmpl.format(**data)
+
+
+templates_debcheck = {
+    '_lk.debcheck.issue-resolved': pretty_debcheck_issue_change,
+    '_lk.debcheck.issue-found': pretty_debcheck_issue_change,
+}
 
 
 #
@@ -368,3 +402,4 @@ message_templates.update(templates_rubicon)
 message_templates.update(templates_isotope)
 message_templates.update(templates_archive)
 message_templates.update(templates_spears)
+message_templates.update(templates_debcheck)

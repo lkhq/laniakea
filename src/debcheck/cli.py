@@ -17,6 +17,7 @@ from argparse import ArgumentParser
 import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import (
+    LkModule,
     PackageType,
     ArchiveSuite,
     DebcheckIssue,
@@ -25,6 +26,7 @@ from laniakea.db import (
     session_scope,
 )
 from laniakea.logging import log
+from laniakea.msgstream import EventEmitter
 
 from .dose import DoseDebcheck
 
@@ -56,9 +58,23 @@ def _create_debcheck(session, repo_name: T.Optional[str], suite_name: T.Optional
     return DoseDebcheck(session, repo), repo, scan_suites
 
 
-def _update_debcheck_issues(session, repo, suite, new_issues, package_type):
+def _update_debcheck_issues(session, repo: ArchiveRepository, suite: ArchiveSuite, found_issues, package_type) -> None:
     """Refresh the database entries and remove obsolete issues."""
     log.info('Updating issues and discarding old entries for %s/%s', repo.name, suite.name)
+
+    emitter = EventEmitter(LkModule.DEBCHECK)
+
+    def event_data_for_issue(issue: DebcheckIssue):
+        event_data = {
+            'time_created': issue.time.isoformat(),
+            'package_type': PackageType.to_string(issue.package_type),
+            'repo': issue.repo.name,
+            'suite': issue.suite.name,
+            'architectures': issue.architectures,
+            'package_name': issue.package_name,
+            'package_version': issue.package_version,
+        }
+        return event_data
 
     # remove old entries
     res = (
@@ -75,16 +91,47 @@ def _update_debcheck_issues(session, repo, suite, new_issues, package_type):
     for e in res:
         stale_issue_uuids.add(e[0])
 
+    newly_added_issues: list[DebcheckIssue] = []
+    stale_issues: list[DebcheckIssue] = []
+
     # diff new entries against old one and ensure the package type
     # is set correctly, as it sometimes is not explicitly set in Dose reports
-    for issue in new_issues:
+    for issue in found_issues:
         issue.package_type = package_type
-        stale_issue_uuids.discard(issue.uuid)
+        if issue.uuid in stale_issue_uuids:
+            stale_issue_uuids.discard(issue.uuid)
+        else:
+            newly_added_issues.append(issue)
+
+    for uuid in stale_issue_uuids:
+        stale_issues.append(session.query(DebcheckIssue).filter(DebcheckIssue.uuid == uuid).one())
 
     # delete obsolete entries
-    for uuid in stale_issue_uuids:
-        log.debug('Discarding obsolete issue in %s/%s: %s', repo.name, suite.name, uuid)
-        session.query(DebcheckIssue).filter(DebcheckIssue.uuid == uuid).delete()
+    for stale_issue in stale_issues:
+        log.debug(
+            'Discarding obsolete issue in %s/%s for %s/%s/%s',
+            repo.name,
+            suite.name,
+            stale_issue.package_type,
+            stale_issue.package_name,
+            stale_issue.package_version,
+        )
+        emitter.submit_event('issue-resolved', event_data_for_issue(stale_issue))
+        session.delete(stale_issue)
+
+    # emit messages for new issues
+    for new_issue in newly_added_issues:
+        log.debug(
+            'Found new issue in %s/%s for %s/%s/%s',
+            repo.name,
+            suite.name,
+            new_issue.package_type,
+            new_issue.package_name,
+            new_issue.package_version,
+        )
+        event_data = event_data_for_issue(new_issue)
+        event_data['uuid'] = str(new_issue.uuid)
+        emitter.submit_event('issue-found', event_data)
 
     # make the result persistent
     session.commit()
