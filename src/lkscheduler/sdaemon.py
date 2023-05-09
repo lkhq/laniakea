@@ -303,6 +303,7 @@ class SchedulerDaemon:
             jitter=60,
             minutes=60,
             max_instances=1,
+            coalesce=True,
             replace_existing=True,
         )
         self._job_setup_todo.remove('internal-log-rotate')
@@ -334,6 +335,8 @@ class SchedulerDaemon:
                 minutes=intervals_min[job_id],
                 max_instances=1,
                 next_run_time=next_run_time,
+                misfire_grace_time=None,
+                coalesce=True,
                 replace_existing=True,
             )
             self._registry.set_job(job)

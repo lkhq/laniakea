@@ -13,8 +13,8 @@ __mainfile = None
 def run_server(options):
     from laniakea.logging import set_verbose
     from laniakea.utils.misc import ensure_laniakea_master_user
+    from lkscheduler.sdaemon import SchedulerDaemon
     from laniakea.localconfig import LocalConfig
-    from lkscheduler.scheduler_daemon import SchedulerDaemon
 
     set_verbose(options.verbose)
     if options.config_fname:
@@ -37,7 +37,7 @@ def check_print_version(options):
 
 
 def create_parser():
-    '''Create Laniakea Scheduler CLI argument parser'''
+    """Create Laniakea Scheduler CLI argument parser"""
 
     parser = ArgumentParser(description='Archive management task scheduler')
 
