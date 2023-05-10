@@ -682,7 +682,7 @@ class PackageImporter:
             if not ignore_version_check:
                 raise ArchiveImportError(
                     'Unable to import binary package "{}": '
-                    'We have already seen higher version "{}" in this repository before.'.format(
+                    'We have already seen higher version "{}" in this repository/suite before.'.format(
                         pkgname, high_ver_res[0]
                     )
                 )
