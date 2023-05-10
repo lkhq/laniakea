@@ -3,8 +3,8 @@
 # Copyright (C) 2021-2022 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
-
 import sys
+import logging
 
 import rich
 import click
@@ -20,6 +20,7 @@ from laniakea.db import (
     ArchiveSection,
     PackageOverride,
     PackagePriority,
+    ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
     session_scope,
 )
@@ -159,6 +160,26 @@ def print_package_details(pkgs: list[SourcePackage] | list[BinaryPackage]):
     console.print(table)
 
 
+def _delete_package_vmem(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[SourcePackage, BinaryPackage]):
+    """
+    Remove version memory of package.
+    """
+
+    arch_name = 'source' if isinstance(pkg, SourcePackage) else pkg.architecture.name
+    vmem = (
+        session.query(ArchiveVersionMemory)
+        .filter(
+            ArchiveVersionMemory.repo_suite_id == rss.id,
+            ArchiveVersionMemory.pkg_name == pkg.name,
+            ArchiveVersionMemory.arch_name == arch_name,
+        )
+        .one_or_none()
+    )
+    if vmem:
+        logging.warning('Deleting version memory for: %s', str(pkg))
+        session.delete(vmem)
+
+
 @click.command('remove')
 @click.option(
     '--repo',
@@ -174,8 +195,9 @@ def print_package_details(pkgs: list[SourcePackage] | list[BinaryPackage]):
     help='Name of the suite to act on.',
 )
 @click.option('--binary', 'is_binary', is_flag=True, default=False, help='The targeted package is a binary package')
+@click.option('--nuke', 'rm_vmem', is_flag=True, default=False, help='Delete past version memory as well.')
 @click.argument('pkgname', nargs=1)
-def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary: bool = False):
+def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary: bool = False, rm_vmem: bool = False):
     """Delete a source package (and its binaries) or a binary package."""
 
     if not repo_name:
@@ -216,6 +238,10 @@ def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary:
 
             if remove_confirmed:
                 for spkg in spkgs:
+                    if rm_vmem:
+                        for bpkg in spkg.binaries:
+                            _delete_package_vmem(session, rss, bpkg)
+                        _delete_package_vmem(session, rss, spkg)
                     remove_source_package(session, rss, spkg)
         else:
             # we want to remove a binary package
@@ -238,6 +264,8 @@ def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary:
 
             if remove_confirmed:
                 for bpkg in bpkgs:
+                    if rm_vmem:
+                        _delete_package_vmem(session, rss, bpkg)
                     remove_binary_package(session, rss, bpkg)
 
 
