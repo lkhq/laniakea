@@ -266,10 +266,10 @@ templates_archive = {
         '<bgrey><em>[{component}]</em></bgrey> was <orange>removed</orange> from the archive.'
     ),
     '_lk.archive.package-src-suite-deleted': (
-        'Source package <b>{pkg_name}/{pkg_version}</b> was deleted from <em>{suite}</em> in <em>{repo}</em>.'
+        'Source package <b>{pkg_name}/{pkg_version}</b> was <orange>deleted</orange> from <em>{suite}</em> in <em>{repo}</em>.'
     ),
     '_lk.archive.package-src-marked-removal': (
-        'Source package <b>{pkg_name}/{pkg_version}</b> was <red>marked for removal</red> in <em>{repo}</em>.'
+        'Source package <b>{pkg_name}/{pkg_version}</b> was <orange>marked for removal</orange> in <em>{repo}</em>.'
     ),
     '_lk.archive.package-src-removed': (
         'Source package <b>{pkg_name}/{pkg_version}</b> was <red>deleted</red> from <em>{repo}</em>.'
