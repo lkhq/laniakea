@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import json
+import uuid
 from uuid import uuid4
 from datetime import datetime
 
@@ -14,7 +15,10 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
 from .base import UUID, Base, DebVersion
-from .archive import PackageType
+from .archive import PackageType, ArchiveSuite, ArchiveRepository
+
+# UUID namespace for uuid5 IDs for Debcheck entities
+DEBCHECK_ENTITY_UUID = uuid.UUID('43f7d768-7cce-4bd7-90ce-1ea6dec23a60')
 
 
 class PackageIssue(Schema):
@@ -80,6 +84,28 @@ class DebcheckIssue(Base):
 
     _missing = None
     _conflicts = None
+
+    @staticmethod
+    def generate_uuid(issue, repo: ArchiveRepository | None, suite: ArchiveSuite | None):
+        """Issue entities have a UUID based on a set of data, this function generates the UUID."""
+        if not repo:
+            repo = issue.repo
+        if not suite:
+            suite = issue.suite
+        return uuid.uuid5(
+            DEBCHECK_ENTITY_UUID,
+            '{}:{}:{}:{}/{} [{}]'.format(
+                repo.id,
+                suite.id,
+                issue.package_type.value,
+                issue.package_name,
+                issue.package_version,
+                ' '.join(issue.architectures),
+            ),
+        )
+
+    def update_uuid(self, repo: ArchiveRepository | None = None, suite: ArchiveSuite | None = None):
+        self.uuid = DebcheckIssue.generate_uuid(self, repo, suite)
 
     @property
     def missing(self):

@@ -5,28 +5,17 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
-import uuid
 import subprocess
 from datetime import datetime
 
 import yaml
 
 import laniakea.typing as T
-from laniakea.db import (
-    PackageType,
-    ArchiveSuite,
-    PackageIssue,
-    DebcheckIssue,
-    PackageConflict,
-    ArchiveRepository,
-)
+from laniakea.db import PackageType, PackageIssue, DebcheckIssue, PackageConflict
 from laniakea.utils import process_file_lock
 from laniakea.logging import log
 from laniakea.reporeader import RepositoryReader
 from laniakea.localconfig import LocalConfig
-
-# UUID namespace for uuid5 IDs for Debcheck entities
-DEBCHECK_ENTITY_UUID = uuid.UUID('43f7d768-7cce-4bd7-90ce-1ea6dec23a60')
 
 
 class DoseDebcheck:
@@ -185,30 +174,7 @@ class DoseDebcheck:
 
         return arch_issue_map
 
-    def _make_issue_uuid(
-        self,
-        issue: DebcheckIssue,
-        repo: T.Optional[ArchiveRepository] = None,
-        suite: T.Optional[ArchiveSuite] = None,
-    ):
-        """Issue entities have an UUID based on a set of data, this function generates the UUID."""
-        if not repo:
-            repo = issue.repo
-        if not suite:
-            suite = issue.suite
-        return uuid.uuid5(
-            DEBCHECK_ENTITY_UUID,
-            '{}:{}:{}:{}/{} [{}]'.format(
-                repo.id,
-                suite.id,
-                issue.package_type.value,
-                issue.package_name,
-                issue.package_version,
-                ' '.join(issue.architectures),
-            ),
-        )
-
-    def _dose_yaml_to_issues(self, yaml_data, suite, arch_name):
+    def _dose_yaml_to_issues(self, yaml_data, suite, arch_name, package_type_override=None):
         def set_basic_package_info(v: T.Union[PackageIssue, DebcheckIssue], entry):
             if 'type' in entry and entry['type'] == 'src':
                 v.package_type = PackageType.SOURCE
@@ -240,13 +206,17 @@ class DoseDebcheck:
             missing = []
             conflicts = []
             set_basic_package_info(issue, entry)
-            issue_uuid = self._make_issue_uuid(issue, self._repo, suite)
+            if package_type_override:
+                issue.package_type = package_type_override
+            issue_uuid = DebcheckIssue.generate_uuid(issue, self._repo, suite)
 
             existing_issue = self._session.query(DebcheckIssue).filter(DebcheckIssue.uuid == issue_uuid).one_or_none()
             if existing_issue:
                 # update the existing issue
                 issue = existing_issue
                 set_basic_package_info(issue, entry)
+                if package_type_override:
+                    issue.package_type = package_type_override
             else:
                 # add the new issue
                 issue.uuid = issue_uuid
@@ -314,7 +284,7 @@ class DoseDebcheck:
         with process_file_lock('publish_{}-{}'.format(self._repo.name, suite.name), wait=True):
             issues_yaml = self._generate_build_depcheck_yaml(suite)
         for arch_name, yaml_data in issues_yaml.items():
-            issues.extend(self._dose_yaml_to_issues(yaml_data, suite, arch_name))
+            issues.extend(self._dose_yaml_to_issues(yaml_data, suite, arch_name, PackageType.SOURCE))
 
         return issues
 
@@ -325,6 +295,6 @@ class DoseDebcheck:
         with process_file_lock('publish_{}-{}'.format(self._repo.name, suite.name), wait=True):
             issues_yaml = self._generate_depcheck_yaml(suite)
         for arch_name, yaml_data in issues_yaml.items():
-            issues.extend(self._dose_yaml_to_issues(yaml_data, suite, arch_name))
+            issues.extend(self._dose_yaml_to_issues(yaml_data, suite, arch_name, PackageType.BINARY))
 
         return issues

@@ -94,10 +94,8 @@ def _update_debcheck_issues(session, repo: ArchiveRepository, suite: ArchiveSuit
     newly_added_issues: list[DebcheckIssue] = []
     stale_issues: list[DebcheckIssue] = []
 
-    # diff new entries against old one and ensure the package type
-    # is set correctly, as it sometimes is not explicitly set in Dose reports
+    # sort out new entries and old ones
     for issue in found_issues:
-        issue.package_type = package_type
         if issue.uuid in stale_issue_uuids:
             stale_issue_uuids.discard(issue.uuid)
         else:
