@@ -369,11 +369,9 @@ def pretty_debcheck_issue_change(tag, data):
 
 
 templates_debcheck = {
-    # NOTE: These messages are disabled for now, because there are many of them and they generate a lot of noise.
-    # TODO: Make displaying these a configurable setting.
-    # '_lk.debcheck.issue-resolved': pretty_debcheck_issue_change,
-    # '_lk.debcheck.issue-found': pretty_debcheck_issue_change,
-    '_lk.debcheck.check-completed': pretty_debcheck_issue_change
+    '_lk.debcheck.issue-resolved': pretty_debcheck_issue_change,
+    '_lk.debcheck.issue-found': pretty_debcheck_issue_change,
+    '_lk.debcheck.check-completed': pretty_debcheck_issue_change,
 }
 
 

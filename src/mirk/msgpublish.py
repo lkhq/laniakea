@@ -27,6 +27,10 @@ from .messages import (
 )
 from .matrix_client import MirkMatrixClient
 
+# These messages are disabled for now, because there are many of them and they generate a lot of noise.
+# TODO: Make displaying these a configurable setting.
+EVENT_TAG_BLACKLIST = {'_lk.debcheck.issue-resolved', '_lk.debcheck.issue-found'}
+
 
 class RoomSettings:
     filter_rules: list[dict[str, Any]] = []
@@ -146,6 +150,10 @@ class MatrixPublisher:
     async def _on_event_received(self, event):
         tag = event['tag']
         data = event['data']
+
+        # don't react to blacklisted tags
+        if tag in EVENT_TAG_BLACKLIST:
+            return
 
         signatures = event.get('signatures')
         signature_trusted = False
