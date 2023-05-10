@@ -58,9 +58,16 @@ def _create_debcheck(session, repo_name: T.Optional[str], suite_name: T.Optional
     return DoseDebcheck(session, repo), repo, scan_suites
 
 
-def _update_debcheck_issues(session, repo: ArchiveRepository, suite: ArchiveSuite, found_issues, package_type) -> None:
+def _cleanup_and_emit_debcheck_issues(
+    session,
+    repo: ArchiveRepository,
+    suite: ArchiveSuite,
+    new_issues: list[DebcheckIssue],
+    all_issues: list[DebcheckIssue],
+    package_type: PackageType,
+) -> None:
     """Refresh the database entries and remove obsolete issues."""
-    log.info('Updating issues and discarding old entries for %s/%s', repo.name, suite.name)
+    log.info('Emitting issues and discarding old entries for %s/%s', repo.name, suite.name)
 
     emitter = EventEmitter(LkModule.DEBCHECK)
 
@@ -91,16 +98,11 @@ def _update_debcheck_issues(session, repo: ArchiveRepository, suite: ArchiveSuit
     for e in res:
         stale_issue_uuids.add(e[0])
 
-    newly_added_issues: list[DebcheckIssue] = []
     stale_issues: list[DebcheckIssue] = []
 
-    # sort out new entries and old ones
-    for issue in found_issues:
-        if issue.uuid in stale_issue_uuids:
-            stale_issue_uuids.discard(issue.uuid)
-        else:
-            newly_added_issues.append(issue)
-
+    # find obsolete entries
+    for issue in all_issues:
+        stale_issue_uuids.discard(issue.uuid)
     for uuid in stale_issue_uuids:
         stale_issues.append(session.query(DebcheckIssue).filter(DebcheckIssue.uuid == uuid).one())
 
@@ -118,7 +120,7 @@ def _update_debcheck_issues(session, repo: ArchiveRepository, suite: ArchiveSuit
         session.delete(stale_issue)
 
     # emit messages for new issues
-    for new_issue in newly_added_issues:
+    for new_issue in new_issues:
         log.debug(
             'Found new issue in %s/%s for %s/%s/%s',
             repo.name,
@@ -137,7 +139,7 @@ def _update_debcheck_issues(session, repo: ArchiveRepository, suite: ArchiveSuit
             'package_type': PackageType.to_string(package_type),
             'repo': repo.name,
             'suite': suite.name,
-            'new_issues_count': len(newly_added_issues),
+            'new_issues_count': len(new_issues),
             'resolved_issues_count': len(stale_issues),
         },
     )
@@ -154,8 +156,8 @@ def command_sources(options):
 
         for suite in scan_suites:
             log.info('Checking source packages in %s/%s', repo.name, suite.name)
-            issues = debcheck.fetch_build_depcheck_issues(suite)
-            _update_debcheck_issues(session, repo, suite, issues, PackageType.SOURCE)
+            new_issues, all_issues = debcheck.fetch_build_depcheck_issues(suite)
+            _cleanup_and_emit_debcheck_issues(session, repo, suite, new_issues, all_issues, PackageType.SOURCE)
 
 
 def command_binaries(options):
@@ -166,8 +168,8 @@ def command_binaries(options):
 
         for suite in scan_suites:
             log.info('Checking binary packages in %s/%s', repo.name, suite.name)
-            issues = debcheck.fetch_depcheck_issues(suite)
-            _update_debcheck_issues(session, repo, suite, issues, PackageType.BINARY)
+            new_issues, all_issues = debcheck.fetch_depcheck_issues(suite)
+            _cleanup_and_emit_debcheck_issues(session, repo, suite, new_issues, all_issues, PackageType.BINARY)
 
 
 def create_parser(formatter_class=None):

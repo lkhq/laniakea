@@ -185,14 +185,15 @@ class DoseDebcheck:
             v.package_version = str(entry['version'])
             v.architectures = str(entry['architecture']).split(',')
 
-        res = []
+        new_issues = []
+        all_issues = []
         yroot = yaml.safe_load(yaml_data)
         report = yroot['report']
         arch_is_all = arch_name == 'all'
 
         # if the report is empty, we have no issues to generate and can quit
         if not report:
-            return res
+            return new_issues, all_issues
 
         for entry in report:
             if not arch_is_all:
@@ -210,6 +211,7 @@ class DoseDebcheck:
                 issue.package_type = package_type_override
             issue_uuid = DebcheckIssue.generate_uuid(issue, self._repo, suite)
 
+            is_new = False
             existing_issue = self._session.query(DebcheckIssue).filter(DebcheckIssue.uuid == issue_uuid).one_or_none()
             if existing_issue:
                 # update the existing issue
@@ -219,6 +221,7 @@ class DoseDebcheck:
                     issue.package_type = package_type_override
             else:
                 # add the new issue
+                is_new = True
                 issue.uuid = issue_uuid
                 issue.repo = self._repo
                 issue.suite = suite
@@ -273,28 +276,38 @@ class DoseDebcheck:
                 issue.missing = missing
                 issue.conflicts = conflicts
 
-            res.append(issue)
+            all_issues.append(issue)
+            if is_new:
+                new_issues.append(issue)
 
-        return res
+        return new_issues, all_issues
 
-    def fetch_build_depcheck_issues(self, suite):
+    def fetch_build_depcheck_issues(self, suite) -> tuple[list[DebcheckIssue], list[DebcheckIssue]]:
         '''Get a list of build-dependency issues affecting the suite'''
 
-        issues = []
         with process_file_lock('publish_{}-{}'.format(self._repo.name, suite.name), wait=True):
             issues_yaml = self._generate_build_depcheck_yaml(suite)
+
+        new_issues = []
+        all_issues = []
         for arch_name, yaml_data in issues_yaml.items():
-            issues.extend(self._dose_yaml_to_issues(yaml_data, suite, arch_name, PackageType.SOURCE))
+            new_i, all_i = self._dose_yaml_to_issues(yaml_data, suite, arch_name, PackageType.SOURCE)
+            new_issues.extend(new_i)
+            all_issues.extend(all_i)
 
-        return issues
+        return new_issues, all_issues
 
-    def fetch_depcheck_issues(self, suite):
+    def fetch_depcheck_issues(self, suite) -> tuple[list[DebcheckIssue], list[DebcheckIssue]]:
         '''Get a list of dependency issues affecting the suite'''
 
-        issues = []
         with process_file_lock('publish_{}-{}'.format(self._repo.name, suite.name), wait=True):
             issues_yaml = self._generate_depcheck_yaml(suite)
-        for arch_name, yaml_data in issues_yaml.items():
-            issues.extend(self._dose_yaml_to_issues(yaml_data, suite, arch_name, PackageType.BINARY))
 
-        return issues
+        new_issues = []
+        all_issues = []
+        for arch_name, yaml_data in issues_yaml.items():
+            new_i, all_i = self._dose_yaml_to_issues(yaml_data, suite, arch_name, PackageType.BINARY)
+            new_issues.extend(new_i)
+            all_issues.extend(all_i)
+
+        return new_issues, all_issues
