@@ -219,12 +219,12 @@ def pretty_binary_package_published(tag, data):
 
 
 def pretty_package_upload_accepted(tag, data):
-    data['changes'] = data['changes'].replace('\n', '<br/>')
+    data['changes'] = data['changes'].strip().replace('\n', '<br/>')
     if data['is_new']:
         tmpl = (
             'Accepted upload <code>{upload_name}</code> by {uploader_name} containing <b>{source_name}</b>/{source_version} '
             'into the <purple>review queue</purple> for {repo}. '
-            'Changes:<br/><blockquote>{changes}</blockquote><br/>'
+            'Changes:<br/><blockquote>{changes}</blockquote>'
             '<purple>Review</purple> the upload <a href="{url_webview}/review">here</a>'
         )
     else:
@@ -237,7 +237,7 @@ def pretty_package_upload_accepted(tag, data):
 
 
 def pretty_package_upload_rejected(tag, data):
-    tmpl = '<red>Rejected</red> upload {upload_name} by {uploader_name} into {repo}. Reason:<br/><blockquote>{reason}</blockquote>'
+    tmpl = '<red>Rejected</red> upload {upload_name} by {uploader_name} for {repo}. Reason:<br/><blockquote>{reason}</blockquote>'
     return render_template_colors(tmpl).format(**data)
 
 
