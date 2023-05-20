@@ -125,6 +125,7 @@ class JobWorker:
         info['version'] = job_version
         info['architecture'] = job_dict['architecture']
         info['time_created'] = job.time_created.isoformat()
+        info['repo'] = self._lconf.master_repo_name
 
         if job_kind == JobKind.PACKAGE_BUILD:
             # Sanity check for broken configuration (archive URL is not mandatory (yet))
@@ -159,10 +160,10 @@ class JobWorker:
             else:
                 suite_target_name = self._default_incoming_suite_name
 
+            info['repo'] = spkg.repo.name
             jdata['package_name'] = spkg.name
             jdata['package_version'] = spkg.version
             jdata['maintainer'] = spkg.maintainer
-            jdata['repo'] = spkg.repo.name
             jdata['suite'] = suite_target_name
             jdata['dsc_url'] = None
 
