@@ -633,6 +633,7 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
             user_index[user.email] = user
 
         uploader_fprs = set(retrieve_uploader_fingerprints())
+        used_fprs = set()
 
         valid_users_found = False
         for uconf_fname in Path(dir_path).rglob('user.toml'):
@@ -683,9 +684,9 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
 
             # update GPG keys
             for fpr in fingerprints:
+                used_fprs.add(fpr)
                 # check if we already have the key
                 if fpr in uploader_fprs:
-                    uploader_fprs.remove(fpr)
                     continue
                 log.info('Importing key %s for %s', fpr, email)
                 import_key_file_for_uploader(user, os.path.join(uconf_root, fpr + '.asc'))
@@ -698,6 +699,6 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
                 log.info('Removing user %s', user.email)
                 session.delete(user)
 
-            for orphan_fpr in uploader_fprs:
+            for orphan_fpr in uploader_fprs - used_fprs:
                 log.warning('Found orphaned key %s in archive uploader keyring - deleting it.', orphan_fpr)
                 delete_uploader_key(orphan_fpr)
