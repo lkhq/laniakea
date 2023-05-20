@@ -154,16 +154,6 @@ class JobWorker:
                 # This not an error the client needs to know about
                 return None
 
-            if not job.data:
-                job.status = JobStatus.TERMINATED
-                job.latest_log_excerpt = (
-                    'Required data was missing to perform this job. This is an internal server error.'
-                )
-                session.commit()
-
-                # This not an error the client needs to know about
-                return None
-
             if job.suite:
                 suite_target_name = job.suite.name
             else:
@@ -281,19 +271,21 @@ class JobWorker:
                     job = self._assign_suitable_job(session, accepted_kind, arch_name, worker.uuid)
 
                 if job:
-                    job_data = self._get_job_details(session, job)
                     job_assigned = True
-
-                    event_data = {
-                        'job_id': job_data['uuid'],
-                        'client_name': client_name,
-                        'client_id': client_id,
-                        'job_module': job_data['module'],
-                        'job_kind': job_data['kind'],
-                        'job_version': job_data['version'],
-                        'job_architecture': job_data['architecture'],
-                    }
-                    self._emit_event('job-assigned', event_data)
+                    job_data = self._get_job_details(session, job)
+                    if not job_data:
+                        log.error('Unable to determine details for job %s', str(job))
+                    else:
+                        event_data = {
+                            'job_id': job_data['uuid'],
+                            'client_name': client_name,
+                            'client_id': client_id,
+                            'job_module': job_data['module'],
+                            'job_kind': job_data['kind'],
+                            'job_version': job_data['version'],
+                            'job_architecture': job_data['architecture'],
+                        }
+                        self._emit_event('job-assigned', event_data)
                     break
             if job_assigned:
                 break
