@@ -952,11 +952,13 @@ class PackageOverride(Base):
     component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
     component = relationship('ArchiveComponent')  # Component this override is for
 
-    section_id = Column(Integer, ForeignKey('archive_sections.id'))
+    section_id = Column(Integer, ForeignKey('archive_sections.id'), nullable=False)
     section = relationship('ArchiveSection')  # Section of the package
 
-    def __init__(self, pkgname: str):
+    def __init__(self, pkgname: str, repo: ArchiveRepository, suite: ArchiveSuite):
         self.pkg_name = pkgname
+        self.repo = repo
+        self.suite = suite
 
 
 idx_pkgs_binary_repo_arch = Index(
@@ -981,21 +983,21 @@ class BinaryPackage(Base):
     version = Column(DebVersion())  # Version of this package
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo = relationship('ArchiveRepository')  # Repository this package belongs to
+    repo = relationship('ArchiveRepository', cascade=None)  # Repository this package belongs to
 
     suites = relationship(
-        'ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='pkgs_binary'
+        'ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='pkgs_binary', cascade=None
     )  # Suites this package is in
 
     component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
-    component = relationship('ArchiveComponent')  # Component this package is in
+    component = relationship('ArchiveComponent', cascade=None)  # Component this package is in
 
     architecture_id = Column(Integer, ForeignKey('archive_architectures.id'), nullable=False)
     # Architecture this binary was built for
     architecture = relationship('ArchiveArchitecture', back_populates='pkgs_binary', cascade=None)
 
     source_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
-    source = relationship('SourcePackage', back_populates='binaries')
+    source = relationship('SourcePackage', back_populates='binaries', cascade='merge')
 
     time_added = Column(DateTime(), default=datetime.utcnow)  # Time when this package was added to the archive
     time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive

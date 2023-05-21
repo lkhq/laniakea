@@ -690,8 +690,48 @@ class PackageImporter:
                     )
                 )
 
+        # fetch component this binary package is in
+        component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one_or_none()
+        if component:
+            if component not in deb_rss.suite.components:
+                raise ArchiveImportError(
+                    'Unable to import binary package `{}/{}/{}`: Archive component `{}` does not exist in `{}:{}`.'.format(
+                        pkgname, version, pkgarch, component.name, deb_rss.repo.name, deb_rss.suite.name
+                    )
+                )
+        else:
+            if component_name == 'main':
+                raise ArchiveImportError(
+                    'Unable to import binary package `{}/{}/{}`: Archive component `{}` is missing.'.format(
+                        pkgname, version, pkgarch, component_name
+                    )
+                )
+            else:
+                # We do not have the desired component *at all* - this may be the case if we do
+                # support 'main', but not 'contrib', and if a source package in 'main' has built
+                # binaries for 'contrib'. In that case, we simply drop the binary package semi-silently
+                # and do emit a warning.
+                archive_log.info(
+                    'BINPKG-IMPORT-IGNORED: %s/%s/%s @ %s:%s/%s',
+                    pkgname,
+                    version,
+                    pkgarch,
+                    deb_rss.repo.name,
+                    deb_rss.suite.name,
+                    component_name,
+                )
+                log.warning(
+                    'Ignored import request for binary `%s/%s/%s`: Archive component `%s` does not exist.',
+                    pkgname,
+                    version,
+                    pkgarch,
+                    component.name,
+                )
+                return None
+
         bpkg = BinaryPackage(pkgname, version, deb_rss.repo)
 
+        bpkg.component = component
         bpkg.architecture = self._session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == pkgarch).one()
         bpkg.update_uuid()
 
@@ -736,51 +776,7 @@ class PackageImporter:
             )
 
         if is_new:
-            if bpkg in self._session:
-                self._session.delete(bpkg)
             self._session.expunge(bpkg)
-
-        # fetch component this binary package is in
-        component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one_or_none()
-        if component:
-            if component not in deb_rss.suite.components:
-                raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}/{}`: Archive component `{}` does not exist in `{}:{}`.'.format(
-                        pkgname, version, pkgarch, component.name, deb_rss.repo.name, deb_rss.suite.name
-                    )
-                )
-        else:
-            if component_name == 'main':
-                raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}/{}`: Archive component `{}` is missing.'.format(
-                        pkgname, version, pkgarch, component_name
-                    )
-                )
-            else:
-                # We do not have the desired component *at all* - this may be the case if we do
-                # support 'main', but not 'contrib', and if a source package in 'main' has built
-                # binaries for 'contrib'. In that case, we simply drop the binary package semi-silently
-                # and do emit a warning.
-                archive_log.info(
-                    'BINPKG-IMPORT-IGNORED: %s/%s/%s @ %s:%s/%s',
-                    pkgname,
-                    version,
-                    pkgarch,
-                    deb_rss.repo.name,
-                    deb_rss.suite.name,
-                    component_name,
-                )
-                log.warning(
-                    'Ignored import request for binary `%s/%s/%s`: Archive component `%s` does not exist.',
-                    pkgname,
-                    version,
-                    pkgarch,
-                    component.name,
-                )
-                if bpkg in self._session:
-                    self._session.delete(bpkg)
-                self._session.expunge(bpkg)
-                return None
 
         # find pool location
         if is_new:
@@ -845,9 +841,7 @@ class PackageImporter:
         if not override:
             if is_debug_pkg:
                 # we have a debug package, so we can auto-generate a new override
-                override = PackageOverride(bpkg.name)
-                override.repo = deb_rss.repo
-                override.suite = deb_rss.suite
+                override = PackageOverride(bpkg.name, deb_rss.repo, deb_rss.suite)
                 override.component = component
                 override.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
                 override.priority = PackagePriority.OPTIONAL
@@ -872,13 +866,11 @@ class PackageImporter:
                         bpkg.repo.name,
                         deb_rss.suite.name,
                     )
-                    override = PackageOverride(bpkg.name)
-                    override.repo = bpkg.repo
-                    override.suite = deb_rss.suite
-                    override.essential = eov.essential
-                    override.priority = eov.priority
+                    override = PackageOverride(bpkg.name, bpkg.repo, deb_rss.suite)
                     override.component = eov.component
                     override.section = eov.section
+                    override.essential = eov.essential
+                    override.priority = eov.priority
                     self._session.add(override)
                 else:
                     # we just make up an override from scratch now
@@ -888,12 +880,10 @@ class PackageImporter:
                         bpkg.repo.name,
                         deb_rss.suite,
                     )
-                    override = PackageOverride(bpkg.name)
-                    override.repo = bpkg.repo
-                    override.suite = deb_rss.suite
-                    override.essential = False
+                    override = PackageOverride(bpkg.name, bpkg.repo, deb_rss.suite)
                     override.component = bpkg.component
                     override.section = bpkg.source.section
+                    override.essential = False
                     self._session.add(override)
             else:
                 raise ArchiveImportError(
@@ -901,9 +891,6 @@ class PackageImporter:
                         pkgname, version
                     )
                 )
-
-        # add component
-        bpkg.component = component
 
         # process contents list
         bpkg.contents = [line.split('\t', 1)[0] for line in filelist_raw]

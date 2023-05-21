@@ -131,6 +131,7 @@ def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage)
         if os.path.isfile(full_fname):
             os.unlink(full_fname)
     spkg.files = []
+    spkg_component_name = spkg.component.name
     session.delete(spkg)
     session.commit()
 
@@ -147,7 +148,7 @@ def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage)
         spkg.version,
         rss.repo.name,
         rss.suite.name,
-        spkg.component.name,
+        spkg_component_name,
     )
 
 

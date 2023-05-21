@@ -579,16 +579,17 @@ def copy_binary_package_override(
                 origin_suite_name, bpkg
             )
         )
+    override_is_new = False
     if not target_override:
-        target_override = PackageOverride(bpkg.name)
-        session.add(target_override)
+        target_override = PackageOverride(bpkg.name, repo, dest_suite)
+        override_is_new = True
 
-    target_override.repo = repo
-    target_override.suite = dest_suite
+    target_override.section = origin_override.section
     target_override.essential = origin_override.essential
     target_override.priority = origin_override.priority
     target_override.component = origin_override.component
-    target_override.section = origin_override.section
+    if override_is_new:
+        session.add(target_override)
 
 
 def copy_binary_package(

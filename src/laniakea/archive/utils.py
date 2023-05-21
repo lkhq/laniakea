@@ -310,11 +310,10 @@ def register_package_overrides(
             )
             .one_or_none()
         )
+        override_new = False
         if not override:
-            override = PackageOverride(pi.name)
-            override.repo = real_rss.repo
-            override.suite = real_rss.suite
-            session.add(override)
+            override = PackageOverride(pi.name, real_rss.repo, real_rss.suite)
+            override_new = True
 
         override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one_or_none()
         if not override.component:
@@ -338,6 +337,9 @@ def register_package_overrides(
                 )
         override.essential = pi.essential
         override.priority = pi.priority
+
+        if override_new:
+            session.add(override)
 
 
 def pool_dir_from_name_component(source_pkg_name: str, component_name: str):
