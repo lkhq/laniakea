@@ -221,18 +221,32 @@ def pretty_binary_package_published(tag, data):
 def pretty_package_upload_accepted(tag, data):
     data['changes'] = data['changes'].strip().replace('\n', '<br/>')
     if data['is_new']:
-        tmpl = (
-            'Accepted upload <code>{upload_name}</code> by <em>{uploader_name}</em> containing <b>{source_name}</b>/{source_version} '
-            'into the <purple>review queue</purple> for {repo}. '
-            'Changes:<br/><blockquote>{changes}</blockquote>'
-            '<purple>Review</purple> the upload <a href="{url_webview}/review">here</a>'
-        )
+        if 'source_name' in data:
+            tmpl = (
+                'Accepted upload <code>{upload_name}</code> by <em>{uploader_name}</em> containing <b>{source_name}</b>/{source_version} '
+                'into the <purple>review queue</purple> for {repo}. '
+                'Changes:<br/><blockquote>{changes}</blockquote>'
+                '<purple>Review</purple> the upload <a href="{url_webview}/review">here</a>'
+            )
+        else:
+            tmpl = (
+                'Accepted upload <code>{upload_name}</code> by <em>{uploader_name}</em> into the '
+                '<purple>review queue</purple> for {repo}. '
+                'Changes:<br/><blockquote>{changes}</blockquote>'
+                '<purple>Review</purple> the upload <a href="{url_webview}/review">here</a>'
+            )
     else:
-        tmpl = (
-            '<green>Accepted</green> upload <code>{upload_name}</code> by <em>{uploader_name}</em> containing '
-            '<b>{source_name}</b>/{source_version} into {repo}. '
-            'Changes:<br/><blockquote>{changes}</blockquote>'
-        )
+        if 'source_name' in data:
+            tmpl = (
+                '<green>Accepted</green> source upload <code>{upload_name}</code> by <em>{uploader_name}</em> containing '
+                '<b>{source_name}</b>/{source_version} into {repo}. '
+                'Changes:<br/><blockquote>{changes}</blockquote>'
+            )
+        else:
+            tmpl = (
+                '<green>Accepted</green> upload <code>{upload_name}</code> by <em>{uploader_name}</em> into {repo}. '
+                'Changes:<br/><blockquote>{changes}</blockquote>'
+            )
     return render_template_colors(tmpl).format(**data)
 
 
