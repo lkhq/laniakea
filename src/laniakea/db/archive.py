@@ -949,7 +949,7 @@ class PackageOverride(Base):
     essential = Column(Boolean(), default=False)  # Whether this package is marked as essential
     priority = Column(Enum(PackagePriority), default=PackagePriority.OPTIONAL)  # Priority of the package
 
-    component_id = Column(Integer, ForeignKey('archive_components.id'))
+    component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
     component = relationship('ArchiveComponent')  # Component this override is for
 
     section_id = Column(Integer, ForeignKey('archive_sections.id'))
@@ -987,7 +987,7 @@ class BinaryPackage(Base):
         'ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='pkgs_binary'
     )  # Suites this package is in
 
-    component_id = Column(Integer, ForeignKey('archive_components.id'))
+    component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
     component = relationship('ArchiveComponent')  # Component this package is in
 
     architecture_id = Column(Integer, ForeignKey('archive_architectures.id'), nullable=False)

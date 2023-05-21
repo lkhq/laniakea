@@ -128,10 +128,11 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
     for bpkg in bpkgs:
         if not bpkg.source:
             issues.append(('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture), 'No source package'))
+        if not bpkg.component:
+            issues.append(('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture), 'No component'))
 
         for suite in bpkg.suites:
-            # skip already existing overrides
-            if (
+            e_ov = (
                 session.query(PackageOverride)
                 .filter(
                     PackageOverride.repo_id == bpkg.repo_id,
@@ -139,7 +140,14 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                     PackageOverride.pkg_name == bpkg.name,
                 )
                 .first()
-            ):
+            )
+            if not e_ov.component:
+                issues.append(
+                    ('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture), 'Override has no component')
+                )
+
+            # skip already existing overrides
+            if e_ov:
                 continue
 
             # override is missing
