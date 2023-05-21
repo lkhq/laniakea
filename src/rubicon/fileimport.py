@@ -104,13 +104,14 @@ def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event
             )
             if spkg:
                 suite_target_name = '?'
-                if job.data:
-                    suite_target_name = job.data.get('suite', '?')
+                if job.suite:
+                    suite_target_name = job.suite.name
 
                 event_data = {
                     'pkgname': spkg.name,
                     'version': job.version,
                     'architecture': job.architecture,
+                    'repo': spkg.repo.name,
                     'suite': suite_target_name,
                     'job_id': job_id,
                 }

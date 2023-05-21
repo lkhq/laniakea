@@ -222,14 +222,14 @@ def pretty_package_upload_accepted(tag, data):
     data['changes'] = data['changes'].strip().replace('\n', '<br/>')
     if data['is_new']:
         tmpl = (
-            'Accepted upload <code>{upload_name}</code> by {uploader_name} containing <b>{source_name}</b>/{source_version} '
+            'Accepted upload <code>{upload_name}</code> by <em>{uploader_name}</em> containing <b>{source_name}</b>/{source_version} '
             'into the <purple>review queue</purple> for {repo}. '
             'Changes:<br/><blockquote>{changes}</blockquote>'
             '<purple>Review</purple> the upload <a href="{url_webview}/review">here</a>'
         )
     else:
         tmpl = (
-            '<green>Accepted</green> upload <code>{upload_name}</code> by {uploader_name} containing '
+            '<green>Accepted</green> upload <code>{upload_name}</code> by <em>{uploader_name}</em> containing '
             '<b>{source_name}</b>/{source_version} into {repo}. '
             'Changes:<br/><blockquote>{changes}</blockquote>'
         )
@@ -237,18 +237,23 @@ def pretty_package_upload_accepted(tag, data):
 
 
 def pretty_package_upload_rejected(tag, data):
-    tmpl = '<red>Rejected</red> upload {upload_name} by {uploader_name} for {repo}. Reason:<br/><blockquote>{reason}</blockquote>'
+    tmpl = '<red>Rejected</red> upload {upload_name} by <em>{uploader_name}</em> for {repo}. Reason:<br/><blockquote>{reason}</blockquote>'
     return render_template_colors(tmpl).format(**data)
 
 
 templates_archive = {
     '_lk.archive.package-build-success': (
-        'Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> was '
+        'Package build for <b>{pkgname}</b> {version} on {architecture} in {repo}:<em>{suite}</em> was '
         '<green>successful</green>. '
         '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
     ),
     '_lk.archive.package-build-failed': (
-        'Package build for <b>{pkgname}</b> {version} on {architecture} in <em>{suite}</em> has <red>failed</red>. '
+        'Package build for <b>{pkgname}</b> {version} on {architecture} in {repo}:<em>{suite}</em> has <red>failed</red>. '
+        '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
+    ),
+    '_lk.archive.package-build-depwait': (
+        'Package build for <b>{pkgname}</b> {version} on {architecture} in {repo}:<em>{suite}</em> is '
+        '<orange>waiting for a dependency</orange>. '
         '| <a href="{url_webswview}/package/builds/job/{job_id}">\N{CIRCLED INFORMATION SOURCE}</a>'
     ),
     '_lk.archive.binary-package-published': pretty_binary_package_published,

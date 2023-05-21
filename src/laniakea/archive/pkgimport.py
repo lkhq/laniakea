@@ -250,8 +250,11 @@ class PackageImporter:
                 return ImportSourceResult(None, False)
             if not ignore_version_check:
                 raise ArchiveImportError(
-                    'Unable to import package "{}": '
-                    'We have already seen higher version "{}" in this repository before.'.format(pkgname, result[0])
+                    (
+                        'Unable to import package "{}": '
+                        'We have already seen higher version "{}" in {}:{} before.\n'
+                        'Uploads must have a higher version than already present in the archive.'
+                    ).format(pkgname, result[0], self._rss.repo.name, self._rss.suite.name)
                 )
 
         if not component_name:
@@ -1056,9 +1059,11 @@ class UploadHandler:
             return UploadChangesResult(
                 False,
                 uploader,
-                error='We have already seen higher or equal version "{}" of source package "{}" in repository "{}" before.'.format(
-                    result[0], changes.source_name, self._repo.name
-                ),
+                error=(
+                    'Your upload contains version "{}" of source package "{}", however we have already seen a '
+                    'higher or equal version in {}:{} before.\n'
+                    'Uploads must have a higher version than already present in the archive.'
+                ).format(result[0], changes.source_name, rss.repo.name, rss.suite.name),
             )
 
         # FIXME: We should maybe also preemptively check the binaries and their versions here,
