@@ -127,9 +127,9 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
     debug_section = session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
     for bpkg in bpkgs:
         if not bpkg.source:
-            issues.append(('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture), 'No source package'))
+            issues.append(('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture.name), 'No source package'))
         if not bpkg.component:
-            issues.append(('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture), 'No component'))
+            issues.append(('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture.name), 'No component'))
 
         for suite in bpkg.suites:
             e_ov = (
@@ -141,13 +141,27 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                 )
                 .first()
             )
-            if not e_ov.component:
-                issues.append(
-                    ('{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture), 'Override has no component')
-                )
 
             # skip already existing overrides
             if e_ov:
+                if not e_ov.component:
+                    issues_fixed.append(
+                        (
+                            '{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture.name),
+                            'Override has no component',
+                        )
+                    )
+                    if fix_issues:
+                        e_ov.component = bpkg.component
+                if not e_ov.section:
+                    issues_fixed.append(
+                        (
+                            '{}/{}/{}'.format(bpkg.name, bpkg.version, bpkg.architecture.name),
+                            'Override has no section',
+                        )
+                    )
+                    if fix_issues:
+                        e_ov.section = debug_section if bpkg.repo.is_debug else bpkg.source.section
                 continue
 
             # override is missing
@@ -168,9 +182,7 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
                     .first()
                 )
                 log.debug('FIX: Add new override for %s/%s/%s', bpkg.name, bpkg.version, bpkg.architecture.name)
-                ov = PackageOverride(bpkg.name)
-                ov.repo = bpkg.repo
-                ov.suite = suite
+                ov = PackageOverride(bpkg.name, bpkg.repo, suite)
                 ov.pkg_name = bpkg.name
                 if other_ov:
                     ov.essential = other_ov.essential
