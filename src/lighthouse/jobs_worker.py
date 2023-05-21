@@ -246,6 +246,8 @@ class JobWorker:
 
             worker.name = client_name
             worker.enabled = True
+            worker.owner = req_data.get('owner')
+            worker.architectures = architectures
 
             session.add(worker)
 

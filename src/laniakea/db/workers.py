@@ -10,7 +10,7 @@ from uuid import uuid4
 from datetime import datetime
 
 from sqlalchemy import Enum, Text, Column, Boolean, DateTime
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
 from .base import UUID, Base
 
@@ -37,14 +37,16 @@ class SparkWorker(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     name = Column(Text())  # The machine/worker name
-    owner = Column(Text())  # Owner of this worker
+    owner = Column(Text(), nullable=True)  # Owner of this worker
 
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this worker was registered/created
 
     accepts = Column(ARRAY(Text()))  # Modules this worker will accept jobs for
+    architectures = Column(ARRAY(Text()))  # Architectures this worker will accept jobs for
 
     status = Column(Enum(WorkerStatus))  # Status/health of this machine
     enabled = Column(Boolean())  # Whether this worker should receive jobs or not
 
     last_ping = Column(DateTime())  # Time when we last got a message from the worker
-    last_job = Column(UUID(as_uuid=True))  # The last job that was assigned to this worker
+
+    data = Column(JSON)  # Custom worker properties

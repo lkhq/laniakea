@@ -82,12 +82,21 @@ def queue(page):
         )
 
 
+def prefix_list_entries(lst, prefix: str) -> list[str]:
+    return [prefix + e for e in lst]
+
+
 @jobs.route('/workers')
 def workers():
     with session_scope() as session:
         workers = session.query(SparkWorker).all()
 
-        return render_template('jobs/workers.html', workers=workers, humanized_timediff=humanized_timediff)
+        return render_template(
+            'jobs/workers.html',
+            workers=workers,
+            humanized_timediff=humanized_timediff,
+            prefix_list_entries=prefix_list_entries,
+        )
 
 
 @jobs.route('/job/<uuid>')

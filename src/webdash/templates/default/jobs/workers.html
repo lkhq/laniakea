@@ -23,6 +23,7 @@
             <b>Owner:</b> {{worker.owner}}<br/>
             <b>Last Ping:</b> {{humanized_timediff(worker.last_ping)}}<br/>
             <b>First Seen:</b> {{humanized_timediff(worker.time_created)}}<br/>
+            <b>Architectures:</b> {{', '.join(prefix_list_entries(worker.architectures, '⚙'))}}<br/>
             <b>Accepted Tasks:</b> {{', '.join(worker.accepts)}}<br/>
         </p>
     </div>
