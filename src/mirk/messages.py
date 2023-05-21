@@ -232,7 +232,6 @@ def pretty_package_upload_accepted(tag, data):
             tmpl = (
                 'Accepted upload <code>{upload_name}</code> by <em>{uploader_name}</em> into the '
                 '<purple>review queue</purple> for {repo}. '
-                'Changes:<br/><blockquote>{changes}</blockquote>'
                 '<purple>Review</purple> the upload <a href="{url_webview}/review">here</a>'
             )
     else:
@@ -243,15 +242,15 @@ def pretty_package_upload_accepted(tag, data):
                 'Changes:<br/><blockquote>{changes}</blockquote>'
             )
         else:
-            tmpl = (
-                '<green>Accepted</green> upload <code>{upload_name}</code> by <em>{uploader_name}</em> into {repo}. '
-                'Changes:<br/><blockquote>{changes}</blockquote>'
-            )
+            tmpl = '<green>Accepted</green> upload <code>{upload_name}</code> by <em>{uploader_name}</em> into {repo}.'
     return render_template_colors(tmpl).format(**data)
 
 
 def pretty_package_upload_rejected(tag, data):
-    tmpl = '<red>Rejected</red> upload {upload_name} by <em>{uploader_name}</em> for {repo}. Reason:<br/><blockquote>{reason}</blockquote>'
+    tmpl = (
+        '<red>Rejected</red> upload <code>{upload_name}</code> by <em>{uploader_name}</em> for {repo}. '
+        'Reason:<br/><blockquote>{reason}</blockquote>'
+    )
     return render_template_colors(tmpl).format(**data)
 
 
