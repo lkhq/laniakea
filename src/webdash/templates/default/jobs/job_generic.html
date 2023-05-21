@@ -72,6 +72,10 @@
     <span style="font-size: 20px; line-height: 1.5em;">
         <font class="fa fa-times-circle" aria-hidden="true" color="red"></font>
     </span> Failed
+    {% elif job.result == JobResult.FAILURE_DEPENDENCY %}
+    <span style="font-size: 20px; line-height: 1.5em;">
+        <font class="fa fa-diagram-project" aria-hidden="true" color="purple"></font>
+    </span> Dependency issue
     {% endif %}
     </p>
     {% endif %}

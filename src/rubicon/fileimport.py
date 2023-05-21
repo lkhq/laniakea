@@ -16,6 +16,7 @@ from laniakea.db import (
     Job,
     JobKind,
     JobResult,
+    JobStatus,
     SourcePackage,
     ArchiveRepository,
     session_scope,
@@ -62,6 +63,8 @@ def accept_dud_upload(conf: RubiConfig, repo: ArchiveRepository, dud: Dud, event
 
         job.result = job_result
         job.latest_log_excerpt = None
+        if job.result == JobResult.FAILURE_DEPENDENCY:
+            job.status = JobStatus.DEPWAIT
 
         # move the log file and Firehose reports to the log storage
         log_target_dir = os.path.join(conf.log_storage_dir, get_dir_shorthand_for_uuid(job_id))

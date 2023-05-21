@@ -103,7 +103,7 @@ def job(uuid):
         worker = session.query(SparkWorker).filter(SparkWorker.uuid == job.worker).one_or_none()
 
         log_url = None
-        if job.result == JobResult.SUCCESS or job.result == JobResult.FAILURE:
+        if job.result in (JobResult.SUCCESS, JobResult.FAILURE, JobResult.FAILURE_DEPENDENCY):
             log_url = (
                 current_app.config['LOG_STORAGE_URL']
                 + '/'
