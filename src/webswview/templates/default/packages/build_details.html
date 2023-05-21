@@ -124,7 +124,7 @@
         <div class="column">
             {% for m in issue.missing %}
             <div class="content border-box is-small">
-                <h5>{{ link_for_bin_package_id(suite_name, m.unsat_dependency)|safe }}
+                <h5>{{ link_for_bin_package_id(spkg.repo.name, suite_name, m.unsat_dependency)|safe }}
                   <small><i class="fas fa-microchip"></i> {{m.architecture}}</small>
                 </h5>
                 <b>Required by:</b> {{m.package_name}}<br/>
