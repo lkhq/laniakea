@@ -594,7 +594,7 @@ class PackageImporter:
         ignore_version_check: bool = False,
         override_section: T.Optional[str] = None,
         ignore_missing_override: bool = False,
-    ) -> T.Optional[BinaryPackage]:
+    ) -> BinaryPackage | None:
         """Import a binary package into the given suite or its NEW queue.
 
         :param deb_fname: Path to a deb/udeb package to import
@@ -736,10 +736,52 @@ class PackageImporter:
             )
 
         if is_new:
+            if bpkg in self._session:
+                self._session.delete(bpkg)
             self._session.expunge(bpkg)
 
         # fetch component this binary package is in
-        component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()
+        component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one_or_none()
+        if component:
+            if component not in deb_rss.suite.components:
+                raise ArchiveImportError(
+                    'Unable to import binary package `{}/{}/{}`: Archive component `{}` does not exist in `{}:{}`.'.format(
+                        pkgname, version, pkgarch, component.name, deb_rss.repo.name, deb_rss.suite.name
+                    )
+                )
+        else:
+            if component_name == 'main':
+                raise ArchiveImportError(
+                    'Unable to import binary package `{}/{}/{}`: Archive component `{}` is missing.'.format(
+                        pkgname, version, pkgarch, component_name
+                    )
+                )
+            else:
+                # We do not have the desired component *at all* - this may be the case if we do
+                # support 'main', but not 'contrib', and if a source package in 'main' has built
+                # binaries for 'contrib'. In that case, we simply drop the binary package semi-silently
+                # and do emit a warning.
+                archive_log.info(
+                    'BINPKG-IMPORT-IGNORED: %s/%s/%s @ %s:%s/%s',
+                    pkgname,
+                    version,
+                    pkgarch,
+                    deb_rss.repo.name,
+                    deb_rss.suite.name,
+                    component_name,
+                )
+                log.warning(
+                    'Ignored import request for binary `%s/%s/%s`: Archive component `%s` does not exist.'.format(
+                        pkgname,
+                        version,
+                        pkgarch,
+                        component.name,
+                    )
+                )
+                if bpkg in self._session:
+                    self._session.delete(bpkg)
+                self._session.expunge(bpkg)
+                return None
 
         # find pool location
         if is_new:
