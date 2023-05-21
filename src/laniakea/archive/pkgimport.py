@@ -771,12 +771,11 @@ class PackageImporter:
                     component_name,
                 )
                 log.warning(
-                    'Ignored import request for binary `%s/%s/%s`: Archive component `%s` does not exist.'.format(
-                        pkgname,
-                        version,
-                        pkgarch,
-                        component.name,
-                    )
+                    'Ignored import request for binary `%s/%s/%s`: Archive component `%s` does not exist.',
+                    pkgname,
+                    version,
+                    pkgarch,
+                    component.name,
                 )
                 if bpkg in self._session:
                     self._session.delete(bpkg)
