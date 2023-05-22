@@ -66,7 +66,7 @@ def split_maintainer_field(maintainer: str) -> T.Tuple[str, str, str]:
     """Split a Maintainer or Changed-By field into its parts
 
     :param maintainer:
-    :return: A tuple consisting of the RFC822 compatoble version of the maintainer field,
+    :return: A tuple consisting of the RFC822 compatible version of the maintainer field,
              the maintainer name and the maintainer email.
     """
 

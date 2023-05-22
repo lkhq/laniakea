@@ -43,6 +43,7 @@ from laniakea.utils import safe_strip, safe_rename, split_strip, hardlink_or_cop
 from laniakea.logging import log, archive_log
 from laniakea.msgstream import EventEmitter
 from laniakea.localconfig import LocalConfig, LintianConfig
+from laniakea.utils.deb822 import split_maintainer_field
 from laniakea.archive.utils import (
     UploadError,
     is_deb_file,
@@ -1004,17 +1005,38 @@ class UploadHandler:
             require_signature=True,
         )
 
-        uploader: ArchiveUploader | None = (
+        possible_uploaders: list[ArchiveUploader] = (
             self._session.query(ArchiveUploader)
             .filter(ArchiveUploader.pgp_fingerprints.any(changes.primary_fingerprint))
-            .one_or_none()
+            .all()
         )
-        if not uploader:
+        if not possible_uploaders:
             raise UploadError(
                 'Unable to find registered uploader for fingerprint "{}" for "{}"'.format(
                     changes.primary_fingerprint, os.path.basename(fname)
                 )
             )
+        uploader = None
+        if len(possible_uploaders) == 1:
+            uploader = possible_uploaders[0]
+        else:
+            # A GPG signature may be shared by multiple uploaders, this is especially common for package build machines.
+            # In such events, we try to guess the right uploader, but fall back to picking the first one in case that fails.
+            # FIXME: This will cause issues with uploader-specific permissions, but in case those are used we should likely
+            # expect each uploader to have their own GPG key
+            changed_by = changes.changes.get('Changed-By', None)
+            if changed_by:
+                _, _, email = split_maintainer_field(changed_by)
+                for u in possible_uploaders:
+                    if u.email == email:
+                        uploader = u
+                        break
+            if not uploader:
+                uploader = possible_uploaders[0]
+            log.info(
+                'More than one possible uploader found for `%s`, picked `%s`', os.path.basename(fname), uploader.email
+            )
+        del possible_uploaders
 
         if changes.weak_signature:
             return UploadChangesResult(

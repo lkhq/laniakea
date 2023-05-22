@@ -247,10 +247,16 @@ def pretty_package_upload_accepted(tag, data):
 
 
 def pretty_package_upload_rejected(tag, data):
-    tmpl = (
-        '<red>Rejected</red> upload <code>{upload_name}</code> by <em>{uploader_name}</em> for {repo}. '
-        'Reason:<br/><blockquote>{reason}</blockquote>'
-    )
+    if 'uploader_name' in data:
+        tmpl = (
+            '<red>Rejected</red> upload <code>{upload_name}</code> by <em>{uploader_name}</em> for {repo}. '
+            'Reason:<br/><blockquote>{reason}</blockquote>'
+        )
+    else:
+        tmpl = (
+            '<red>Rejected</red> upload <code>{upload_name}</code> for {repo}. '
+            'Reason:<br/><blockquote>{reason}</blockquote>'
+        )
     return render_template_colors(tmpl).format(**data)
 
 
