@@ -10,6 +10,7 @@ from laniakea import LkModule
 from laniakea.db import (
     Job,
     JobKind,
+    JobResult,
     JobStatus,
     PackageType,
     DebcheckIssue,
@@ -102,6 +103,7 @@ def schedule_build_for_arch(
             # no dependency issues anymore, but the job is waiting for dependencies?
             # unblock it!
             job.status = JobStatus.WAITING
+            job.result = JobResult.UNKNOWN
             return True
 
         # we already have a job, we don't need to create another one
