@@ -109,6 +109,11 @@ class DoseDebcheck:
 
         arch_issue_map = {}
         for arch in suite.architectures:
+            if arch.name == 'all':
+                # we ignore arch:all for build dependency checks, as "all"-only packages will show up for other
+                # architectures as well, adn we can not build a package on a purely arch:all installation anyway.
+                continue
+
             # fetch source-package-centric index list
             indices = self._get_full_index_info(suite, arch, True)
             if not indices['fg']:
@@ -123,13 +128,13 @@ class DoseDebcheck:
                 '-f',
                 '--summary',
                 '--deb-emulate-sbuild',
-                '--deb-native-arch={}'.format(suite.primary_architecture.name if arch.name == 'all' else arch.name),
+                '--deb-native-arch={}'.format(arch.name),
             ]
 
             # run builddepcheck
             success, data = self._execute_dose('dose-builddebcheck', dose_args, indices['bg'] + indices['fg'])
             if not success:
-                raise Exception('Unable to run Dose for {}/{}: {}'.format(suite.name, arch.name, data))
+                raise Exception('Unable to run Dose (builddebcheck) for {}/{}: {}'.format(suite.name, arch.name, data))
             arch_issue_map[arch.name] = data
 
         return arch_issue_map
@@ -175,6 +180,8 @@ class DoseDebcheck:
         return arch_issue_map
 
     def _dose_yaml_to_issues(self, yaml_data, suite, arch_name, package_type_override=None):
+        """Convert a DOSE YAML report into a sequence of DebcheckIssue entities and add them to the database."""
+
         def set_basic_package_info(v: T.Union[PackageIssue, DebcheckIssue], entry):
             if 'type' in entry and entry['type'] == 'src':
                 v.package_type = PackageType.SOURCE
@@ -183,7 +190,21 @@ class DoseDebcheck:
 
             v.package_name = str(entry['package'])
             v.package_version = str(entry['version'])
-            v.architectures = str(entry['architecture']).split(',')
+            architectures_raw = str(entry['architecture']).split(',')
+            if v.package_type == PackageType.BINARY:
+                v.architectures = architectures_raw
+                try:
+                    v.architectures.remove('any')
+                except ValueError:
+                    pass
+                if arch_name not in v.architectures:
+                    v.architectures.append(arch_name)
+            else:
+                # for source packages we only register the selected architecture, and 'all'
+                if 'all' in architectures_raw:
+                    v.architectures = [arch_name, 'all']
+                else:
+                    v.architectures = [arch_name]
 
         new_issues = []
         all_issues = []
