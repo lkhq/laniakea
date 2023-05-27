@@ -9,6 +9,7 @@ import subprocess
 from datetime import datetime
 
 import yaml
+from pebble import concurrent
 
 import laniakea.typing as T
 from laniakea.db import PackageType, PackageIssue, DebcheckIssue, PackageConflict
@@ -30,7 +31,8 @@ class DoseDebcheck:
         self._repo_reader.set_trusted(True)
         self._session = session
 
-    def _execute_dose(self, dose_exe, args, files: list[str] = None):
+    @concurrent.thread
+    def _execute_dose_async(self, dose_exe, args, files: list[str] = None, arch_info=None):
         if not files:
             files = []
 
@@ -49,9 +51,11 @@ class DoseDebcheck:
 
         if not yaml_data.startswith('output-version'):
             # the output is weird, assume an error
-            return False, yaml_data + '\n' + pipe.stderr.read()
+            err_data = pipe.stderr.read()
+            log.error('Dose command failed: ' + ' '.join(cmd) + '\n' + err_data)
+            return False, yaml_data + '\n' + err_data
 
-        return True, yaml_data
+        return True, yaml_data, arch_info
 
     def _get_full_index_info(self, suite, arch, sources=False):
         '''
@@ -103,11 +107,11 @@ class DoseDebcheck:
         return res
 
     def _generate_build_depcheck_yaml(self, suite):
-        '''
+        """
         Get Dose YAML data for build dependency issues in the selected suite.
-        '''
+        """
 
-        arch_issue_map = {}
+        dose_tasks = []
         for arch in suite.architectures:
             if arch.name == 'all':
                 # we ignore arch:all for build dependency checks, as "all"-only packages will show up for other
@@ -132,19 +136,28 @@ class DoseDebcheck:
             ]
 
             # run builddepcheck
-            success, data = self._execute_dose('dose-builddebcheck', dose_args, indices['bg'] + indices['fg'])
+            task = self._execute_dose_async(
+                'dose-builddebcheck', dose_args, indices['bg'] + indices['fg'], arch_info=arch.name
+            )
+            dose_tasks.append(task)
+
+        # collect results
+        arch_issue_map = {}
+        for task in dose_tasks:
+            success, data, arch_name = task.result()
             if not success:
-                raise Exception('Unable to run Dose (builddebcheck) for {}/{}: {}'.format(suite.name, arch.name, data))
-            arch_issue_map[arch.name] = data
+                raise Exception('Unable to run Dose (builddebcheck) for {}/{}: {}'.format(suite.name, arch_name, data))
+            arch_issue_map[arch_name] = data
 
         return arch_issue_map
 
     def _generate_depcheck_yaml(self, suite):
-        '''
+        """
         Get Dose YAML data for build installability issues in the selected suite.
-        '''
+        """
 
         arch_issue_map = {}
+        dose_tasks = []
         for arch in suite.architectures:
             # fetch binary-package index list
             indices = self._get_full_index_info(suite, arch, False)
@@ -168,14 +181,17 @@ class DoseDebcheck:
                 indices_args.append('--bg={}'.format(f))
             for f in indices['fg']:
                 indices_args.append('--fg={}'.format(f))
-            success, data = self._execute_dose('dose-debcheck', dose_args, indices_args)
-            if not success:
-                log.error(
-                    'Dose debcheck command failed: ' + ' '.join(dose_args) + ' ' + ' '.join(indices_args) + '\n' + data
-                )
-                raise Exception('Unable to run Dose for {}/{}: {}'.format(suite.name, arch.name, data))
 
-            arch_issue_map[arch.name] = data
+            task = self._execute_dose_async('dose-debcheck', dose_args, indices_args, arch_info=arch.name)
+            dose_tasks.append(task)
+
+        # collect results
+        for task in dose_tasks:
+            success, data, arch_name = task.result()
+            if not success:
+                raise Exception('Unable to run Dose for {}/{}: {}'.format(suite.name, arch_name, data))
+
+            arch_issue_map[arch_name] = data
 
         return arch_issue_map
 
