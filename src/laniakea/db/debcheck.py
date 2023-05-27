@@ -100,7 +100,7 @@ class DebcheckIssue(Base):
                 issue.package_type.value,
                 issue.package_name,
                 issue.package_version,
-                ' '.join(issue.architectures),
+                ','.join(issue.architectures),
             ),
         )
 

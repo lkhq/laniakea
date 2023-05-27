@@ -198,8 +198,15 @@ class DoseDebcheck:
     def _dose_yaml_to_issues(self, yaml_data, suite, arch_name, package_type_override=None):
         """Convert a DOSE YAML report into a sequence of DebcheckIssue entities and add them to the database."""
 
-        def set_basic_package_info(v: T.Union[PackageIssue, DebcheckIssue], entry):
-            if 'type' in entry and entry['type'] == 'src':
+        def set_basic_package_info(
+            v: T.Union[PackageIssue, DebcheckIssue],
+            entry,
+            type_override: PackageType | None = None,
+            is_primary: bool = False,
+        ):
+            if type_override:
+                v.package_type = type_override
+            elif 'type' in entry and entry['type'] == 'src':
                 v.package_type = PackageType.SOURCE
             else:
                 v.package_type = PackageType.BINARY
@@ -207,20 +214,24 @@ class DoseDebcheck:
             v.package_name = str(entry['package'])
             v.package_version = str(entry['version'])
             architectures_raw = str(entry['architecture']).split(',')
-            if v.package_type == PackageType.BINARY:
-                v.architectures = architectures_raw
-                try:
-                    v.architectures.remove('any')
-                except ValueError:
-                    pass
-                if arch_name not in v.architectures:
-                    v.architectures.append(arch_name)
-            else:
-                # for source packages we only register the selected architecture, and 'all'
-                if 'all' in architectures_raw:
-                    v.architectures = [arch_name, 'all']
+            if is_primary:
+                if v.package_type == PackageType.BINARY:
+                    v.architectures = architectures_raw
+                    try:
+                        v.architectures.remove('any')
+                    except ValueError:
+                        pass
+                    if arch_name not in v.architectures:
+                        v.architectures.append(arch_name)
+                    v.architectures = sorted(v.architectures)
                 else:
-                    v.architectures = [arch_name]
+                    # for source packages we only register the selected architecture, and 'all'
+                    if 'all' in architectures_raw:
+                        v.architectures = sorted([arch_name, 'all'])
+                    else:
+                        v.architectures = [arch_name]
+            else:
+                v.architectures = architectures_raw
 
         new_issues = []
         all_issues = []
@@ -243,9 +254,7 @@ class DoseDebcheck:
             issue.time = datetime.utcnow()
             missing = []
             conflicts = []
-            set_basic_package_info(issue, entry)
-            if package_type_override:
-                issue.package_type = package_type_override
+            set_basic_package_info(issue, entry, is_primary=True, type_override=package_type_override)
             issue_uuid = DebcheckIssue.generate_uuid(issue, self._repo, suite)
 
             is_new = False
@@ -253,9 +262,7 @@ class DoseDebcheck:
             if existing_issue:
                 # update the existing issue
                 issue = existing_issue
-                set_basic_package_info(issue, entry)
-                if package_type_override:
-                    issue.package_type = package_type_override
+                set_basic_package_info(issue, entry, is_primary=True, type_override=package_type_override)
             else:
                 # add the new issue
                 is_new = True
