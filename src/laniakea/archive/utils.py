@@ -137,7 +137,7 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
 
 
 def check_overrides_source(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage) -> T.List[PackageInfo]:
-    """Test if overrides for the binary package of a source packages are present.
+    """Test if overrides for the binary packages of a source package are present.
     returns: List of packaging infos for missing overrides
 
     :param session: SQLAlchemy session

@@ -155,6 +155,7 @@ def remove_source_package(
 
             # the source package is *completely* gone from this repository, so there is no need
             # to keep overrides around - we just drop them if no other source has adopted them.
+            # First, we check if another binary exists that can take over this override:
             source_ids = (
                 session.query(BinaryPackage.source_id)
                 .filter(BinaryPackage.repo_id == rss.repo_id, BinaryPackage.name == bpkg.name)
@@ -166,8 +167,26 @@ def remove_source_package(
                     if sid_tp[0] != bpkg.source_id:
                         binary_adopted = True
                         break
+            if not binary_adopted:
+                # ...then, we check if there is a different source package for this binary that may not yet have built
+                # the respective binary, but will eventually take over this override (or is already using it)
+                other_spkgs = (
+                    session.query(SourcePackage)
+                    .filter(
+                        SourcePackage.repo_id == rss.repo_id,
+                        SourcePackage.suites.any(id=rss.suite_id),
+                        SourcePackage.name == bpkg.source.name,
+                    )
+                    .all()
+                )
+                for other_spkg in other_spkgs:
+                    for ebin in other_spkg.expected_binaries:
+                        if ebin.name == bpkg.name:
+                            binary_adopted = True
+                            break
 
             if not binary_adopted:
+                # remove override if it wasn't adopted by another package
                 overrides = (
                     session.query(PackageOverride)
                     .filter(PackageOverride.repo_id == rss.repo_id, PackageOverride.pkg_name == bpkg.name)
