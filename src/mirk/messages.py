@@ -247,6 +247,7 @@ def pretty_package_upload_accepted(tag, data):
 
 
 def pretty_package_upload_rejected(tag, data):
+    data['reason'] = data['reason'].strip().replace('\n', '<br/>')
     if 'uploader_name' in data:
         tmpl = (
             '<red>Rejected</red> upload <code>{upload_name}</code> by <em>{uploader_name}</em> for {repo}. '
