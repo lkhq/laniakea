@@ -11,6 +11,7 @@ from .core import (
     config_set_project_name,
 )
 from .jobs import *
+from .stats import *
 from .spears import *
 from .archive import *
 from .flatpak import *

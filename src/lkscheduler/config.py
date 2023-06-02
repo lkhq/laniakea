@@ -53,6 +53,9 @@ class SchedulerConfig:
             # refresh ariadne data all 5h
             self._intervals_min['ariadne-update'] = cintervals.get('ariadne-update', 5 * 60)
 
+            # collect statistics every 4h
+            self._intervals_min['statistics'] = cintervals.get('statistics', 4 * 60)
+
             # find executables
             my_dir = os.path.dirname(os.path.realpath(__file__))
             self._lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'lkarchive', 'lk-archive.py'))

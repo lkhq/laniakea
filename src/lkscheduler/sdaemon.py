@@ -16,6 +16,7 @@ from laniakea import LocalConfig
 from laniakea.utils import process_file_lock
 from laniakea.logging import log
 from lkscheduler.config import SchedulerConfig
+from lkscheduler.statscollector import task_collect_statistics
 
 scheduler_log = log.getLogger('scheduler')  # special logger to log package archive changes
 
@@ -256,6 +257,7 @@ class SchedulerDaemon:
         for job in self._jobstore.get_all_jobs():
             self._job_setup_todo.add(job.id)
 
+        self._configure_job(task_collect_statistics, 'statistics', 'Collect statistical data', jitter=20)
         self._configure_job(task_rubicon_scan, 'rubicon', 'Import data from new uploads', jitter=60)
         self._configure_job(task_repository_publish, 'publish-repos', 'Publish all repository data', jitter=20)
         self._configure_job(task_repository_expire, 'expire-repos', 'Expire old repository data', jitter=2 * 60)
