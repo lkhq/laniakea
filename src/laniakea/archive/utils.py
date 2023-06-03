@@ -320,7 +320,6 @@ def register_package_overrides(
 
         override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one_or_none()
         if not override.component:
-            session.delete(override)
             log.warning(
                 'Skipping registering override for "%s" in "%s", as its component "%s" is not known.',
                 pi.name,
