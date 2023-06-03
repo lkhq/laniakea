@@ -1,0 +1,16 @@
+#!@LK_VIRTUALENV_DIR@/bin/python
+
+import os
+import sys
+
+thisfile = __file__
+if not os.path.isabs(thisfile):
+    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', 'lib', 'laniakea')))
+sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..', 'lib', 'laniakea', 'rubicon')))
+if not thisfile.startswith(('/usr', '/bin')):
+    sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
+
+if __name__ == '__main__':
+    from rubicon import cli
+    sys.exit(cli.run(thisfile, sys.argv[1:]))
