@@ -523,6 +523,7 @@ class UnpackedSource:
         :param dsc_fname: The file to extract.
         :param lconf: LocalConfig to use
         """
+        self._root_directory = None
         if not lconf:
             lconf = LocalConfig()
 
@@ -538,7 +539,7 @@ class UnpackedSource:
 
     def cleanup(self):
         """Delete temporary files."""
-        if self.root_directory is None:
+        if self._root_directory is None:
             return
         parent_directory = os.path.dirname(self.root_directory)
         shutil.rmtree(parent_directory)
