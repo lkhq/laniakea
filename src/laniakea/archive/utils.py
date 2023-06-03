@@ -526,7 +526,7 @@ class UnpackedSource:
         if not lconf:
             lconf = LocalConfig()
 
-        tmp_dir = tempfile.mkdtemp(dir=lconf.cache_dir)
+        tmp_dir = tempfile.mkdtemp(dir=lconf.cache_dir, prefix='usrc_')
         self._root_directory = os.path.join(tmp_dir, 'root')
         command = ('dpkg-source', '--no-copy', '--no-check', '-q', '-x', dsc_fname, self._root_directory)
         subprocess.check_call(command)

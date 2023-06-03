@@ -186,6 +186,7 @@ class LocalConfig:
 
         @property
         def cache_dir(self) -> str:
+            os.makedirs(self._cache_dir, exist_ok=True)
             return self._cache_dir
 
         @property
