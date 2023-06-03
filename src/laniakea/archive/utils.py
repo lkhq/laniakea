@@ -7,8 +7,11 @@
 
 import os
 import re
+import shutil
 import tempfile
+import subprocess
 from datetime import datetime
+from contextlib import contextmanager
 
 import apt_pkg
 from apt_pkg import version_compare
@@ -34,7 +37,7 @@ from laniakea.db import (
     ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
 )
-from laniakea.utils import run_command, split_strip
+from laniakea.utils import run_command, split_strip, hardlink_or_copy
 from laniakea.logging import log
 
 
@@ -508,3 +511,89 @@ def lintian_check(fname: T.PathUnion, *, tags: list[str] = None) -> tuple[bool, 
 
         # ret will be 2 in case there was any error
         return (ret == 0, result_tags)
+
+
+class UnpackedSource:
+    """
+    Extract source package and provide methods for accessing its contents.
+    """
+
+    def __init__(self, dsc_fname: T.PathUnion, lconf: LocalConfig | None = None):
+        """
+        :param dsc_fname: The file to extract.
+        :param lconf: LocalConfig to use
+        """
+        if not lconf:
+            lconf = LocalConfig()
+
+        tmp_dir = tempfile.mkdtemp(dir=lconf.cache_dir)
+        self._root_directory = os.path.join(tmp_dir, 'root')
+        command = ('dpkg-source', '--no-copy', '--no-check', '-q', '-x', dsc_fname, self._root_directory)
+        subprocess.check_call(command)
+
+    @property
+    def root_directory(self):
+        """Directory where debian/ subdir is located."""
+        return self._root_directory
+
+    def cleanup(self):
+        """Delete temporary files."""
+        if self.root_directory is None:
+            return
+        parent_directory = os.path.dirname(self.root_directory)
+        shutil.rmtree(parent_directory)
+        self._root_directory = None
+
+    def __del__(self):
+        self.cleanup()
+
+
+@contextmanager
+def unpack_source(dsc_fname: T.PathUnion, lconf: LocalConfig | None = None) -> UnpackedSource:
+    """Unpack source file to a temporary directory to investigate its contents."""
+
+    srcdir = UnpackedSource(dsc_fname, lconf)
+    try:
+        yield srcdir
+    finally:
+        srcdir.cleanup()
+
+
+def publish_package_metadata(spkg: SourcePackage, lconf: LocalConfig | None = None):
+    """Extract changelog/copyright and put it to the right location for the given source package."""
+
+    if not lconf:
+        lconf = LocalConfig()
+
+    # check if we even need to do anything
+    pm_dir = spkg.get_metadata_dir(lconf)
+    spkg_basename = '{}_{}'.format(spkg.name, split_epoch(spkg.version)[1])
+
+    spkg_changelog_fname = os.path.join(pm_dir, spkg_basename + '_changelog')
+    spkg_copyright_fname = os.path.join(pm_dir, spkg_basename + '_copyright')
+    if not os.path.isfile(spkg_changelog_fname) or not os.path.isfile(spkg_copyright_fname):
+        # some files are missing, extract them from the source!
+        os.makedirs(pm_dir, exist_ok=True)
+        dsc_f = spkg.dsc_file
+        with unpack_source(dsc_f.absolute_repo_path, lconf) as usrc:
+            changelog_fname = os.path.join(usrc.root_directory, 'debian', 'changelog')
+            copyright_fname = os.path.join(usrc.root_directory, 'debian', 'copyright')
+            if os.path.isfile(changelog_fname):
+                shutil.copy(changelog_fname, spkg_changelog_fname)
+            else:
+                log.error(
+                    'Source package "%s" is missing its debian/changelog file! This should never happen.', str(spkg)
+                )
+            if os.path.isfile(copyright_fname):
+                shutil.copy(copyright_fname, spkg_copyright_fname)
+            else:
+                log.warning('Source package "%s" is missing a debian/copyright file!', str(spkg))
+
+    # update alias hardlinks
+    have_changelog = os.path.isfile(spkg_changelog_fname)
+    have_copyright = os.path.isfile(spkg_copyright_fname)
+    for suite in spkg.suites:
+        if have_changelog:
+            hardlink_or_copy(spkg_changelog_fname, os.path.join(pm_dir, suite.name + '_changelog'), override=True)
+        if have_copyright:
+            hardlink_or_copy(spkg_copyright_fname, os.path.join(pm_dir, suite.name + '_copyright'), override=True)

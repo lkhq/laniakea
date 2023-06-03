@@ -100,6 +100,9 @@ class LocalConfig:
             # location for various temporary caches that can be deleted at any time
             self._cache_dir = cdata.get('CacheLocation', '/var/tmp/laniakea')
 
+            # location for various metadata (logs, changelogs, copyright files, ...)
+            self._metadata_dir = cdata.get('MetadataLocation', os.path.join(self._workspace, 'metadata'))
+
             self._autoconfig_root_dir = os.path.join(self._workspace, 'autoconfig')
 
             self._upload_incoming_dir = carchive.get(
@@ -312,7 +315,11 @@ class LocalConfig:
 
         @property
         def log_root_dir(self) -> T.PathUnion:
-            return os.path.join(self._workspace, 'logs')
+            return os.path.join(self._metadata_dir, 'logs')
+
+        @property
+        def package_metadata_dir(self) -> T.PathUnion:
+            return os.path.join(self._metadata_dir, 'pkg')
 
     def __init__(self, fname=None):
         if not LocalConfig.instance:

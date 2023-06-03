@@ -8,7 +8,6 @@ import os
 import enum
 import json
 import uuid
-import typing as T
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
@@ -33,6 +32,8 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import cast, func
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import CHAR, JSON, TEXT, ARRAY, JSONB
+
+import laniakea.typing as T
 
 from .base import UUID, Base, DebVersion, create_tsvector
 
@@ -719,6 +720,15 @@ class ArchiveFile(Base):
         else:
             return urlbase + '/' + str(self.fname)
 
+    @property
+    def absolute_repo_path(self) -> T.PathUnion:
+        """Absolute path to the file in its repository.
+
+        NOTE: Files may also be in the queue directory of a repository, if they are
+        pending review.
+        """
+        return os.path.join(self.repo.get_root_dir(), self.fname)
+
 
 class SourcePackage(Base):
     """
@@ -803,8 +813,14 @@ class SourcePackage(Base):
             self.repo = repo
             self.update_uuid()
 
+    def __str__(self):
+        repo_name = '?'
+        if self.repo:
+            repo_name = self.repo.name
+        return '{}:source/{}/{}'.format(repo_name, self.name, self.version)
+
     @property
-    def dsc_file(self) -> T.Optional[ArchiveFile]:
+    def dsc_file(self) -> ArchiveFile | None:
         for f in self.files:
             if f.fname.endswith('.dsc'):
                 return f
@@ -878,11 +894,13 @@ class SourcePackage(Base):
         """Mark this source package for removal during next maintenance run."""
         self.time_deleted = datetime.utcnow()
 
-    def __str__(self):
-        repo_name = '?'
-        if self.repo:
-            repo_name = self.repo.name
-        return '{}:source/{}/{}'.format(repo_name, self.name, self.version)
+    def get_metadata_dir(self, lconf=None):
+        """Get the metadata storage location for this package."""
+        from laniakea import LocalConfig
+
+        if not lconf:
+            lconf = LocalConfig()
+        return os.path.join(lconf.package_metadata_dir, self.repo.name, *Path(self.directory).parts[1:])
 
 
 # Index to speed up source package searches

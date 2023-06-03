@@ -29,7 +29,11 @@ from laniakea.db import (
 )
 from laniakea.logging import log, archive_log
 from laniakea.msgstream import EventEmitter
-from laniakea.archive.utils import package_mark_published
+from laniakea.archive.utils import (
+    split_epoch,
+    package_mark_published,
+    publish_package_metadata,
+)
 
 
 class ArchiveRemoveError(ArchiveError):
@@ -209,6 +213,18 @@ def remove_source_package(
                 session.delete(file)
         if not os.listdir(srcpkg_repo_dir):
             os.rmdir(srcpkg_repo_dir)
+
+        # delete other package metadata
+        pm_dir = spkg.get_metadata_dir()
+        spkg_basename = '{}_{}'.format(spkg.name, split_epoch(spkg.version)[1])
+        spkg_changelog_fname = os.path.join(pm_dir, spkg_basename + '_changelog')
+        spkg_copyright_fname = os.path.join(pm_dir, spkg_basename + '_copyright')
+        if os.path.isfile(spkg_changelog_fname):
+            os.unlink(spkg_changelog_fname)
+        if os.path.isfile(spkg_copyright_fname):
+            os.unlink(spkg_copyright_fname)
+
+        # delete from database and announce the removal
         session.delete(spkg)
         archive_log.info('DELETED-SRC: %s/%s @ %s', spkg.name, spkg.version, rss.repo.name)
         event_data = {'pkg_name': spkg.name, 'pkg_version': spkg.version, 'repo': rss.repo.name}
@@ -542,6 +558,10 @@ def copy_source_package(
             'with_binaries': include_binaries,
         }
         emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-copied', event_data)
+
+    # ensure we update the metadata alias links / extract missing data
+    publish_package_metadata(spkg)
+
     if include_binaries:
         for bpkg in spkg.binaries:
             # ignore debug packages if the destination has no debug suite and allow_missing_debug is set

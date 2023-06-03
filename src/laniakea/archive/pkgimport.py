@@ -54,6 +54,7 @@ from laniakea.archive.utils import (
     checksums_list_to_file,
     package_mark_published,
     parse_package_list_str,
+    publish_package_metadata,
     register_package_overrides,
     pool_dir_from_name_component,
     repo_suite_settings_for_debug,
@@ -199,7 +200,7 @@ class PackageImporter:
 
     def import_source(
         self,
-        dsc_fname: T.Union[os.PathLike, str],
+        dsc_fname: T.PathUnion,
         component_name: str,
         *,
         new_policy: NewPolicy = NewPolicy.DEFAULT,
@@ -500,6 +501,10 @@ class PackageImporter:
             spkg.extra_data = dict(src_tf)
 
         self._session.add(spkg)
+        if not is_new:
+            # extract changelog & copyright files
+            publish_package_metadata(spkg)
+
         if is_new:
             log.info(
                 'Source `{}/{}` for {}/{} added to NEW queue.'.format(
@@ -515,6 +520,7 @@ class PackageImporter:
                 )
             )
             self._session.commit()
+
         return ImportSourceResult(spkg, is_new)
 
     def _find_source_package(
