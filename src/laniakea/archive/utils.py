@@ -549,7 +549,7 @@ class UnpackedSource:
 
 
 @contextmanager
-def unpack_source(dsc_fname: T.PathUnion, lconf: LocalConfig | None = None) -> UnpackedSource:
+def unpack_source(dsc_fname: T.PathUnion, lconf: LocalConfig | None = None) -> T.Generator[UnpackedSource]:
     """Unpack source file to a temporary directory to investigate its contents."""
 
     srcdir = UnpackedSource(dsc_fname, lconf)
@@ -573,6 +573,7 @@ def publish_package_metadata(spkg: SourcePackage, lconf: LocalConfig | None = No
     spkg_copyright_fname = os.path.join(pm_dir, spkg_basename + '_copyright')
     if not os.path.isfile(spkg_changelog_fname) or not os.path.isfile(spkg_copyright_fname):
         # some files are missing, extract them from the source!
+        log.info('Extracting auxiliary package metadata for "%s"', str(spkg))
         os.makedirs(pm_dir, exist_ok=True)
         dsc_f = spkg.dsc_file
         with unpack_source(dsc_f.absolute_repo_path, lconf) as usrc:
