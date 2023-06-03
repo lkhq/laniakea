@@ -66,6 +66,11 @@ option('rubicon',
     value: true,
     description: 'Build rubicon upload accepting tool'
 )
+option('webupload',
+    type: 'boolean',
+    value: true,
+    description: 'Web upload service'
+)
 option('webgui',
     type: 'boolean',
     value: true,

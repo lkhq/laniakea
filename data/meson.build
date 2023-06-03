@@ -46,7 +46,7 @@ if get_option('webgui')
                  install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
 endif
 
-if get_option('rubicon')
+if get_option('webupload')
     sd_data = configuration_data()
     sd_data.set('LKUPLOAD_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/webupload/')
 

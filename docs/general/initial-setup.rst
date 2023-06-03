@@ -54,7 +54,7 @@ Build without web frontend & without tests
 .. code-block:: bash
 
     mkdir build && cd build
-    meson -Dwebgui=false -Dlinting=false ..
+    meson -Dwebgui=false -Dlinting=false -Dwebupload=false ..
     ninja
 
 Build web frontend & Matrix bot only, no tests

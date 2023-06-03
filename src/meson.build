@@ -7,6 +7,15 @@ src_dir = include_directories('.')
 #
 lk_priv_bin_target = 'lib/laniakea/'
 
+# check additional dependencies for some modules
+if (get_option('webgui') or get_option('webupload'))
+    # Additional Python deps
+    r = run_command(pymod_check_exe, [pymod_check_arg, 'web'], check: false)
+    if r.returncode() != 0
+        error(r.stderr().strip())
+    endif
+endif
+
 #
 # Modules
 #
@@ -50,6 +59,10 @@ endif
 # Rubicon data importer
 if (get_option('rubicon'))
     subdir('rubicon')  # deferred upload processing
+endif
+
+# Package upload webservice
+if (get_option('webupload'))
     subdir('webupload')  # HTTPS upload service
 endif
 
@@ -75,12 +88,6 @@ endif
 
 # web frontends
 if (get_option('webgui'))
-    # Additional Python deps
-    r = run_command(pymod_check_exe, [pymod_check_arg, 'web'], check: false)
-    if r.returncode() != 0
-        error(r.stderr().strip())
-    endif
-
     # JS/CSS/etc frontend 3rd-party downloaded code
     if get_option('download-npm')
         npm_exe = find_program('npm')
