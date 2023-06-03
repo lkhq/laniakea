@@ -13,7 +13,9 @@ import hashlib
 
 import firehose.model
 
-from laniakea.utils import deb822, run_command
+import laniakea.typing as T
+from laniakea.utils import deb822
+from laniakea.utils.gpg import SignedFile
 
 
 class DudFileException(Exception):
@@ -103,42 +105,22 @@ class Dud(object):
         '''
         return self._data.get(key, default)
 
-    def validate(self, check_hash='sha256', keyrings=None):
+    def validate(self, check_hash='sha256', keyring_dir: T.PathUnion | None = None):
+        from glob import glob
+
         self.validate_checksums(check_hash)
-        if keyrings:
+        if keyring_dir:
+            keyrings = list(glob(os.path.join(keyring_dir, 'pubring.kbx')))
             self.validate_signature(keyrings)
 
     def validate_signature(self, keyrings):
         '''
-        Validate the GPG signature of a .changes file.
+        Validate the GPG signature of a .dud file.
         '''
 
-        cmd = ['gpg', '--batch', '--status-fd', '1', '--no-default-keyring']
-        for k in keyrings:
-            cmd.extend(['--keyring', k])
-        cmd.extend(['--verify', self.get_dud_file()])
-
-        (gpg_output, gpg_output_stderr, exit_status) = run_command(cmd)
-
-        if exit_status == -1:
-            raise DudFileException('Unknown problem while verifying signature')
-
-        if gpg_output.count('[GNUPG:] GOODSIG'):
-            pass
-        elif gpg_output.count('[GNUPG:] BADSIG'):
-            raise DudFileException('Bad signature')
-        elif gpg_output.count('[GNUPG:] ERRSIG'):
-            raise DudFileException('Error verifying signature')
-        elif gpg_output.count('[GNUPG:] NODATA'):
-            raise DudFileException('No signature')
-        else:
-            raise DudFileException('Unknown problem while verifying signature')
-
-        key = None
-        for line in gpg_output.split('\n'):
-            if line.startswith('[GNUPG:] VALIDSIG'):
-                key = line.split()[2]
-        return key
+        with open(self.get_dud_file(), 'rb') as f:
+            signature = SignedFile(f.read(), keyrings=keyrings, require_signature=True)
+            return signature.primary_fingerprint
 
     def validate_checksums(self, check_hash='sha256'):
         '''

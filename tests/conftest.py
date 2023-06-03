@@ -111,9 +111,9 @@ def localconfig(samples_dir):
     os.makedirs(conf._curve_keys_basedir, exist_ok=True)
 
     # add the trusted keyring with test keys
-    conf._trusted_gpg_keyrings = []
-    conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'keyring.gpg'))
-    conf._trusted_gpg_keyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'other-keyring.gpg'))
+    conf._synchrotron_sourcekeyrings = []
+    conf._synchrotron_sourcekeyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'keyring.gpg'))
+    conf._synchrotron_sourcekeyrings.append(os.path.join(samples_dir, 'gpg', 'keyrings', 'other-keyring.gpg'))
 
     # We do want to use the forkserver method when multiprocessing is in use.
     # It is difficult to find the right place to set that in PyTest, so we set it here to ensure

@@ -9,6 +9,7 @@ import shutil
 
 import tomlkit
 
+import laniakea.typing as T
 from laniakea import LocalConfig, get_config_file
 from laniakea.logging import log
 
@@ -24,7 +25,7 @@ class RubiConfig:
 
     isotope_root_dir = None
 
-    trusted_gpg_keyrings: list[str] = []
+    trusted_gpg_keyring_dir: T.PathUnion | None = None
 
     def __init__(self, local_config=None):
         if not local_config:
@@ -52,7 +53,7 @@ class RubiConfig:
             )
         self.incoming_dir = cdata.get('IncomingDir', self._lconf.upload_incoming_dir)
 
-        self.trusted_gpg_keyrings = self._lconf.trusted_gpg_keyrings
+        self.trusted_gpg_keyring_dir = self._lconf.uploaders_keyring_dir
 
         self.isotope_root_dir = cdata.get('IsotopeRootDir', None)
 

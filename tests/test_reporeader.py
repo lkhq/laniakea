@@ -132,7 +132,7 @@ def validate_bin_packages(bpkgs: T.List[BinaryPackage]):
 
 
 def test_reporeader_local(samples_dir, localconfig):
-    keyrings = localconfig.trusted_gpg_keyrings
+    keyrings = localconfig.synchrotron_sourcekeyrings
     repo_location = os.path.join(samples_dir, 'samplerepo', 'dummy')
 
     suite = ArchiveSuite('testing')

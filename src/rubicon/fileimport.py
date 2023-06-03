@@ -189,7 +189,7 @@ def import_files_for(
         dud = Dud(dud_file)
 
         try:
-            dud.validate(keyrings=conf.trusted_gpg_keyrings)
+            dud.validate(keyring_dir=conf.trusted_gpg_keyring_dir)
         except Exception as e:
             reason = 'Signature validation failed: {}'.format(str(e))
             reject_dud_upload(conf, repo, dud, reason, emitter)

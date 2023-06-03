@@ -164,12 +164,6 @@ class LocalConfig:
             # ZCurve / Message signing
             self._curve_keys_basedir = cdata.get('CurveKeysDir', os.path.join(self._workspace, 'keys', 'curve'))
 
-            # Trusted GPG keyrings
-            self._trusted_gpg_keyrings = []
-            self._trusted_gpg_keyring_dir = cdata.get('TrustedGpgKeyringDir')
-            if self._trusted_gpg_keyring_dir:
-                self._trusted_gpg_keyrings = glob(os.path.join(self._trusted_gpg_keyring_dir, '*.gpg'))
-
             # Secret GPG Keyring dir
             self._secret_gpg_home_dir = cdata.get(
                 'SecretGPGHome', os.path.join(self._workspace, 'keys', 'archive', 's3kr1t')
@@ -297,14 +291,6 @@ class LocalConfig:
                 pass
 
             return trusted_dir
-
-        @property
-        def trusted_gpg_keyring_dir(self) -> str:
-            return self._trusted_gpg_keyring_dir
-
-        @property
-        def trusted_gpg_keyrings(self) -> list:
-            return self._trusted_gpg_keyrings
 
         @property
         def secret_gpg_home_dir(self) -> str:

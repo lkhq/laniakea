@@ -67,7 +67,7 @@ class SignedFile:
       primary_fingerprint - fingerprint of the primary key associated to the key used for signing
     '''
 
-    def __init__(self, data, keyrings: Optional[List[str]], *, require_signature=True, gpg='/usr/bin/gpg'):
+    def __init__(self, data, keyrings: Optional[List[str]], *, require_signature: bool = True, gpg='/usr/bin/gpg'):
         '''
         @param data: byte-string containing the message
         @param keyrings: sequence of keyrings
@@ -105,7 +105,7 @@ class SignedFile:
         assert len(self.signature_ids) == 1
         return self.signature_ids[0]
 
-    def _verify(self, data, require_signature):
+    def _verify(self, data, require_signature: bool):
         with _Pipe() as stdin, _Pipe() as contents, _Pipe() as status, _Pipe() as stderr:
             pid = os.fork()
             if pid == 0:
