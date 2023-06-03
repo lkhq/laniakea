@@ -549,7 +549,7 @@ class UnpackedSource:
 
 
 @contextmanager
-def unpack_source(dsc_fname: T.PathUnion, lconf: LocalConfig | None = None) -> T.Generator[UnpackedSource]:
+def unpack_source(dsc_fname: T.PathUnion, lconf: LocalConfig | None = None) -> T.Iterator[UnpackedSource]:
     """Unpack source file to a temporary directory to investigate its contents."""
 
     srcdir = UnpackedSource(dsc_fname, lconf)
