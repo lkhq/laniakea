@@ -503,7 +503,14 @@ class PackageImporter:
         self._session.add(spkg)
         if not is_new:
             # extract changelog & copyright files
-            publish_package_metadata(spkg)
+            try:
+                publish_package_metadata(spkg)
+            except Exception as e:
+                # We do not want to fail at this stage due to e.g. permission issues
+                # or bad configuration and end up with files copied to the archive without
+                # registered entity in the database.
+                # The metadata will be added at a later time.
+                log.error('Unable to extract package metadata: %s', str(e))
 
         if is_new:
             log.info(
