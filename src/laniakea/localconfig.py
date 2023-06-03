@@ -91,19 +91,19 @@ class LocalConfig:
 
             self._upload_url = cdata.get('UploadUrl')
 
+            # location for various temporary caches that can be deleted at any time
+            self._cache_dir = cdata.get('CacheLocation', '/var/tmp/laniakea')
+
+            self._autoconfig_root_dir = os.path.join(self._workspace, 'autoconfig')
+
+            # the user we run most (archive) commands as
+            self._master_user_name = cdata.get('MasterUserName', 'lkmaster')
+
             carchive = cdata.get('Archive')
             if not carchive:
                 raise Exception(
                     'No "Archive" configuration found in local config file. Please specify archive details!'
                 )
-
-            # location for various temporary caches that can be deleted at any time
-            self._cache_dir = cdata.get('CacheLocation', '/var/tmp/laniakea')
-
-            # location for various metadata (logs, changelogs, copyright files, ...)
-            self._metadata_dir = cdata.get('MetadataLocation', os.path.join(self._workspace, 'metadata'))
-
-            self._autoconfig_root_dir = os.path.join(self._workspace, 'autoconfig')
 
             self._upload_incoming_dir = carchive.get(
                 'UploadIncomingPath', os.path.join(self._workspace, 'uploads', 'incoming')
@@ -112,8 +112,8 @@ class LocalConfig:
                 'UploadRejectedPath', os.path.join(self._workspace, 'uploads', 'rejected')
             )
 
-            # the user we run most (archive) commands as
-            self._master_user_name = cdata.get('MasterUserName', 'lkmaster')
+            # location for various metadata (logs, changelogs, copyright files, ...)
+            self._metadata_dir = carchive.get('metadata_dir', os.path.join(self._workspace, 'metadata'))
 
             jdb = cdata.get('Database', {})
             db_host = jdb.get('host', 'localhost')
