@@ -775,7 +775,7 @@ def guess_binary_package_remove_issues(
     # repository/suite. If that is the case, we just assume that the new version will satisfy
     # all dependencies that the older version did.
     # TODO: Check for virtual packages via "provides" here as well?
-    log.debug('Trying to guess installability issues if binary package "%s" was deleted.', str(bpkg))
+    log.debug('Guessing installability issues upon deletion of binary package "%s".', str(bpkg))
     ret = session.query(
         exists().where(
             BinaryPackage.repo_id == rss.repo_id,
@@ -841,7 +841,7 @@ def guess_source_package_remove_issues(
 
     src_deps = []
     bin_deps = []
-    log.debug('Trying to guess installability issues if source package "%s" was deleted.', str(spkg))
+    log.debug('Guessing installability issues upon deletion of source package "%s".', str(spkg))
     for bpkg in spkg.binaries:
         sd, bd = guess_binary_package_remove_issues(session, rss, bpkg)
         src_deps.extend(sd)
