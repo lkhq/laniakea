@@ -843,8 +843,12 @@ def guess_source_package_remove_issues(
     bin_deps = []
     log.debug('Guessing installability issues upon deletion of source package "%s".', str(spkg))
     for bpkg in spkg.binaries:
-        sd, bd = guess_binary_package_remove_issues(session, rss, bpkg)
-        src_deps.extend(sd)
-        bin_deps.extend(bd)
+        sdeps, bdeps = guess_binary_package_remove_issues(session, rss, bpkg)
+        for sd in sdeps:
+            if sd.uuid != spkg.uuid:
+                src_deps.append(sd)
+        for bd in bdeps:
+            if bd.source_id != spkg.uuid:
+                bin_deps.append(bd)
 
     return src_deps, bin_deps
