@@ -13,6 +13,7 @@ import tomlkit
 
 import laniakea.typing as T
 from laniakea.utils import listify
+from laniakea.logging import log
 
 
 def get_data_file(fname):
@@ -99,18 +100,16 @@ class LocalConfig:
             # the user we run most (archive) commands as
             self._master_user_name = cdata.get('MasterUserName', 'lkmaster')
 
-            carchive = cdata.get('Archive')
-            if not carchive:
-                raise Exception(
-                    'No "Archive" configuration found in local config file. Please specify archive details!'
-                )
-
-            self._upload_incoming_dir = carchive.get(
+            self._upload_incoming_dir = cdata.get(
                 'UploadIncomingPath', os.path.join(self._workspace, 'uploads', 'incoming')
             )
-            self._upload_rejected_dir = carchive.get(
+            self._upload_rejected_dir = cdata.get(
                 'UploadRejectedPath', os.path.join(self._workspace, 'uploads', 'rejected')
             )
+
+            carchive = cdata.get('Archive')
+            if not carchive:
+                log.warning('No "Archive" configuration found in local config file. Please specify archive details!')
 
             # location for various metadata (logs, changelogs, copyright files, ...)
             self._metadata_dir = carchive.get('metadata_dir', os.path.join(self._workspace, 'metadata'))
