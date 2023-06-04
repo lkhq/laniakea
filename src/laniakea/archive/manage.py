@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from collections import namedtuple
 from dataclasses import field, dataclass
 
-from sqlalchemy import and_, func
+from sqlalchemy import or_, and_, func, exists
 from sqlalchemy.orm import joinedload
 
 import laniakea.typing as T
@@ -753,3 +753,98 @@ def retrieve_suite_package_maxver_baseinfo(session, rss: ArchiveRepoSuiteSetting
     )
 
     return PackageInfoTuple(spkg_einfo, bpkg_einfo)
+
+
+def guess_binary_package_remove_issues(
+    session, rss: ArchiveRepoSuiteSettings, bpkg: BinaryPackage
+) -> tuple[list[SourcePackage], list[BinaryPackage]]:
+    """Try to guess which packages become uninstallable if the given binary package was removed.
+
+    Please note that we will *not* perform a complete dependency analysis here, especially we
+    will not take any version numbers and conflicts into account. If this function returns
+    nothing, removing the package might still be a bad idea (however, if it returns something
+    there *definitely* will be issues).
+
+    :param session: SQLAlchemy session.
+    :param rss: The repo/suite to remove the package from.
+    :param bpkg: The binary package that would be removed.
+    :return: A tuple of source, binary packages that would become uninstallable if the binary package was removed.
+    """
+
+    # Check if we have a (higher!) version of the same binary package available in the selected
+    # repository/suite. If that is the case, we just assume that the new version will satisfy
+    # all dependencies that the older version did.
+    # TODO: Check for virtual packages via "provides" here as well?
+    log.debug('Trying to guess installability issues if binary package "%s" was deleted.', str(bpkg))
+    ret = session.query(
+        exists().where(
+            BinaryPackage.repo_id == rss.repo_id,
+            BinaryPackage.suites.any(id=rss.suite_id),
+            BinaryPackage.architecture_id == bpkg.architecture_id,
+            BinaryPackage.time_deleted.is_(None),
+            BinaryPackage.name == bpkg.name,
+            BinaryPackage.version > bpkg.version,
+        )
+    ).scalar()
+    if ret:
+        return [], []
+
+    # check for dependencies on the current package
+    bpkg_match_terms = [bpkg.name + ' %', bpkg.name, bpkg.name + ':%']
+    src_dependencies = (
+        session.query(SourcePackage)
+        .filter(
+            SourcePackage.repo_id == rss.repo_id,
+            SourcePackage.suites.any(id=rss.suite_id),
+            SourcePackage.time_deleted.is_(None),
+            or_(
+                *[SourcePackage.build_depends.any(mt) for mt in bpkg_match_terms],
+                *[SourcePackage.build_depends_indep.any(mt) for mt in bpkg_match_terms],
+                *[SourcePackage.build_depends_arch.any(mt) for mt in bpkg_match_terms],
+            ),
+        )
+        .all()
+    )
+    bin_dependencies = (
+        session.query(BinaryPackage)
+        .filter(
+            BinaryPackage.repo_id == rss.repo_id,
+            BinaryPackage.suites.any(id=rss.suite_id),
+            BinaryPackage.time_deleted.is_(None),
+            or_(BinaryPackage.architecture_id == bpkg.architecture_id, BinaryPackage.architecture.has(name='all')),
+            or_(
+                *[BinaryPackage.depends.any(mt) for mt in bpkg_match_terms],
+                *[BinaryPackage.pre_depends.any(mt) for mt in bpkg_match_terms],
+            ),
+        )
+        .all()
+    )
+
+    return src_dependencies, bin_dependencies
+
+
+def guess_source_package_remove_issues(
+    session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage
+) -> tuple[list[SourcePackage], list[BinaryPackage]]:
+    """Try to guess which packages become uninstallable if the given source package was removed.
+
+    Please note that we will *not* perform a complete dependency analysis here, especially we
+    will not take any version numbers and conflicts into account. If this function returns
+    nothing, removing the package might still be a bad idea (however, if it returns something
+    there *definitely* will be issues).
+
+    :param session: SQLAlchemy session.
+    :param rss: The repo/suite to remove the package from.
+    :param spkg: The source package that would be removed.
+    :return: A tuple of source, binary packages that would become uninstallable if the binary package was removed.
+    """
+
+    src_deps = []
+    bin_deps = []
+    log.debug('Trying to guess installability issues if source package "%s" was deleted.', str(spkg))
+    for bpkg in spkg.binaries:
+        sd, bd = guess_binary_package_remove_issues(session, rss, bpkg)
+        src_deps.extend(sd)
+        bin_deps.extend(bd)
+
+    return src_deps, bin_deps

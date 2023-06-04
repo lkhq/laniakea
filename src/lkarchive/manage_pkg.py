@@ -34,6 +34,8 @@ from laniakea.archive.manage import (
     expire_superseded,
     copy_source_package,
     remove_binary_package,
+    guess_binary_package_remove_issues,
+    guess_source_package_remove_issues,
 )
 
 
@@ -132,7 +134,12 @@ def cmd_list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str])
         console.print(table)
 
 
-def print_package_details(pkgs: list[SourcePackage] | list[BinaryPackage]):
+def print_package_removal_details(
+    session, rss: ArchiveRepoSuiteSettings, pkgs: list[SourcePackage] | list[BinaryPackage], console=None
+):
+    if not console:
+        console = Console()
+
     is_source = isinstance(pkgs[0], SourcePackage)
 
     table = Table(box=rich.box.MINIMAL)
@@ -156,8 +163,29 @@ def print_package_details(pkgs: list[SourcePackage] | list[BinaryPackage]):
             ' '.join([b.name for b in pkg.binaries]) if is_source else pkg.architecture.name,
         )
 
-    console = Console()
     console.print(table)
+
+    src_issues = set()
+    bin_issues = set()
+    for pkg in pkgs:
+        if is_source:
+            si, bi = guess_source_package_remove_issues(session, rss, pkg)
+        else:
+            si, bi = guess_binary_package_remove_issues(session, rss, pkg)
+        src_issues.update([s.name + '/' + s.version for s in si])
+        bin_issues.update([b.name + '/' + b.version for b in bi])
+    if src_issues:
+        console.print(
+            'The following source packages [red]will no longer build[/red] if this package is removed:\n{}\n'.format(
+                ' '.join(src_issues)
+            )
+        )
+    if bin_issues:
+        console.print(
+            'The following binary packages [red]will no longer be installable[/red] if this package is removed:\n{}\n'.format(
+                ' '.join(bin_issues)
+            )
+        )
 
 
 def _delete_package_vmem(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[SourcePackage, BinaryPackage]):
@@ -204,6 +232,7 @@ def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary:
         lconf = LocalConfig()
         repo_name = lconf.master_repo_name
 
+    console = Console()
     with session_scope() as session:
         rss = (
             session.query(ArchiveRepoSuiteSettings)
@@ -233,9 +262,10 @@ def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary:
                 click.echo('Package {} not found in repository {}/{}.'.format(pkgname, repo_name, suite_name))
                 sys.exit(0)
 
-            print_package_details(spkgs)
-            remove_confirmed = Confirm.ask('Do you really want to delete these packages?', default=False)
+            # print details & dependency issues
+            print_package_removal_details(session, rss, spkgs, console=console)
 
+            remove_confirmed = Confirm.ask('Do you really want to delete these packages?', default=False)
             if remove_confirmed:
                 for spkg in spkgs:
                     if rm_vmem:
@@ -259,9 +289,10 @@ def remove(pkgname: str, repo_name: T.Optional[str], suite_name: str, is_binary:
                 click.echo('Binary package {} not found in repository {}/{}.'.format(pkgname, repo_name, suite_name))
                 sys.exit(0)
 
-            print_package_details(bpkgs)
-            remove_confirmed = Confirm.ask('Do you really want to delete these binary packages?', default=False)
+            # print details & dependency issues
+            print_package_removal_details(session, rss, bpkgs, console=console)
 
+            remove_confirmed = Confirm.ask('Do you really want to delete these binary packages?', default=False)
             if remove_confirmed:
                 for bpkg in bpkgs:
                     if rm_vmem:
