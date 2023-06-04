@@ -318,8 +318,8 @@ def register_package_overrides(
             override = PackageOverride(pi.name, real_rss.repo, real_rss.suite)
             override_new = True
 
-        override.component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one_or_none()
-        if not override.component:
+        component = session.query(ArchiveComponent).filter(ArchiveComponent.name == pi.component).one_or_none()
+        if not component:
             log.warning(
                 'Skipping registering override for "%s" in "%s", as its component "%s" is not known.',
                 pi.name,
@@ -327,6 +327,7 @@ def register_package_overrides(
                 pi.component,
             )
             continue
+        override.component = component
 
         override.section = session.query(ArchiveSection).filter(ArchiveSection.name == pi.section).one_or_none()
         if not override.section:

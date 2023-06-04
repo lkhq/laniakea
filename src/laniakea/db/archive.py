@@ -957,10 +957,10 @@ class PackageOverride(Base):
     id = Column(Integer, primary_key=True)
 
     repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo = relationship('ArchiveRepository')  # Repository this override belongs to
+    repo = relationship('ArchiveRepository', cascade=None)  # Repository this override belongs to
 
     suite_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=False)
-    suite = relationship('ArchiveSuite')  # Suite this override belongs to
+    suite = relationship('ArchiveSuite', cascade=None)  # Suite this override belongs to
 
     pkg_name = Column(String(200))  # Name of the binary package this override belongs to
 
@@ -968,7 +968,7 @@ class PackageOverride(Base):
     priority = Column(Enum(PackagePriority), default=PackagePriority.OPTIONAL)  # Priority of the package
 
     component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
-    component = relationship('ArchiveComponent')  # Component this override is for
+    component = relationship('ArchiveComponent', cascade=None)  # Component this override is for
 
     section_id = Column(Integer, ForeignKey('archive_sections.id'), nullable=False)
     section = relationship('ArchiveSection')  # Section of the package
