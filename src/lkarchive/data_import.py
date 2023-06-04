@@ -332,7 +332,7 @@ def _import_repo_into_suite(
     source_suite_name: str,
     source_component_name: str,
     src_repo_path: T.PathUnion,
-):
+) -> bool:
     """Import a complete, local repository into a target."""
     from laniakea.reporeader import RepositoryReader
     from laniakea.archive.utils import register_package_overrides
@@ -539,6 +539,7 @@ def _import_repo_into_suite(
 
         # commit after each architecture was processed
         session.commit()
+        return True
 
 
 @click.command('import-repo')
