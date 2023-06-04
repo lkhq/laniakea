@@ -539,7 +539,9 @@ def _import_repo_into_suite(
 
         # commit after each architecture was processed
         session.commit()
-        return True
+
+    # success!
+    return True
 
 
 @click.command('import-repo')
