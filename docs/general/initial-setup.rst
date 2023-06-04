@@ -29,8 +29,8 @@ If you want to use the web-based GUI, you will also need these modules installed
 
 .. code-block:: bash
 
-    sudo apt install python3-flask python3-flask-restful python3-flask-login npm \
-                     python3-flask-caching
+    sudo apt install python3-flask python3-flask-caching  python3-flask-login npm
+    pip install flask-rebar
 
 If you want to use the Matrix bot, you will need Mautrix:
 
@@ -277,12 +277,11 @@ In order to configure the web dashboard service, create the necessary configurat
     TESTING = False
 
 Set the caching backend you want (filesystem, redis, memcached, ...) and ensure you generate a new
-secret key. Generating a secret key is easy with this Python snippet:
+secret key. Generating a secret key is easy with this command:
 
-.. code-block:: python
+.. code-block:: shell-session
 
-    import secrets
-    print(secrets.token_hex(32))
+    $ python -c 'import secrets; print(secrets.token_hex(32))'
 
 Then make sure the web application directory has the correct ownership, and launch it
 using ``systemctl``:
