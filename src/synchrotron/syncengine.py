@@ -51,6 +51,10 @@ from laniakea.archive.utils import (
     repo_suite_settings_for,
     repo_suite_settings_for_debug,
 )
+from laniakea.archive.manage import (
+    remove_source_package,
+    guess_source_package_remove_issues,
+)
 
 
 class PackageSyncState(Enum):
@@ -892,32 +896,47 @@ class SyncEngine:
                     known_issues.append(issue)
                     continue
                 else:
-                    # we can most likely remove this package
-                    # TODO: We should implement a smart way to auto-remove the package here, possibly running debcheck
-                    # on the archive with the package dropped and see if it results in packages becoming non-installable.
-                    issue = (
-                        session.query(SynchrotronIssue)
-                        .filter(SynchrotronIssue.config_id == sync_conf.id, SynchrotronIssue.package_name == dpkg.name)
-                        .one_or_none()
-                    )
-                    issue_new = False
-                    if not issue:
-                        issue = SynchrotronIssue()
-                        issue.config = sync_conf
-                        issue.package_name = dpkg.name
-                        issue_new = True
-                        session.add(issue)
+                    spkg_rm_issues, bpkg_rm_issues = guess_source_package_remove_issues(session, rss, dpkg)
+                    if not spkg_rm_issues and not bpkg_rm_issues:
+                        # We can likely remove this package without causing any troubles,
+                        # and since autoremovals were explicitly requested, we'll just drop it here
+                        remove_source_package(session, rss, dpkg, emitter=self._ev_emitter)
+                    else:
+                        # We can definitely not remove this potentially obsolete package. emit a message so a human
+                        # can look into it and resolve the problem.
 
-                    issue.kind = SynchrotronIssueKind.REMOVAL_FAILED
-                    issue.source_suite = self._source_suite_name
-                    issue.target_suite = self._target_suite_name
-                    issue.source_version = None
-                    issue.target_version = dpkg.version
-                    issue.details = 'This package needs manual removal.'
-                    if issue_new:
-                        self._emit_new_issue_event(sync_conf, issue)
+                        issue = (
+                            session.query(SynchrotronIssue)
+                            .filter(
+                                SynchrotronIssue.config_id == sync_conf.id, SynchrotronIssue.package_name == dpkg.name
+                            )
+                            .one_or_none()
+                        )
+                        issue_new = False
+                        if not issue:
+                            issue = SynchrotronIssue()
+                            issue.config = sync_conf
+                            issue.package_name = dpkg.name
+                            issue_new = True
+                            session.add(issue)
 
-                    known_issues.append(issue)
+                        broken_excerpt = set()
+                        broken_excerpt.update(['src:' + s.name for s in spkg_rm_issues[:2]])
+                        broken_excerpt.update([b.name for b in bpkg_rm_issues[:2]])
+                        has_more = len(broken_excerpt) < len(spkg_rm_issues) + len(bpkg_rm_issues)
+
+                        issue.kind = SynchrotronIssueKind.REMOVAL_FAILED
+                        issue.source_suite = self._source_suite_name
+                        issue.target_suite = self._target_suite_name
+                        issue.source_version = None
+                        issue.target_version = dpkg.version
+                        issue.details = 'Can not autoremove, as {}{} would break.'.format(
+                            ', '.join(broken_excerpt), ' and more' if has_more else ''
+                        )
+                        if issue_new:
+                            self._emit_new_issue_event(sync_conf, issue)
+
+                        known_issues.append(issue)
 
         self._publish_synced_spkg_events(
             sync_conf.source.os_name, sync_conf.source.suite_name, sync_conf.destination_suite.name, False
