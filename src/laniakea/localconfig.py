@@ -107,7 +107,7 @@ class LocalConfig:
                 'UploadRejectedPath', os.path.join(self._workspace, 'uploads', 'rejected')
             )
 
-            carchive = cdata.get('Archive')
+            carchive = cdata.get('Archive', {})
             if not carchive:
                 log.warning('No "Archive" configuration found in local config file. Please specify archive details!')
 
