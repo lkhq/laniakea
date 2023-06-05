@@ -6,6 +6,7 @@ install_subdir('.', install_dir: 'lib/laniakea/webdash/',
 )
 
 wd_data = configuration_data()
+wd_data.set('LK_VIRTUALENV_HOME_ENTRY', '')
 if get_option('virtualenv') != ''
     wd_data.set('LK_VIRTUALENV_HOME_ENTRY', 'home = ' + get_option('virtualenv').strip())
 endif

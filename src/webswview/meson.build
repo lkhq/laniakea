@@ -9,6 +9,7 @@ install_subdir('.', install_dir: 'lib/laniakea/webswview/',
 )
 
 wsw_data = configuration_data()
+wsw_data.set('LK_VIRTUALENV_HOME_ENTRY', '')
 if get_option('virtualenv') != ''
     wsw_data.set('LK_VIRTUALENV_HOME_ENTRY', 'home = ' + get_option('virtualenv').strip())
 endif
