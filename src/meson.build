@@ -42,9 +42,8 @@ if (get_option('lighthouse'))
 endif
 
 # Background task scheduler daemon
-if (get_option('scheduler'))
-    subdir('lkscheduler')
-endif
+# (module always installed so other modules can read scheduler state)
+subdir('lkscheduler')
 
 # E-Mail emitter
 if (get_option('mailgun'))
