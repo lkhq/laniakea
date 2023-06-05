@@ -298,6 +298,11 @@ def write_release_file_for_arch(
     set_deb822_value(entry, 'Version', rss.suite.version)
     set_deb822_value(entry, 'Component', component.name)
     entry['Architecture'] = arch_name
+    entry['Acquire-By-Hash'] = 'yes'
+    if rss.not_automatic:
+        entry['NotAutomatic'] = 'yes'
+    if rss.but_automatic_upgrades:
+        entry['ButAutomaticUpgrades'] = 'yes'
 
     finfos = []
     release_name = os.path.join(component.name, subdir, 'Release')
@@ -817,6 +822,12 @@ def _publish_suite_dists(
     if not rss.frozen and not only_sources:
         entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.utcnow() + timedelta(days=8))
     entry['Acquire-By-Hash'] = 'yes'
+
+    if rss.not_automatic:
+        entry['NotAutomatic'] = 'yes'
+    if rss.but_automatic_upgrades:
+        entry['ButAutomaticUpgrades'] = 'yes'
+
     entry['Architectures'] = ' '.join(sorted([a.name for a in rss.suite.architectures]))
     entry['Components'] = ' '.join(sorted([c.name for c in rss.suite.components]))
 

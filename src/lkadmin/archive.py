@@ -410,6 +410,8 @@ def _add_suite_to_repo(
     manual_accept=False,
     signingkeys=None,
     announce_emails=None,
+    not_automatic: bool = False,
+    but_automatic_upgrades: bool = False,
 ):
     '''Add suite to a repository.'''
 
@@ -439,6 +441,8 @@ def _add_suite_to_repo(
         rs_settings.manual_accept = manual_accept
         rs_settings.signingkeys = signingkeys
         rs_settings.announce_emails = announce_emails
+        rs_settings.not_automatic = not_automatic
+        rs_settings.but_automatic_upgrades = but_automatic_upgrades
 
 
 @archive.command(aliases=['r-a-s'])
