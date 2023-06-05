@@ -19,7 +19,7 @@ class BaseConfig:
 
     OS_NAME = config_get_project_name()
 
-    LOG_STORAGE_URL = '/raw/logs'  # web URL where raw logs are stored by Rubicon
+    LOG_STORAGE_URL = '/metadata/logs'  # web URL where raw logs are stored by Rubicon
     APPSTREAM_MEDIA_URL = LocalConfig().archive_appstream_media_url
     ARCHIVE_URL = LocalConfig().archive_url
 
