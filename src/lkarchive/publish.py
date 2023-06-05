@@ -797,10 +797,21 @@ def _publish_suite_dists(
             entry = Deb822(f)
     else:
         entry = Deb822()
+
+    suite_alias = rss.suite.alias
+    if rss.suite.name.startswith('byzantium'):
+        # FIXME: HACK: This is a dirty hack to aid the migration of PureOS' systems to the new version of Laniakea.
+        # Dak previously put "None" (as string) for an unset value here, which we don't want to do. We also can not
+        # set the suite alias to "None", since that would violate the duplicate key constraint of the database, since
+        # suites like byzantium-security would have the same "None" codename.
+        # So for simplicity, we have this dirty hack implemented here, until the byzantium suite can be dropped
+        # in the far future.
+        suite_alias = 'None'
+
     set_deb822_value(entry, 'Origin', rss.repo.origin_name)
     set_deb822_value(entry, 'Suite', rss.suite.name)
     set_deb822_value(entry, 'Version', rss.suite.version)
-    set_deb822_value(entry, 'Codename', rss.suite.alias)
+    set_deb822_value(entry, 'Codename', suite_alias)
     set_deb822_value(entry, 'Label', rss.suite.summary)
     entry['Date'] = datetime_to_rfc2822_string(datetime.utcnow())
     if not rss.frozen and not only_sources:
