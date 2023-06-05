@@ -1,5 +1,6 @@
 [Unit]
 Description=Laniakea Maintenance Daemon
+Requires=postgresql.service
 After=syslog.target network.target
 ConditionPathExists=/etc/laniakea/base-config.toml
 
