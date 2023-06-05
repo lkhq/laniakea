@@ -29,7 +29,7 @@ class MailgunConfig:
                 with open(fname) as toml_file:
                     cdata = tomlkit.load(toml_file)
 
-            self._mail_origin_address = listify(cdata.get('MyEmailAddress', 'Dummy UNSET <set_me@example.org>'))
+            self._mail_origin_address = cdata.get('MyEmailAddress', 'Dummy UNSET <set_me@example.org>')
 
             self._sendmail_cmd = cdata.get('SendmailCommand', '/usr/sbin/sendmail -odq -oi -t').split()
             self._mail_whitelist = listify(cdata.get('MailWhitelist', []))
