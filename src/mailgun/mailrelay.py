@@ -52,13 +52,13 @@ class MailRelay:
         self._mtmpl = MailTemplateLoader()
 
         # set of tags that we will actually send emails for
-        self._handled_tags = {'package-upload-accepted', 'package-upload-rejected'}
+        self._handled_tags = {'_lk.archive.package-upload-accepted', '_lk.archive.package-upload-rejected'}
 
         # basic template variables
         self._common_vars = {'project_name': config_get_project_name(), 'from_address': self._conf.mail_origin_address}
 
     async def _send_mail_for(self, tag, data: T.Dict[str, T.Any]):
-        if tag == 'package-upload-accepted':
+        if tag == '_lk.archive.package-upload-accepted':
             is_new = data['is_new']
             if is_new:
                 mail_text = self._mtmpl.render(
@@ -79,7 +79,7 @@ class MailRelay:
                     )
                     self._mail_sender.send(mail_text)
 
-        elif tag == 'package-upload-rejected':
+        elif tag == '_lk.archive.package-upload-rejected':
             mail_text = self._mtmpl.render('package-rejected', **data, **self._common_vars)
             self._mail_sender.send(mail_text)
 
