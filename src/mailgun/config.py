@@ -64,7 +64,7 @@ class MailgunConfig:
 
     def __init__(self, fname=None):
         if not MailgunConfig.instance:
-            MailgunConfig.instance = MailgunConfig.__SchedulerConfig(fname)
+            MailgunConfig.instance = MailgunConfig.__MailgunConfig(fname)
 
     def __getattr__(self, name):
         return getattr(self.instance, name)

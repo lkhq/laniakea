@@ -38,6 +38,7 @@ class MailRelay:
         self._lconf = LocalConfig()
         self._zctx = zmq.asyncio.Context()
         self._lhsub_socket = create_event_listen_socket(self._zctx)
+        self._running = True
 
         # Read all the keys that we trust, to verify messages
         # TODO: Implement auto-reloading of valid keys list if directory changes
