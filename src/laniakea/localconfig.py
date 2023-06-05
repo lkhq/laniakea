@@ -301,11 +301,15 @@ class LocalConfig:
 
         @property
         def log_root_dir(self) -> T.PathUnion:
-            return os.path.join(self._metadata_dir, 'logs')
+            return os.path.join(self.workspace, 'logs')
 
         @property
         def package_metadata_dir(self) -> T.PathUnion:
             return os.path.join(self._metadata_dir, 'pkg')
+
+        @property
+        def logs_metadata_dir(self) -> T.PathUnion:
+            return os.path.join(self._metadata_dir, 'logs')
 
     def __init__(self, fname=None):
         if not LocalConfig.instance:

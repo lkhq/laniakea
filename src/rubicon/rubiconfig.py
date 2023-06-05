@@ -42,7 +42,7 @@ class RubiConfig:
             with open(fname) as json_file:
                 cdata = tomlkit.load(json_file)
 
-        self.log_storage_dir = cdata.get('LogStorage', os.path.join(self._lconf.workspace, 'job-logs'))
+        self.log_storage_dir = cdata.get('LogStorage', self._lconf.logs_metadata_dir)
         if not self.log_storage_dir:
             raise Exception('No "LogStorage" entry in Rubicon configuration: We need to know where to store log files.')
 
