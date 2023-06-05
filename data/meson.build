@@ -59,7 +59,11 @@ endif
 
 if get_option('mirk')
     mirk_data = configuration_data()
-    mirk_data.set('MIRK_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/mirk/mirk')
+    mirk_bin_installed = get_option('prefix') + '/lib/laniakea/mirk/mirk'
+    if get_option('virtualenv') != ''
+        mirk_bin_installed = get_option('virtualenv').strip() / 'bin' / 'python' + ' ' + mirk_bin_installed
+    endif
+    mirk_data.set('MIRK_INSTALL_BIN', mirk_bin_installed)
 
     configure_file(input: 'laniakea-mirk.service.in',
                    output: 'laniakea-mirk.service',
