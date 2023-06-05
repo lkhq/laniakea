@@ -53,7 +53,7 @@ option('scheduler',
 )
 option('mailgun',
     type: 'boolean',
-    value: true,
+    value: false,
     description: 'E-mail message emitter'
 )
 option('debcheck',

@@ -26,6 +26,18 @@ if get_option('scheduler')
                 install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
 endif
 
+if get_option('mailgun')
+    mgsd_data = configuration_data()
+    mgsd_data.set('MAILGUN_INSTALL_BIN', get_option('prefix') + '/lib/laniakea/mailgun/laniakea-mailgun')
+
+    configure_file(input: 'laniakea-mailgun.service.in',
+                output: 'laniakea-mailgun.service',
+                configuration: mgsd_data)
+
+    install_data(current_build_dir + '/laniakea-mailgun.service',
+                install_dir: systemd_dep.get_variable(pkgconfig: 'systemdsystemunitdir'))
+endif
+
 if get_option('webgui')
     sd_data = configuration_data()
     sd_data.set('LKWEB_INSTALL_DIR', get_option('prefix') + '/lib/laniakea/webdash/')

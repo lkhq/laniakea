@@ -1,0 +1,18 @@
+[Unit]
+Description=Laniakea Mailgun
+After=syslog.target network.target
+ConditionPathExists=/etc/laniakea/mailgun.toml
+
+[Service]
+Restart=on-failure
+RestartSec=15
+
+#ProtectSystem=full
+#ProtectHome=true
+
+User=lkmaster
+Group=nogroup
+ExecStart=@MAILGUN_INSTALL_BIN@
+
+[Install]
+WantedBy=multi-user.target
