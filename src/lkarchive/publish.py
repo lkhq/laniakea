@@ -807,8 +807,6 @@ def _publish_suite_dists(
         # So for simplicity, we have this dirty hack implemented here, until the byzantium suite can be dropped
         # in the far future.
         suite_codename = 'None'
-    elif not suite_codename:
-        suite_codename = rss.suite.name
 
     set_deb822_value(entry, 'Origin', rss.repo.origin_name)
     set_deb822_value(entry, 'Suite', rss.suite.name)
