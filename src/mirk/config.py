@@ -64,6 +64,8 @@ class MirkConfig:
         self.webswview_url = cdata.get('WebSWViewUrl', '#')
 
         self.message_prefix = cdata.get('MessagePrefix', '')
+        if not self.message_prefix:
+            self.message_prefix = ''
 
         self._loaded = True
 
