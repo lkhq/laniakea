@@ -15,17 +15,28 @@ from laniakea.db import (
     session_scope,
 )
 
+from ..extensions import cache
+
 synchronization = Blueprint('synchronization', __name__, url_prefix='/sync')
 
 
 @synchronization.route('/')
+@cache.cached(timeout=60 * 10)
 def index():
     with session_scope() as session:
         sync_configs = (
             session.query(SynchrotronConfig).join(SynchrotronConfig.destination_suite).order_by(ArchiveSuite.name).all()
         )
 
-        return render_template('synchronization/index.html', sync_configs=sync_configs)
+        auto_syncs = []
+        manual_syncs = []
+        for sc in sync_configs:
+            if sc.sync_auto_enabled:
+                auto_syncs.append(sc)
+            else:
+                manual_syncs.append(sc)
+
+        return render_template('synchronization/index.html', auto_syncs=auto_syncs, manual_syncs=manual_syncs)
 
 
 @synchronization.route('<int:config_id>/issues')
