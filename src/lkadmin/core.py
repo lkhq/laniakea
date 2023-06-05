@@ -4,8 +4,12 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import platform
+from datetime import datetime
+
 import click
 
+from laniakea import LkModule
 from laniakea.db import session_scope, session_factory
 
 from .utils import input_str, print_header, print_error_exit
@@ -61,6 +65,17 @@ def configure_all():
         )
     )
     session.commit()
+
+
+@core.command()
+def send_ping():
+    """Emit ping event over the ZeroMQ publication channels."""
+    from laniakea.msgstream import EventEmitter
+
+    emitter = EventEmitter(LkModule.BASE)
+    emitter.submit_event(
+        'ping', {'node': platform.node(), 'message': 'Hello World!', 'time_sent': str(datetime.now().isoformat())}
+    )
 
 
 @core.command()
