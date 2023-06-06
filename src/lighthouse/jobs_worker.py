@@ -179,10 +179,11 @@ class JobWorker:
                 info['architecture'] = self._arch_indep_affinity
 
             # FIXME: Fetch the archive URL from the repository database entry
+            archive_repo_url = self._lconf.archive_url + '/' + spkg.repo.name
             for f in spkg.files:
                 if not f.fname.endswith('.dsc'):
                     continue
-                jdata['dsc_url'] = self._lconf.archive_url + '/' + f.fname
+                jdata['dsc_url'] = archive_repo_url + '/' + f.fname
                 jdata['sha256sum'] = f.sha256sum
                 break
 

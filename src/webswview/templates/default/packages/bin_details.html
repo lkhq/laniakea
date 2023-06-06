@@ -126,7 +126,7 @@
         &nbsp;<br/>
         <h3>Versions</h3>
         {% for vpkg, _ in all_pkgs_overrides %}
-        <a class="border-box" href="{{ vpkg.bin_file.make_url(config.ARCHIVE_URL) }}">{{vpkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{vpkg.architecture.name}}</span></a>
+        <a class="border-box" href="{{ vpkg.bin_file.make_url(repo_url) }}">{{vpkg.version}} <span class="badge badge-pill badge-secondary"><i class="fas fa-cog"></i> {{vpkg.architecture.name}}</span></a>
         {% endfor %}
 
     </div>

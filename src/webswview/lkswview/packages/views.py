@@ -230,8 +230,11 @@ def bin_package_details(repo_name, suite_name, name):
         else:
             pkg_description = bpkg_rep[0].description
 
+        repo_url = current_app.config['ARCHIVE_URL'] + '/' + repo_name
+
         return render_template(
             'packages/bin_details.html',
+            repo_url=repo_url,
             pkg=bpkg_rep[0],
             pkg_override=bpkg_rep[1],
             pkg_description=pkg_description,
