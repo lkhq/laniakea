@@ -69,8 +69,8 @@ class MailRelay:
                 mail_text = self._mtmpl.render('package-accepted', **data, **self._common_vars)
                 self._mail_sender.send(mail_text)
 
-                # send mail to announcement location, if any is set
-                if self._conf.announce_email:
+                # send mail to announcement location, if any is set and this was a sourceful upload
+                if self._conf.announce_email and 'source_name' in data:
                     mail_text = self._mtmpl.render(
                         'package-accepted-announce',
                         announce_address=self._conf.announce_email,
