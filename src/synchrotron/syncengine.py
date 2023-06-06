@@ -415,6 +415,7 @@ class SyncEngine:
             dest_bpkg_arch_map[aname] = self._get_target_binary_package_map(
                 session, self._target_suite_name, component, aname, with_installer=True, with_debug=True
             )
+        dest_bpkg_all_map = dest_bpkg_arch_map['all']
 
         for spkg, sync_state in spkgs_info:
             # if a package has been copied, we do not need to attempt
@@ -440,6 +441,7 @@ class SyncEngine:
                     if arch_name != 'all' and bin_i.architectures == ['all']:
                         # we handle arch:all explicitly
                         continue
+
                     bpkg = src_bpkg_map[bin_i.name]
                     if bin_i.version != bpkg.source_version:
                         log.debug(
@@ -453,6 +455,15 @@ class SyncEngine:
                         continue
 
                     ebpkg = dest_bpkg_map.get(bpkg.name)
+                    if not ebpkg and arch_name != 'all':
+                        # Double-check if the package exists on arch:all instead of the current arch:any architecture.
+                        # This case might happen for source packages without "Package-List" metadata, so we need
+                        # to check if this is arch:all explicitly to not attempt to import this package
+                        # for the wrong architecture later.
+                        # Source packages may even advertise arch:any builds but still only produce arch:all results,
+                        # so unfortunately this is the best heuristic we have available.
+                        ebpkg = dest_bpkg_all_map.get(bpkg.name)
+
                     if ebpkg:
                         if version_compare(ebpkg.version, bpkg.version) >= 0:
                             existing_packages = True
