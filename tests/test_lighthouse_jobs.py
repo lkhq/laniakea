@@ -121,7 +121,7 @@ class TestLighthouseJobRequests:
             'architecture': 'amd64',
             'data': {
                 'do_indep': False,
-                'dsc_url': '#/pool/main/p/pkgnew/pkgnew_0.1-3.dsc',
+                'dsc_url': '#/master/pool/main/p/pkgnew/pkgnew_0.1-3.dsc',
                 'maintainer': 'A Maintainer <maint@example.com>',
                 'package_name': 'pkgnew',
                 'package_version': '0.1-3',
