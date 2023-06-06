@@ -157,8 +157,11 @@ class LocalConfig:
             if syncconf:
                 if 'SourceKeyringDir' in syncconf:
                     self._synchrotron_sourcekeyrings = [
-                        v for v in glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))
+                        v for v in glob(os.path.join(syncconf['SourceKeyringDir'], 'pubring.kbx'))
                     ]
+                    self._synchrotron_sourcekeyrings.extend(
+                        [v for v in glob(os.path.join(syncconf['SourceKeyringDir'], '*.gpg'))]
+                    )
 
             # ZCurve / Message signing
             self._curve_keys_basedir = cdata.get('CurveKeysDir', os.path.join(self._workspace, 'keys', 'curve'))
