@@ -592,7 +592,26 @@ def copy_binary_package_override(
                 origin_suite_name = s.name
                 break
         if not origin_suite_name:
-            raise ArchiveError('Can not copy binary package: No override origin suite found for `{}`.'.format(bpkg))
+            if bpkg.time_deleted:
+                # Make one last-ditch effort in trying to resurrect an override for a package
+                # that is brought back from the dead.
+                # If that fails, we have to give up on it, as the override has probably already
+                # been deleted.
+                log.info('Trying to resurrect override for zombie package %s', str(bpkg))
+                override_test = (
+                    session.query(PackageOverride)
+                    .filter(
+                        PackageOverride.repo_id == repo.id,
+                        PackageOverride.suite.has(id=dest_suite.id),
+                        PackageOverride.pkg_name == bpkg.name,
+                    )
+                    .one_or_none()
+                )
+                if override_test:
+                    origin_suite_name = dest_suite.name
+
+            if not origin_suite_name:
+                raise ArchiveError('Can not copy binary package: No override origin suite found for `{}`.'.format(bpkg))
 
     target_override = (
         session.query(PackageOverride)
