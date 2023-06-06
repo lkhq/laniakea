@@ -440,13 +440,16 @@ class RepositoryReader:
                         pi.deb_type = DebType.DEB
                         pi.name = bpname
                         pi.version = pkg.version
+                        pi.architectures = pkg.architectures
                         pi.component = component.name
                         pi.section = e.get('Section')
                         pi.essential = e.get('Essential', 'no') == 'yes'
                         pi.priority = PackagePriority.from_string(e.get('Priority', 'optional'))
                         ex_binaries.append(pi)
                 else:
-                    ex_binaries = parse_package_list_str(raw_pkg_list, pkg.version)
+                    ex_binaries = parse_package_list_str(
+                        raw_pkg_list, default_version=pkg.version, default_archs=pkg.architectures
+                    )
                 pkg.expected_binaries = ex_binaries
 
                 # do some issue-reporting

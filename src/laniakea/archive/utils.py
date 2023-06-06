@@ -104,7 +104,7 @@ def checksums_list_to_file(cslist, checksum: str, files=None, *, base_dir=None) 
     return files
 
 
-def parse_package_list_str(pkg_list_raw, default_version=None):
+def parse_package_list_str(pkg_list_raw, default_version: str | None = None, default_archs: list[str] | None = None):
     '''
     Parse a "Package-List" field and return its information in
     PackageInfo data structures.
@@ -112,6 +112,8 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
     '''
 
     res = []
+    if not default_archs:
+        default_archs = []
 
     for line in pkg_list_raw.split('\n'):
         parts = split_strip(line, ' ')
@@ -134,7 +136,10 @@ def parse_package_list_str(pkg_list_raw, default_version=None):
                 if v.startswith('arch='):
                     # handle architectures
                     pi.architectures = v[5:].split(',')
+                    break
 
+        if not pi.architectures:
+            pi.architectures = default_archs
         res.append(pi)
     return res
 
