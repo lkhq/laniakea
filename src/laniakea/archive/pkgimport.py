@@ -959,10 +959,11 @@ def _add_uploader_event_data(event_data: T.Dict[str, str], uploader: T.Optional[
 
 
 def build_event_data_for_accepted_upload(
-    repo: ArchiveRepository, spkg: SourcePackage, changes: Changes, is_new: bool, uploader: ArchiveUploader | None
+    rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, changes: Changes, is_new: bool, uploader: ArchiveUploader | None
 ) -> dict[str, T.Any]:
     ev_data = {
-        'repo': repo.name,
+        'repo': rss.repo.name,
+        'suite': rss.suite.name,
         'upload_name': Path(changes.filename).stem,
         'is_new': is_new,
         'files': list(changes.files.keys()),
@@ -1333,7 +1334,7 @@ class UploadHandler:
                     raise UploadError('Failed to import binary package: {}'.format(str(e)))
 
         # looks like the package was accepted - spread the news!
-        ev_data = build_event_data_for_accepted_upload(self._repo, spkg, changes, is_new, uploader)
+        ev_data = build_event_data_for_accepted_upload(rss, spkg, changes, is_new, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
         archive_log.info(
             '%s: %s @ %s', 'UPLOAD-NEW' if is_new else 'UPLOAD-ACCEPTED', ev_data['upload_name'], self._repo.name

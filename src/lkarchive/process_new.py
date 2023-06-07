@@ -122,7 +122,7 @@ def newqueue_accept(
         try:
             emitter = EventEmitter(LkModule.ARCHIVE)
             uploader = guess_archive_uploader_for_changes(session, changes)
-            ev_data = build_event_data_for_accepted_upload(rss.repo, spkg, changes, is_new=False, uploader=uploader)
+            ev_data = build_event_data_for_accepted_upload(rss, spkg, changes, is_new=False, uploader=uploader)
             emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
         except UploaderError as ul_error:
             log.error('Unable to emit ACCEPTED event, issues with the uploader: %s', str(ul_error))
