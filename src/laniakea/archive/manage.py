@@ -70,10 +70,11 @@ def remove_binary_package(session, rss, bpkg: BinaryPackage, *, force_delete=Fal
     if rss.suite in bpkg.suites:
         bpkg.suites.remove(rss.suite)
         archive_log.info(
-            '%s: %s/%s @ %s/%s',
+            '%s: %s/%s/%s @ %s/%s',
             'DELETED-SUITE-BIN',
             bpkg.name,
             bpkg.version,
+            bpkg.architecture.name,
             rss.repo.name,
             rss.suite.name,
         )
@@ -87,7 +88,14 @@ def remove_binary_package(session, rss, bpkg: BinaryPackage, *, force_delete=Fal
     os.remove(bin_fname_full)
     session.delete(bpkg.bin_file)
     session.delete(bpkg)
-    archive_log.info('DELETED-ORPHAN-BIN: %s/%s @ %s/%s', bpkg.name, bpkg.version, rss.repo.name, rss.suite.name)
+    archive_log.info(
+        'DELETED-ORPHAN-BIN: %s/%s/%s @ %s/%s',
+        bpkg.name,
+        bpkg.version,
+        bpkg.architecture.name,
+        rss.repo.name,
+        rss.suite.name,
+    )
     return True
 
 
@@ -273,15 +281,16 @@ def package_mark_delete(
     pkg.suites.remove(rss.suite)
 
     if pkg.suites:
-        archive_log.info(
-            '%s: %s/%s @ %s/%s',
-            'DELETED-SUITE-SRC' if is_src_pkg else 'DELETED-SUITE-BIN',
-            pkg.name,
-            pkg.version,
-            rss.repo.name,
-            rss.suite.name,
-        )
         if is_src_pkg:
+            archive_log.info(
+                '%s: %s/%s @ %s/%s',
+                'DELETED-SUITE-SRC',
+                pkg.name,
+                pkg.version,
+                rss.repo.name,
+                rss.suite.name,
+            )
+
             event_data = {
                 'pkg_name': pkg.name,
                 'pkg_version': pkg.version,
@@ -289,24 +298,46 @@ def package_mark_delete(
                 'suite': rss.suite.name,
             }
             emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-suite-deleted', event_data)
+        else:
+            archive_log.info(
+                '%s: %s/%s/%s @ %s/%s',
+                'DELETED-SUITE-BIN',
+                pkg.name,
+                pkg.version,
+                pkg.architecture.name,
+                rss.repo.name,
+                rss.suite.name,
+            )
     else:
         log.info('Marking package for removal: %s', str(pkg))
         pkg.time_deleted = datetime.utcnow()
-        archive_log.info(
-            '%s: %s/%s @ %s/%s',
-            'MARKED-REMOVAL-SRC' if is_src_pkg else 'MARKED-REMOVAL-BIN',
-            pkg.name,
-            pkg.version,
-            rss.repo.name,
-            rss.suite.name,
-        )
+
         if is_src_pkg:
+            archive_log.info(
+                '%s: %s/%s @ %s/%s',
+                'MARKED-REMOVAL-SRC',
+                pkg.name,
+                pkg.version,
+                rss.repo.name,
+                rss.suite.name,
+            )
+
             event_data = {
                 'pkg_name': pkg.name,
                 'pkg_version': pkg.version,
                 'repo': rss.repo.name,
             }
             emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-marked-removal', event_data)
+        else:
+            archive_log.info(
+                '%s: %s/%s/%s @ %s/%s',
+                'MARKED-REMOVAL-BIN',
+                pkg.name,
+                pkg.version,
+                pkg.architecture.name,
+                rss.repo.name,
+                rss.suite.name,
+            )
     if is_src_pkg:
         for bpkg in pkg.binaries:
             rm_suite_names = []
@@ -320,16 +351,19 @@ def package_mark_delete(
 
             if bpkg.suites:
                 archive_log.info(
-                    'DELETED-SUITE-BIN: %s/%s @ %s/%s',
+                    'DELETED-SUITE-BIN: %s/%s/%s @ %s/%s',
                     bpkg.name,
                     bpkg.version,
+                    bpkg.architecture.name,
                     rss.repo.name,
                     ' & '.join(rm_suite_names),
                 )
             else:
                 log.info('Marking binary for removal: %s', str(bpkg))
                 bpkg.time_deleted = datetime.utcnow()
-                archive_log.info('MARKED-REMOVAL-BIN: %s/%s @ %s', bpkg.name, bpkg.version, rss.repo.name)
+                archive_log.info(
+                    'MARKED-REMOVAL-BIN: %s/%s/%s @ %s', bpkg.name, bpkg.version, bpkg.architecture.name, rss.repo.name
+                )
 
 
 def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=14) -> None:
@@ -690,14 +724,26 @@ def copy_binary_package(
                 'Copied dbgsym package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_debug_suite.name
             )
             archive_log.info(
-                'COPY-BIN-DBG: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_debug_suite.name
+                'COPY-BIN-DBG: %s/%s/%s in %s to suite %s',
+                bpkg.name,
+                bpkg.version,
+                bpkg.architecture.name,
+                bpkg.repo.name,
+                dest_debug_suite.name,
             )
     elif dest_suite not in bpkg.suites:
         bpkg.suites.append(dest_suite)
         copy_binary_package_override(session, bpkg, dest_rss.repo, dest_suite, overrides_from_suite)
         package_mark_published(session, dest_rss, bpkg)
-        log.info('Copied binary package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_suite.name)
-        archive_log.info('COPY-BIN: %s/%s in %s to suite %s', bpkg.name, bpkg.version, bpkg.repo.name, dest_suite.name)
+        log.info('Copied binary package %s into %s', str(bpkg), dest_suite.name)
+        archive_log.info(
+            'COPY-BIN: %s/%s/%s in %s to suite %s',
+            bpkg.name,
+            bpkg.version,
+            bpkg.architecture.name,
+            bpkg.repo.name,
+            dest_suite.name,
+        )
 
 
 def retrieve_suite_package_maxver_baseinfo(session, rss: ArchiveRepoSuiteSettings):
