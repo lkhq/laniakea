@@ -6,6 +6,7 @@
 
 import os
 import sys
+from glob import glob
 
 import rich
 import click
@@ -14,6 +15,7 @@ from rich.prompt import Prompt
 from rich.console import Console
 
 import laniakea.typing as T
+from laniakea import LkModule, LocalConfig
 from laniakea.db import (
     PackageInfo,
     SourcePackage,
@@ -24,22 +26,31 @@ from laniakea.db import (
 )
 from laniakea.archive import PackageImporter
 from laniakea.logging import log, archive_log
+from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import (
     check_overrides_source,
     find_package_in_new_queue,
     register_package_overrides,
 )
 from laniakea.archive.changes import Changes, parse_changes
+from laniakea.archive.pkgimport import build_event_data_for_accepted_upload
+from laniakea.archive.uploadermgr import (
+    UploaderError,
+    guess_archive_uploader_for_changes,
+)
 
 
-def _get_changes_for_queue_package(rss: ArchiveRepoSuiteSettings, spkg: SourcePackage) -> Changes | None:
+def _get_changes_for_queue_package(rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, keyrings=None) -> Changes | None:
     """Get a changes file information object for a package in a NEW queue."""
+
+    if not keyrings:
+        keyrings = []
 
     spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
     changes_fname = os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version))
     changes = None
     if os.path.isfile(changes_fname):
-        changes = parse_changes(changes_fname, require_signature=False)
+        changes = parse_changes(changes_fname, require_signature=False, keyrings=keyrings)
     return changes
 
 
@@ -73,6 +84,7 @@ def newqueue_accept(
 ):
     """Accept a selected package into its target suite, applying the selected overrides"""
 
+    lconf = LocalConfig()
     dsc_file = spkg.dsc_file
     if not dsc_file:
         raise ValueError('Source package {}/{} has no registered dsc file.'.format(spkg.name, spkg.version))
@@ -85,7 +97,9 @@ def newqueue_accept(
     pi.import_source(spkg_fname, spkg.component.name, error_if_new=True)
     session.commit()
 
-    changes = _get_changes_for_queue_package(rss, spkg)
+    changes = _get_changes_for_queue_package(
+        rss, spkg, keyrings=list(glob(os.path.join(lconf.uploaders_keyring_dir, 'pubring.kbx')))
+    )
     if not changes and include_binaries:
         log.error(
             'Can not include binaries in NEW queue accept for %s/%s: No changes file was found.',
@@ -103,6 +117,17 @@ def newqueue_accept(
     _delete_files_in_queue(rss, spkg, changes=changes)
     if os.path.isdir(spkg_queue_dir) and len(os.listdir(spkg_queue_dir)) == 0:
         os.rmdir(spkg_queue_dir)
+
+    if changes:
+        try:
+            emitter = EventEmitter(LkModule.ARCHIVE)
+            uploader = guess_archive_uploader_for_changes(session, changes)
+            ev_data = build_event_data_for_accepted_upload(rss.repo, spkg, changes, is_new=False, uploader=uploader)
+            emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
+        except UploaderError as ul_error:
+            log.error('Unable to emit ACCEPTED event, issues with the uploader: %s', str(ul_error))
+    else:
+        log.warning('Unable to emit ACCEPTED event: No .changes file was found for this upload.')
 
     archive_log.info(
         'ACCEPTED: %s/%s -> %s/%s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name, spkg.component.name
@@ -141,6 +166,8 @@ def newqueue_reject(session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage)
     # cleanup an orphaned directory
     if os.path.isdir(spkg_queue_dir) and len(os.listdir(spkg_queue_dir)) == 0:
         os.rmdir(spkg_queue_dir)
+
+    # TODO: FIXME: Announce the rejection on the event bus
 
     archive_log.info(
         'REJECTED: %s/%s (aimed at %s/%s/%s)',

@@ -43,7 +43,6 @@ from laniakea.utils import safe_strip, safe_rename, split_strip, hardlink_or_cop
 from laniakea.logging import log, archive_log
 from laniakea.msgstream import EventEmitter
 from laniakea.localconfig import LocalConfig, LintianConfig
-from laniakea.utils.deb822 import split_maintainer_field
 from laniakea.archive.utils import (
     UploadError,
     is_deb_file,
@@ -65,6 +64,7 @@ from laniakea.archive.changes import (
     InvalidChangesError,
     parse_changes,
 )
+from laniakea.archive.uploadermgr import guess_archive_uploader_for_changes
 
 
 class ArchiveImportError(Exception):
@@ -947,6 +947,37 @@ class PackageImporter:
         return bpkg
 
 
+def _add_uploader_event_data(event_data: T.Dict[str, str], uploader: T.Optional[ArchiveUploader]):
+    """Add relevant uploader data to the event data"""
+    if not uploader:
+        return
+    event_data['uploader_email'] = uploader.email
+    if uploader.name:
+        event_data['uploader_name'] = uploader.name
+    if uploader.alias:
+        event_data['uploader_alias'] = uploader.alias
+
+
+def build_event_data_for_accepted_upload(
+    repo: ArchiveRepository, spkg: SourcePackage, changes: Changes, is_new: bool, uploader: ArchiveUploader | None
+) -> dict[str, T.Any]:
+    ev_data = {
+        'repo': repo.name,
+        'upload_name': Path(changes.filename).stem,
+        'is_new': is_new,
+        'files': list(changes.files.keys()),
+        'changes': changes.changes.get('Changes', 'Unknown changes'),
+    }
+    if spkg:
+        ev_data['source_name'] = spkg.name
+        ev_data['source_version'] = spkg.version
+        ev_data['source_maintainer'] = spkg.maintainer
+        ev_data['source_uploaders'] = spkg.uploaders
+    _add_uploader_event_data(ev_data, uploader)
+
+    return ev_data
+
+
 @dataclass
 class UploadChangesResult:
     success: bool
@@ -983,16 +1014,6 @@ class UploadHandler:
         if not shutil.which('bwrap') or not shutil.which('lintian'):
             raise RuntimeError('Could not find Bubblewrap or Lintian. Please ensure both tools are installed.')
 
-    def _add_uploader_event_data(self, event_data: T.Dict[str, str], uploader: T.Optional[ArchiveUploader]):
-        """Add relevant uploader data to the event data"""
-        if not uploader:
-            return
-        event_data['uploader_email'] = uploader.email
-        if uploader.name:
-            event_data['uploader_name'] = uploader.name
-        if uploader.alias:
-            event_data['uploader_alias'] = uploader.alias
-
     def emit_package_upload_rejected(
         self,
         changes_fname: T.PathUnion,
@@ -1002,7 +1023,7 @@ class UploadHandler:
         """Emit a message-stream reject message for this package upload."""
 
         event_data = {'repo': self._repo.name, 'upload_name': Path(changes_fname).stem, 'reason': reason}
-        self._add_uploader_event_data(event_data, uploader)
+        _add_uploader_event_data(event_data, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-rejected', event_data)
         archive_log.info(
             'UPLOAD_REJECT: %s @ %s: %s', event_data['upload_name'], event_data['repo'], event_data['reason']
@@ -1018,39 +1039,8 @@ class UploadHandler:
             require_signature=True,
         )
 
-        possible_uploaders: list[ArchiveUploader] = (
-            self._session.query(ArchiveUploader)
-            .filter(ArchiveUploader.pgp_fingerprints.any(changes.primary_fingerprint))
-            .all()
-        )
-        if not possible_uploaders:
-            raise UploadError(
-                'Unable to find registered uploader for fingerprint "{}" for "{}"'.format(
-                    changes.primary_fingerprint, os.path.basename(fname)
-                )
-            )
-        uploader = None
-        if len(possible_uploaders) == 1:
-            uploader = possible_uploaders[0]
-        else:
-            # A GPG signature may be shared by multiple uploaders, this is especially common for package build machines.
-            # In such events, we try to guess the right uploader, but fall back to picking the first one in case that fails.
-            # FIXME: This will cause issues with uploader-specific permissions, but in case those are used we should likely
-            # expect each uploader to have their own GPG key
-            changed_by = changes.changes.get('Changed-By', None)
-            if changed_by:
-                _, _, email = split_maintainer_field(changed_by)
-                for u in possible_uploaders:
-                    if u.email == email:
-                        uploader = u
-                        break
-            if not uploader:
-                uploader = possible_uploaders[0]
-            log.info(
-                'More than one possible uploader found for `%s`, picked `%s`', os.path.basename(fname), uploader.email
-            )
-        del possible_uploaders
-
+        # find the entity who uploaded the changes
+        uploader = guess_archive_uploader_for_changes(self._session, changes)
         if changes.weak_signature:
             return UploadChangesResult(
                 False,
@@ -1343,19 +1333,7 @@ class UploadHandler:
                     raise UploadError('Failed to import binary package: {}'.format(str(e)))
 
         # looks like the package was accepted - spread the news!
-        ev_data = {
-            'repo': self._repo.name,
-            'upload_name': Path(changes.filename).stem,
-            'is_new': is_new,
-            'files': list(files.keys()),
-            'changes': changes.changes.get('Changes', 'Unknown changes'),
-        }
-        if spkg:
-            ev_data['source_name'] = spkg.name
-            ev_data['source_version'] = spkg.version
-            ev_data['source_maintainer'] = spkg.maintainer
-            ev_data['source_uploaders'] = spkg.uploaders
-        self._add_uploader_event_data(ev_data, uploader)
+        ev_data = build_event_data_for_accepted_upload(self._repo, spkg, changes, is_new, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
         archive_log.info(
             '%s: %s @ %s', 'UPLOAD-NEW' if is_new else 'UPLOAD-ACCEPTED', ev_data['upload_name'], self._repo.name
