@@ -13,6 +13,7 @@ from fnmatch import fnmatch
 import zmq
 import zmq.asyncio
 
+import laniakea.typing as T
 from laniakea.msgstream import (
     verify_event_message,
     create_event_listen_socket,
@@ -184,7 +185,12 @@ class MatrixPublisher:
 
         await self._rooms_publish_text(event, text)
 
-    async def _rooms_publish_text(self, event, text):
+    async def _rooms_publish_text(self, event: dict[str, T.Any], text: str):
+        """Publish raw message text in all rooms."""
+
+        if not text:
+            return
+
         for room_id, settings in self._rooms.items():
             filter_rules = settings.filter_rules
             if not filter_rules:
