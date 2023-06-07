@@ -889,7 +889,7 @@ def guess_binary_package_remove_issues(
 
 
 def guess_source_package_remove_issues(
-    session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage
+    session, rss: ArchiveRepoSuiteSettings, spkg: SourcePackage, *, max_issues: int = -1
 ) -> tuple[list[SourcePackage], list[BinaryPackage]]:
     """Try to guess which packages become uninstallable if the given source package was removed.
 
@@ -901,6 +901,7 @@ def guess_source_package_remove_issues(
     :param session: SQLAlchemy session.
     :param rss: The repo/suite to remove the package from.
     :param spkg: The source package that would be removed.
+    :param max_issues: Maximum amount of issues to report, <= 0 for unlimited.
     :return: A tuple of source, binary packages that would become uninstallable if the binary package was removed.
     """
 
@@ -915,5 +916,9 @@ def guess_source_package_remove_issues(
         for bd in bdeps:
             if bd.source_id != spkg.uuid:
                 bin_deps.append(bd)
+
+        if max_issues > 0:
+            if (len(sdeps) + len(bdeps)) >= max_issues:
+                break
 
     return src_deps, bin_deps

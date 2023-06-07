@@ -907,7 +907,9 @@ class SyncEngine:
                     known_issues.append(issue)
                     continue
                 else:
-                    spkg_rm_issues, bpkg_rm_issues = guess_source_package_remove_issues(session, rss, dpkg)
+                    spkg_rm_issues, bpkg_rm_issues = guess_source_package_remove_issues(
+                        session, rss, dpkg, max_issues=3
+                    )
                     if not spkg_rm_issues and not bpkg_rm_issues:
                         # We can likely remove this package without causing any troubles,
                         # and since autoremovals were explicitly requested, we'll just drop it here
