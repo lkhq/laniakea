@@ -52,7 +52,7 @@ from laniakea.archive.utils import (
     repo_suite_settings_for_debug,
 )
 from laniakea.archive.manage import (
-    remove_source_package,
+    package_mark_delete,
     guess_source_package_remove_issues,
 )
 
@@ -913,7 +913,7 @@ class SyncEngine:
                     if not spkg_rm_issues and not bpkg_rm_issues:
                         # We can likely remove this package without causing any troubles,
                         # and since autoremovals were explicitly requested, we'll just drop it here
-                        remove_source_package(session, rss, dpkg, emitter=self._ev_emitter)
+                        package_mark_delete(session, rss, dpkg, emitter=self._ev_emitter)
                     else:
                         # We can definitely not remove this potentially obsolete package. emit a message so a human
                         # can look into it and resolve the problem.

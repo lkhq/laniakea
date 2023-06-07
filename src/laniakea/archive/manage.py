@@ -131,6 +131,19 @@ def remove_source_package(
         log.info('Removing package %s from suite %s', str(spkg), rss.suite.name)
         spkg.suites.remove(rss.suite)
 
+    # drop binaries from the respective suite as well
+    for bpkg in spkg.binaries:
+        bpkg_suite = bpkg.suites[0] if bpkg.suites else rss.suite
+        bpkg_rss = (
+            session.query(ArchiveRepoSuiteSettings)
+            .filter(
+                ArchiveRepoSuiteSettings.repo.has(id=bpkg.repo_id),
+                ArchiveRepoSuiteSettings.suite.has(id=bpkg_suite.id),
+            )
+            .one_or_none()
+        )
+        package_mark_delete(session, bpkg_rss, bpkg, emitter=emitter)
+
     if spkg.suites:
         archive_log.info('DELETED-SRC-SUITE: %s/%s @ %s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name)
         event_data = {
