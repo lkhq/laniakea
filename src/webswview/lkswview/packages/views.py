@@ -179,6 +179,11 @@ def bin_package_details(repo_name, suite_name, name):
 
         bpkgs_overrides = (
             session.query(BinaryPackage, PackageOverride)
+            .options(
+                joinedload(BinaryPackage.architecture),
+                joinedload(BinaryPackage.bin_file),
+                undefer(BinaryPackage.version),
+            )
             .join(
                 PackageOverride,
                 and_(
@@ -187,13 +192,12 @@ def bin_package_details(repo_name, suite_name, name):
                     BinaryPackage.name == PackageOverride.pkg_name,
                 ),
             )
-            .options(joinedload(BinaryPackage.architecture))
-            .options(joinedload(BinaryPackage.bin_file))
-            .options(undefer(BinaryPackage.version))
-            .filter(BinaryPackage.name == name)
-            .filter(BinaryPackage.repo_id == rss.repo_id)
-            .filter(BinaryPackage.suites.any(ArchiveSuite.id == rss.suite_id))
-            .filter(BinaryPackage.time_deleted.is_(None))
+            .filter(
+                BinaryPackage.name == name,
+                BinaryPackage.repo_id == rss.repo_id,
+                BinaryPackage.suites.any(id=rss.suite_id),
+                BinaryPackage.time_deleted.is_(None),
+            )
             .order_by(BinaryPackage.version.desc())
             .all()
         )
