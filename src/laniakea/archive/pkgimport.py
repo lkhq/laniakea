@@ -1318,7 +1318,7 @@ class UploadHandler:
                     spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
                     shutil.copy(
                         os.path.join(changes.directory, changes.filename),
-                        os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version)),
+                        os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, split_epoch(spkg.version)[1])),
                     )
             except Exception as e:
                 raise UploadError('Failed to import source package: {}'.format(str(e)))

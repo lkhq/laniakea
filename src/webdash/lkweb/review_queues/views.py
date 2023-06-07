@@ -17,6 +17,7 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     session_scope,
 )
+from laniakea.archive.utils import split_epoch
 
 from ..utils import humanized_timediff
 
@@ -69,7 +70,7 @@ def index() -> T.Any:
                     + '/'
                     + spkg.directory
                     + '/'
-                    + '{}_{}.changes'.format(spkg.name, spkg.version)
+                    + '{}_{}.changes'.format(spkg.name, split_epoch(spkg.version)[1])
                 )
                 qdata.entries.append(qedata)
             new_queues.append(qdata)

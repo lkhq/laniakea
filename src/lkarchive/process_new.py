@@ -28,6 +28,7 @@ from laniakea.archive import PackageImporter
 from laniakea.logging import log, archive_log
 from laniakea.msgstream import EventEmitter
 from laniakea.archive.utils import (
+    split_epoch,
     check_overrides_source,
     find_package_in_new_queue,
     register_package_overrides,
@@ -47,7 +48,7 @@ def _get_changes_for_queue_package(rss: ArchiveRepoSuiteSettings, spkg: SourcePa
         keyrings = []
 
     spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
-    changes_fname = os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, spkg.version))
+    changes_fname = os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, split_epoch(spkg.version)[1]))
     changes = None
     if os.path.isfile(changes_fname):
         changes = parse_changes(changes_fname, require_signature=False, keyrings=keyrings)
@@ -211,7 +212,9 @@ def _process_new(repo_name: T.Optional[str] = None):
                 spkg = entry.package
 
                 changes_fname = os.path.join(
-                    rss.repo.get_new_queue_dir(), spkg.directory, '{}_{}.changes'.format(spkg.name, spkg.version)
+                    rss.repo.get_new_queue_dir(),
+                    spkg.directory,
+                    '{}_{}.changes'.format(spkg.name, split_epoch(spkg.version)[1]),
                 )
                 changes_found = os.path.isfile(changes_fname)
                 changes = None
