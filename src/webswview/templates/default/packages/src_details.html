@@ -139,6 +139,12 @@
             {% for dep in pkg.build_depends %}
                 <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
             {% endfor %}
+            {% for dep in pkg.build_depends_indep %}
+                <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
+            {% endfor %}
+            {% for dep in pkg.build_depends_arch %}
+                <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
+            {% endfor %}
             </ul>
         </div>
         {% endif %}
