@@ -915,7 +915,6 @@ class SyncEngine:
                     else:
                         # We can definitely not remove this potentially obsolete package. emit a message so a human
                         # can look into it and resolve the problem.
-
                         issue = (
                             session.query(SynchrotronIssue)
                             .filter(
