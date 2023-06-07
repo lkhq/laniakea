@@ -206,12 +206,16 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
     return [report]
 
 
-def _verify_hashes(file: ArchiveFile, path_root: T.PathUnion) -> T.Optional[T.Tuple[str, str]]:
+def _verify_hashes(
+    file: ArchiveFile, repo_root_dir: T.PathUnion, repo_new_queue_dir: T.PathUnion
+) -> T.Optional[T.Tuple[str, str]]:
     """Verifies all known hashes of the archive file."""
 
-    local_fname = os.path.join(path_root, file.fname)
+    local_fname = os.path.join(repo_root_dir, file.fname)
     if not os.path.isfile(local_fname):
-        return (file.fname, 'Missing file (expected {})'.format(local_fname))
+        local_fname = os.path.join(repo_new_queue_dir, file.fname)
+        if not os.path.isfile(local_fname):
+            return (file.fname, 'Missing file (expected {})'.format(local_fname))
 
     with open(local_fname, 'rb') as f:
         # pylint: disable=not-an-iterable
@@ -252,6 +256,7 @@ def _verify_files(session, repo: ArchiveRepository) -> list[IssueReport]:
     )
 
     repo_root = repo.get_root_dir()
+    repo_new_queue_root = repo.get_new_queue_dir()
     known_files: set[str] = set()
 
     log.debug('Verifying hashes')
@@ -260,7 +265,7 @@ def _verify_files(session, repo: ArchiveRepository) -> list[IssueReport]:
         futures = []
         for file in afiles:
             known_files.add(file.fname)
-            futures.append(pool.schedule(_verify_hashes, args=(file, repo_root), timeout=15 * 60))
+            futures.append(pool.schedule(_verify_hashes, args=(file, repo_root, repo_new_queue_root), timeout=15 * 60))
 
         for future in futures:
             r = future.result()
