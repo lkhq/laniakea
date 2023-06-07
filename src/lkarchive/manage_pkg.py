@@ -90,11 +90,14 @@ def cmd_list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str])
         # combine binary package data for display
         bpkg_by_arch: T.Dict[str, T.Any] = {}
         for bpkg in bpkgs:
-            bpkid = '{}:{}/{}-{}'.format(bpkg.repo.name, bpkg.component.name, bpkg.name, bpkg.version)
+            suite_names = [s.name for s in bpkg.suites]
+            bpkid = '{}:{}/{}-{}/{}'.format(
+                bpkg.repo.name, bpkg.component.name, bpkg.name, bpkg.version, ','.join(suite_names)
+            )
             arch_str = '[red]{}[/red]'.format(bpkg.architecture.name) if bpkg.time_deleted else bpkg.architecture.name
             if bpkid in bpkg_by_arch:
                 bpkg_by_arch[bpkid]['archs'].add(arch_str)
-                bpkg_by_arch[bpkid]['suites'].update([s.name for s in bpkg.suites])
+                bpkg_by_arch[bpkid]['suites'].update(suite_names)
             else:
                 bpkg_by_arch[bpkid] = dict(bpkg=bpkg, archs={arch_str}, suites=set([s.name for s in bpkg.suites]))
 
