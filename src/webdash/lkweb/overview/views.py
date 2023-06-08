@@ -70,7 +70,7 @@ def index():
         )
         jobs_pending_count = (
             session.query(Job.uuid)
-            .filter(Job.status.in_([JobStatus.WAITING, JobStatus.DEPWAIT, JobStatus.SCHEDULED]))
+            .filter(Job.status.in_([JobStatus.WAITING, JobStatus.SCHEDULED, JobStatus.RUNNING]))
             .count()
         )
         debcheck_issues_count = (

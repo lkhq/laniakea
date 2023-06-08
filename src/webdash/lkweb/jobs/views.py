@@ -6,7 +6,7 @@
 
 import math
 
-from flask import Blueprint, abort, current_app, render_template
+from flask import Blueprint, abort, request, current_app, render_template
 
 from laniakea.db import (
     Job,
@@ -53,26 +53,23 @@ def title_for_job(session, job):
 @jobs.route('/queue/<int:page>')
 def queue(page):
     with session_scope() as session:
+        show_depwait = request.args.get('blocked') == 'true'
         jobs_per_page = 50
-        jobs_total = (
-            session.query(Job).filter(Job.status != JobStatus.DONE).filter(Job.status != JobStatus.TERMINATED).count()
-        )
+        jobs_base_q = session.query(Job).filter(Job.status != JobStatus.DONE, Job.status != JobStatus.TERMINATED)
+        if not show_depwait:
+            jobs_base_q = jobs_base_q.filter(Job.status != JobStatus.DEPWAIT)
+
+        jobs_total = jobs_base_q.count()
         page_count = math.ceil(jobs_total / jobs_per_page)
 
-        jobs = (
-            session.query(Job)
-            .filter(Job.status != JobStatus.DONE)
-            .filter(Job.status != JobStatus.TERMINATED)
-            .order_by(Job.time_created)
-            .slice((page - 1) * jobs_per_page, page * jobs_per_page)
-            .all()
-        )
+        jobs = jobs_base_q.order_by(Job.time_created).slice((page - 1) * jobs_per_page, page * jobs_per_page).all()
 
         return render_template(
             'jobs/queue.html',
             JobStatus=JobStatus,
             humanized_timediff=humanized_timediff,
             session=session,
+            show_blocked=show_depwait,
             title_for_job=title_for_job,
             jobs=jobs,
             jobs_per_page=jobs_per_page,

@@ -12,60 +12,76 @@
 <div class="columns is-mobile">
     <div class="column is-8">
 
-        {% if jobs_total == 0 %}
-        <article class="message is-success">
-            <div class="message-header">
-                <p><span class="fa fa-check" aria-hidden="true"></span> There are no pending jobs!</p>
-            </div>
-        </article>
-        {% else %}
-
-        {% for j in jobs %}
-
-            {% if j.status == JobStatus.SCHEDULED %}
-              {% set item_style = 'has-background-info-light' %}
-            {% elif j.status == JobStatus.RUNNING %}
-              {% set item_style = 'has-background-success-light' %}
-            {% elif j.status == JobStatus.DEPWAIT %}
-              {% set item_style = 'has-background-warning-light' %}
-            {% elif j.status == JobStatus.STARVING %}
-              {% set item_style = 'has-background-danger-light' %}
-            {% endif %}
-
-            <div class="card {{item_style}}">
-            <header class="card-header">
-                <div class="card-header-title has-text-weight-semibold">
-                    <a class="has-text-black" href="{{ url_for('jobs.job', uuid=j.uuid) }}">{{title_for_job(session, j)}}</a>
-
-                    <span class="tag is-rounded is-light"><i class="fas fa-microchip"></i>&nbsp;{{j.architecture}}</span>
-                    <span class="tag is-rounded is-light is-link"><i class="fas fa-star-of-life"></i>&nbsp;{{humanized_timediff(j.time_created)}}</span>
-                </div>
-            </header>
-            </div>
-
-        {% endfor %}
-
-        {% endif %}
-
-        <br/>
-        <nav class="pagination" role="navigation" aria-label="pagination">
-        <a class="pagination-previous" href="{{ url_for('jobs.queue', page=current_page-1) if current_page > 1 else '#'}}" {{'disabled' if current_page <= 1 }}>
-            Previous
+      <div class="buttons has-addons">
+        <a class="button {{'is-info is-selected' if not show_blocked}}"
+           href="{{ url_for('jobs.queue', page=current_page, blocked='false')}}">
+            Only Pending
         </a>
-        <a class="pagination-next" href="{{ url_for('jobs.queue', page=current_page+1) if current_page < page_count else '#'}}" {{'disabled' if current_page >= page_count }}>
-            Next
+        <a class="button {{'is-info is-selected' if show_blocked}}"
+           href="{{ url_for('jobs.queue', page=current_page, blocked='true')}}">
+            Pending &amp; Blocked
         </a>
+      </div>
 
-        <ul class="pagination-list">
+      {% if jobs_total == 0 %}
+      <article class="message is-success">
+          <div class="message-header">
+              <p><span class="fa fa-check" aria-hidden="true"></span> There are no pending jobs!</p>
+          </div>
+      </article>
+      {% else %}
 
-        {% for i in range(1, page_count + 1) %}
-            <li>
-            <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}" href="{{ url_for('jobs.queue', page=i) }}">{{i}}</a>
-            </li>
-        {% endfor %}
-        </ul>
-        </nav>
+      {% for j in jobs %}
 
-    </div>
+          {% if j.status == JobStatus.SCHEDULED %}
+            {% set item_style = 'has-background-info-light' %}
+          {% elif j.status == JobStatus.RUNNING %}
+            {% set item_style = 'has-background-success-light' %}
+          {% elif j.status == JobStatus.DEPWAIT %}
+            {% set item_style = 'has-background-warning-light' %}
+          {% elif j.status == JobStatus.STARVING %}
+            {% set item_style = 'has-background-danger-light' %}
+          {% endif %}
+
+          <div class="card {{item_style}}">
+          <header class="card-header">
+              <div class="card-header-title has-text-weight-semibold">
+                  <a class="has-text-black" href="{{ url_for('jobs.job', uuid=j.uuid) }}">{{title_for_job(session, j)}}</a>
+
+                  <span class="tag is-rounded is-light"><i class="fas fa-microchip"></i>&nbsp;{{j.architecture}}</span>
+                  <span class="tag is-rounded is-light is-link"><i class="fas fa-star-of-life"></i>&nbsp;{{humanized_timediff(j.time_created)}}</span>
+              </div>
+          </header>
+          </div>
+
+      {% endfor %}
+
+      {% endif %}
+
+      <br/>
+      <nav class="pagination" role="navigation" aria-label="pagination">
+      <a class="pagination-previous"
+         href="{{ url_for('jobs.queue', page=current_page-1, blocked='true' if show_blocked else '') if current_page > 1 else '#'}}"
+         {{'disabled' if current_page <= 1 }}>
+          Previous
+      </a>
+      <a class="pagination-next"
+         href="{{ url_for('jobs.queue', page=current_page+1, blocked='true' if show_blocked else '') if current_page < page_count else '#'}}"
+         {{'disabled' if current_page >= page_count }}>
+          Next
+      </a>
+
+      <ul class="pagination-list">
+
+      {% for i in range(1, page_count + 1) %}
+          <li>
+          <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
+             href="{{ url_for('jobs.queue', page=i, blocked='true' if show_blocked else '') }}">{{i}}</a>
+          </li>
+      {% endfor %}
+      </ul>
+      </nav>
+
+  </div>
 </div>
 {% endblock %}
