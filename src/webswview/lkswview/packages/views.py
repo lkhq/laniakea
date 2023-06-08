@@ -4,7 +4,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import os
 import math
+from urllib.parse import urljoin
 
 import humanize
 from flask import Blueprint, abort, url_for, current_app, render_template
@@ -234,7 +236,7 @@ def bin_package_details(repo_name, suite_name, name):
         else:
             pkg_description = bpkg_rep[0].description
 
-        repo_url = current_app.config['ARCHIVE_URL'] + '/' + repo_name
+        repo_url = urljoin(current_app.config['ARCHIVE_URL'], repo_name)
 
         return render_template(
             'packages/bin_details.html',
@@ -296,6 +298,8 @@ def src_package_details(repo_name, suite_name, name):
         broken_archs = architectures_with_issues_for_spkg(rss, spkg_rep)
         migration_infos = migration_excuse_info(rss, spkg_rep)
 
+        repo_url = urljoin(current_app.config['ARCHIVE_URL'], repo_name)
+
         return render_template(
             'packages/src_details.html',
             pkg=spkg_rep,
@@ -303,10 +307,13 @@ def src_package_details(repo_name, suite_name, name):
             binaries_rep=binaries_rep,
             pkg_repo=rss.repo,
             pkg_suite=rss.suite,
+            repo_url=repo_url,
             suites=suites,
             broken_archs=broken_archs,
             migration_infos=migration_infos,
             make_linked_dependency=make_linked_dependency,
+            naturalsize=humanize.naturalsize,
+            file_basename=os.path.basename,
         )
 
 

@@ -33,136 +33,156 @@
         </aside>
     </div>
     <div class="column">
-        <div class="columns">
-            <div class="column">
-                <h2>
-                {{pkg.name}} - {{pkg.version}}
-                <small>
-                    <span class="badge {{component_badge_style}}">{{pkg.component.name}}</span>
-                </small>
-            </h2>
-            </div>
-            <div class="column is-one-quarter-desktop search">
-                <form class="form-inline" action="/search_pkg" method="GET">
-                    <p class="control has-icons-left">
-                        <input id="term" name="term" class="input is-rounded" type="text" placeholder="Find another package...">
-                        <span class="icon is-left">
-                            <i class="fas fa-search"></i>
-                        </span>
+      <div class="columns">
+          <div class="column">
+              <h2>
+              {{pkg.name}} - {{pkg.version}}
+              <small>
+                  <span class="badge {{component_badge_style}}">{{pkg.component.name}}</span>
+              </small>
+          </h2>
+          </div>
+          <div class="column is-one-quarter-desktop search">
+              <form class="form-inline" action="/search_pkg" method="GET">
+                  <p class="control has-icons-left">
+                      <input id="term" name="term" class="input is-rounded" type="text" placeholder="Find another package...">
+                      <span class="icon is-left">
+                          <i class="fas fa-search"></i>
+                      </span>
 
-                    </p>
-                </form>
-            </div>
-        </div>
+                  </p>
+              </form>
+          </div>
+      </div>
 
-        <b>Versions in {{pkg_suite.name}}:</b> {{ pkgs_all|join(', ', attribute='version') }}
-        <br/>
-        <b>Maintainer:</b> {{pkg.maintainer.replace('@', ' [꩜] ')}}
-        <br/>
-        {% if pkg.uploaders %}
-        <b>Uploaders:</b>
-        <div class="content">
-            <ul>
-              {% for id in pkg.uploaders %}
-                <li>{{id.replace('@', ' [꩜] ')}}</li>
-              {% endfor %}
-            </ul>
-        </div>
-        {% else %}
-        <br/>
-        {% endif %}
-        <b>Format:</b> {{pkg.format_version}}
-        <br/>
-        <b>Standards Version:</b> {{pkg.standards_version}}
-        <br/>
-        <b>Architectures</b>: {% for src_arch in pkg.architectures %}<span class="badge badge-pill badge-secondary"><i class="far fa-dot-circle"></i> {{src_arch}}</span>&nbsp;{% endfor %}
-        <br/>&nbsp;<br/>
+      <b>Versions in {{pkg_suite.name}}:</b> {{ pkgs_all|join(', ', attribute='version') }}
+      <br/>
+      <b>Maintainer:</b> {{pkg.maintainer.replace('@', ' [꩜] ')}}
+      <br/>
+      {% if pkg.uploaders %}
+      <b>Uploaders:</b>
+      <div class="content">
+          <ul>
+            {% for id in pkg.uploaders %}
+              <li>{{id.replace('@', ' [꩜] ')}}</li>
+            {% endfor %}
+          </ul>
+      </div>
+      {% else %}
+      <br/>
+      {% endif %}
+      <b>Format:</b> {{pkg.format_version}}
+      <br/>
+      <b>Standards Version:</b> {{pkg.standards_version}}
+      <br/>
+      <b>Architectures</b>: {% for src_arch in pkg.architectures %}<span class="badge badge-pill badge-secondary"><i class="far fa-dot-circle"></i> {{src_arch}}</span>&nbsp;{% endfor %}
+      <br/>&nbsp;<br/>
 
-        {% if broken_archs %}
-        <article class="message is-danger" role="alert">
-            <div class="message-header">
-                <h6>This package may currently be <strong>unbuildable</strong> on the following architectures:</h6>
-            </div>
-            <div class="message-body">
-                <div class="content">
-                  <ul class="mb-0">
-                    {% for a in broken_archs %}
-                      <li><small class="text-muted"><i class="fas fa-microchip"></i></small> {{a}}</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-            </div>
-        </article>
-        {% endif %}
+      {% if broken_archs %}
+      <article class="message is-danger" role="alert">
+          <div class="message-header">
+              <h6>This package may currently be <strong>unbuildable</strong> on the following architectures:</h6>
+          </div>
+          <div class="message-body">
+              <div class="content">
+                <ul class="mb-0">
+                  {% for a in broken_archs %}
+                    <li><small class="text-muted"><i class="fas fa-microchip"></i></small> {{a}}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+          </div>
+      </article>
+      {% endif %}
 
 
-        {% if migration_infos %}
-        {% for info in migration_infos %}
-        <article class="message {{ 'is-danger' if info.stuck else 'is-warning' }}" role="alert">
-            {% if info.target == pkg_suite.name %}
-              {% if info.stuck %}
-                Version {{ info.version_new }} fails to migrate to this suite from <strong>{{ info.source }}</strong>.
-                <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Check why</a>.
-              {% else %}
-                Version {{ info.version_new }} is scheduled for migration to this suite from <strong>{{ info.source }}</strong>.
-                <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Details</a>.
-              {% endif %}
+      {% if migration_infos %}
+      {% for info in migration_infos %}
+      <article class="message {{ 'is-danger' if info.stuck else 'is-warning' }}" role="alert">
+          {% if info.target == pkg_suite.name %}
+            {% if info.stuck %}
+              Version {{ info.version_new }} fails to migrate to this suite from <strong>{{ info.source }}</strong>.
+              <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Check why</a>.
             {% else %}
-              {% if info.stuck %}
-                Version {{ info.version_new }} fails to migrate to <strong>{{ info.target }}</strong> (from <strong>{{ info.source }}</strong>).
-                <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Check why</a>.
-              {% else %}
-                Version {{ info.version_new }} is scheduled for migration to <strong>{{ info.target }}</strong> (from <strong>{{ info.source }}</strong>).
-                <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Details</a>.
-              {% endif %}
+              Version {{ info.version_new }} is scheduled for migration to this suite from <strong>{{ info.source }}</strong>.
+              <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Details</a>.
             {% endif %}
-        </article>
-        {% endfor %}
-        {% endif %}
+          {% else %}
+            {% if info.stuck %}
+              Version {{ info.version_new }} fails to migrate to <strong>{{ info.target }}</strong> (from <strong>{{ info.source }}</strong>).
+              <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Check why</a>.
+            {% else %}
+              Version {{ info.version_new }} is scheduled for migration to <strong>{{ info.target }}</strong> (from <strong>{{ info.source }}</strong>).
+              <a class="alert-link" href="{{ url_for('packages.view_excuse', uuid=info.uuid) }}">Details</a>.
+            {% endif %}
+          {% endif %}
+      </article>
+      {% endfor %}
+      {% endif %}
 
-        {% if pkg.homepage %}
-        <a class="button is-outlined is-success" href="{{pkg.homepage}}" role="button">Homepage</a>
-        {% endif %}
+      {% if pkg.homepage %}
+      <a class="button is-outlined is-success" href="{{pkg.homepage}}" role="button">Homepage</a>
+      {% endif %}
 
-        <a class="button is-outlined is-info" href="{{ url_for('packages.builds_list', name=pkg.name, page=1) }}" role="button">Build Jobs</a>
+      <a class="button is-outlined is-info" href="{{ url_for('packages.builds_list', name=pkg.name, page=1) }}" role="button">Build Jobs</a>
 
-        {% if pkg.vcs_browser %}
-        <a class="button is-outlined is-link" href="{{pkg.vcs_browser}}" role="button">VCS Browser</a>
-        {% endif %}
+      {% if pkg.vcs_browser %}
+      <a class="button is-outlined is-link" href="{{pkg.vcs_browser}}" role="button">VCS Browser</a>
+      {% endif %}
 
-        <br/><br/>
+      <br/><br/>
 
-        {% if binaries_rep %}
-        <h3>Owned Binaries</h3>
-        <div class="content">
-            <ul>
-            {% for bin_name, archs in binaries_rep.items() %}
-                <li>
-                  <a href="{{ url_for('packages.bin_package_details',
-                                      repo_name=pkg_repo.name,
-                                      suite_name=pkg_suite.name,
-                                      name=bin_name) }}">{{ bin_name }}</a>&nbsp;
-                  {% for arch in archs %}<span class="badge badge-pill badge-secondary"><i class="fa-solid fa-gear"></i> {{arch}}</span>&nbsp;{% endfor %}
-                </li>
-            {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
+      {% if binaries_rep %}
+      <h3>Owned Binaries</h3>
+      <div class="content">
+          <ul>
+          {% for bin_name, archs in binaries_rep.items() %}
+              <li>
+                <a href="{{ url_for('packages.bin_package_details',
+                                    repo_name=pkg_repo.name,
+                                    suite_name=pkg_suite.name,
+                                    name=bin_name) }}">{{ bin_name }}</a>&nbsp;
+                {% for arch in archs %}<span class="badge badge-pill badge-secondary"><i class="fa-solid fa-gear"></i> {{arch}}</span>&nbsp;{% endfor %}
+              </li>
+          {% endfor %}
+          </ul>
+      </div>
+      {% endif %}
 
-        <h3>Build Dependencies</h3>
-        <div class="content">
-            <ul>
-            {% for dep in pkg.build_depends %}
-                <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
-            {% endfor %}
-            {% for dep in pkg.build_depends_indep %}
-                <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
-            {% endfor %}
-            {% for dep in pkg.build_depends_arch %}
-                <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
-            {% endfor %}
-            </ul>
-        </div>
+      <h3>Build Dependencies</h3>
+      <div class="content">
+          <ul>
+          {% for dep in pkg.build_depends %}
+              <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
+          {% endfor %}
+          {% for dep in pkg.build_depends_indep %}
+              <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
+          {% endfor %}
+          {% for dep in pkg.build_depends_arch %}
+              <li>{{ make_linked_dependency(pkg_repo, pkg_suite, dep)|safe }}</li>
+          {% endfor %}
+          </ul>
+      </div>
+
+      <h3>Files</h3>
+      <table class="mt-2 table is-hoverable is-fullwidth">
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th>Size</th>
+            <th>Checksum (SHA256)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for file in pkg.files %}
+          <tr class="{{ 'is-selected' if file.fname.endswith('.dsc') }}">
+            <th><a href="{{ repo_url + '/' + file.fname }}">{{ file_basename(file.fname) }}</a></th>
+            <td>{{ naturalsize(file.size) }}</td>
+            <td><small><tt>{{ file.sha256sum }}</tt></small></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
 
     </div>
 </div>
