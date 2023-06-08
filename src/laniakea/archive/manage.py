@@ -50,7 +50,10 @@ def _nuke_binary_from_pool(session, bpkg: BinaryPackage):
 
     log.info('Deleting binary package %s', str(bpkg))
     bin_fname_full = os.path.join(bpkg.repo.get_root_dir(), bpkg.bin_file.fname)
-    os.remove(bin_fname_full)
+    if os.path.exists(bin_fname_full):
+        os.unlink(bin_fname_full)
+    else:
+        log.error('Unable to delete %s: File not found', bin_fname_full)
     session.delete(bpkg.bin_file)
     session.delete(bpkg)
     archive_log.info(
@@ -210,9 +213,12 @@ def remove_source_package(
             )
             if not other_owner:
                 fname_full = os.path.join(repo_root_dir, file.fname)
-                os.unlink(fname_full)
+                if os.path.exists(fname_full):
+                    os.unlink(fname_full)
+                else:
+                    log.error('Unable to delete %s: File not found', fname_full)
                 session.delete(file)
-        if not os.listdir(srcpkg_repo_dir):
+        if os.path.exists(srcpkg_repo_dir) and not os.listdir(srcpkg_repo_dir):
             os.rmdir(srcpkg_repo_dir)
 
         # delete other package metadata
