@@ -18,6 +18,7 @@ from laniakea.db import (
     LkModule,
     ArchiveError,
     ArchiveSuite,
+    SpearsExcuse,
     BinaryPackage,
     SourcePackage,
     PackageOverride,
@@ -225,6 +226,7 @@ def remove_source_package(
             os.unlink(spkg_copyright_fname)
 
         # delete from database and announce the removal
+        session.query(SpearsExcuse).filter(SpearsExcuse.source_package_id == spkg.uuid).delete()
         session.delete(spkg)
         archive_log.info('DELETED-SRC: %s/%s @ %s', spkg.name, spkg.version, rss.repo.name)
         event_data = {'pkg_name': spkg.name, 'pkg_version': spkg.version, 'repo': rss.repo.name}
