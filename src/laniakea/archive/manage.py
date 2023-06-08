@@ -40,7 +40,28 @@ class ArchiveRemoveError(ArchiveError):
     """Failed to remove an entity from the package archive."""
 
 
-def remove_binary_package(session, rss, bpkg: BinaryPackage, *, force_delete=False) -> bool:
+def _nuke_binary_from_pool(session, bpkg: BinaryPackage):
+    """Completely remove a binary package, including its pool files.
+    :param session: SQLAlchemy session.
+    :param bpkg: Binary package to remove.
+    :return:
+    """
+
+    log.info('Deleting binary package %s', str(bpkg))
+    bin_fname_full = os.path.join(bpkg.repo.get_root_dir(), bpkg.bin_file.fname)
+    os.remove(bin_fname_full)
+    session.delete(bpkg.bin_file)
+    session.delete(bpkg)
+    archive_log.info(
+        'DELETED-ORPHAN-BIN: %s/%s/%s @ %s',
+        bpkg.name,
+        bpkg.version,
+        bpkg.architecture.name,
+        bpkg.repo.name,
+    )
+
+
+def remove_binary_package(session, rss: ArchiveRepoSuiteSettings, bpkg: BinaryPackage, *, force_delete=False) -> bool:
     """Remove a binary package from the archive.
     This function will unconditionally delete a specific binary package from the archive.
     If the source package it belongs to is still in many suites, this will lead to issues like
@@ -83,19 +104,7 @@ def remove_binary_package(session, rss, bpkg: BinaryPackage, *, force_delete=Fal
     if bpkg.suites and not force_delete:
         return True
 
-    log.info('Deleting binary package %s', str(bpkg))
-    bin_fname_full = os.path.join(rss.repo.get_root_dir(), bpkg.bin_file.fname)
-    os.remove(bin_fname_full)
-    session.delete(bpkg.bin_file)
-    session.delete(bpkg)
-    archive_log.info(
-        'DELETED-ORPHAN-BIN: %s/%s/%s @ %s/%s',
-        bpkg.name,
-        bpkg.version,
-        bpkg.architecture.name,
-        rss.repo.name,
-        rss.suite.name,
-    )
+    _nuke_binary_from_pool(session, bpkg)
     return True
 
 
@@ -127,22 +136,8 @@ def remove_source_package(
     if not emitter:
         emitter = EventEmitter(LkModule.ARCHIVE)
 
-    if spkg.suites:
-        log.info('Removing package %s from suite %s', str(spkg), rss.suite.name)
-        spkg.suites.remove(rss.suite)
-
-    # drop binaries from the respective suite as well
-    for bpkg in spkg.binaries:
-        bpkg_suite = bpkg.suites[0] if bpkg.suites else rss.suite
-        bpkg_rss = (
-            session.query(ArchiveRepoSuiteSettings)
-            .filter(
-                ArchiveRepoSuiteSettings.repo.has(id=bpkg.repo_id),
-                ArchiveRepoSuiteSettings.suite.has(id=bpkg_suite.id),
-            )
-            .one_or_none()
-        )
-        package_mark_delete(session, bpkg_rss, bpkg, emitter=emitter)
+    # ensure package is marked for removal from the selected repo/suite
+    package_mark_delete(session, rss, spkg, emitter=emitter)
 
     if spkg.suites:
         archive_log.info('DELETED-SRC-SUITE: %s/%s @ %s/%s', spkg.name, spkg.version, rss.repo.name, rss.suite.name)
@@ -159,24 +154,8 @@ def remove_source_package(
         repo_root_dir = rss.repo.get_root_dir()
         srcpkg_repo_dir = os.path.join(repo_root_dir, spkg.directory)
         for bpkg in spkg.binaries:
-            # remove binary packages completely (we just need any suite it is in to construct the RSS)
-            bpkg_suite = bpkg.suites[0] if bpkg.suites else rss.suite
-            bpkg_rss = (
-                session.query(ArchiveRepoSuiteSettings)
-                .filter(
-                    ArchiveRepoSuiteSettings.repo.has(id=bpkg.repo_id),
-                    ArchiveRepoSuiteSettings.suite.has(id=bpkg_suite.id),
-                )
-                .one_or_none()
-            )
-            if not bpkg_rss:
-                raise ArchiveRemoveError(
-                    'Unable to find suite configuration "{}/{}" for "{}"'.format(
-                        bpkg_rss.repo.name, bpkg_rss.suite.name, str(bpkg)
-                    )
-                )
-            # drop the associated binary, even if it might be in a different repository
-            remove_binary_package(session, bpkg_rss, bpkg, force_delete=True)
+            # remove binary package completely and from disk
+            _nuke_binary_from_pool(session, bpkg)
 
             # the source package is *completely* gone from this repository, so there is no need
             # to keep overrides around - we just drop them if no other source has adopted them.
@@ -290,8 +269,9 @@ def package_mark_delete(
 
     is_src_pkg = type(pkg) is SourcePackage
 
-    log.info('Removing package %s from suite %s', str(pkg), rss.suite.name)
-    pkg.suites.remove(rss.suite)
+    if rss.suite in pkg.suites:
+        log.info('Removing package %s from suite %s', str(pkg), rss.suite.name)
+        pkg.suites.remove(rss.suite)
 
     if pkg.suites:
         if is_src_pkg:
