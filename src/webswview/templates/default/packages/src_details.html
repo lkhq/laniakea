@@ -132,7 +132,23 @@
 
         <br/><br/>
 
-        {% if pkg.build_depends %}
+        {% if binaries_rep %}
+        <h3>Owned Binaries</h3>
+        <div class="content">
+            <ul>
+            {% for bin_name, archs in binaries_rep.items() %}
+                <li>
+                  <a href="{{ url_for('packages.bin_package_details',
+                                      repo_name=pkg_repo.name,
+                                      suite_name=pkg_suite.name,
+                                      name=bin_name) }}">{{ bin_name }}</a>&nbsp;
+                  {% for arch in archs %}<span class="badge badge-pill badge-secondary"><i class="fa-solid fa-gear"></i> {{arch}}</span>&nbsp;{% endfor %}
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
         <h3>Build Dependencies</h3>
         <div class="content">
             <ul>
@@ -147,7 +163,6 @@
             {% endfor %}
             </ul>
         </div>
-        {% endif %}
 
     </div>
 </div>

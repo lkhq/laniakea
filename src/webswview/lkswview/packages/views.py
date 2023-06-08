@@ -170,7 +170,7 @@ def migration_excuse_info(rss: ArchiveRepoSuiteSettings, spkg: SourcePackage):
 
 
 @packages.route('/bin/<repo_name>/<suite_name>/<name>')
-@cache.cached(timeout=120)
+@cache.cached(timeout=4 * 60)
 def bin_package_details(repo_name, suite_name, name):
     with session_scope() as session:
         rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
@@ -256,7 +256,7 @@ def bin_package_details(repo_name, suite_name, name):
 
 
 @packages.route('/src/<repo_name>/<suite_name>/<name>')
-@cache.cached(timeout=120)
+@cache.cached(timeout=4 * 60)
 def src_package_details(repo_name, suite_name, name):
     with session_scope() as session:
         rss = repo_suite_settings_for(session, repo_name, suite_name, fail_if_missing=False)
@@ -265,11 +265,13 @@ def src_package_details(repo_name, suite_name, name):
 
         spkgs = (
             session.query(SourcePackage)
-            .options(undefer(SourcePackage.version))
-            .filter(SourcePackage.repo_id == rss.repo_id)
-            .filter(SourcePackage.suites.any(ArchiveSuite.id == rss.suite_id))
-            .filter(SourcePackage.name == name)
-            .filter(SourcePackage.time_deleted.is_(None))
+            .options(joinedload(SourcePackage.binaries), undefer(SourcePackage.version))
+            .filter(
+                SourcePackage.repo_id == rss.repo_id,
+                SourcePackage.suites.any(ArchiveSuite.id == rss.suite_id),
+                SourcePackage.name == name,
+                SourcePackage.time_deleted.is_(None),
+            )
             .order_by(SourcePackage.version.desc())
             .all()
         )
@@ -284,6 +286,13 @@ def src_package_details(repo_name, suite_name, name):
         ]
         spkg_rep = spkgs[0]  # the first package is always the most recent one
 
+        binaries_rep = {}
+        for bin in spkg_rep.binaries:
+            if bin.name not in binaries_rep:
+                binaries_rep[bin.name] = [bin.architecture.name]
+            else:
+                binaries_rep[bin.name].append(bin.architecture.name)
+
         broken_archs = architectures_with_issues_for_spkg(rss, spkg_rep)
         migration_infos = migration_excuse_info(rss, spkg_rep)
 
@@ -291,6 +300,7 @@ def src_package_details(repo_name, suite_name, name):
             'packages/src_details.html',
             pkg=spkg_rep,
             pkgs_all=spkgs,
+            binaries_rep=binaries_rep,
             pkg_repo=rss.repo,
             pkg_suite=rss.suite,
             suites=suites,
