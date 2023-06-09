@@ -290,6 +290,9 @@ def src_package_details(repo_name, suite_name, name):
 
         binaries_rep = {}
         for bin in spkg_rep.binaries:
+            if bin.name.endswith('-dbgsym'):
+                # we just ignore debug symbol packages here
+                continue
             if bin.name not in binaries_rep:
                 binaries_rep[bin.name] = [bin.architecture.name]
             else:
