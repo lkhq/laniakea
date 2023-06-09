@@ -816,6 +816,7 @@ def _publish_suite_dists(
         suite_label = 'None'
     elif rss.suite.name.startswith('amber'):
         suite_label = 'None'
+        suite_codename = rss.suite.name
 
     set_deb822_value(entry, 'Origin', rss.repo.origin_name)
     set_deb822_value(entry, 'Suite', rss.suite.name)
