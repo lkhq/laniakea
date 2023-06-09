@@ -733,6 +733,7 @@ class SyncEngine:
 
         # obtain package import helper to register new packages with the archive
         rss = repo_suite_settings_for(session, self._repo_name, self._target_suite_name)
+        suitable_architectures = set([a.name for a in rss.suite.architectures])
         pkgip = PackageImporter(session, rss)
         pkgip.keep_source_packages = True
 
@@ -772,6 +773,28 @@ class SyncEngine:
                 for spkg in src_pkg_range:
                     # ignore blacklisted packages in automatic sync
                     if spkg.name in self._sync_blacklist:
+                        continue
+
+                    # Some packages might only build for architectures that we do not support.
+                    # We filter those out here.
+                    has_suitable_binaries = False
+                    for exbin in spkg.expected_binaries:
+                        for aname in exbin.architectures:
+                            if aname == 'all' or aname.endswith('any'):
+                                # any, linux-any, all, etc. are all fine
+                                has_suitable_binaries = True
+                                break
+                            if aname in suitable_architectures:
+                                has_suitable_binaries = True
+                                break
+                        if has_suitable_binaries:
+                            break
+                    if not has_suitable_binaries:
+                        log.debug(
+                            'Ignoring {}/{}: Builds no binaries for architectures supported in target.'.format(
+                                spkg.name, spkg.version
+                            )
+                        )
                         continue
 
                     dpkg = dest_pkg_map.get(spkg.name)
