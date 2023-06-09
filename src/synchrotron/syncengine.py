@@ -168,7 +168,7 @@ class SyncEngine:
         log.debug('Retrieving source packages for source suite: %s/%s', suite_name, component_name)
         suite = ArchiveSuite(suite_name)
         component = ArchiveComponent(component_name)
-        return self._source_reader.source_packages(suite, component)
+        return self._source_reader.source_packages(suite, component, include_extra_sources=False)
 
     def _get_source_repo_source_package_map(self, suite_name: str, component_name: str):
         """Get an associative array of the newest source packages present in the source repository."""

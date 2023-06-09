@@ -62,6 +62,8 @@ class ExternalSourcePackage:
     summary: T.Optional[str]
     description: T.Optional[str]
 
+    extra_source_only: bool = False  # True if package is only kept around for compliance reasons and has no binaries
+
     testsuite: list[str] = []  # list of testsuite types this package contains
     testsuite_triggers: list[str] = []  # list of package names that trigger the testsuite
 
@@ -389,7 +391,9 @@ class RepositoryReader:
 
         return index_fname
 
-    def source_packages(self, suite: ArchiveSuite, component: ArchiveComponent) -> T.List[ExternalSourcePackage]:
+    def source_packages(
+        self, suite: ArchiveSuite, component: ArchiveComponent, *, include_extra_sources: bool = True
+    ) -> T.List[ExternalSourcePackage]:
         '''Return a list of all source packages in the given suite and component.'''
         assert type(suite) is ArchiveSuite
         assert type(component) is ArchiveComponent
@@ -407,6 +411,10 @@ class RepositoryReader:
                     raise Exception(
                         'Found invalid block (no Package and Version fields) in Sources file "{}".'.format(index_fname)
                     )
+
+                extra_source_only = e.get('Extra-Source-Only', 'no') == 'yes'
+                if not include_extra_sources and extra_source_only:
+                    continue
 
                 pkg = ExternalSourcePackage(pkgname, pkgversion)
                 pkg.repo = self._repo_entity
@@ -426,6 +434,7 @@ class RepositoryReader:
 
                 pkg.build_depends = split_strip(e.get('Build-Depends', ''), ',')
                 pkg.directory = e['Directory']
+                pkg.extra_source_only = extra_source_only
 
                 pkg.files = parse_checksums_list(e.get('Checksums-Sha256'), pkg.directory)
 
