@@ -21,6 +21,10 @@
            href="{{ url_for('jobs.queue', page=current_page, blocked='true')}}">
             Pending &amp; Blocked
         </a>
+        <a class="button"
+           href="{{ url_for('jobs.queue_stats')}}">
+            Graphs
+        </a>
       </div>
 
       {% if jobs_total == 0 %}

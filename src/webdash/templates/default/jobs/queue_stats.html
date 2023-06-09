@@ -1,0 +1,117 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'jobqueue' %}
+{% set page_title = 'Job Queue Statistics' %}
+
+{% block body_header %}
+<h1 class="title">Job Queue Statistics</h1>
+{% endblock %}
+
+{% block js_pre %}
+<script src="{{ url_for('static', filename='js/moment/moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-moment.min.js') }}"></script>
+{% endblock %}
+
+{% block body %}
+
+<div class="columns is-mobile">
+    <div class="column is-8">
+
+      <div class="buttons has-addons">
+        <a class="button"
+           href="{{ url_for('jobs.queue', page=1, blocked='false')}}">
+            Only Pending
+        </a>
+        <a class="button"
+           href="{{ url_for('jobs.queue', page=1, blocked='true')}}">
+            Pending &amp; Blocked
+        </a>
+        <a class="button is-info is-selected"
+           href="{{ url_for('jobs.queue_stats')}}">
+            Graphs
+        </a>
+      </div>
+
+      <h4 class="title is-4">Pending Jobs</h4>
+      <canvas id="pendingJobsChart" style="width:100%;max-height:500px"></canvas>
+      <p>These jobs were waiting for a free machine to be built on.</p>
+
+      <h4 class="title is-4 pt-6">Blocked Jobs</h4>
+      <canvas id="blockedJobsChart" style="width:100%;max-height:500px"></canvas>
+      <p>These jobs were blocked by other dependencies and could not yet be built.</p>
+
+      <script>
+        function makeDatasets(rawDataStr) {
+          if (!rawDataStr)
+            return [];
+
+          const allRawDataObj = JSON.parse(rawDataStr);
+          var datasets = [];
+          for (const [archName, rawData] of Object.entries(allRawDataObj)) {
+            const data = rawData.map(item => {
+                return {
+                  x: new Date(item.x * 1000),
+                  y: item.y
+                };
+              });
+
+            datasets.push({
+              data: data,
+              label: archName,
+              fill: false
+            });
+          }
+
+          return datasets;
+        }
+
+        const pendingDatasets = makeDatasets('{{pending_stats|safe}}');
+        const depwaitDatasets = makeDatasets('{{depwait_stats|safe}}');
+
+        // pending
+        new Chart('pendingJobsChart', {
+          type: 'line',
+          data: {
+            datasets: pendingDatasets
+          },
+          options: {
+              scales: {
+                x: {
+                  type: 'time',
+                  time: {
+                      unit: 'month',
+                      displayFormats: {
+                       day: 'YYYY-MM',
+                    }
+                  }
+                }
+              }
+            }
+        });
+
+        // depwait
+        new Chart('blockedJobsChart', {
+          type: 'line',
+          data: {
+            datasets: depwaitDatasets
+          },
+          options: {
+              scales: {
+                x: {
+                  type: 'time',
+                  time: {
+                      unit: 'month',
+                      displayFormats: {
+                       day: 'YYYY-MM',
+                    }
+                  }
+                }
+              }
+            }
+        });
+      </script>
+
+  </div>
+</div>
+{% endblock %}

@@ -2,4 +2,6 @@ static/css/fontawesome/
 static/css/webfonts/
 static/css/bulma*.css
 static/js/jquery/
+static/js/chart/
+static/js/moment/
 static/fonts/

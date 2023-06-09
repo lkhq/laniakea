@@ -146,7 +146,12 @@ def _collect_job_queue_stats(session):
         _add_stat_value_if_changed(session, key, depwait_count)
 
         pending_count = (
-            session.query(Job.uuid).filter(Job.status == JobStatus.DEPWAIT, Job.architecture == arch_name).count()
+            session.query(Job.uuid)
+            .filter(
+                Job.status.in_([JobStatus.WAITING, JobStatus.SCHEDULED, JobStatus.STARVING]),
+                Job.architecture == arch_name,
+            )
+            .count()
         )
         key = make_stats_key_jobqueue(StatsEventKind.JOB_QUEUE_PENDING, arch_name)
         _add_stat_value_if_changed(session, key, pending_count)

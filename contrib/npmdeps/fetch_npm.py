@@ -55,6 +55,26 @@ node_modules = [
         ],
     },
     {
+        'name': 'chart.js',
+        'files': ['dist/chart.umd.js', 'dist/chart.umd.js.map'],
+        'copy_to': [
+            os.path.join(src_dir, 'webdash/templates/default/static/js/chart/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/js/chart/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/js/chart/'),
+            os.path.join(src_dir, 'webswview/templates/pureos/static/js/chart/'),
+        ],
+    },
+    {
+        'name': 'chartjs-adapter-moment',
+        'files': ['dist/chartjs-adapter-moment.min.js'],
+        'copy_to': [
+            os.path.join(src_dir, 'webdash/templates/default/static/js/chart/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/js/chart/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/js/chart/'),
+            os.path.join(src_dir, 'webswview/templates/pureos/static/js/chart/'),
+        ],
+    },
+    {
         'name': 'jquery',
         'files': ['dist/jquery.slim.min.js'],
         'copy_to': [
@@ -62,6 +82,16 @@ node_modules = [
             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/js/jquery/'),
+        ],
+    },
+    {
+        'name': 'moment',
+        'files': ['min/moment.min.js', 'min/moment.min.js.map'],
+        'copy_to': [
+            os.path.join(src_dir, 'webdash/templates/default/static/js/moment/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/js/moment/'),
+            os.path.join(src_dir, 'webswview/templates/default/static/js/moment/'),
+            os.path.join(src_dir, 'webswview/templates/pureos/static/js/moment/'),
         ],
     },
 ]

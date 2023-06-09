@@ -4,25 +4,63 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import json
 import math
+from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, request, current_app, render_template
+from sqlalchemy import func
 
+import laniakea.typing as T
 from laniakea.db import (
     Job,
     JobKind,
     JobResult,
     JobStatus,
+    StatsEntry,
     SparkWorker,
     SourcePackage,
+    StatsEventKind,
     ImageBuildRecipe,
+    ArchiveArchitecture,
     session_scope,
+    make_stats_key_jobqueue,
 )
 from laniakea.utils import get_dir_shorthand_for_uuid
 
 from ..utils import is_uuid, humanized_timediff
+from ..extensions import cache
 
 jobs = Blueprint('jobs', __name__, url_prefix='/jobs')
+
+
+def fetch_queue_statistics_for(
+    session, kind: StatsEventKind, arch_name: str, start_at: datetime
+) -> list[dict[str, T.Any]] | None:
+    stat_key = make_stats_key_jobqueue(kind, arch_name)
+    values = (
+        session.query(func.extract('epoch', StatsEntry.time), StatsEntry.value)
+        .filter(StatsEntry.key == stat_key, StatsEntry.time > start_at)
+        .all()
+    )
+    if not values:
+        return None
+    return [{'x': int(v[0]), 'y': v[1]} for v in values]
+
+
+@cache.cached(timeout=30 * 60, key_prefix='full_job_queue_statistics')
+def get_full_queue_statistics(session) -> tuple[str, str]:
+    pending_stats = {}
+    depwait_stats = {}
+    earliest_time = datetime.utcnow() - timedelta(days=365)
+    for arch in session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name != 'all').all():
+        pending_stats[arch.name] = fetch_queue_statistics_for(
+            session, StatsEventKind.JOB_QUEUE_PENDING, arch.name, earliest_time
+        )
+        depwait_stats[arch.name] = fetch_queue_statistics_for(
+            session, StatsEventKind.JOB_QUEUE_DEPWAIT, arch.name, earliest_time
+        )
+    return json.dumps(pending_stats), json.dumps(depwait_stats)
 
 
 def title_for_job(session, job):
@@ -76,6 +114,19 @@ def queue(page):
             jobs_total=jobs_total,
             current_page=page,
             page_count=page_count,
+        )
+
+
+@jobs.route('/queue/stats')
+@cache.cached(timeout=10 * 60)
+def queue_stats():
+    with session_scope() as session:
+        pending_stats, depwait_stats = get_full_queue_statistics(session)
+
+        return render_template(
+            'jobs/queue_stats.html',
+            pending_stats=pending_stats,
+            depwait_stats=depwait_stats,
         )
 
 
