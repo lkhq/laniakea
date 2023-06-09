@@ -351,14 +351,15 @@ def package_mark_delete(
                     rm_suite_names.append(rss.suite.debug_suite.name)
 
             if bpkg.suites:
-                archive_log.info(
-                    'DELETED-SUITE-BIN: %s/%s/%s @ %s/%s',
-                    bpkg.name,
-                    bpkg.version,
-                    bpkg.architecture.name,
-                    rss.repo.name,
-                    ' & '.join(rm_suite_names),
-                )
+                if rm_suite_names:
+                    archive_log.info(
+                        'DELETED-SUITE-BIN: %s/%s/%s @ %s/%s',
+                        bpkg.name,
+                        bpkg.version,
+                        bpkg.architecture.name,
+                        rss.repo.name,
+                        ' & '.join(rm_suite_names),
+                    )
             else:
                 log.info('Marking binary for removal: %s', str(bpkg))
                 bpkg.time_deleted = datetime.utcnow()
