@@ -57,7 +57,7 @@ def issue_list_shortcut(repo_name, suite_name, ptype):
 
 @cache.memoize(30 * 60)
 def fetch_depcheck_statistics_for(session, ptype: PackageType, repo_name: str, suite_name: str, arch_name: str) -> str:
-    start_at = datetime.utcnow() - timedelta(days=180)
+    start_at = datetime.utcnow() - timedelta(days=120)
 
     stat_key = make_stats_key(
         StatsEventKind.DEPCHECK_ISSUES_SRC if ptype == PackageType.SOURCE else StatsEventKind.DEPCHECK_ISSUES_BIN,

@@ -6,18 +6,67 @@
 <h1 class="title">Excuses for {{migration_source_suites_str}} <i class="fas fa-long-arrow-alt-right"></i> {{migration.target_suite.name}}</h1>
 {% endblock %}
 
+{% block js_pre %}
+{% if current_page <= 1 %}
+<script src="{{ url_for('static', filename='js/moment/moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-moment.min.js') }}"></script>
+{% endif %}
+{% endblock %}
+
 {% block body %}
 
 {% if current_page == 1 %}
 <div class="column is-8">
-    <div class="notification is-info is-light">
-        <p>These packages fail to migrate from the <i>{{migration_source_suites_str}}</i> suite(s) to the <i>{{migration.target_suite.name}}</i> suite.</p>
-        <p>
-          Migration issues can happen for many reasons, most commonly a package failed to
-          build on an architecture, will break other packages in the target suite or depends on packages which need to migrate first.<br/>
-          The details page for each migration will give more information on why a package is not migrating.
-        </p>
-    </div>
+  <div class="notification is-info is-light">
+      <p>These packages fail to migrate from the <i>{{migration_source_suites_str}}</i> suite(s) to the <i>{{migration.target_suite.name}}</i> suite.</p>
+      <p>
+        Migration issues can happen for many reasons, most commonly a package failed to
+        build on an architecture, will break other packages in the target suite or depends on packages which need to migrate first.<br/>
+        The details page for each migration will give more information on why a package is not migrating.
+      </p>
+  </div>
+
+  <canvas id="excusesChart" style="width:100%;max-height:140px"></canvas>
+  <script>
+    const data = JSON.parse('{{excuses_stats|safe}}').map(item => {
+      return {
+        x: new Date(item.x * 1000),
+        y: item.y
+      };
+    });
+
+    new Chart('excusesChart', {
+      type: 'line',
+      data: {
+        datasets: [{
+            data: data,
+            label: 'Excuses for {{migration.repo.name}}:{{migration.target_suite.name}}',
+            fill: true,
+            borderColor: 'rgb(255, 160, 64)',
+            backgroundColor: 'rgba(255, 180, 108, 0.2)'
+          }]
+      },
+      options: {
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                  unit: 'month',
+                  displayFormats: {
+                   day: 'YYYY-MM',
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+                display: false
+            }
+          }
+        }
+    });
+  </script>
 </div>
 {% endif %}
 

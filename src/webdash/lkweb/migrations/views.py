@@ -4,13 +4,23 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import json
 import math
+from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, render_template
 
-from laniakea.db import SpearsExcuse, SourcePackage, SpearsMigrationTask, session_scope
+from laniakea.db import (
+    SpearsExcuse,
+    SourcePackage,
+    StatsEventKind,
+    SpearsMigrationTask,
+    session_scope,
+    make_stats_key,
+)
 
-from ..utils import is_uuid
+from ..utils import is_uuid, fetch_statistics_for
+from ..extensions import cache
 
 migrations = Blueprint('migrations', __name__, url_prefix='/migrations')
 
@@ -32,6 +42,14 @@ def index():
             )
 
         return render_template('migrations/index.html', migrations=disp_entries)
+
+
+@cache.memoize(30 * 60)
+def fetch_excuses_statistics_for(session, repo_name: str, target_suite_name: str) -> str:
+    start_at = datetime.utcnow() - timedelta(days=120)
+
+    stat_key = make_stats_key(StatsEventKind.MIGRATIONS_PENDING, repo_name, target_suite_name)
+    return json.dumps(fetch_statistics_for(session, stat_key, start_at))
 
 
 @migrations.route('/excuses/<repo_name>/<target_suite_name>/<int:page>')
@@ -61,6 +79,11 @@ def excuses_list(repo_name, target_suite_name, page):
             .all()
         )
 
+        if page <= 1:
+            excuses_stats = fetch_excuses_statistics_for(session, migration.repo.name, migration.target_suite.name)
+        else:
+            excuses_stats = ''
+
         migration_source_suites_str = ', '.join([s.name for s in migration.source_suites])
         return render_template(
             'migrations/excuses.html',
@@ -71,6 +94,7 @@ def excuses_list(repo_name, target_suite_name, page):
             excuses_total=excuses_total,
             current_page=page,
             page_count=page_count,
+            excuses_stats=excuses_stats,
         )
 
 
