@@ -14,11 +14,11 @@
 
       <div class="buttons has-addons">
         <a class="button {{'is-info is-selected' if not show_blocked}}"
-           href="{{ url_for('jobs.queue', page=current_page, blocked='false')}}">
+           href="{{ url_for('jobs.queue', page=1, blocked='false')}}">
             Only Pending
         </a>
         <a class="button {{'is-info is-selected' if show_blocked}}"
-           href="{{ url_for('jobs.queue', page=current_page, blocked='true')}}">
+           href="{{ url_for('jobs.queue', page=1, blocked='true')}}">
             Pending &amp; Blocked
         </a>
         <a class="button"
