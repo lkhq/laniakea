@@ -805,7 +805,7 @@ def _publish_suite_dists(
 
     suite_codename = rss.suite.alias
     suite_label = rss.suite.summary
-    if rss.suite.name.startswith(('byzantium', 'amber')):
+    if rss.suite.name.startswith('byzantium'):
         # FIXME: HACK: This is a dirty hack to aid the migration of PureOS' systems to the new version of Laniakea.
         # Dak previously put "None" (as string) for an unset value here, which we don't want to do. We also can not
         # set the suite alias to "None", since that would violate the duplicate key constraint of the database, since
@@ -813,6 +813,8 @@ def _publish_suite_dists(
         # So for simplicity, we have this dirty hack implemented here, until the byzantium and amber suites can be
         # dropped in the far future.
         suite_codename = 'None'
+        suite_label = 'None'
+    elif rss.suite.name.startswith('amber'):
         suite_label = 'None'
 
     set_deb822_value(entry, 'Origin', rss.repo.origin_name)
