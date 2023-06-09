@@ -4,7 +4,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import json
 import math
+from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, redirect, render_template
 
@@ -12,12 +14,15 @@ from laniakea.db import (
     PackageType,
     ArchiveSuite,
     DebcheckIssue,
+    StatsEventKind,
     ArchiveRepoSuiteSettings,
     session_scope,
+    make_stats_key,
 )
 from laniakea.archive import repo_suite_settings_for
 
-from ..utils import is_uuid
+from ..utils import is_uuid, fetch_statistics_for
+from ..extensions import cache
 
 depcheck = Blueprint('depcheck', __name__, url_prefix='/depcheck')
 
@@ -48,6 +53,19 @@ def issue_list_shortcut(repo_name, suite_name, ptype):
         return redirect(
             '/depcheck/{}/{}/{}/{}/1'.format(repo_name, suite_name, ptype, suite.primary_architecture.name), code=302
         )
+
+
+@cache.memoize(30 * 60)
+def fetch_depcheck_statistics_for(session, ptype: PackageType, repo_name: str, suite_name: str, arch_name: str) -> str:
+    start_at = datetime.utcnow() - timedelta(days=180)
+
+    stat_key = make_stats_key(
+        StatsEventKind.DEPCHECK_ISSUES_SRC if ptype == PackageType.SOURCE else StatsEventKind.DEPCHECK_ISSUES_BIN,
+        repo_name,
+        suite_name,
+        arch_name,
+    )
+    return json.dumps(fetch_statistics_for(session, stat_key, start_at))
 
 
 @depcheck.route('/<repo_name>/<suite_name>/<ptype>/<arch_name>/<int:page>')
@@ -84,6 +102,11 @@ def issue_list(repo_name, suite_name, ptype, arch_name, page):
             .all()
         )
 
+        if page <= 1:
+            stats_raw = fetch_depcheck_statistics_for(session, package_type, repo_name, suite_name, arch_name)
+        else:
+            stats_raw = ''
+
         return render_template(
             'depcheck/issues_list.html',
             ptype=ptype,
@@ -94,6 +117,7 @@ def issue_list(repo_name, suite_name, ptype, arch_name, page):
             issues_total=issues_total,
             current_page=page,
             page_count=page_count,
+            stats_raw=stats_raw,
         )
 
 

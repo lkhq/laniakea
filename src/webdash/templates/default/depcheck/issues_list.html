@@ -10,6 +10,13 @@
 <h1 class="title">Dependency issues for {{'source' if ptype == 'source' else 'binary'}} packages in {{rss.repo.name}}/{{rss.suite.name}} [{{arch_name}}]</h1>
 {% endblock %}
 
+{% block js_pre %}
+{% if current_page <= 1 %}
+<script src="{{ url_for('static', filename='js/moment/moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-moment.min.js') }}"></script>
+{% endif %}
+{% endblock %}
 
 {% block body %}
 
@@ -29,7 +36,6 @@
     </li>
   </ul>
 </div>
-
 
 <div class="column is-8">
 
@@ -52,6 +58,51 @@
             </div>
         </div>
     </div>
+
+    {% if current_page <= 1 %}
+    <canvas id="issueChart" style="width:100%;max-height:140px"></canvas>
+
+    <script>
+
+      const data = JSON.parse('{{stats_raw|safe}}').map(item => {
+        return {
+          x: new Date(item.x * 1000),
+          y: item.y
+        };
+      });
+
+      // pending
+      new Chart('issueChart', {
+        type: 'line',
+        data: {
+          datasets: [{
+              data: data,
+              label: 'Issues for {{ptype}} packages in {{arch_name}}',
+              fill: true,
+            legend: false
+            }]
+        },
+        options: {
+            scales: {
+              x: {
+                type: 'time',
+                time: {
+                    unit: 'month',
+                    displayFormats: {
+                     day: 'YYYY-MM',
+                  }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                  display: false
+              }
+            }
+          }
+      });
+    </script>
+    {% endif %}
 
     {% for issue in issues %}
         <div class="card">

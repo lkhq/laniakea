@@ -9,7 +9,6 @@ import math
 from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, request, current_app, render_template
-from sqlalchemy import func
 
 import laniakea.typing as T
 from laniakea.db import (
@@ -17,7 +16,6 @@ from laniakea.db import (
     JobKind,
     JobResult,
     JobStatus,
-    StatsEntry,
     SparkWorker,
     SourcePackage,
     StatsEventKind,
@@ -28,7 +26,7 @@ from laniakea.db import (
 )
 from laniakea.utils import get_dir_shorthand_for_uuid
 
-from ..utils import is_uuid, humanized_timediff
+from ..utils import is_uuid, humanized_timediff, fetch_statistics_for
 from ..extensions import cache
 
 jobs = Blueprint('jobs', __name__, url_prefix='/jobs')
@@ -38,14 +36,7 @@ def fetch_queue_statistics_for(
     session, kind: StatsEventKind, arch_name: str, start_at: datetime
 ) -> list[dict[str, T.Any]] | None:
     stat_key = make_stats_key_jobqueue(kind, arch_name)
-    values = (
-        session.query(func.extract('epoch', StatsEntry.time), StatsEntry.value)
-        .filter(StatsEntry.key == stat_key, StatsEntry.time > start_at)
-        .all()
-    )
-    if not values:
-        return None
-    return [{'x': int(v[0]), 'y': v[1]} for v in values]
+    return fetch_statistics_for(session, stat_key, start_at)
 
 
 @cache.cached(timeout=30 * 60, key_prefix='full_job_queue_statistics')

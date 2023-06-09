@@ -29,27 +29,34 @@ class StatsEventKind(StrEnum):
 
 
 def make_stats_key(
-    kind: StatsEventKind, repo: ArchiveRepository, suite: ArchiveSuite | None, arch: ArchiveArchitecture | None = None
+    kind: StatsEventKind,
+    repo: ArchiveRepository | str,
+    suite: ArchiveSuite | str | None,
+    arch: ArchiveArchitecture | str | None = None,
 ) -> str:
     """Create a key to look up statistical entries."""
+
+    repo_name = repo.name if isinstance(repo, ArchiveRepository) else repo
+    suite_name = suite.name if isinstance(suite, ArchiveSuite) else suite
+    arch_name = arch.name if isinstance(arch, ArchiveArchitecture) else arch
 
     if kind in (
         StatsEventKind.DEPCHECK_ISSUES_BIN,
         StatsEventKind.BIN_PKG_COUNT,
     ):
-        if not arch:
+        if not arch_name:
             raise ValueError('Architecture must not be empty for stats event kind %s' % kind)
-        if not suite:
+        if not suite_name:
             raise ValueError('Suite must not be empty for stats event kind %s' % kind)
-        return '-'.join((kind, repo.name, suite.name, arch.name))
+        return '-'.join((kind, repo_name, suite_name, arch_name))
     elif kind in (StatsEventKind.SOFTWARE_COMPONENTS,):
-        return '-'.join((kind, repo.name))
+        return '-'.join((kind, repo_name))
     elif kind in (StatsEventKind.JOB_QUEUE_DEPWAIT, StatsEventKind.JOB_QUEUE_PENDING):
         raise ValueError('Can not build statistics key for JobQueue statistics!')
     else:
         if not suite:
             raise ValueError('Suite must not be empty for stats event kind %s' % kind)
-        return '-'.join((kind, repo.name, suite.name))
+        return '-'.join((kind, repo_name, suite_name))
 
 
 def make_stats_key_jobqueue(kind: StatsEventKind, arch_name: str) -> str:
