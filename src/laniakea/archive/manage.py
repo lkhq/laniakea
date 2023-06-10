@@ -578,8 +578,9 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
 
             if bin.repo_id == rss.repo_id and rss.suite in bin.suites:
                 bins_in_current_repo_suite_n += 1
-            if maxbin_to_source_id.get(bin.name) != spkg.uuid:
-                binaries_adopted_n += 1
+                maxbin_spkg_id = maxbin_to_source_id.get(bin.name)
+                if maxbin_spkg_id and maxbin_spkg_id != spkg.uuid:
+                    binaries_adopted_n += 1
         ei.all_binary_archs.update(current_archs)
 
         all_binaries_adopted = False
