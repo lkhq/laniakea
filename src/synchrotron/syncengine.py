@@ -784,7 +784,9 @@ class SyncEngine:
                                 # any, linux-any, all, etc. are all fine
                                 has_suitable_binaries = True
                                 break
-                            if aname in suitable_architectures:
+                            if aname in suitable_architectures or aname.endswith(tuple(suitable_architectures)):
+                                # amd64, all, or things like any-amd64 are all fine if the architectures
+                                # are in the suitable set.
                                 has_suitable_binaries = True
                                 break
                         if has_suitable_binaries:
