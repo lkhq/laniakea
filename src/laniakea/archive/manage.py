@@ -583,9 +583,25 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
                     binaries_adopted_n += 1
         ei.all_binary_archs.update(current_archs)
 
+        # check for adopted binaries
         all_binaries_adopted = False
         if binaries_adopted_n > 0:
             all_binaries_adopted = binaries_adopted_n == bins_in_current_repo_suite_n
+        if binaries_adopted_n == 0 and bins_in_current_repo_suite_n == 0:
+            # we have no adopted binaries, but also no binaries in any suite (yet?),
+            # so we need additional heuristics to see if another package has taken over
+            # binaries from this one
+            for bin in spkg.expected_binaries:
+                maxbin_spkg_id = maxbin_to_source_id.get(bin.name)
+                if not maxbin_spkg_id:
+                    continue
+                adopter_spkg = session.query(SourcePackage).filter(SourcePackage.uuid == maxbin_spkg_id).one()
+                if adopter_spkg.source_uuid != spkg.source_uuid and package_version_compare(adopter_spkg, spkg) > 0:
+                    # A package that has a different identity than our current package has adopted this package
+                    # and provides a newer version, while we have no binaries and are an older version.
+                    # Finding just one of theses cases means we can give up immediately and remove this source
+                    all_binaries_adopted = True
+                    break
 
         # we always want to keep the latest version of a package, unless
         # all of its binary packages was taken over by another package
