@@ -39,6 +39,7 @@ def fetch_statistics_for(session, stat_key: str, start_at: datetime) -> list[dic
     values = (
         session.query(func.extract('epoch', StatsEntry.time), StatsEntry.value)
         .filter(StatsEntry.key == stat_key, StatsEntry.time > start_at)
+        .order_by(StatsEntry.time)
         .all()
     )
     if not values:
