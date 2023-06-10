@@ -360,6 +360,134 @@ def package_mark_delete(
                 )
 
 
+def retrieve_suite_binary_maxver_baseinfo(session, rss: ArchiveRepoSuiteSettings):
+    """Retrieve basic information about the most recent versions of binary packages in a suite.
+
+    :param session: A SQLAlchemy session
+    :param rss: The repository/suite combination to retrieve data for.
+    :return: A list of binary package infos.
+    """
+
+    bpkg_filters = [
+        BinaryPackage.repo_id == rss.repo_id,
+        BinaryPackage.suites.any(id=rss.suite_id),
+        BinaryPackage.time_deleted.is_(None),
+    ]
+
+    bpkg_filter_sq = session.query(BinaryPackage).filter(*bpkg_filters).subquery()
+    bmv_sq = (
+        session.query(bpkg_filter_sq.c.name, func.max(bpkg_filter_sq.c.version).label('max_version'))
+        .group_by(bpkg_filter_sq.c.name)
+        .subquery('bmv_sq')
+    )
+
+    # get binary package info for target suite
+    bpkg_einfo = (
+        session.query(BinaryPackage.name, BinaryPackage.version, ArchiveArchitecture.name)
+        .filter(*bpkg_filters)
+        .join(BinaryPackage.architecture)
+        .join(
+            bmv_sq,
+            and_(
+                BinaryPackage.name == bmv_sq.c.name,
+                BinaryPackage.version == bmv_sq.c.max_version,
+            ),
+        )
+        .all()
+    )
+
+    return bpkg_einfo
+
+
+def retrieve_suite_package_maxver_baseinfo(session, rss: ArchiveRepoSuiteSettings):
+    """
+    Retrieve basic information about the most recent versions of source and binary packages in a suite.
+
+    This function returns a list of source package entries, consisting of the package name as first,
+    and package version as second entry, as well as a list of binary package entries, with the
+    package name as first, version as second, and architecture as third entry.
+    For all packages, only the most recent version will be returned.
+
+    :param session: A SQLAlchemy session
+    :param rss: The repository/suite combination to retrieve data for.
+    :return: A tuple of a list of source package infos, and binary package infos.
+    """
+
+    PackageInfoTuple = namedtuple('PackageInfoTuple', 'source binary')
+
+    spkg_filters = [
+        SourcePackage.repo_id == rss.repo_id,
+        SourcePackage.suites.any(id=rss.suite_id),
+        SourcePackage.time_deleted.is_(None),
+    ]
+
+    spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
+    smv_sq = (
+        session.query(spkg_filter_sq.c.name, func.max(spkg_filter_sq.c.version).label('max_version'))
+        .group_by(spkg_filter_sq.c.name)
+        .subquery('smv_sq')
+    )
+
+    # get the latest source packages for this configuration
+    spkg_einfo = (
+        session.query(SourcePackage.name, SourcePackage.version)
+        .filter(*spkg_filters)
+        .join(
+            smv_sq,
+            and_(
+                SourcePackage.name == smv_sq.c.name,
+                SourcePackage.version == smv_sq.c.max_version,
+            ),
+        )
+        .all()
+    )
+
+    bpkg_einfo = retrieve_suite_binary_maxver_baseinfo(session, rss)
+
+    return PackageInfoTuple(spkg_einfo, bpkg_einfo)
+
+
+def retrieve_suite_binary_maxver_source_id_map(session, rss: ArchiveRepoSuiteSettings):
+    """Retrieve a mapping of binary names to their source ID, taking only the maximum binary version into account.
+
+    :param session: A SQLAlchemy session
+    :param rss: The repository/suite combination to retrieve data for.
+    :return: A map of source package ID to binary name/version tuples.
+    """
+
+    bpkg_filters = [
+        BinaryPackage.repo_id == rss.repo_id,
+        BinaryPackage.suites.any(id=rss.suite_id),
+        BinaryPackage.time_deleted.is_(None),
+    ]
+
+    bpkg_filter_sq = session.query(BinaryPackage).filter(*bpkg_filters).subquery()
+    bmv_sq = (
+        session.query(bpkg_filter_sq.c.name, func.max(bpkg_filter_sq.c.version).label('max_version'))
+        .group_by(bpkg_filter_sq.c.name)
+        .subquery('bmv_sq')
+    )
+
+    result = (
+        session.query(BinaryPackage.name, BinaryPackage.source_id)
+        .filter(*bpkg_filters)
+        .join(
+            bmv_sq,
+            and_(
+                BinaryPackage.name == bmv_sq.c.name,
+                BinaryPackage.version == bmv_sq.c.max_version,
+            ),
+        )
+        .all()
+    )
+
+    result_map = {}
+    for bi in result:
+        result_map[bi[0]] = bi[1]
+
+    return result_map
+
+
 def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=14) -> None:
     """Remove superseded packages from the archive.
     This function will remove cruft packages in the selected repo/suite that have a higher version
@@ -412,6 +540,12 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
         .all()
     )
 
+    # collect binary-name of maximum version -> source_id mapping, to remove source packages
+    # which had their binaries taken over.
+    # NOTE: retrieve_suite_binary_maxver_source_id_map ignores packages in other (debug) repositories and suites!
+    log.debug("Retrieving maximum binary version to source mapping.")
+    maxbin_to_source_id = retrieve_suite_binary_maxver_source_id_map(session, rss)
+
     log.debug("Collecting list of all source packages.")
     all_spkgs = (
         session.query(SourcePackage)
@@ -424,7 +558,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
         .all()
     )
 
-    log.debug("Determining packages to remove.")
+    log.debug("Determining potential packages to remove.")
     # create a map of the latest source package versions
     pkg_expire_map = {}
     for info in spkg_einfo:
@@ -437,20 +571,33 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
         ei = pkg_expire_map[spkg.name]
 
         current_archs = set()
+        binaries_adopted_n = 0
+        bins_in_current_repo_suite_n = 0
         for bin in spkg.binaries:
             current_archs.add(bin.architecture.name)
+
+            if bin.repo_id == rss.repo_id and rss.suite in bin.suites:
+                bins_in_current_repo_suite_n += 1
+            if maxbin_to_source_id.get(bin.name) != spkg.uuid:
+                binaries_adopted_n += 1
         ei.all_binary_archs.update(current_archs)
 
-        # we always want to keep the latest version of a package
+        all_binaries_adopted = False
+        if binaries_adopted_n > 0:
+            all_binaries_adopted = binaries_adopted_n == bins_in_current_repo_suite_n
+
+        # we always want to keep the latest version of a package, unless
+        # all of its binary packages was taken over by another package
         if spkg.version == ei.max_version:
             if len(spkg.architectures) == 1 and spkg.architectures[0] == 'all':
                 ei.is_arch_indep = True
             ei.max_version_binary_archs = current_archs
-            continue
+            if not all_binaries_adopted:
+                continue
         ei.rm_candidates.append(spkg)
 
     # check removal candidates and drop superseded ones
-    log.info("Marking expired packages as superseded")
+    log.info("Marking obsolete packages for deletion")
     for ei in pkg_expire_map.values():
         removal_todo = ei.rm_candidates
 
@@ -738,80 +885,6 @@ def copy_binary_package(
             bpkg.repo.name,
             dest_suite.name,
         )
-
-
-def retrieve_suite_package_maxver_baseinfo(session, rss: ArchiveRepoSuiteSettings):
-    """
-    Retrieve basic information about the most recent versions of source and binary packages in a suite.
-
-    This function returns a list of source package entries, consisting of the package name as first,
-    and package version as second entry, as well as a list of binary package entries, with the
-    package name as first, version as second, and architecture as third entry.
-    For all packages, only the most recent version will be returned.
-
-    :param session: A SQLAlchemy session
-    :param rss: The repository/suite combination to retrieve data for.
-    :return: A tuple of a list of source package infos, and binary package infos.
-    """
-
-    PackageInfoTuple = namedtuple('PackageInfoTuple', 'source binary')
-
-    spkg_filters = [
-        SourcePackage.repo_id == rss.repo_id,
-        SourcePackage.suites.any(id=rss.suite_id),
-        SourcePackage.time_deleted.is_(None),
-    ]
-
-    spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
-    smv_sq = (
-        session.query(spkg_filter_sq.c.name, func.max(spkg_filter_sq.c.version).label('max_version'))
-        .group_by(spkg_filter_sq.c.name)
-        .subquery('smv_sq')
-    )
-
-    # get the latest source packages for this configuration
-    spkg_einfo = (
-        session.query(SourcePackage.name, SourcePackage.version)
-        .filter(*spkg_filters)
-        .join(
-            smv_sq,
-            and_(
-                SourcePackage.name == smv_sq.c.name,
-                SourcePackage.version == smv_sq.c.max_version,
-            ),
-        )
-        .all()
-    )
-
-    bpkg_filters = [
-        BinaryPackage.repo_id == rss.repo_id,
-        BinaryPackage.suites.any(id=rss.suite_id),
-        BinaryPackage.time_deleted.is_(None),
-    ]
-
-    bpkg_filter_sq = session.query(BinaryPackage).filter(*bpkg_filters).subquery()
-    bmv_sq = (
-        session.query(bpkg_filter_sq.c.name, func.max(bpkg_filter_sq.c.version).label('max_version'))
-        .group_by(bpkg_filter_sq.c.name)
-        .subquery('bmv_sq')
-    )
-
-    # get binary package info for target suite
-    bpkg_einfo = (
-        session.query(BinaryPackage.name, BinaryPackage.version, ArchiveArchitecture.name)
-        .filter(*bpkg_filters)
-        .join(BinaryPackage.architecture)
-        .join(
-            bmv_sq,
-            and_(
-                BinaryPackage.name == bmv_sq.c.name,
-                BinaryPackage.version == bmv_sq.c.max_version,
-            ),
-        )
-        .all()
-    )
-
-    return PackageInfoTuple(spkg_einfo, bpkg_einfo)
 
 
 def guess_binary_package_remove_issues(
