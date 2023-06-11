@@ -60,11 +60,14 @@ def get_newest_sources_index(session, rss: ArchiveRepoSuiteSettings):
     return latest_spkg
 
 
-def delete_orphaned_jobs(session, simulate=False):
+def delete_orphaned_jobs(session, simulate: bool = False, arch_indep_affinity: str | None = None):
     '''
     Clean up jobs that were scheduled for source packages that have meanwhile been removed from
     the archive entirely.
     '''
+
+    if not arch_indep_affinity:
+        arch_indep_affinity = config_get_value(LkModule.ARIADNE, 'indep_arch_affinity')
 
     pending_jobs = (
         session.query(Job)
@@ -82,7 +85,18 @@ def delete_orphaned_jobs(session, simulate=False):
             .one_or_none()
         )
         if spkg:
-            continue
+            # check if we have binaries on the requested architecture,
+            # if so, this job is also no longer needed and can be removed.
+            binaries_available = False
+            for bin in spkg.binaries:
+                bin_arch = bin.architecture.name
+                if bin_arch == 'all':
+                    bin_arch = arch_indep_affinity
+                if bin_arch == job.architecture:
+                    binaries_available = True
+                    break
+            if not binaries_available:
+                continue
 
         # we have no source package for this job, so this job is orphaned and can never be processed.
         # This happens if a job is scheduled for a package, and then the package is removed entirely from
@@ -139,7 +153,7 @@ def update_package_build_schedule(
             break
 
     # cleanup
-    delete_orphaned_jobs(session, simulate)
+    delete_orphaned_jobs(session, simulate, arch_indep_affinity=arch_indep_affinity)
 
     # write all changes to database
     session.commit()
