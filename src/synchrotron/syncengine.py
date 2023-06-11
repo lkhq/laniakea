@@ -742,13 +742,21 @@ class SyncEngine:
             raise Exception('Will not perform autosync on disabled configuration.')
 
         log.info(
-            'Synchronizing packages from {}/{} with {}/{}'.format(
+            'Synchronizing packages from %s/%s with %s/%s',
+            sync_conf.source.os_name,
+            sync_conf.source.suite_name,
+            sync_conf.repo.name,
+            sync_conf.destination_suite.name,
+        )
+
+        if not self._sync_blacklist:
+            log.warning(
+                'Sync blacklist for %s/%s to %s/%s was empty!',
                 sync_conf.source.os_name,
                 sync_conf.source.suite_name,
                 sync_conf.repo.name,
                 sync_conf.destination_suite.name,
             )
-        )
 
         # obtain package import helper to register new packages with the archive
         rss = repo_suite_settings_for(session, self._repo_name, self._target_suite_name)
