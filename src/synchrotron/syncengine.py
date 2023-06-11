@@ -57,6 +57,10 @@ from laniakea.archive.manage import (
 )
 
 
+class SyncSetupError(Exception):
+    """Issue with the synchronization setup."""
+
+
 class PackageSyncState(Enum):
     """Synchronization state of a source package."""
 
@@ -90,6 +94,7 @@ class SyncEngine:
 
         with session_scope() as session:
             sync_source = self._get_sync_source(session)
+            sync_config = self._get_sync_config(session, sync_source)
 
             # the repository of the distribution we use to sync stuff from
             self._source_reader = RepositoryReader(
@@ -100,7 +105,7 @@ class SyncEngine:
                 [
                     value
                     for value, in session.query(SyncBlacklistEntry.pkgname)
-                    .filter(SyncBlacklistEntry.config_id == sync_source.id)
+                    .filter(SyncBlacklistEntry.config_id == sync_config.id)
                     .all()
                 ]
             )
@@ -118,13 +123,35 @@ class SyncEngine:
             .one_or_none()
         )
         if not sync_source:
-            raise Exception(
+            raise SyncSetupError(
                 'Synchronization package source {}/{} was not found in registry.'.format(
                     self._source_os_name, self._source_suite_name
                 )
             )
 
         return sync_source
+
+    def _get_sync_config(self, session, sync_source: SynchrotronSource | None = None) -> SynchrotronConfig:
+        if not sync_source:
+            sync_source = self._get_sync_source(session)
+
+        sync_conf = (
+            session.query(SynchrotronConfig)
+            .filter(
+                SynchrotronConfig.repo.has(name=self._repo_name),
+                SynchrotronConfig.source_id == sync_source.id,
+                SynchrotronConfig.destination_suite.has(name=self._target_suite_name),
+            )
+            .one_or_none()
+        )
+        if not sync_conf:
+            raise SyncSetupError(
+                'Unable to find a sync configuration for: {}/{} -> {}/{}'.format(
+                    self._source_os_name, self._source_suite_name, self._repo_name, self._target_suite_name
+                )
+            )
+
+        return sync_conf
 
     def _publish_synced_spkg_events(self, src_os, src_suite, dest_suite, forced=False):
         '''Submit events for the synced source packages to the message stream'''
@@ -589,18 +616,7 @@ class SyncEngine:
         self._synced_source_pkgs = []
 
         sync_source = self._get_sync_source(session)
-        sync_conf = (
-            session.query(SynchrotronConfig)
-            .filter(
-                SynchrotronConfig.repo.has(name=self._repo_name),
-                SynchrotronConfig.source_id == sync_source.id,
-                SynchrotronConfig.destination_suite.has(name=self._target_suite_name),
-            )
-            .one_or_none()
-        )
-        if not sync_conf:
-            log.error('Unable to find a sync config for this source/destination combination.')
-            return False
+        sync_conf = self._get_sync_config(session, sync_source)
 
         if not sync_conf.sync_enabled:
             log.error('Can not synchronize package: Synchronization is disabled for this configuration.')
@@ -728,15 +744,7 @@ class SyncEngine:
         known_issues = []
 
         sync_source = self._get_sync_source(session)
-        sync_conf = (
-            session.query(SynchrotronConfig)
-            .filter(
-                SynchrotronConfig.repo.has(name=self._repo_name),
-                SynchrotronConfig.source_id == sync_source.id,
-                SynchrotronConfig.destination_suite.has(name=self._target_suite_name),
-            )
-            .one_or_none()
-        )
+        sync_conf = self._get_sync_config(session, sync_source)
 
         if not sync_conf.sync_enabled or not sync_conf.sync_auto_enabled:
             raise Exception('Will not perform autosync on disabled configuration.')

@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 from laniakea.db import SynchrotronConfig, session_scope
 from laniakea.logging import log
 
-from .syncengine import SyncEngine
+from .syncengine import SyncEngine, SyncSetupError
 
 __mainfile = None
 
@@ -23,7 +23,12 @@ def command_sync(options):
         print('You need to define at least one package to synchronize!')
         sys.exit(1)
 
-    engine = SyncEngine(options.repo_name, options.dest_suite, options.src_os, options.src_suite)
+    try:
+        engine = SyncEngine(options.repo_name, options.dest_suite, options.src_os, options.src_suite)
+    except SyncSetupError as e:
+        print('Unable to setup synchronization:', str(e))
+        sys.exit(1)
+
     ret = engine.sync_packages(options.component, options.packages, options.force)
     if not ret:
         sys.exit(2)
@@ -52,9 +57,17 @@ def command_autosync(options):
         autosyncs = autosyncs_q.all()
 
         for autosync in autosyncs:
-            engine = SyncEngine(
-                autosync.repo.name, autosync.destination_suite.name, autosync.source.os_name, autosync.source.suite_name
-            )
+            try:
+                engine = SyncEngine(
+                    autosync.repo.name,
+                    autosync.destination_suite.name,
+                    autosync.source.os_name,
+                    autosync.source.suite_name,
+                )
+            except SyncSetupError as e:
+                print('Unable to setup synchronization:', str(e))
+                sys.exit(1)
+
             ret = engine.autosync(autosync.auto_cruft_remove)
             if not ret:
                 sys.exit(2)
