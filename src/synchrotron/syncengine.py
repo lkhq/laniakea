@@ -485,7 +485,8 @@ class SyncEngine:
                         # This rebuild-upload check must only happen if we haven't just updated the source package
                         # (in that case the source package version will be bigger than the existing binary package version)
                         if ebpkg.version.startswith(spkg.version) and version_compare(spkg.version, ebpkg.version) >= 0:
-                            if re.match(r'(.*)b([0-9]+)', ebpkg.version) and 'deb' not in ebpkg.version:
+                            ebpkg_version_rev = version_revision(ebpkg.version)
+                            if re.match(r'(.*)b([0-9]+)', ebpkg_version_rev) and 'deb' not in ebpkg_version_rev:
                                 log.debug(
                                     'Not syncing binary package \'{}/{}\': '
                                     'Existing binary package with rebuild upload found: \'{}\''.format(
