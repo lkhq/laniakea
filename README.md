@@ -1,5 +1,6 @@
 Laniakea
 ========
+<img align="right" width="136" src="docs/_graphics/logo.svg">
 
 Laniakea is a software suite to manage [Debian](https://www.debian.org/) derivatives.
 It provides tooling to maintain an APT archive (and multiple individual package repositories),
