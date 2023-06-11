@@ -604,7 +604,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
                     break
 
         # we always want to keep the latest version of a package, unless
-        # all of its binary packages was taken over by another package
+        # all of its binary packages were taken over by another package
         if spkg.version == ei.max_version:
             if len(spkg.architectures) == 1 and spkg.architectures[0] == 'all':
                 ei.is_arch_indep = True
