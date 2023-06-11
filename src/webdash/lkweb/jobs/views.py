@@ -16,7 +16,9 @@ from laniakea.db import (
     JobKind,
     JobResult,
     JobStatus,
+    PackageType,
     SparkWorker,
+    DebcheckIssue,
     SourcePackage,
     StatsEventKind,
     ImageBuildRecipe,
@@ -176,8 +178,22 @@ def job(uuid):
             if job.suite:
                 suite_name = job.suite.name
 
+            dep_issues = []
+            if spkg and job.suite:
+                suite_name = job.suite.name
+                dep_issues = (
+                    session.query(DebcheckIssue)
+                    .filter(DebcheckIssue.package_type == PackageType.SOURCE)
+                    .filter(DebcheckIssue.suite_id == job.suite.id)
+                    .filter(DebcheckIssue.package_name == spkg.name)
+                    .filter(DebcheckIssue.package_version == spkg.version)
+                    .filter(DebcheckIssue.architectures.overlap([job.architecture, 'any']))
+                    .all()
+                )
+
             return render_template(
                 'jobs/job_pkgbuild.html',
+                PackageType=PackageType,
                 humanized_timediff=humanized_timediff,
                 JobStatus=JobStatus,
                 JobResult=JobResult,
@@ -186,6 +202,7 @@ def job(uuid):
                 worker=worker,
                 spkg=spkg,
                 suite_name=suite_name,
+                dep_issues=dep_issues,
                 log_url=log_url,
             )
         elif job.kind == JobKind.OS_IMAGE_BUILD:
