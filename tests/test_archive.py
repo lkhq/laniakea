@@ -418,7 +418,7 @@ class TestArchive:
             res = uh.process_changes(os.path.join(package_samples, 'package_0.2-1_%s.changes' % ctx._host_arch))
             assert res.error == (
                 'Your upload contains version "0.2-1" of source package "package", '
-                'however we have already seen a higher or equal version in master:unstable before.\n'
+                'however we have already seen higher or equal version "0.2-1" in master:unstable before.\n'
                 'Uploads must have a higher version than already present in the archive.'
             )
             assert not res.success

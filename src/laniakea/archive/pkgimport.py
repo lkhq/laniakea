@@ -1114,10 +1114,10 @@ class UploadHandler:
                 False,
                 uploader,
                 error=(
-                    'Your upload contains version "{}" of source package "{}", however we have already seen a '
-                    'higher or equal version in {}:{} before.\n'
+                    'Your upload contains version "{}" of source package "{}", however we have already seen '
+                    'higher or equal version "{}" in {}:{} before.\n'
                     'Uploads must have a higher version than already present in the archive.'
-                ).format(result[0], changes.source_name, rss.repo.name, rss.suite.name),
+                ).format(changes.changes['Version'], changes.source_name, result[0], rss.repo.name, rss.suite.name),
             )
 
         # FIXME: We should maybe also preemptively check the binaries and their versions here,
