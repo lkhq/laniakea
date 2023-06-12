@@ -17,16 +17,16 @@
 {% endblock %}
 
 {% block body_header %}
-<h1 class="title">Package Synchronization Target Suites</h1>
+<h1 class="title mb-4">Package Synchronization Target Suites</h1>
 {% endblock %}
 
 {% block body %}
+<div class="column is-10">
 
-<div class="column px-0">
-  <h4 class="title is-4">Automatic Synchronization Tasks</h4>
+  <h4 class="subtitle is-4">Automatic Synchronization Tasks</h4>
   <div class="columns is-multiline is-mobile">
     {% for sconf in auto_syncs %}
-      <div class="column is-5">
+      <div class="column is-half">
 
       <div class="card">
       <header class="card-header">
@@ -54,13 +54,11 @@
       </div>
     {% endfor %}
   </div>
-</div>
 
-<div class="column px-0 pt-4">
-  <h4 class="title is-4">Other Registered Synchronization Tasks</h4>
+  <h4 class="subtitle is-4">Other Registered Synchronization Tasks</h4>
   <div class="columns is-multiline is-mobile">
     {% for sconf in manual_syncs %}
-      <div class="column is-5">
+      <div class="column is-half">
 
       <div class="card">
       <header class="card-header">
@@ -85,6 +83,6 @@
       </div>
     {% endfor %}
   </div>
-</div>
 
+</div>
 {% endblock %}

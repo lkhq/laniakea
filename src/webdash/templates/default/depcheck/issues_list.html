@@ -7,7 +7,7 @@
 {% endif %}
 
 {% block body_header %}
-<h1 class="title">Dependency issues for {{'source' if ptype == 'source' else 'binary'}} packages in {{rss.repo.name}}/{{rss.suite.name}} [{{arch_name}}]</h1>
+<h1 class="title mb-4">Dependency issues for {{'source' if ptype == 'source' else 'binary'}} packages in {{rss.repo.name}}/{{rss.suite.name}} [{{arch_name}}]</h1>
 {% endblock %}
 
 {% block js_pre %}
