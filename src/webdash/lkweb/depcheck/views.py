@@ -7,6 +7,7 @@
 import json
 import math
 from datetime import datetime, timedelta
+from dataclasses import dataclass
 
 from flask import Blueprint, abort, redirect, render_template
 
@@ -27,7 +28,15 @@ from ..extensions import cache
 depcheck = Blueprint('depcheck', __name__, url_prefix='/depcheck')
 
 
+@dataclass
+class RepoSuiteIssueOverview:
+    rss: ArchiveRepoSuiteSettings
+    src_issues_count: int = 0
+    bin_issues_count: int = 0
+
+
 @depcheck.route('/')
+@cache.memoize(10 * 60)
 def index():
     with session_scope() as session:
         repo_suites = (
@@ -38,7 +47,35 @@ def index():
             .all()
         )
 
-        return render_template('depcheck/index.html', repo_suites=repo_suites)
+        rss_with_issues = []
+        rss_good = []
+        for rss in repo_suites:
+            dci_src_count = (
+                session.query(DebcheckIssue.uuid)
+                .filter(
+                    DebcheckIssue.package_type == PackageType.SOURCE,
+                    DebcheckIssue.repo_id == rss.repo_id,
+                    DebcheckIssue.suite_id == rss.suite_id,
+                )
+                .count()
+            )
+            dci_bin_count = (
+                session.query(DebcheckIssue.uuid)
+                .filter(
+                    DebcheckIssue.package_type == PackageType.BINARY,
+                    DebcheckIssue.repo_id == rss.repo_id,
+                    DebcheckIssue.suite_id == rss.suite_id,
+                )
+                .count()
+            )
+            if dci_src_count != 0 or dci_bin_count != 0:
+                rss_with_issues.append(RepoSuiteIssueOverview(rss, dci_src_count, dci_bin_count))
+            else:
+                rss_good.append(RepoSuiteIssueOverview(rss))
+
+        return render_template(
+            'depcheck/index.html', repo_suites_with_issues=rss_with_issues, repo_suites_good=rss_good
+        )
 
 
 @depcheck.route('/<repo_name>/<suite_name>/<ptype>/')

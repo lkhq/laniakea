@@ -7,49 +7,90 @@
 {% endblock %}
 
 {% block body %}
+<div class="column is-10">
 
+<h4 class="subtitle is-4">Suites with Issues</h4>
 <div class="columns is-multiline is-mobile">
+  {% for info in repo_suites_with_issues %}
+    <div class="column is-half">
+      <div class="card">
+        <header class="card-header">
+            <p class="card-header-title">
+            <span class="has-text-weight-light">{{info.rss.repo.name}}</span>&nbsp;{{info.rss.suite.name}}
+            {% set btn_style = 'btn-secondary' %}
+            {% if info.rss.suite.parents %}
+              &nbsp;<span class="tag is-light">Child Suite</span>
+            {% endif %}
+            {% if info.rss.accept_uploads %}
+              &nbsp;<span class="tag is-info">Accepts Uploads</span>
+            {% endif %}
+            {% if info.rss.devel_target %}
+              &nbsp;<span class="tag is-primary">Development Target</span>
+            {% endif %}
+            </p>
+        </header>
 
-    {% for rss in repo_suites %}
+        <div class="card-content py-2">
+            <div class="content">
+              {% if info.rss.suite.parents %}
+              <p>Overlay for {% for parent in info.rss.suite.parents  %}<em>{{ parent.name }}</em>{%- if not loop.last %}, {% endif %}{% endfor %}</p>
+              {% endif %}
 
-    <div class="column is-5">
+              {% set bin_issue_num_style = 'color:red;' if info.bin_issues_count > 80 else '' %}
+              {% set src_issue_num_style = 'color:red;' if info.src_issues_count > 80 else '' %}
 
-    <div class="card">
-    <header class="card-header">
-        <p class="card-header-title">
-        <span class="has-text-weight-light">{{rss.repo.name}}</span>&nbsp;{{rss.suite.name}}
-        &nbsp;
-        {% set btn_style = 'btn-secondary' %}
-        {% if rss.suite.parents %}
-          <span class="tag is-light">Child Suite</span>
-        {% endif %}
-        {% if rss.accept_uploads %}
-          <span class="tag is-info">Accepts Uploads</span>
-        {% endif %}
-        {% if rss.devel_target %}
-          <span class="tag is-primary">Development Target</span>
-        {% endif %}
-        </p>
-    </header>
-
-    {% if rss.suite.parents %}
-    <div class="card-content py-2">
-        <div class="content">
-        Overlay for {% for parent in rss.suite.parents  %}<em>{{ parent.name }}</em>{%- if not loop.last %}, {% endif %}{% endfor %}
+              <span class="fa-solid fa-dumpster-fire" style="text-align:right;width:20px;"></span>
+                <b style="{{bin_issue_num_style}}">{{info.bin_issues_count}}</b> broken binary packages<br/>
+              <span class="fa-solid fa-puzzle-piece" style="text-align:right;width:20px;"></span>
+                <b style="{{src_issue_num_style}}">{{info.src_issues_count}}</b> not buildable source packages
+            </div>
         </div>
+        <footer class="card-footer">
+            <a href="{{ url_for('depcheck.issue_list', repo_name=info.rss.repo.name, suite_name=info.rss.suite.name, ptype='binary', arch_name=info.rss.suite.primary_architecture.name, page=1) }}"
+               class="card-footer-item">Binary Package Issues</a>
+            <a href="{{ url_for('depcheck.issue_list', repo_name=info.rss.repo.name, suite_name=info.rss.suite.name, ptype='source', arch_name=info.rss.suite.primary_architecture.name, page=1) }}"
+               class="card-footer-item">Source Package Issues</a>
+        </footer>
+      </div>
     </div>
-    {% endif %}
-    <footer class="card-footer">
-        <a href="{{ url_for('depcheck.issue_list', repo_name=rss.repo.name, suite_name=rss.suite.name, ptype='binary', arch_name=rss.suite.primary_architecture.name, page=1) }}"
-           class="card-footer-item">Binary Package Issues</a>
-        <a href="{{ url_for('depcheck.issue_list', repo_name=rss.repo.name, suite_name=rss.suite.name, ptype='source', arch_name=rss.suite.primary_architecture.name, page=1) }}"
-           class="card-footer-item">Source Package Issues</a>
-    </footer>
-    </div>
-
-    </div>
-
-    {% endfor %}
+  {% endfor %}
 </div>
 
+{% if repo_suites_good %}
+<h4 class="subtitle is-4 mt-4">Suites without Dependency Issues</h4>
+<div class="columns is-multiline is-mobile">
+  {% for info in repo_suites_good %}
+    <div class="column is-half">
+
+      <div class="card">
+        <header class="card-header">
+            <p class="card-header-title">
+            <span class="has-text-weight-light">{{info.rss.repo.name}}</span>&nbsp;{{info.rss.suite.name}}
+            {% set btn_style = 'btn-secondary' %}
+            {% if info.rss.suite.parents %}
+              &nbsp;<span class="tag is-light">Child Suite</span>
+            {% endif %}
+            {% if info.rss.accept_uploads %}
+              &nbsp;<span class="tag is-info">Accepts Uploads</span>
+            {% endif %}
+            {% if info.rss.devel_target %}
+              &nbsp;<span class="tag is-primary">Development Target</span>
+            {% endif %}
+            </p>
+        </header>
+        {% if info.rss.suite.parents %}
+        <div class="card-content py-2">
+            <div class="content">
+              Overlay for {% for parent in info.rss.suite.parents  %}<em>{{ parent.name }}</em>{%- if not loop.last %}, {% endif %}{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+</div>
 {% endblock %}
