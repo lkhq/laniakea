@@ -78,7 +78,7 @@ class SyncBlacklistEntry(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     config_id = Column(Integer, ForeignKey('synchrotron_config.id'))
-    config = relationship('SynchrotronConfig', cascade='all, delete')
+    config = relationship('SynchrotronConfig', backref=backref('blacklist_entries', cascade='all, delete'))
 
     pkgname = Column(String(120))  # Name of the blacklisted package
     time_created = Column(DateTime(), default=datetime.utcnow)  # Time when the package was blacklisted

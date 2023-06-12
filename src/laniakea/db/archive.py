@@ -94,7 +94,9 @@ class ArchiveRepository(Base):
 
     uploaders = relationship('ArchiveUploader', secondary=uploader_repo_assoc_table, back_populates='repos')
 
-    suite_settings = relationship('ArchiveRepoSuiteSettings', back_populates='repo', uselist=True)
+    suite_settings = relationship(
+        'ArchiveRepoSuiteSettings', back_populates='repo', uselist=True, cascade='all, delete, delete-orphan'
+    )
 
     # map upload suites to the actual suite automatically
     upload_suite_map = Column(MutableDict.as_mutable(JSON), default={})
@@ -322,7 +324,9 @@ class ArchiveSuite(Base):
     debug_suite_id = Column(Integer, ForeignKey('archive_suites.id'))
     debug_suite_for = relationship('ArchiveSuite', backref=backref('debug_suite', remote_side=[id]), uselist=False)
 
-    repo_settings = relationship('ArchiveRepoSuiteSettings', back_populates='suite')
+    repo_settings = relationship(
+        'ArchiveRepoSuiteSettings', back_populates='suite', cascade='all, delete, delete-orphan'
+    )
 
     parents = relationship(
         'ArchiveSuite',
@@ -795,10 +799,15 @@ class SourcePackage(Base):
 
     directory = Column(Text(), nullable=False)  # pool directory name for the sources
     files = relationship(
-        'ArchiveFile', secondary=srcpkg_file_assoc_table, back_populates='pkgs_source'
+        'ArchiveFile',
+        secondary=srcpkg_file_assoc_table,
+        back_populates='pkgs_source',
+        cascade='all, delete',
     )  # Files that make this source package
 
-    binaries = relationship('BinaryPackage', back_populates='source', uselist=True)
+    binaries = relationship(
+        'BinaryPackage', back_populates='source', uselist=True, cascade='all, delete, delete-orphan'
+    )
 
     _expected_binaries_json = Column('expected_binaries', JSON)
     # Additional key-value metadata that may be specific to this package
@@ -1060,7 +1069,12 @@ class BinaryPackage(Base):
     bin_file = relationship(
         'ArchiveFile', back_populates='pkg_binary', cascade='all, delete, delete-orphan', single_parent=True
     )
-    sw_cpts = relationship('SoftwareComponent', secondary=swcpt_binpkg_assoc_table, back_populates='pkgs_binary')
+    sw_cpts = relationship(
+        'SoftwareComponent',
+        secondary=swcpt_binpkg_assoc_table,
+        back_populates='pkgs_binary',
+        cascade='all, delete',
+    )
 
     __ts_vector__ = create_tsvector(cast(func.coalesce(name, ''), TEXT), cast(func.coalesce(description, ''), TEXT))
 
