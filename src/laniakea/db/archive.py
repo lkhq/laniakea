@@ -799,15 +799,10 @@ class SourcePackage(Base):
 
     directory = Column(Text(), nullable=False)  # pool directory name for the sources
     files = relationship(
-        'ArchiveFile',
-        secondary=srcpkg_file_assoc_table,
-        back_populates='pkgs_source',
-        cascade='all, delete',
+        'ArchiveFile', secondary=srcpkg_file_assoc_table, back_populates='pkgs_source'
     )  # Files that make this source package
 
-    binaries = relationship(
-        'BinaryPackage', back_populates='source', uselist=True, cascade='all, delete, delete-orphan'
-    )
+    binaries = relationship('BinaryPackage', back_populates='source', uselist=True)
 
     _expected_binaries_json = Column('expected_binaries', JSON)
     # Additional key-value metadata that may be specific to this package
@@ -1073,7 +1068,6 @@ class BinaryPackage(Base):
         'SoftwareComponent',
         secondary=swcpt_binpkg_assoc_table,
         back_populates='pkgs_binary',
-        cascade='all, delete',
     )
 
     __ts_vector__ = create_tsvector(cast(func.coalesce(name, ''), TEXT), cast(func.coalesce(description, ''), TEXT))
