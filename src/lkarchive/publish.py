@@ -390,7 +390,7 @@ def generate_sources_index(session, repo: ArchiveRepository, suite: ArchiveSuite
         set_deb822_value(entry, 'Directory', spkg.directory)
         cs_data = []
         for file in spkg.files:
-            cs_data.append('{} {} {}'.format(file.sha256sum, file.size, file.fname))
+            cs_data.append(' '.join((str(file.sha256sum), str(file.size), os.path.basename(file.fname))))
         set_deb822_value(entry, 'Checksums-Sha256', '\n ' + '\n '.join(cs_data))
 
         extra_data = spkg.extra_data
