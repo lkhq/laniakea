@@ -204,7 +204,9 @@ class SyncEngine:
         log.debug('Retrieving source package map for source suite: %s/%s', suite_name, component_name)
         return make_newest_packages_dict(spkgs)
 
-    def _get_target_source_package_map(self, session, component_name: str, *, suite_name: T.Optional[str] = None):
+    def _get_target_source_package_map(
+        self, session, component_name: str, *, suite_name: T.Optional[str] = None, with_parents: bool = True
+    ):
         """Get mapping of all sources packages in a suite and its parent suite."""
 
         if not suite_name:
@@ -246,12 +248,13 @@ class SyncEngine:
         for p in spkgs:
             spkg_map[p.name] = p
 
-        for parent in target_suite.parents:
-            # we have a parent suite
-            parent_map = self._get_target_source_package_map(session, component_name, suite_name=parent.name)
-            # merge the two arrays, keeping only the latest versions
-            # FIXME: This can be very slow, we can likely just do a better SQL query here instead of doing this in Python
-            spkg_map = make_newest_packages_dict(list(parent_map.values()) + list(spkg_map.values()))
+        if with_parents:
+            for parent in target_suite.parents:
+                # we have a parent suite
+                parent_map = self._get_target_source_package_map(session, component_name, suite_name=parent.name)
+                # merge the two arrays, keeping only the latest versions
+                # FIXME: This can be very slow, we can likely just do a better SQL query here instead of doing this in Python
+                spkg_map = make_newest_packages_dict(list(parent_map.values()) + list(spkg_map.values()))
 
         return spkg_map
 
@@ -926,8 +929,10 @@ class SyncEngine:
         # test for cruft packages
         target_pkg_index = {}
         for component in rss.suite.components:
-            dest_pkg_map = self._get_target_source_package_map(session, component.name, suite_name=rss.suite.name)
-            for pkgname, pkg in dest_pkg_map.items():
+            dest_suite_pkg_map = self._get_target_source_package_map(
+                session, component.name, suite_name=rss.suite.name, with_parents=False
+            )
+            for pkgname, pkg in dest_suite_pkg_map.items():
                 target_pkg_index[pkgname] = pkg
 
         # check which packages are present in the target, but not in the source suite
