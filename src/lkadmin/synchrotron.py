@@ -65,6 +65,7 @@ def add_source():
 
 
 def _add_update_sync_config(
+    session,
     repo_name: str,
     source_os: str,
     source_suite: str,
@@ -74,40 +75,41 @@ def _add_update_sync_config(
     sync_auto_enabled: bool = True,
     sync_binaries: bool = False,
     auto_cruft_remove: bool = True,
-):
-    with session_scope() as session:
-        repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
+) -> SynchrotronConfig:
+    repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == repo_name).one()
 
-        sync_source = (
-            session.query(SynchrotronSource)
-            .filter(SynchrotronSource.os_name == source_os, SynchrotronSource.suite_name == source_suite)
-            .one()
+    sync_source = (
+        session.query(SynchrotronSource)
+        .filter(SynchrotronSource.os_name == source_os, SynchrotronSource.suite_name == source_suite)
+        .one()
+    )
+
+    dest_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == target_suite).one()
+
+    sync_conf = (
+        session.query(SynchrotronConfig)
+        .filter(
+            SynchrotronConfig.repo_id == repo.id,
+            SynchrotronConfig.source_id == sync_source.id,
+            SynchrotronConfig.destination_suite_id == dest_suite.id,
         )
+        .one_or_none()
+    )
+    if sync_conf:
+        log.info('Found existing sync configuration, updating it.')
+    else:
+        sync_conf = SynchrotronConfig()
+        sync_conf.repo = repo
+        sync_conf.source = sync_source
+        sync_conf.destination_suite = dest_suite
+        session.add(sync_conf)
 
-        dest_suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == target_suite).one()
+    sync_conf.sync_auto_enabled = sync_auto_enabled
+    sync_conf.sync_enabled = sync_enabled
+    sync_conf.sync_binaries = sync_binaries
+    sync_conf.auto_cruft_remove = auto_cruft_remove
 
-        sync_conf = (
-            session.query(SynchrotronConfig)
-            .filter(
-                SynchrotronConfig.repo_id == repo.id,
-                SynchrotronConfig.source_id == sync_source.id,
-                SynchrotronConfig.destination_suite_id == dest_suite.id,
-            )
-            .one_or_none()
-        )
-        if sync_conf:
-            log.info('Found existing sync configuration, updating it.')
-        else:
-            sync_conf = SynchrotronConfig()
-            sync_conf.repo = repo
-            sync_conf.source = sync_source
-            sync_conf.destination_suite = dest_suite
-            session.add(sync_conf)
-
-        sync_conf.sync_auto_enabled = sync_auto_enabled
-        sync_conf.sync_enabled = sync_enabled
-        sync_conf.sync_binaries = sync_binaries
-        sync_conf.auto_cruft_remove = auto_cruft_remove
+    return sync_conf
 
 
 @synchrotron.command()
@@ -139,6 +141,7 @@ def update_task():
                     print_note('Could not find suite with name "{}"'.format(dest_suite_name))
 
             _add_update_sync_config(
+                session,
                 repo_name,
                 src_os,
                 src_suite,
@@ -244,5 +247,26 @@ def add_from_config(config_fname):
 
     for source_d in conf.get('Sources', []):
         _add_update_source(**source_d)
-    for conf_d in conf.get('Configurations', []):
-        _add_update_sync_config(**conf_d)
+
+    with session_scope() as session:
+        inactive_sync_conf = session.query(SynchrotronConfig).all()
+        for conf_d in conf.get('Configurations', []):
+            sync_conf = _add_update_sync_config(session, **conf_d)
+
+            for i, sc in enumerate(inactive_sync_conf):
+                if (
+                    sc.repo == sync_conf.repo
+                    and sc.source == sync_conf.source
+                    and sc.destination_suite == sync_conf.destination_suite
+                ):
+                    inactive_sync_conf.pop(i)
+
+        for removed_sc in inactive_sync_conf:
+            log.info(
+                'Deleting sync configuration: %s/%s -> %s:%s',
+                removed_sc.source.os_name,
+                removed_sc.source.suite_name,
+                removed_sc.repo.name,
+                removed_sc.destination_suite.name,
+            )
+            session.delete(removed_sc)
