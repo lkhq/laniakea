@@ -48,7 +48,9 @@ def search_pkg():
     with session_scope() as session:
         q = (
             session.query(BinaryPackage)
-            .filter(BinaryPackage.__ts_vector__.op('@@')(func.plainto_tsquery(term)))
+            .filter(
+                BinaryPackage.time_deleted.is_(None), BinaryPackage.__ts_vector__.op('@@')(func.plainto_tsquery(term))
+            )
             .distinct(BinaryPackage.name, BinaryPackage.version)
         )
 
