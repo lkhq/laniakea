@@ -7,6 +7,10 @@
 <h1 class="title mb-4">{{job_title}}</h1>
 {% endblock %}
 
+{% block js_pre %}
+<script src="{{ url_for('static', filename='js/term2html.js') }}"></script>
+{% endblock %}
+
 {% block body %}
 <div class="columns is-multiline is-mobile">
     <div class="column is-12">
@@ -85,12 +89,23 @@
 
     {% if log_url %}
     <br/>
-    <p><a class="button is-info" href="{{log_url}}">View Full Log</a></p>
+    <p>
+      <a class="button is-primary" href="{{ url_for('jobs.view_log', uuid=job.uuid)}}"><i class="fa-solid fa-eye"></i>&nbsp;View Full Log</a>
+      <a class="button is-link is-light" href="{{log_url}}"><i class="fa-solid fa-download"></i>&nbsp;Download Log</a>
+      {% if firehose_url %}
+      <a class="button is-info is-light" href="{{firehose_url}}"><i class="fa-solid fa-code-commit"></i>&nbsp;Download Firehose XML</a>
+      {% endif %}
+    </p>
     {% else %}
     <h4 class="subtitle is-4" style="margin-bottom: 0.5rem;margin-top: 1.5rem;">Log Excerpt</h4>
     <div class="box">
-      <pre style="padding: 0; background-color: initial;"><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
+      <pre style="padding: 0; background-color: initial;" id="logDisplay"></pre>
     </div>
+
+    <script>
+      const logDisplay = document.getElementById('logDisplay');
+      logDisplay.innerHTML = term2html({{job.latest_log_excerpt|tojson if job.latest_log_excerpt else "'...'"}});
+    </script>
     {% endif %}
 
     </div>

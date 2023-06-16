@@ -1,0 +1,69 @@
+{% extends 'layouts/base.html' %}
+
+{% set active_menu = 'jobqueue' %}
+{% set page_title = 'View Log: ' + log_title %}
+
+{% block body_header %}
+<h1 class="title mb-4">Log data {{log_title}}</h1>
+{% endblock %}
+
+{% block js_pre %}
+<script src="{{ url_for('static', filename='js/term2html.js') }}"></script>
+{% endblock %}
+
+{% block body %}
+<div class="columns is-multiline is-gapless">
+  <div class="column is-full mx-0">
+    <b>ID:</b> {{job.uuid}}<br/>
+    <br/>
+    <b>Created:</b> {{humanized_timediff(job.time_created)}}<br/>
+    <b>Assigned:</b> {{humanized_timediff(job.time_assigned)}}<br/>
+    {% if job.time_finished %}<b>Finished:</b> {{humanized_timediff(job.time_finished)}}<br/>{% endif %}
+    {% if worker %}
+    <b>Worker:</b> <a href="{{ url_for('jobs.workers') }}">{{worker.name}}</a><br/>
+    {% endif %}
+
+    {% if log_url %}
+      <div class="column is-full mb-2 mx-0 pl-0">
+        <a class="is-pulled-left button is-info" href="{{ url_for('jobs.job', uuid=job.uuid)}}"><i class="fa-solid fa-chevron-left"></i>&nbsp;Job Details</a>
+
+        <div class="is-pulled-right">
+          <a class="button is-primary" href="{{log_url}}"><i class="fa-solid fa-download"></i>&nbsp;Download</a>
+          {% if firehose_url %}
+          <a class="button is-info is-light" href="{{firehose_url}}"><i class="fa-solid fa-code-commit"></i>&nbsp;Firehose XML</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="column is-full mx-0 pl-0 mt-5">
+        <div class="box">
+          <pre style="padding: 0; background-color: initial;" id="logDisplay"></pre>
+        </div>
+      </div>
+
+      <script>
+        fetch('{{ log_url }}', {method: 'GET', mode: 'cors'})
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Request failed with status code ' + response.status);
+            }
+            return response.text();
+          })
+          .then(text => {
+            const logDisplay = document.getElementById('logDisplay');
+            logDisplay.innerHTML = term2html(text);
+          })
+          .catch(error => {
+            console.error(error);
+            logDisplay.innerHTML = 'Unable to obtain log data:\n' + error + '\nTry downloading the log file manually!';
+          });
+      </script>
+    {% else %}
+      <div class="notification is-warning">
+        This log was not found. It may not (yet) be available.
+      </div>
+    {% endif %}
+
+    </div>
+</div>
+{% endblock %}

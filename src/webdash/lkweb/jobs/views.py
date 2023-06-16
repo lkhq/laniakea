@@ -153,15 +153,11 @@ def job(uuid):
         worker = session.query(SparkWorker).filter(SparkWorker.uuid == job.worker).one_or_none()
 
         log_url = None
+        firehose_url = None
         if job.result in (JobResult.SUCCESS, JobResult.FAILURE, JobResult.FAILURE_DEPENDENCY):
-            log_url = (
-                current_app.config['LOG_STORAGE_URL']
-                + '/'
-                + get_dir_shorthand_for_uuid(job.uuid)
-                + '/'
-                + str(job.uuid)
-                + '.log'
-            )
+            log_root = current_app.config['LOG_STORAGE_URL'] + '/' + get_dir_shorthand_for_uuid(job.uuid) + '/'
+            log_url = log_root + str(job.uuid) + '.log'
+            firehose_url = log_root + 'firehose/' + str(job.uuid) + '.firehose.xml'
 
         job_title = 'Job for {}'.format(job.module)
         if job.kind == JobKind.PACKAGE_BUILD:
@@ -204,6 +200,7 @@ def job(uuid):
                 suite_name=suite_name,
                 dep_issues=dep_issues,
                 log_url=log_url,
+                firehose_url=firehose_url,
             )
         elif job.kind == JobKind.OS_IMAGE_BUILD:
             recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
@@ -232,3 +229,30 @@ def job(uuid):
                 worker=worker,
                 log_url=log_url,
             )
+
+
+@jobs.route('/job/log/<uuid>')
+def view_log(uuid):
+    if not is_uuid(uuid):
+        abort(404)
+
+    with session_scope() as session:
+        job = session.query(Job).filter(Job.uuid == uuid).one_or_none()
+        if not job:
+            abort(404)
+
+        log_url = None
+        if job.result in (JobResult.SUCCESS, JobResult.FAILURE, JobResult.FAILURE_DEPENDENCY):
+            log_root = current_app.config['LOG_STORAGE_URL'] + '/' + get_dir_shorthand_for_uuid(job.uuid) + '/'
+            log_url = log_root + str(job.uuid) + '.log'
+            firehose_url = log_root + 'firehose/' + str(job.uuid) + '.firehose.xml'
+
+        log_title = str(uuid)[:11]
+        return render_template(
+            'jobs/logviewer.html',
+            humanized_timediff=humanized_timediff,
+            job=job,
+            log_title=log_title,
+            log_url=log_url,
+            firehose_url=firehose_url,
+        )
