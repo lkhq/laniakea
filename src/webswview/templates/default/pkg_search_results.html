@@ -23,14 +23,17 @@
 {% endblock %}
 
 {% block body %}
-<p>{{ results_count }} results found.</p>
+<div class="column is-6">
 
-<div class="package-items">
-{% for p in packages %}
+<h5 class="title is-5">{{ results_count }} results found.</h5>
 
-    <h2>{{p.name}}</h2>
-    <p class="is-size-7"><strong>Version:</strong> {{ p.version }}</p>
+{% if src_packages %}
+<h4 class="title is-4 mb-0">Latest Source Packages</h4>
 
+<div class="column">
+{% for p in src_packages %}
+
+    <p><span class="is-size-4 has-text-weight-medium">{{p.name}}</span> <span class="has-text-weight-light">- {{ p.version }}</span></p>
     {% if p.component.is_primary() %}
         {% set component_badge_style = 'badge-primary' %}
     {% elif p.component.is_nonfree() %}
@@ -38,26 +41,52 @@
     {% else %}
         {% set component_badge_style = 'badge-secondary' %}
     {% endif %}
-    <div class="container package-items">
+    <div class="columns mt-0 mb-2">
         {% for ps in p.suites %}
-          <a class="border-box" href="{{ url_for('packages.bin_package_details', repo_name=p.repo.name, suite_name=ps.name, name=p.name) }}">
-
-            <div class="columns is-mobile">
-                <div class="column">
-                    <strong>{{ps.name}}</strong>
-                </div>
-                <div class="column is-narrow">
-                    <small><span class="badge {{component_badge_style}} badge-pill">{{p.component.name}}</span></small>
-                </div>
-            </div>
+      <div class="column is-narrow">
+          <a class="button is-small p-4 is-pkglist3" href="{{ url_for('packages.src_package_details', repo_name=p.repo.name, suite_name=ps.name, name=p.name) }}">
+            <strong>{{ps.name}}</strong>
+            <small><span class="ml-2 badge {{component_badge_style}} badge-pill">{{p.component.name}}</span></small>
           </a>
+        </div>
         {% endfor %}
     </div>
 
 {% endfor %}
+</div>
+{% endif %}
+
+{% if bin_packages %}
+<h4 class="title is-4 mb-0">Binary Packages</h4>
+
+<div class="column">
+{% set button_mode = namespace(hl=False) %}
+{% for p in bin_packages %}
+    {% set button_mode.hl = not button_mode.hl %}
+
+    <p><span class="is-size-4 has-text-weight-medium">{{p.name}}</span> <span class="has-text-weight-light">- {{ p.version }}</span></p>
+    {% if p.component.is_primary() %}
+        {% set component_badge_style = 'badge-primary' %}
+    {% elif p.component.is_nonfree() %}
+        {% set component_badge_style = 'badge-danger' %}
+    {% else %}
+        {% set component_badge_style = 'badge-secondary' %}
+    {% endif %}
+
+    <div class="columns mt-0 mb-2">
+        {% for ps in p.suites %}
+      <div class="column is-narrow">
+          <a class="button is-small p-4 {% if button_mode.hl %}is-pkglist1{% else %}is-pkglist2{% endif %}" href="{{ url_for('packages.bin_package_details', repo_name=p.repo.name, suite_name=ps.name, name=p.name) }}">
+            <strong>{{ps.name}}</strong>
+            <small><span class="ml-2 badge {{component_badge_style}} badge-pill">{{p.component.name}}</span></small>
+          </a>
+        </div>
+        {% endfor %}
+    </div>
+
+{% endfor %}
+</div>
+{% endif %}
 
 </div>
-
-<br/>
-
 {% endblock %}

@@ -17,6 +17,7 @@ from laniakea.db import (
     ArchiveSuite,
     ArchiveConfig,
     BinaryPackage,
+    SourcePackage,
     ArchiveSection,
     PackageOverride,
     ArchiveRepository,
@@ -46,16 +47,39 @@ def search_pkg():
         return redirect(url_for('portal.index'))
 
     with session_scope() as session:
-        q = (
+        spkg_filters = [SourcePackage.time_deleted.is_(None), SourcePackage.name.like('%' + term + '%')]
+
+        spkg_filter_sq = session.query(SourcePackage).filter(*spkg_filters).subquery()
+        smv_sq = (
+            session.query(spkg_filter_sq.c.name, func.max(spkg_filter_sq.c.version).label('max_version'))
+            .group_by(spkg_filter_sq.c.name)
+            .subquery('smv_sq')
+        )
+        src_packages = (
+            session.query(SourcePackage)
+            .options(joinedload(SourcePackage.repo), joinedload(SourcePackage.suites))
+            .filter(*spkg_filters)
+            .join(
+                smv_sq,
+                and_(
+                    SourcePackage.name == smv_sq.c.name,
+                    SourcePackage.version == smv_sq.c.max_version,
+                ),
+            )
+            .order_by(SourcePackage.name)
+            .all()
+        )
+
+        bin_packages = (
             session.query(BinaryPackage)
+            .options(joinedload(BinaryPackage.repo), joinedload(BinaryPackage.suites))
             .filter(
                 BinaryPackage.time_deleted.is_(None), BinaryPackage.__ts_vector__.op('@@')(func.plainto_tsquery(term))
             )
             .distinct(BinaryPackage.name, BinaryPackage.version)
-        )
+        ).all()
 
-        results_count = q.count()
-        packages = q.all()
+        results_count = len(bin_packages) + len(src_packages)
 
         results_per_page = results_count
         page_count = math.ceil(results_count / results_per_page) if results_per_page > 0 else 1
@@ -66,7 +90,8 @@ def search_pkg():
             results_count=results_count,
             results_per_page=results_per_page,
             page_count=page_count,
-            packages=packages,
+            src_packages=src_packages,
+            bin_packages=bin_packages,
         )
 
 
