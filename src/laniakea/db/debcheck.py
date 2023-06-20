@@ -31,7 +31,7 @@ class PackageIssue(Schema):
     package_version = fields.Str()
     architectures = fields.List(fields.Str())
 
-    depends = fields.Str()
+    depends = fields.Str(allow_none=True)
     unsat_dependency = fields.Str()
     unsat_conflict = fields.Str()
 
