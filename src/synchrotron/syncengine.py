@@ -17,6 +17,7 @@ from laniakea import LkModule, LocalConfig
 from laniakea.db import (
     DebType,
     NewPolicy,
+    PackageInfo,
     ArchiveSuite,
     BinaryPackage,
     SourcePackage,
@@ -168,12 +169,12 @@ class SyncEngine:
 
             self._ev_emitter.submit_event('src-package-imported', data)
 
-    def _get_source_repo_binary_package_map(
+    def _get_origin_repo_binary_package_map(
         self, suite_name: str, component_name: str, arch_name: str = None, with_installer: bool = True
     ) -> dict[str, ExternalBinaryPackage]:
         '''Get an associative array of the newest binary packages present in a repository.'''
 
-        log.debug('Retrieving binary package map for source suite: %s/%s/%s', suite_name, component_name, arch_name)
+        log.debug('Retrieving binary package map for origin suite: %s/%s/%s', suite_name, component_name, arch_name)
         suite = ArchiveSuite(suite_name)
         component = ArchiveComponent(component_name)
         arch = ArchiveArchitecture(arch_name)
@@ -189,18 +190,18 @@ class SyncEngine:
             )  # always append arch:all packages
         return make_newest_packages_dict(bpkgs)
 
-    def _get_source_repo_source_packages(self, suite_name: str, component_name: str) -> list[ExternalSourcePackage]:
-        """Get a list of all source packages present in the source repository."""
+    def _get_origin_repo_source_packages(self, suite_name: str, component_name: str) -> list[ExternalSourcePackage]:
+        """Get a list of all source packages present in the origin repository."""
 
         log.debug('Retrieving source packages for source suite: %s/%s', suite_name, component_name)
         suite = ArchiveSuite(suite_name)
         component = ArchiveComponent(component_name)
         return self._source_reader.source_packages(suite, component, include_extra_sources=False)
 
-    def _get_source_repo_source_package_map(self, suite_name: str, component_name: str):
-        """Get an associative array of the newest source packages present in the source repository."""
+    def _get_origin_repo_source_package_map(self, suite_name: str, component_name: str):
+        """Get an associative array of the newest source packages present in the origin repository."""
 
-        spkgs = self._get_source_repo_source_packages(suite_name, component_name)
+        spkgs = self._get_origin_repo_source_packages(suite_name, component_name)
         log.debug('Retrieving source package map for source suite: %s/%s', suite_name, component_name)
         return make_newest_packages_dict(spkgs)
 
@@ -420,6 +421,7 @@ class SyncEngine:
         sync_conf: SynchrotronConfig,
         pkgip: PackageImporter,
         component: str,
+        orig_bpkg_arch_map: dict[str, dict[str, ExternalBinaryPackage]],
         spkgs_info: T.Sequence[T.Tuple[ExternalSourcePackage, PackageSyncState]],
         ignore_target_changes: bool = False,
     ) -> bool:
@@ -431,13 +433,6 @@ class SyncEngine:
 
         # list of valid architectures supported by the target
         target_archs = [a.name for a in sync_conf.destination_suite.architectures]
-
-        # cache of binary-package mappings for the source
-        src_bpkg_arch_map = {}
-        for aname in target_archs:
-            src_bpkg_arch_map[aname] = self._get_source_repo_binary_package_map(
-                self._source_suite_name, component, aname
-            )
 
         # cache of binary-package mappings from the target repository/suite/arch
         dest_bpkg_arch_map = {}
@@ -456,10 +451,10 @@ class SyncEngine:
             bin_files_synced = False
             existing_packages = False
             for arch_name in target_archs:
-                if arch_name not in src_bpkg_arch_map:
+                if arch_name not in orig_bpkg_arch_map:
                     continue
 
-                src_bpkg_map = src_bpkg_arch_map[arch_name]
+                src_bpkg_map = orig_bpkg_arch_map[arch_name]
                 dest_bpkg_map = dest_bpkg_arch_map[arch_name]
 
                 bin_files: list[ExternalBinaryPackage] = []
@@ -626,11 +621,20 @@ class SyncEngine:
             return False
 
         dest_pkg_map = self._get_target_source_package_map(session, component_name)
-        src_pkg_map = self._get_source_repo_source_package_map(self._source_suite_name, component_name)
+        src_pkg_map = self._get_origin_repo_source_package_map(self._source_suite_name, component_name)
 
         rss = repo_suite_settings_for(session, self._repo_name, self._target_suite_name)
         pkgip = PackageImporter(session, rss)
         pkgip.keep_source_packages = True
+
+        # list of valid architectures supported by the target
+        target_archs = [a.name for a in sync_conf.destination_suite.architectures]
+
+        orig_bpkg_arch_map = {}
+        for aname in target_archs:
+            orig_bpkg_arch_map[aname] = self._get_origin_repo_binary_package_map(
+                self._source_suite_name, component_name, aname
+            )
 
         for pkgname in pkgnames:
             spkg = src_pkg_map.get(pkgname)
@@ -668,6 +672,16 @@ class SyncEngine:
                         )
                         continue
 
+                    # test if binaries of the to-be-synced package are taken over in target
+                    if self._has_binaries_adopted_in_target(session, orig_bpkg_arch_map, rss, spkg):
+                        log.debug(
+                            'Not syncing {}/{}: Destination has newer, possibly adopted binaries.'.format(
+                                spkg.name,
+                                spkg.version,
+                            )
+                        )
+                        continue
+
             # sync source package
             # the source package must always be known first
             ret = self._import_source_package(pkgip, spkg, component_name)
@@ -675,7 +689,7 @@ class SyncEngine:
                 return False
 
         ret = self._import_binaries_for_sources(
-            session, sync_conf, pkgip, component_name, self._synced_source_pkgs, force
+            session, sync_conf, pkgip, component_name, orig_bpkg_arch_map, self._synced_source_pkgs, force
         )
 
         # TODO: Analyze the input, fetch the packages from the source distribution and
@@ -719,9 +733,25 @@ class SyncEngine:
             return False
         return True
 
-    def _has_binaries_adopted_in_target(self, session, rss: ArchiveRepoSuiteSettings, spkg: ExternalSourcePackage):
+    def _has_binaries_adopted_in_target(
+        self,
+        session,
+        orig_bpkg_arch_map: dict[str, dict[str, ExternalBinaryPackage]],
+        rss: ArchiveRepoSuiteSettings,
+        spkg: ExternalSourcePackage,
+    ):
         """Check if a different source package in target has adopted the binaries that would be generated by the new source."""
-        for bin in spkg.expected_binaries:
+
+        for ebin in spkg.expected_binaries:
+            # fetch binary from the origin index, as it might have a version
+            # that is different from the one of its source package
+            bin: ExternalBinaryPackage | PackageInfo | None = None
+            for orig_bpkg_map in orig_bpkg_arch_map.values():
+                bin = orig_bpkg_map.get(ebin.name)
+                if bin:
+                    break
+            if not bin:
+                bin = ebin
             newer_bin_exists = (
                 session.query(BinaryPackage.uuid)
                 .filter(
@@ -775,6 +805,9 @@ class SyncEngine:
         pkgip = PackageImporter(session, rss)
         pkgip.keep_source_packages = True
 
+        # list of valid architectures supported by the target
+        target_archs = [a.name for a in sync_conf.destination_suite.architectures]
+
         for component in rss.suite.components:
             if component.name not in sync_source.components:
                 log.warning(
@@ -785,6 +818,11 @@ class SyncEngine:
                 continue
 
             dest_pkg_map = self._get_target_source_package_map(session, component.name)
+            orig_bpkg_arch_map = {}
+            for aname in target_archs:
+                orig_bpkg_arch_map[aname] = self._get_origin_repo_binary_package_map(
+                    self._source_suite_name, component.name, aname
+                )
 
             # The source package lists contains many different versions, some source package
             # versions are explicitly kept for GPL-compatibility.
@@ -796,9 +834,9 @@ class SyncEngine:
             # when doing source-only syncs too?), That's why we don't filter out the newest packages in
             # binary-sync-mode.
             if sync_conf.sync_binaries:
-                src_pkg_range = self._get_source_repo_source_packages(self._source_suite_name, component.name)
+                src_pkg_range = self._get_origin_repo_source_packages(self._source_suite_name, component.name)
             else:
-                src_pkg_range = self._get_source_repo_source_package_map(
+                src_pkg_range = self._get_origin_repo_source_package_map(
                     self._source_suite_name, component.name
                 ).values()
 
@@ -899,7 +937,7 @@ class SyncEngine:
                         continue
 
                 # test if binaries of the to-be-synced package are taken over in target
-                if self._has_binaries_adopted_in_target(session, rss, spkg):
+                if self._has_binaries_adopted_in_target(session, orig_bpkg_arch_map, rss, spkg):
                     log.debug(
                         'Not syncing {}/{}: Destination has newer, possibly adopted binaries.'.format(
                             spkg.name,
@@ -922,7 +960,9 @@ class SyncEngine:
             # as binNMUs might have happened in the source distribution.
             # (an active package in this context is any source package which doesn't have modifications in the
             # target distribution)
-            ret = self._import_binaries_for_sources(session, sync_conf, pkgip, component.name, binary_sync_todo)
+            ret = self._import_binaries_for_sources(
+                session, sync_conf, pkgip, component.name, orig_bpkg_arch_map, binary_sync_todo
+            )
             if not ret:
                 return False
 
@@ -939,7 +979,7 @@ class SyncEngine:
         for component in rss.suite.components:
             if component.name not in sync_source.components:
                 continue
-            src_pkg_map = self._get_source_repo_source_package_map(self._source_suite_name, component.name)
+            src_pkg_map = self._get_origin_repo_source_package_map(self._source_suite_name, component.name)
             for pkgname in src_pkg_map.keys():
                 target_pkg_index.pop(pkgname, None)
 
