@@ -330,7 +330,7 @@ def builds_list(name, page):
             .order_by(SourcePackage.version.desc())
             .first()
         )
-        if not spkg:
+        if not spkg or not spkg.suites or spkg.time_deleted is not None:
             abort(404)
 
         jobs_per_page = 20
@@ -393,7 +393,7 @@ def build_details(uuid):
             .filter(SourcePackage.version == job.version)
             .one_or_none()
         )
-        if not spkg:
+        if not spkg or not spkg.suites or spkg.time_deleted is not None:
             abort(404)
 
         suite_name = 'unknown'
