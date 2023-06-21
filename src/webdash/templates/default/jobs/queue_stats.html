@@ -27,6 +27,10 @@
            href="{{ url_for('jobs.queue', page=1, blocked='true')}}">
             Pending &amp; Blocked
         </a>
+        <a class="button"
+           href="{{ url_for('jobs.list_completed', page=1)}}">
+            Recently Completed
+        </a>
         <a class="button is-info is-selected"
            href="{{ url_for('jobs.queue_stats')}}">
             Graphs

@@ -6,6 +6,7 @@
 
 import json
 import math
+from enum import Enum, auto
 from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, request, current_app, render_template
@@ -32,6 +33,12 @@ from ..utils import is_uuid, humanized_timediff, fetch_statistics_for
 from ..extensions import cache
 
 jobs = Blueprint('jobs', __name__, url_prefix='/jobs')
+
+
+class JobQueueState(Enum):
+    PENDING = auto()
+    PENDING_BLOCKED = auto()
+    COMPLETED = auto()
 
 
 def fetch_queue_statistics_for(
@@ -84,10 +91,10 @@ def title_for_job(session, job):
 @jobs.route('/queue/<int:page>')
 def queue(page):
     with session_scope() as session:
-        show_depwait = request.args.get('blocked') == 'true'
+        queue_state = JobQueueState.PENDING_BLOCKED if request.args.get('blocked') == 'true' else JobQueueState.PENDING
         jobs_per_page = 50
         jobs_base_q = session.query(Job).filter(Job.status != JobStatus.DONE, Job.status != JobStatus.TERMINATED)
-        if not show_depwait:
+        if queue_state == JobQueueState.PENDING:
             jobs_base_q = jobs_base_q.filter(Job.status != JobStatus.DEPWAIT)
 
         jobs_total = jobs_base_q.count()
@@ -98,9 +105,44 @@ def queue(page):
         return render_template(
             'jobs/queue.html',
             JobStatus=JobStatus,
+            JobResult=JobResult,
+            JobQueueState=JobQueueState,
             humanized_timediff=humanized_timediff,
             session=session,
-            show_blocked=show_depwait,
+            queue_state=queue_state,
+            title_for_job=title_for_job,
+            jobs=jobs,
+            jobs_per_page=jobs_per_page,
+            jobs_total=jobs_total,
+            current_page=page,
+            page_count=page_count,
+        )
+
+
+@jobs.route('/queue/completed/<int:page>')
+def list_completed(page):
+    with session_scope() as session:
+        jobs_per_page = 50
+        max_pages_count = 3
+        jobs_base_q = (
+            session.query(Job)
+            .filter(Job.status.in_((JobStatus.DONE, JobStatus.TERMINATED)))
+            .order_by(Job.time_finished.desc(), Job.time_created.desc())
+            .limit(jobs_per_page * max_pages_count)
+        )
+        jobs_total = jobs_base_q.count()
+        page_count = math.ceil(jobs_total / jobs_per_page)
+
+        jobs = jobs_base_q.slice((page - 1) * jobs_per_page, page * jobs_per_page).all()
+
+        return render_template(
+            'jobs/queue.html',
+            JobStatus=JobStatus,
+            JobResult=JobResult,
+            JobQueueState=JobQueueState,
+            humanized_timediff=humanized_timediff,
+            session=session,
+            queue_state=JobQueueState.COMPLETED,
             title_for_job=title_for_job,
             jobs=jobs,
             jobs_per_page=jobs_per_page,

@@ -426,6 +426,7 @@ class JobWorker:
         # (if things get lost along the way or fail verification, we may need to restart this job)
         job.result = JobResult.SUCCESS_PENDING if success else JobResult.FAILURE_PENDING
         job.status = JobStatus.DONE
+        job.time_finished = datetime.utcnow()
 
         event_data = {'job_id': job_id, 'client_name': client_name, 'client_id': client_id, 'result': str(job.result)}
         self._emit_event('job-finished', event_data)

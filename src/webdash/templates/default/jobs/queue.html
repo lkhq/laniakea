@@ -4,7 +4,11 @@
 {% set page_title = 'Job Queue' %}
 
 {% block body_header %}
+{% if queue_state == JobQueueState.COMPLETED %}
+<h1 class="title mb-4">Global Job Queue - Completed Tasks</h1>
+{% else %}
 <h1 class="title mb-4">Global Job Queue</h1>
+{% endif %}
 {% endblock %}
 
 {% block body %}
@@ -13,13 +17,17 @@
     <div class="column is-8">
 
       <div class="buttons has-addons">
-        <a class="button {{'is-info is-selected' if not show_blocked}}"
+        <a class="button {{'is-info is-selected' if queue_state == JobQueueState.PENDING}}"
            href="{{ url_for('jobs.queue', page=1, blocked='false')}}">
             Only Pending
         </a>
-        <a class="button {{'is-info is-selected' if show_blocked}}"
+        <a class="button {{'is-info is-selected' if queue_state == JobQueueState.PENDING_BLOCKED}}"
            href="{{ url_for('jobs.queue', page=1, blocked='true')}}">
             Pending &amp; Blocked
+        </a>
+        <a class="button {{'is-info is-selected' if queue_state == JobQueueState.COMPLETED}}"
+           href="{{ url_for('jobs.list_completed', page=1)}}">
+            Recently Completed
         </a>
         <a class="button"
            href="{{ url_for('jobs.queue_stats')}}">
@@ -45,6 +53,12 @@
             {% set item_style = 'has-background-warning-light' %}
           {% elif j.status == JobStatus.STARVING %}
             {% set item_style = 'has-background-danger-light' %}
+          {% elif j.status == JobStatus.DONE %}
+            {% if j.result in (JobResult.SUCCESS, JobResult.SUCCESS_PENDING) %}
+              {% set item_style = 'has-background-success-light' %}
+            {% else %}
+              {% set item_style = 'has-background-danger-light' %}
+            {% endif %}
           {% endif %}
 
           <div class="card {{item_style}}">
@@ -63,28 +77,54 @@
       {% endif %}
 
       <br/>
-      <nav class="pagination" role="navigation" aria-label="pagination">
-      <a class="pagination-previous"
-         href="{{ url_for('jobs.queue', page=current_page-1, blocked='true' if show_blocked else '') if current_page > 1 else '#'}}"
-         {{'disabled' if current_page <= 1 }}>
-          Previous
-      </a>
-      <a class="pagination-next"
-         href="{{ url_for('jobs.queue', page=current_page+1, blocked='true' if show_blocked else '') if current_page < page_count else '#'}}"
-         {{'disabled' if current_page >= page_count }}>
-          Next
-      </a>
 
-      <ul class="pagination-list">
+      {% if queue_state != JobQueueState.COMPLETED %}
+        <nav class="pagination" role="navigation" aria-label="pagination">
+        <a class="pagination-previous"
+           href="{{ url_for('jobs.queue', page=current_page-1, blocked='true' if show_blocked else '') if current_page > 1 else '#'}}"
+           {{'disabled' if current_page <= 1 }}>
+            Previous
+        </a>
+        <a class="pagination-next"
+           href="{{ url_for('jobs.queue', page=current_page+1, blocked='true' if show_blocked else '') if current_page < page_count else '#'}}"
+           {{'disabled' if current_page >= page_count }}>
+            Next
+        </a>
 
-      {% for i in range(1, page_count + 1) %}
-          <li>
-          <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
-             href="{{ url_for('jobs.queue', page=i, blocked='true' if show_blocked else '') }}">{{i}}</a>
-          </li>
-      {% endfor %}
-      </ul>
-      </nav>
+        <ul class="pagination-list">
+
+        {% for i in range(1, page_count + 1) %}
+            <li>
+            <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
+               href="{{ url_for('jobs.queue', page=i, blocked='true' if show_blocked else '') }}">{{i}}</a>
+            </li>
+        {% endfor %}
+        </ul>
+        </nav>
+      {% else %}
+        <nav class="pagination" role="navigation" aria-label="pagination">
+        <a class="pagination-previous"
+           href="{{ url_for('jobs.list_completed', page=current_page-1) if current_page > 1 else '#'}}"
+           {{'disabled' if current_page <= 1 }}>
+            Previous
+        </a>
+        <a class="pagination-next"
+           href="{{ url_for('jobs.list_completed', page=current_page+1) if current_page < page_count else '#'}}"
+           {{'disabled' if current_page >= page_count }}>
+            Next
+        </a>
+
+        <ul class="pagination-list">
+
+        {% for i in range(1, page_count + 1) %}
+            <li>
+            <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
+               href="{{ url_for('jobs.list_completed', page=i) }}">{{i}}</a>
+            </li>
+        {% endfor %}
+        </ul>
+        </nav>
+      {% endif %}
 
   </div>
 </div>
