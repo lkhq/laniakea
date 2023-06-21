@@ -126,8 +126,8 @@ def list_completed(page):
         max_pages_count = 3
         jobs_base_q = (
             session.query(Job)
-            .filter(Job.status.in_((JobStatus.DONE, JobStatus.TERMINATED)))
-            .order_by(Job.time_finished.desc(), Job.time_created.desc())
+            .filter(Job.status.in_((JobStatus.DONE, JobStatus.TERMINATED)), ~Job.time_finished.is_(None))
+            .order_by(Job.time_finished.desc())
             .limit(jobs_per_page * max_pages_count)
         )
         jobs_total = jobs_base_q.count()
