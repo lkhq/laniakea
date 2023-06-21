@@ -32,7 +32,6 @@ from laniakea.db import (
     ArchiveRepoSuiteSettings,
     session_scope,
 )
-from laniakea.utils import get_dir_shorthand_for_uuid
 from laniakea.archive import repo_suite_settings_for
 
 from ..utils import is_uuid, humanized_timediff
