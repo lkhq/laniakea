@@ -57,6 +57,9 @@ def configure_app(app, config=None):
     if config:
         app.config.from_object(config)
 
+    if app.config['WEBDASH_URL'].endswith('/'):
+        app.config['WEBDASH_URL'] = app.config['WEBDASH_URL'][:-1]
+
     template_theme_dir = os.path.join(INSTANCE_FOLDER_PATH, 'templates', app.config['THEME'])
     if not os.path.isdir(template_theme_dir):
         template_theme_dir = os.path.join(app_root_dir, 'templates', app.config['THEME'])

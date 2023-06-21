@@ -376,16 +376,11 @@ def build_details(uuid):
 
         worker = session.query(SparkWorker).filter(SparkWorker.uuid == job.worker).one_or_none()
 
-        log_url = None
+        log_viewer_url = None
         if job.result in (JobResult.SUCCESS, JobResult.FAILURE, JobResult.FAILURE_DEPENDENCY):
-            log_url = (
-                current_app.config['LOG_STORAGE_URL']
-                + '/'
-                + get_dir_shorthand_for_uuid(job.uuid)
-                + '/'
-                + str(job.uuid)
-                + '.log'
-            )
+            webdash_root_url = current_app.config['WEBDASH_URL']
+            if webdash_root_url:
+                log_viewer_url = webdash_root_url + '/jobs/job/log/' + str(job.uuid)
 
         spkg = (
             session.query(SourcePackage)
@@ -420,7 +415,7 @@ def build_details(uuid):
             spkg=spkg,
             dep_issues=dep_issues,
             suite_name=suite_name,
-            log_url=log_url,
+            log_viewer_url=log_viewer_url,
             link_for_bin_package_id=link_for_bin_package_id,
         )
 

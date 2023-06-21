@@ -222,20 +222,23 @@
 </div>
 {% endif %}
 
-{% if log_url %}
+{% if log_viewer_url %}
 <br/>
-<p><a class="button is-info" href="{{log_url}}" role="button">View Full Log</a></p>
+<p><a class="button is-info" href="{{log_viewer_url}}" target="_blank" role="button">View Full Log</a></p>
 {% else %}
-
 <br/>
-<h3 class="subtitle is-3 mb-2">Log Excerpt</h3>
-<div class="columns">
-  <div class="column is-half">
-    <div class="container">
-      <pre><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
+{% if job.status == JobStatus.DONE %}
+  <h6 class="subtitle is-6"><i class="fa-solid fa-circle-exclamation"></i>&nbsp;Log data is not accessible.</h6>
+{% else %}
+  <h3 class="subtitle is-3 mb-2">Log Excerpt</h3>
+  <div class="columns">
+    <div class="column is-half">
+      <div class="container">
+        <pre><code>{{job.latest_log_excerpt if job.latest_log_excerpt else '...'}}</code></pre>
+      </div>
     </div>
   </div>
-</div>
+{%endif %}
 {%endif %}
 
 {% endblock %}
