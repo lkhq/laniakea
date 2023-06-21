@@ -59,7 +59,7 @@
           })
           .then(text => {
             const logDisplay = document.getElementById('logDisplay');
-            logDisplay.innerHTML = term2html(escapeHtml(text));
+            logDisplay.innerHTML = term2html(text);
           })
           .catch(error => {
             console.error(error);
