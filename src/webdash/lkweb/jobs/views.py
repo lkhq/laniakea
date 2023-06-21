@@ -91,7 +91,8 @@ def title_for_job(session, job):
 @jobs.route('/queue/<int:page>')
 def queue(page):
     with session_scope() as session:
-        queue_state = JobQueueState.PENDING_BLOCKED if request.args.get('blocked') == 'true' else JobQueueState.PENDING
+        show_blocked = request.args.get('blocked') == 'true'
+        queue_state = JobQueueState.PENDING_BLOCKED if show_blocked else JobQueueState.PENDING
         jobs_per_page = 50
         jobs_base_q = session.query(Job).filter(Job.status != JobStatus.DONE, Job.status != JobStatus.TERMINATED)
         if queue_state == JobQueueState.PENDING:
@@ -116,6 +117,7 @@ def queue(page):
             jobs_total=jobs_total,
             current_page=page,
             page_count=page_count,
+            show_blocked=show_blocked,
         )
 
 
