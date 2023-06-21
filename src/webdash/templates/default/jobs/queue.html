@@ -81,12 +81,12 @@
       {% if queue_state != JobQueueState.COMPLETED %}
         <nav class="pagination" role="navigation" aria-label="pagination">
         <a class="pagination-previous"
-           href="{{ url_for('jobs.queue', page=current_page-1, blocked='true' if show_blocked else '') if current_page > 1 else '#'}}"
+           href="{{ url_for('jobs.queue', page=current_page-1, blocked='true' if queue_state == JobQueueState.PENDING_BLOCKED else '') if current_page > 1 else '#'}}"
            {{'disabled' if current_page <= 1 }}>
             Previous
         </a>
         <a class="pagination-next"
-           href="{{ url_for('jobs.queue', page=current_page+1, blocked='true' if show_blocked else '') if current_page < page_count else '#'}}"
+           href="{{ url_for('jobs.queue', page=current_page+1, blocked='true' if queue_state == JobQueueState.PENDING_BLOCKED else '') if current_page < page_count else '#'}}"
            {{'disabled' if current_page >= page_count }}>
             Next
         </a>
@@ -96,7 +96,7 @@
         {% for i in range(1, page_count + 1) %}
             <li>
             <a class="pagination-link {{'is-current' if i == current_page }}" aria-label="Goto page {{i}}"
-               href="{{ url_for('jobs.queue', page=i, blocked='true' if show_blocked else '') }}">{{i}}</a>
+               href="{{ url_for('jobs.queue', page=i, blocked='true' if queue_state == JobQueueState.PENDING_BLOCKED else '') }}">{{i}}</a>
             </li>
         {% endfor %}
         </ul>
