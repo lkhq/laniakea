@@ -207,7 +207,7 @@ class UserHints:
 
                             valid_files_found = True
                             for hentry in data['hints']:
-                                britney_hint = '{}/{}'.format(hentry[0], hentry[1])
+                                britney_hint = '{} {}'.format(hentry[0], hentry[1])
                                 reason = ''
                                 if len(hentry) >= 3:
                                     reason = hentry[3]
