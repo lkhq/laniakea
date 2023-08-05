@@ -231,7 +231,8 @@ def _process_new(repo_name: T.Optional[str] = None):
                 if spkg.uploaders:
                     rich.print('[bold]Uploaders:[/bold]', '\n           '.join([u for u in spkg.uploaders]))
                 if changes_found:
-                    rich.print('[bold]Changed By:[/bold]', changes.changes['Changed-By'])
+                    changed_by = changes.changes.get('Changed-By', None)
+                    rich.print('[bold]Changed By:[/bold]', changed_by if changed_by else '[red]unknown[/red]')
                 rich.print('[bold]New Overrides:[/bold]')
 
                 missing_overrides = check_overrides_source(session, rss, spkg)
