@@ -1289,7 +1289,9 @@ class UploadHandler:
             if not lint_success:
                 lintian_lines = []
                 for tag in lintian_tags:
-                    lintian_lines.append('{}: {}: {}'.format(tag['level'], tag['tag'], tag['description']))
+                    lintian_lines.append(
+                        '{}: {}: {}'.format(tag['level'], tag['tag'], tag.get('description', 'No description'))
+                    )
                 raise UploadError(
                     ('Unable to process upload {}: Lintian issues were found, please resolve them.\n{}').format(
                         changes.filename, '\n'.join(lintian_lines)
