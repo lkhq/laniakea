@@ -4,6 +4,7 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import re
 from typing import Dict
 from datetime import datetime
 
@@ -83,6 +84,15 @@ class ExcusesFile:
     def get_excuses(self) -> Dict[str, SpearsExcuse]:
         res = {}
 
+        other_reason_ignore_strings = (
+            'Cannot be tested by piuparts',
+            'but ignoring cruft, so nevermind',
+            'Issues preventing migration:',
+            'Additional info:',
+            ' days old (needed ',
+        )
+        debian_buildd_link_re = r'<a href="https://buildd\.debian\.org/status/logs\.php\?arch=[^&]+&pkg=[^&]+&ver=[^"]+" target="_blank">([^<]+)</a>'
+
         # get log data
         loginfo = self._process_log_data()
 
@@ -151,7 +161,11 @@ class ExcusesFile:
                 excuse.other = []
                 for n in entry['excuses']:
                     s = str(n)
-                    if 'Cannot be tested by piuparts' not in s and 'but ignoring cruft, so nevermind' not in s:
+                    if not any(test in s for test in other_reason_ignore_strings):
+                        if s.startswith('∙ ∙ '):
+                            s = s[4:]
+                        if 'buildd.debian.org' in s:
+                            s = re.sub(debian_buildd_link_re, r'\1', s)
                         excuse.other.append(s)
 
             # add log information
