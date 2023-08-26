@@ -123,6 +123,10 @@ def datetime_to_rfc2822_string(dt: datetime):
     return utils.format_datetime(dt)
 
 
+class LockError(Exception):
+    """An error happened while acquiring a file lock."""
+
+
 class ProcessFileLock:
     """
     Simple wy to prevent multiple processes from executing the same code via a file lock.
@@ -169,7 +173,7 @@ class ProcessFileLock:
             self._lock_file_fd = -1
             os.close(fd)
             if raise_error:
-                raise Exception(
+                raise LockError(
                     'Unable to acquire lock "{}": Lock held by other instance or thread!'.format(self.lock_filename)
                 )
             return False

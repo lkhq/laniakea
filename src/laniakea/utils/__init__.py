@@ -6,6 +6,7 @@
 
 from laniakea.utils.json import json_compact_dump
 from laniakea.utils.misc import (
+    LockError,
     cd,
     listify,
     stringify,
@@ -46,6 +47,7 @@ __all__ = [
     'safe_run',
     'run_forwarded',
     'safe_run_forwarded',
+    'LockError',
     'cd',
     'listify',
     'stringify',

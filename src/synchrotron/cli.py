@@ -9,6 +9,7 @@ import multiprocessing as mp
 from argparse import ArgumentParser
 
 from laniakea.db import SynchrotronConfig, session_scope
+from laniakea.utils import LockError
 from laniakea.logging import log
 
 from .syncengine import SyncEngine, SyncSetupError
@@ -26,12 +27,16 @@ def command_sync(options):
     try:
         engine = SyncEngine(options.repo_name, options.dest_suite, options.src_os, options.src_suite)
     except SyncSetupError as e:
-        print('Unable to setup synchronization:', str(e))
+        print('Unable to setup synchronization:', str(e), file=sys.stderr)
         sys.exit(1)
 
-    ret = engine.sync_packages(options.component, options.packages, options.force)
-    if not ret:
-        sys.exit(2)
+    try:
+        ret = engine.sync_packages(options.component, options.packages, options.force)
+        if not ret:
+            sys.exit(2)
+    except LockError as e:
+        print('Locking failed:', str(e), file=sys.stderr)
+        sys.exit(4)
 
 
 def command_autosync(options):
@@ -65,12 +70,16 @@ def command_autosync(options):
                     autosync.source.suite_name,
                 )
             except SyncSetupError as e:
-                print('Unable to setup synchronization:', str(e))
+                print('Unable to setup synchronization:', str(e), file=sys.stderr)
                 sys.exit(1)
 
-            ret = engine.autosync(autosync.auto_cruft_remove)
-            if not ret:
-                sys.exit(2)
+            try:
+                ret = engine.autosync(autosync.auto_cruft_remove)
+                if not ret:
+                    sys.exit(2)
+            except LockError as e:
+                print('Locking failed:', str(e), file=sys.stderr)
+                sys.exit(4)
 
             # commit pending changes
             session.commit()

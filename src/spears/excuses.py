@@ -91,7 +91,7 @@ class ExcusesFile:
             'Additional info:',
             ' days old (needed ',
         )
-        debian_buildd_link_re = r'<a href="https://buildd\.debian\.org/status/logs\.php\?arch=[^&]+&pkg=[^&]+&ver=[^"]+" target="_blank">([^<]+)</a>'
+        debian_buildd_link_re = r'<a href="https://buildd\.debian\.org/status/logs\.php\?arch=[^&]+&pkg=[^&]+&ver=[^"]+" target="_blank">([^<]+)</a>'  # noqa: E501
 
         # get log data
         loginfo = self._process_log_data()
