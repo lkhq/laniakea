@@ -23,6 +23,7 @@ def cli(ctx, verbose, version, config_fname):
     Laniakea directly from the command-line.'''
     from laniakea import LocalConfig
     from laniakea.logging import set_verbose, configure_pkg_archive_logger
+    from laniakea.utils.misc import ensure_laniakea_master_user
 
     set_verbose(verbose)
     if version:
@@ -33,6 +34,9 @@ def cli(ctx, verbose, version, config_fname):
 
     if config_fname:
         LocalConfig(config_fname)
+
+    # some safeguarding against running as root or any other "wrong" user
+    ensure_laniakea_master_user(warn_only=True)
 
     # configure the archive action file logging
     configure_pkg_archive_logger()
