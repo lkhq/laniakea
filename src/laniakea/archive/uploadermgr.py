@@ -10,7 +10,12 @@ import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import ArchiveUploader
 from laniakea.logging import log, archive_log
-from laniakea.utils.gpg import delete_gpg_key, import_keyfile, list_gpg_fingerprints
+from laniakea.utils.gpg import (
+    delete_gpg_key,
+    import_keyfile,
+    list_gpg_fingerprints,
+    list_expired_fingerprints,
+)
 from laniakea.utils.deb822 import split_maintainer_field
 from laniakea.archive.changes import Changes
 
@@ -54,6 +59,20 @@ def delete_uploader_key(fingerprint: str):
 
     delete_gpg_key(keyring_dir, fingerprint)
     archive_log.info('UPLOADER-REMOVED-GPG: %s', fingerprint)
+
+
+def delete_expired_uploader_keys():
+    """Remove all keys from the uploader keyring that have been expired."""
+
+    lconf = LocalConfig()
+    keyring_dir = lconf.uploaders_keyring_dir
+    os.makedirs(keyring_dir, exist_ok=True)
+
+    expired_fprs = list_expired_fingerprints(keyring_dir)
+    for fpr in expired_fprs:
+        delete_gpg_key(keyring_dir, fpr)
+
+    archive_log.info('UPLOADER-REMOVED-GPG-EXPIRED: %s', ' '.join(expired_fprs))
 
 
 def guess_archive_uploader_for_changes(session, changes: Changes) -> ArchiveUploader:

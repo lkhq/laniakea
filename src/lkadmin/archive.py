@@ -592,6 +592,7 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
 
     from laniakea.archive.uploadermgr import (
         delete_uploader_key,
+        delete_expired_uploader_keys,
         import_key_file_for_uploader,
         retrieve_uploader_fingerprints,
     )
@@ -636,6 +637,12 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
         for user in session.query(ArchiveUploader).all():
             user_index[user.email] = user
 
+        # delete any expired keys
+        # FIXME: If expired keys are still in the Git repo, we will add them back -
+        # we should refuse to add expired keys to the keyring instead.
+        delete_expired_uploader_keys()
+
+        # get all active key fingerprints
         uploader_fprs = set(retrieve_uploader_fingerprints())
         used_fprs = set()
 

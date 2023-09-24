@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+import time
 import fcntl
 import select
 import datetime
@@ -343,7 +344,7 @@ def sign(
 
 
 def list_gpg_fingerprints(gpghome: T.PathUnion, *, only_primary=True) -> list[str]:
-    """Import a GPG (public) keyfile into the keyring set by :gpghome"""
+    """List all primary key fingerprints from the keyring set by :gpghome"""
 
     args = [
         '/usr/bin/gpg',
@@ -375,6 +376,46 @@ def list_gpg_fingerprints(gpghome: T.PathUnion, *, only_primary=True) -> list[st
         else:
             continue
         fingerprints.append(line.split(':')[9])
+
+    return fingerprints
+
+
+def list_expired_fingerprints(gpghome: T.PathUnion, *, only_primary=True) -> list[str]:
+    """List all expired key fingerprints from the keyring set by :gpghome"""
+
+    args = [
+        '/usr/bin/gpg',
+        '--no-default-keyring',
+        '--homedir',
+        str(gpghome),
+        '--no-tty',
+        '--batch',
+        '--status-fd=1',
+        '--with-colons',
+        '--list-keys',
+        '--fingerprint',
+    ]
+
+    proc = subprocess.run(args, capture_output=True, check=False)
+    if proc.returncode != 0:
+        raise GpgException('Unable to list fingerprints: {!r}{!r}'.format(proc.stderr, proc.stdout))
+
+    fingerprints = []
+    ignore_next = False
+    current_time = int(time.time())
+    for line in str(proc.stdout, 'utf-8').splitlines():
+        fields = line.split(':')
+        if only_primary and fields[0] == 'sub':
+            ignore_next = True
+        elif fields[0] == 'pub':
+            # Check if the key is expired
+            expiration_date = fields[6]
+            if not expiration_date or int(expiration_date) > current_time:
+                ignore_next = True  # Ignore the next 'fpr' line if the key is not expired
+            else:
+                ignore_next = False
+        elif fields[0] == 'fpr' and not ignore_next:
+            fingerprints.append(fields[9])
 
     return fingerprints
 
