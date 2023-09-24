@@ -73,7 +73,7 @@
   <div class="card-content py-3">
     <div class="content">
         {% if excuse.missing_archs_primary %}
-        <h5>Primary</h5>
+        <h6>Primary</h6>
         <ul>
             {% for arch in excuse.missing_archs_primary %}
             <li>{{arch}}</li>
@@ -82,7 +82,7 @@
         {% endif %}
 
         {% if excuse.missing_archs_secondary %}
-        <h5>Secondary</h5>
+        <h6>Secondary</h6>
         <ul>
             {% for arch in excuse.missing_archs_secondary %}
             <li>{{arch}}</li>

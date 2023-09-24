@@ -1301,7 +1301,7 @@ class UploadHandler:
         # prepare package importer
         pi = PackageImporter(self._session, rss)
         pi.keep_source_packages = self.keep_source_packages
-        changes_urgency = ChangesUrgency.from_string(changes.changes.get('Urgency', 'low'))  #
+        changes_urgency = ChangesUrgency.from_string(changes.changes.get('Urgency', 'low'))
 
         # actually run the package import, starting with the source package (dsc file)
         spkg: SourcePackage | None = None
