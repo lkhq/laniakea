@@ -673,12 +673,16 @@ class SyncEngine:
                         continue
 
                     # test if binaries of the to-be-synced package are taken over in target
-                    if self._has_binaries_adopted_in_target(session, orig_bpkg_arch_map, rss, spkg):
+                    has_adopted_bins, adopted_example = self._check_binaries_adopted_in_target(
+                        session, orig_bpkg_arch_map, rss, spkg
+                    )
+                    if has_adopted_bins:
                         log.debug(
-                            'Not syncing {}/{}: Destination has newer, possibly adopted binaries.'.format(
-                                spkg.name,
-                                spkg.version,
-                            )
+                            'Not syncing %s/%s: Destination has newer, possibly adopted binaries (found %s/%s).',
+                            spkg.name,
+                            spkg.version,
+                            adopted_example.name,
+                            adopted_example.version,
                         )
                         continue
 
@@ -733,7 +737,7 @@ class SyncEngine:
             return False
         return True
 
-    def _has_binaries_adopted_in_target(
+    def _check_binaries_adopted_in_target(
         self,
         session,
         orig_bpkg_arch_map: dict[str, dict[str, ExternalBinaryPackage]],
@@ -752,8 +756,8 @@ class SyncEngine:
                     break
             if not bin:
                 bin = ebin
-            newer_bin_exists = (
-                session.query(BinaryPackage.uuid)
+            newer_bin = (
+                session.query(BinaryPackage)
                 .filter(
                     BinaryPackage.name == bin.name,
                     BinaryPackage.version > bin.version,
@@ -761,11 +765,10 @@ class SyncEngine:
                     BinaryPackage.suites.any(id=rss.suite_id),
                 )
                 .first()
-                is not None
             )
-            if newer_bin_exists:
-                return True
-        return False
+            if newer_bin is not None:
+                return True, newer_bin
+        return False, None
 
     def _autosync_internal(self, session, remove_cruft: bool = True) -> bool:
         """Synchronize all packages between source and destination."""
@@ -937,12 +940,16 @@ class SyncEngine:
                         continue
 
                 # test if binaries of the to-be-synced package are taken over in target
-                if self._has_binaries_adopted_in_target(session, orig_bpkg_arch_map, rss, spkg):
+                has_adopted_bins, adopted_example = self._check_binaries_adopted_in_target(
+                    session, orig_bpkg_arch_map, rss, spkg
+                )
+                if has_adopted_bins:
                     log.debug(
-                        'Not syncing {}/{}: Destination has newer, possibly adopted binaries.'.format(
-                            spkg.name,
-                            spkg.version,
-                        )
+                        'Not syncing %s/%s: Destination has newer, possibly adopted binaries (found: %s/%s).',
+                        spkg.name,
+                        spkg.version,
+                        adopted_example.name,
+                        adopted_example.version,
                     )
                     continue
 
