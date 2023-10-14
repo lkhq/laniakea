@@ -57,12 +57,17 @@ class MailRelay:
         # basic template variables
         self._common_vars = {'project_name': config_get_project_name(), 'from_address': self._conf.mail_origin_address}
 
+    def make_new_queue_url(self, repo_name: str) -> str:
+        """Get the web URL to the repository's NEW queue"""
+
+        return os.path.join(self._lconf.archive_queue_url, repo_name, 'new')
+
     async def _send_mail_for(self, tag, data: T.Dict[str, T.Any]):
         if tag == '_lk.archive.package-upload-accepted':
             is_new = data['is_new']
             if is_new:
                 mail_text = self._mtmpl.render(
-                    'package-new', new_queue_url=self._lconf.new_queue_url, **data, **self._common_vars
+                    'package-new', new_queue_url=self.make_new_queue_url(data['repo']), **data, **self._common_vars
                 )
                 self._mail_sender.send(mail_text)
             else:
