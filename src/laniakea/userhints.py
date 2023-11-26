@@ -210,7 +210,7 @@ class UserHints:
                                 britney_hint = '{} {}'.format(hentry[0], hentry[1])
                                 reason = ''
                                 if len(hentry) >= 3:
-                                    reason = hentry[3]
+                                    reason = hentry[2]
 
                                 # update reason for existing hint if we have one
                                 hint = hints_index.pop(britney_hint, None)
