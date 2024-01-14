@@ -6,6 +6,7 @@ General
    :caption: Contents:
 
    initial-setup.rst
+   worker-setup.rst
    datasync.rst
    lighthouse.rst
    rubicon.rst
