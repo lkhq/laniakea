@@ -126,7 +126,14 @@ def _update_appstream_components_internal(
         # So storing JSON is a compromise.
         mdata_write.clear_components()
         mdata_write.add_component(cpt)
-        y_data = yaml.safe_load(mdata_write.components_to_collection(AppStream.FormatKind.YAML))
+        try:
+            y_data = yaml.safe_load(mdata_write.components_to_catalog(AppStream.FormatKind.YAML))
+        except AttributeError:
+            # backwards compatibility with AppStream versions prior to 1.0
+            y_data = yaml.safe_load(
+                mdata_write.components_to_collection(AppStream.FormatKind.YAML)  # pylint: disable=no-member
+            )
+
         dcpt.data = json.dumps(y_data)  # type: ignore[assignment]
 
         # add new software component to database
@@ -210,7 +217,11 @@ def import_appstream_data(
         yaml_catalog_data = str(f.read(), 'utf-8')
 
     mdata_read.clear_components()
-    mdata_read.parse(yaml_catalog_data, AppStream.FormatKind.YAML)
+    try:
+        mdata_read.parse_data(yaml_catalog_data, AppStream.FormatKind.YAML)
+    except AttributeError:
+        # backwards compatibility with AppStream versions prior to 1.0
+        mdata_read.parse(yaml_catalog_data, AppStream.FormatKind.YAML)  # pylint: disable=no-member
     cpts = mdata_read.get_components()
 
     log.debug('Found {} software components in {}/{}'.format(len(cpts), rss.suite.name, component.name))
