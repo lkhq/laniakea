@@ -13,7 +13,7 @@ from rich.prompt import Confirm
 from rich.console import Console
 
 import laniakea.typing as T
-from laniakea import LocalConfig
+from laniakea import LkModule, LocalConfig
 from laniakea.db import (
     BinaryPackage,
     SourcePackage,
@@ -30,9 +30,11 @@ from laniakea.archive import (
     repo_suite_settings_for,
     find_latest_source_package,
 )
+from laniakea.msgstream import EventEmitter
 from laniakea.archive.manage import (
     expire_superseded,
     copy_source_package,
+    package_mark_delete,
     remove_binary_package,
     guess_binary_package_remove_issues,
     guess_source_package_remove_issues,
@@ -399,6 +401,78 @@ def cmd_copy_package(
 
         # now copy the package between suites
         copy_source_package(session, spkg, rss_dest)
+
+
+@click.command('merge-suite')
+@click.option(
+    '--repo',
+    'repo_name',
+    default=None,
+    help='Name of the repository to act on, if not set the default repository will be used.',
+)
+@click.option(
+    '--delete-merged',
+    'rm_merged',
+    is_flag=True,
+    default=False,
+    help='Remove packages from source suite after copying them to target.',
+)
+@click.argument('suite_source', nargs=1, required=True)
+@click.argument('suite_target', nargs=1, required=True)
+def cmd_merge_suite(
+    suite_source: str,
+    suite_target: str,
+    *,
+    repo_name: T.Optional[str] = None,
+    rm_merged: bool = False,
+):
+    """Copy or move all packages from a source to a target suite."""
+
+    if not repo_name:
+        lconf = LocalConfig()
+        repo_name = lconf.master_repo_name
+
+    with session_scope() as session:
+        rss_dest = repo_suite_settings_for(session, repo_name, suite_target, fail_if_missing=False)
+        if not rss_dest:
+            click.echo(
+                'Suite / repository configuration not found for {} in {}.'.format(suite_target, repo_name), err=True
+            )
+            sys.exit(4)
+        rss_src = repo_suite_settings_for(session, repo_name, suite_source, fail_if_missing=False)
+        if not rss_dest:
+            click.echo(
+                'Suite / repository configuration not found for {} in {}.'.format(suite_source, repo_name), err=True
+            )
+            sys.exit(4)
+
+        spkgs = (
+            session.query(SourcePackage)
+            .filter(
+                SourcePackage.repo_id == rss_src.repo_id,
+                SourcePackage.suites.any(id=rss_src.suite_id),
+                SourcePackage.time_deleted.is_(None),
+            )
+            .all()
+        )
+
+        emitter = EventEmitter(LkModule.ARCHIVE)
+        for spkg in spkgs:
+            copy_source_package(
+                session,
+                spkg,
+                rss_dest,
+                emitter=emitter,
+                include_binaries=True,
+                allow_missing_debug=True,
+            )
+
+        session.commit()
+
+        # remove copied packages from source
+        if rm_merged:
+            for spkg in spkgs:
+                package_mark_delete(session, rss_src, spkg, emitter=emitter)
 
 
 @click.command('show-overrides')

@@ -55,7 +55,7 @@ def listify(item):
     '''
     if not item:
         return []
-    if type(item) == list:
+    if type(item) is list:
         return item
     if isinstance(item, collections.abc.Sequence):
         return list(item)

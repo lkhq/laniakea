@@ -59,6 +59,7 @@ def _register_commands():
     cli.add_command(mgr.remove)
     cli.add_command(mgr.expire)
     cli.add_command(mgr.cmd_copy_package)
+    cli.add_command(mgr.cmd_merge_suite)
     cli.add_command(mgr.show_overrides)
     cli.add_command(mgr.change_override)
 
@@ -92,4 +93,4 @@ def run(mainfile, args):
 
     install(show_locals=True, suppress=[click])
     _register_commands()
-    cli()  # pylint: disable=no-value-for-parameter
+    cli(max_content_width=100)  # pylint: disable=no-value-for-parameter
