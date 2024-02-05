@@ -696,8 +696,11 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
             # update GPG keys
             for fpr in fingerprints:
                 used_fprs.add(fpr)
-                # check if we already have the key
+                # check if we already have the key for existing users
                 if fpr in uploader_fprs:
+                    continue
+                # check if the key was already added to the current user in the current import cycle
+                if fpr in user.pgp_fingerprints:
                     continue
                 log.info('Importing key %s for %s', fpr, email)
                 import_key_file_for_uploader(user, os.path.join(uconf_root, fpr + '.asc'))

@@ -423,6 +423,9 @@ def list_expired_fingerprints(gpghome: T.PathUnion, *, only_primary=True) -> lis
 def import_keyfile(gpghome: T.PathUnion, fname: T.PathUnion) -> List[str]:
     """Import a GPG (public) keyfile into the keyring set by :gpghome"""
 
+    if not os.path.isfile(fname):
+        raise GpgException('GPG key file %s is not a file or does not exist.' % fname)
+
     args = [
         '/usr/bin/gpg',
         '--no-default-keyring',
