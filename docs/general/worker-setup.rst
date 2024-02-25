@@ -64,32 +64,54 @@ Create ``/etc/laniakea/spark.toml`` with the respective information for your dep
     GpgKeyID = 'DEADBEEF<gpg_fingerprint>'
 
 
-3. Create RSA sign-only GnuPG key and Curve25519 key for worker
----------------------------------------------------------------
+3. Create RSA sign-only GnuPG key and Curve25519 key and register them
+----------------------------------------------------------------------
 
-TODO
+Run ``lk-keytool`` to create a new certificate for the build server so it can
+communicate with the master server via a secure channel:
+
+.. code-block:: bash
+
+    lk-keytool key-new \
+        --id=hydrogen \
+        --name='Hydrogen Worker' \
+        --email=hydrogen@workers.wayne-enterprises.tld \
+        --organization='Wayne Enterprises' \
+        ./output-dir
+
+On the **master server** you then need to install the just generated public key
+to allow the Lighthouse instance running there to communicate with the worker:
+
+.. code-block:: bash
+
+    lk-keytool install-trusted-key hydrogen ./output-dir/hydrogen.key
+
+You will also need to create a PGP key for signing of generated packages/build-aertifacts:
+
+.. code-block:: bash
+
+    gpg --export-secret-key -a myname@workers.wayne-enterprises.tld > myname_secret.gpg && \
+    gpg --armor --export "myname@bworkers.wayne-enterprises.tld" > myname.gpg && \
+    chmod go-rwx *secret.gpg
+
+You should then add this key on the master server as the upload key of a non-human upload user.
 
 4. Make Debspawn images
 -----------------------
 
 TODO
 
-5. Add GPG key and Curve key to master
---------------------------------------
-
-TODO
-
-6. Add Lighthouse server key to Spark
+5. Add Lighthouse server key to Spark
 -------------------------------------
 
 TODO
 
-7. Configure dput-ng
+6. Configure dput-ng
 --------------------
 
 TODO
 
-8. Restart worker and test it
+7. Restart worker and test it
 -----------------------------
 
 TODO
