@@ -8,7 +8,7 @@ ConditionPathExists=/etc/laniakea/base-config.toml
 Type=notify
 Restart=on-failure
 ProtectSystem=full
-User=lklighthouse
+User=_lklighthouse
 Group=nogroup
 ExecStart=@LIGHTHOUSE_INSTALL_BIN@
 
