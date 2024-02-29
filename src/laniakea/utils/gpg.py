@@ -344,7 +344,7 @@ def sign(
 
 
 def list_gpg_fingerprints(gpghome: T.PathUnion, *, only_primary=True) -> list[str]:
-    """List all primary key fingerprints from the keyring set by :gpghome"""
+    """List all key fingerprints from the keyring set by :gpghome"""
 
     args = [
         '/usr/bin/gpg',

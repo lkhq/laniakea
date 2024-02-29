@@ -623,7 +623,7 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
     if not no_confirm:
         data_src = git_url if git_url else dir_path
         proceed_answer = Confirm.ask(
-            'Update users with data from {}? This will DELETE and users not present in this directory!'.format(data_src)
+            'Update users with data from {}? This will DELETE all users not present in this directory!'.format(data_src)
         )
         if not proceed_answer:
             return
@@ -643,7 +643,7 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
         delete_expired_uploader_keys()
 
         # get all active key fingerprints
-        uploader_fprs = set(retrieve_uploader_fingerprints())
+        uploader_fprs = set(retrieve_uploader_fingerprints(only_primary=False))
         used_fprs = set()
 
         valid_users_found = False
@@ -671,7 +671,7 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
                 session.add(user)
             user.name = uconf.get('name', '')
             user.alias = uconf.get('alias', None)
-            user.pgp_fingerprints = fingerprints
+            user.pgp_fingerprints = []
             user.is_human = uconf.get('is_human', True)
             user.allow_source_uploads = uconf.get('allow_source_uploads', True)
             user.allow_binary_uploads = uconf.get('allow_binary_uploads', False)
@@ -695,15 +695,28 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
 
             # update GPG keys
             for fpr in fingerprints:
-                used_fprs.add(fpr)
-                # check if we already have the key for existing users
+                # Check if the key already exists in the global GPG keyring (and skip adding it again)
                 if fpr in uploader_fprs:
                     continue
-                # check if the key was already added to the current user in the current import cycle
-                if fpr in user.pgp_fingerprints:
-                    continue
-                log.info('Importing key %s for %s', fpr, email)
-                import_key_file_for_uploader(user, os.path.join(uconf_root, fpr + '.asc'))
+                key_fname = os.path.join(uconf_root, fpr + '.asc')
+                if os.path.isfile(key_fname):
+                    # we have a file for this ID, import it!
+                    log.info('Importing key %s for %s', fpr, email)
+                    import_key_file_for_uploader(user, key_fname)
+
+                    # this operation may have added multiple new keys to the trusted set, add them
+                    # to the known-keys set for uploaders
+                    uploader_fprs = set(retrieve_uploader_fingerprints(only_primary=False))
+
+            # update the database key list based on what the GPG keyring has available
+            for fpr in fingerprints:
+                # add the fingerprint to the active set
+                used_fprs.add(fpr)
+
+                # update database entries based on available keys
+                if fpr in uploader_fprs and fpr not in user.pgp_fingerprints:
+                    log.debug('Allowing key %s for %s', fpr, email)
+                    user.pgp_fingerprints.append(fpr)
 
         if valid_users_found:
             # only remove stuff if we found at least one valid user in the new dataset, as safety precaution
@@ -712,6 +725,9 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
                     delete_uploader_key(fpr)
                 log.info('Removing user %s', user.email)
                 session.delete(user)
+
+            # get a list of only primary key fingerprints, to potentially delete
+            uploader_fprs = set(retrieve_uploader_fingerprints(only_primary=True))
 
             for orphan_fpr in uploader_fprs - used_fprs:
                 log.warning('Found orphaned key %s in archive uploader keyring - deleting it.', orphan_fpr)

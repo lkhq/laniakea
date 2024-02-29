@@ -40,14 +40,14 @@ def import_key_file_for_uploader(uploader: ArchiveUploader, fname: T.PathUnion):
     archive_log.info('UPLOADER-ADDED-GPG: %s: %s', uploader.email, ', '.join(fingerprints))
 
 
-def retrieve_uploader_fingerprints() -> list[str]:
+def retrieve_uploader_fingerprints(*, only_primary=True) -> list[str]:
     """List all fingerprints for keys that have archive upload access."""
 
     lconf = LocalConfig()
     keyring_dir = lconf.uploaders_keyring_dir
     os.makedirs(keyring_dir, exist_ok=True)
 
-    return list_gpg_fingerprints(keyring_dir)
+    return list_gpg_fingerprints(keyring_dir, only_primary=only_primary)
 
 
 def delete_uploader_key(fingerprint: str):
