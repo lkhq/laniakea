@@ -643,7 +643,7 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
         delete_expired_uploader_keys()
 
         # get all active key fingerprints
-        uploader_fprs = set(retrieve_uploader_fingerprints(only_primary=False))
+        all_uploader_fprs = set(retrieve_uploader_fingerprints(only_primary=False))
         used_fprs = set()
 
         valid_users_found = False
@@ -671,7 +671,6 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
                 session.add(user)
             user.name = uconf.get('name', '')
             user.alias = uconf.get('alias', None)
-            user.pgp_fingerprints = []
             user.is_human = uconf.get('is_human', True)
             user.allow_source_uploads = uconf.get('allow_source_uploads', True)
             user.allow_binary_uploads = uconf.get('allow_binary_uploads', False)
@@ -696,7 +695,7 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
             # update GPG keys
             for fpr in fingerprints:
                 # Check if the key already exists in the global GPG keyring (and skip adding it again)
-                if fpr in uploader_fprs:
+                if fpr in all_uploader_fprs:
                     continue
                 key_fname = os.path.join(uconf_root, fpr + '.asc')
                 if os.path.isfile(key_fname):
@@ -706,17 +705,22 @@ def update_uploaders(dir_path, auto=False, no_confirm=False):
 
                     # this operation may have added multiple new keys to the trusted set, add them
                     # to the known-keys set for uploaders
-                    uploader_fprs = set(retrieve_uploader_fingerprints(only_primary=False))
+                    all_uploader_fprs = set(retrieve_uploader_fingerprints(only_primary=False))
 
             # update the database key list based on what the GPG keyring has available
+            user_allowed_fprs = set(user.pgp_fingerprints)
             for fpr in fingerprints:
                 # add the fingerprint to the active set
                 used_fprs.add(fpr)
 
                 # update database entries based on available keys
-                if fpr in uploader_fprs and fpr not in user.pgp_fingerprints:
-                    log.debug('Allowing key %s for %s', fpr, email)
-                    user.pgp_fingerprints.append(fpr)
+                if fpr in all_uploader_fprs:
+                    if fpr not in user.pgp_fingerprints:
+                        log.debug('Allowing key %s for %s', fpr, email)
+                        user_allowed_fprs.add(fpr)
+                else:
+                    user_allowed_fprs.discard(fpr)
+            user.pgp_fingerprints = list(user_allowed_fprs)
 
         if valid_users_found:
             # only remove stuff if we found at least one valid user in the new dataset, as safety precaution
