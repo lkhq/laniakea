@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Create Native Environment
       run: cd tests/ci/ && podman build -t laniakea -f ./Dockerfile-debian-testing .
@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Create Native Environment
       run: cd tests/ci/ && podman build -t laniakea -f ./Dockerfile-debian-stable .
