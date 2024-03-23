@@ -244,9 +244,11 @@ def _process_new(repo_name: T.Optional[str] = None):
                 for override in missing_overrides:
                     table.add_row(
                         override.name,
-                        override.section
-                        if override.component == 'main'
-                        else override.component + '/' + override.section,
+                        (
+                            override.section
+                            if override.component == 'main'
+                            else override.component + '/' + override.section
+                        ),
                         PackagePriority.to_string(override.priority),
                         '[bold red]yes[/bold red]' if override.essential else 'no',
                     )

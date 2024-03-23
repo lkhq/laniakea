@@ -708,8 +708,9 @@ class SyncEngine:
     def sync_packages(self, component_name: str, pkgnames: list[str], force: bool = False):
         """Sync a select set of packages manually."""
 
-        with process_file_lock('sync_{}'.format(self._repo_name)), process_file_lock(
-            'archive_expire-{}'.format(self._repo_name), wait=True
+        with (
+            process_file_lock('sync_{}'.format(self._repo_name)),
+            process_file_lock('archive_expire-{}'.format(self._repo_name), wait=True),
         ):
             with session_scope() as session:
                 return self._sync_packages_internal(session, component_name, pkgnames, force)
@@ -774,9 +775,9 @@ class SyncEngine:
         """Synchronize all packages between source and destination."""
 
         self._synced_source_pkgs = []
-        binary_sync_todo: list[
-            T.Tuple[ExternalSourcePackage, PackageSyncState]
-        ] = []  # source packages which should have their binary packages updated
+        binary_sync_todo: list[T.Tuple[ExternalSourcePackage, PackageSyncState]] = (
+            []
+        )  # source packages which should have their binary packages updated
         known_issues = []
 
         sync_source = self._get_sync_source(session)
