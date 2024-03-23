@@ -1081,9 +1081,15 @@ class UploadHandler:
                 ArchiveRepoSuiteSettings.repo.has(id=self._repo.id),
                 ArchiveRepoSuiteSettings.suite.has(name=suite_name),
             )
-            .one()
+            .one_or_none()
         )
 
+        if not rss:
+            return UploadChangesResult(
+                False,
+                uploader,
+                error='No repository/suite configuration found for {}:{}.'.format(self._repo.name, suite_name),
+            )
         if rss.frozen:
             return UploadChangesResult(
                 False,
