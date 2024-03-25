@@ -859,6 +859,7 @@ class PackageImporter:
                 override.component = component
                 override.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
                 override.priority = PackagePriority.OPTIONAL
+                self._session.add(override)
             elif ignore_missing_override:
                 # The override is missing, but we are supposed to ignore that fact.
                 # So we will try our very best to guess a sensible override for this binary.
