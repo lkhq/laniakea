@@ -823,7 +823,11 @@ def _publish_suite_dists(
     set_deb822_value(entry, 'Version', rss.suite.version)
     set_deb822_value(entry, 'Codename', suite_codename)
     set_deb822_value(entry, 'Label', suite_label)
-    entry['Date'] = datetime_to_rfc2822_string(datetime.utcnow())
+
+    # we set the date to 2 minutes in the past to guard against clock sync issue when updating
+    # rapidly and some clients are a bit behind the master clock (which should not happen, but
+    # sometimes does)
+    entry['Date'] = datetime_to_rfc2822_string(datetime.utcnow() - timedelta(minutes=2))
     if not rss.frozen and not only_sources:
         entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.utcnow() + timedelta(days=8))
     entry['Acquire-By-Hash'] = 'yes'
