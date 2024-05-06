@@ -284,10 +284,14 @@ def view_log(uuid):
             abort(404)
 
         log_url = None
+        firehose_url = None
         if job.result in (JobResult.SUCCESS, JobResult.FAILURE, JobResult.FAILURE_DEPENDENCY):
             log_root = current_app.config['LOG_STORAGE_URL'] + '/' + get_dir_shorthand_for_uuid(job.uuid) + '/'
             log_url = log_root + str(job.uuid) + '.log'
             firehose_url = log_root + 'firehose/' + str(job.uuid) + '.firehose.xml'
+
+        if not log_url:
+            abort(404)
 
         log_title = str(uuid)[:11]
         return render_template(
