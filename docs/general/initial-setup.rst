@@ -172,7 +172,7 @@ You can import your own file like this to set up your archive configuration:
 
 .. code-block:: shell-session
 
-    $ lk-admin archive add-from-config ./archive-config.toml
+    $ lk-admin archive update-from-config ./archive-config.toml
 
 This action, if run multiple times, should not add suites multiple times, it will however override existing
 properties of suites with the same time.
@@ -202,7 +202,7 @@ Spears (Package Migrations / QA)
 
 .. code-block:: shell-session
 
-    $ lk-admin spears add-from-config ./spears-tasks.toml
+    $ lk-admin spears update-from-config ./spears-tasks.toml
 
 The configuration file must contain migration tasks that determine what should
 be migrated from where, and also include the delays (in days) for each package
@@ -222,7 +222,7 @@ Synchrotron (Pull packages from a source OS)
 
 .. code-block:: shell-session
 
-    $ lk-admin synchrotron add-from-config ./synchrotron-config.toml
+    $ lk-admin synchrotron update-from-config ./synchrotron-config.toml
 
 The configuration file needs to set up several synchronization sources and
 sync configurations.

@@ -294,7 +294,7 @@ def database(sources_dir, samples_dir, localconfig, create_database):
             '--config',
             localconfig.fname,
             'archive',
-            'add-from-config',
+            'update-from-config',
             os.path.join(samples_dir, 'config', 'archive-config.toml'),
         ],
         check=True,
