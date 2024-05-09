@@ -20,7 +20,9 @@ def last_jobs_for_recipe(session, recipe):
 @osimages.route('/')
 def index():
     with session_scope() as session:
-        recipes = session.query(ImageBuildRecipe).all()
+        recipes = (
+            session.query(ImageBuildRecipe).order_by(ImageBuildRecipe.suite.desc(), ImageBuildRecipe.name.desc()).all()
+        )
 
         return render_template(
             'osimages/index.html',
