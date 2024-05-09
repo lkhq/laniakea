@@ -34,6 +34,7 @@ from laniakea.archive.utils import (
     split_epoch,
     package_mark_published,
     publish_package_metadata,
+    repo_suite_settings_for_debug,
 )
 
 
@@ -767,6 +768,9 @@ def copy_binary_package_override(
 ):
     """Copy override information for a specific binary package from one suite to another.
 
+    This function can only act on suites that are in the same repository! (with the only
+    exception being connected debug repositories, which are handled implicitly)
+
     :param session: A SQLAlchemy session
     :param bpkg: Binary package the override information belongs to.
     :param repo: Repository to act on.
@@ -877,7 +881,8 @@ def copy_binary_package(
             )
         if dest_debug_suite not in bpkg.suites:
             bpkg.suites.append(dest_debug_suite)
-            copy_binary_package_override(session, bpkg, dest_rss.repo, dest_debug_suite, overrides_from_suite)
+            rss_debug = repo_suite_settings_for_debug(session, dest_rss)
+            copy_binary_package_override(session, bpkg, rss_debug.repo, dest_debug_suite, overrides_from_suite)
             log.info(
                 'Copied dbgsym package %s:%s/%s into %s', bpkg.repo.name, bpkg.name, bpkg.version, dest_debug_suite.name
             )
