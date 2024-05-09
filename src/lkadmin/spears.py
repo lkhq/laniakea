@@ -51,7 +51,9 @@ def _add_migration_task(repo_name: str, source_suites: T.List[str], target_suite
         stask.target_suite = target_suite_e
 
         for suite_name in source_suites:
-            stask.source_suites.append(session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one())
+            suite = session.query(ArchiveSuite).filter(ArchiveSuite.name == suite_name).one()
+            if suite not in stask.source_suites:
+                stask.source_suites.append(suite)
 
         stask.delays = {}
         for prio_name, days in delays.items():
