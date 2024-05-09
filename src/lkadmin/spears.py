@@ -11,6 +11,7 @@ from rich.prompt import Prompt
 import laniakea.typing as T
 from laniakea import LocalConfig
 from laniakea.db import ArchiveSuite, ArchiveRepository, session_scope
+from laniakea.logging import log
 
 from .utils import (
     input_int,
@@ -27,7 +28,7 @@ def spears():
     '''Configure automatic package migration.'''
 
 
-def _add_migration_task(repo_name: str, source_suites: T.List[str], target_suite: str, delays: dict[str, int]):
+def _add_migration_task(repo_name: str, source_suites: T.List[str], target_suite: str, delays: dict[str, int]) -> str:
     """Add or update a migration task."""
 
     from laniakea.db import ChangesUrgency, SpearsMigrationTask
@@ -57,6 +58,8 @@ def _add_migration_task(repo_name: str, source_suites: T.List[str], target_suite
             if ChangesUrgency.from_string(prio_name) == ChangesUrgency.UNKNOWN:
                 raise ValueError('The priority value "{}" is unknown!'.format(prio_name))
             stask.delays[prio_name] = days
+
+        return stask.make_migration_unique_name()
 
 
 @spears.command()
@@ -133,13 +136,31 @@ def remove_hint(source_suite, target_suite, hint):
 
 @spears.command()
 @click.argument('config_fname', nargs=1)
-def add_from_config(config_fname):
+def update_from_config(config_fname):
     """Add/update migration tasks from a TOML config file."""
+    from laniakea.db import SpearsHint, SpearsExcuse, SpearsMigrationTask
+
     try:
         with open(config_fname, 'r', encoding='utf-8') as f:
             conf = tomlkit.load(f)
     except Exception as e:
         print_error_exit('Unable to load data from configuration file: {}'.format(str(e)))
 
-    for task_d in conf.get('MigrationTasks', []):
-        _add_migration_task(**task_d)
+    with session_scope() as session:
+        entries = session.query(SpearsMigrationTask).all()
+        known_tasks = {}
+        for e in entries:
+            known_tasks[e.make_migration_unique_name()] = e
+
+        for task_d in conf.get('MigrationTasks', []):
+            unq_name = _add_migration_task(**task_d)
+            log.debug('Added/updated task: %s', unq_name)
+            known_tasks.pop(unq_name, None)
+
+        # delete the remaining, orphaned entries
+        for unq_name, task in known_tasks.items():
+            session.query(SpearsHint).filter(SpearsHint.migration_id == task.id).delete()
+            session.query(SpearsExcuse).filter(SpearsExcuse.migration_id == task.id).delete()
+
+            log.debug('Removed orphaned task: %s', unq_name)
+            session.delete(task)
