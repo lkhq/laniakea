@@ -552,7 +552,7 @@ def set_distro_tag(tag):
 
 @archive.command()
 @click.argument('config_fname', nargs=1)
-def add_from_config(config_fname):
+def update_from_config(config_fname):
     '''Add/update all archive settings from a TOML config file.'''
     with open(config_fname, 'r', encoding='utf-8') as f:
         conf = tomlkit.load(f)

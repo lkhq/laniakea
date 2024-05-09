@@ -49,7 +49,7 @@ def configure_all():
 
 @ariadne.command()
 @click.argument('config_fname', nargs=1)
-def add_from_config(config_fname):
+def update_from_config(config_fname):
     '''Add/update all settings from a TOML config file.'''
     with open(config_fname, 'r', encoding='utf-8') as f:
         conf = tomlkit.load(f)
