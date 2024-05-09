@@ -145,8 +145,8 @@ def update_from_config(config_fname):
     try:
         with open(config_fname, 'r', encoding='utf-8') as f:
             conf = tomlkit.load(f)
-    except Exception as e:
-        print_error_exit('Unable to load data from configuration file: {}'.format(str(e)))
+    except Exception as exc:
+        print_error_exit('Unable to load data from configuration file: {}'.format(str(exc)))
 
     with session_scope() as session:
         entries = session.query(SpearsMigrationTask).all()
