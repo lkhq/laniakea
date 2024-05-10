@@ -20,6 +20,7 @@ from laniakea.db import (
     session_scope,
     config_get_value,
 )
+from laniakea.utils import process_file_lock
 from laniakea.ariadne import schedule_package_builds_for_source
 
 
@@ -228,10 +229,14 @@ def update_jobs(
                 continue
             processed = True
 
-            log.info('Processing {}:{}'.format(rss.repo.name, rss.suite.name))
-            scheduled_count += update_package_build_schedule(session, rss, simulate, limit_arch, limit_count)
-            if limit_count > 0 and scheduled_count >= limit_count:
-                break
+            # during long sync operation, we might have a lot of source packages in the archive before
+            # the binaries are synced, so to avoid scheduling unnecessary builds we need to wait for any
+            # pending sync operation to complete first
+            with process_file_lock('sync_{}'.format(rss.repo.name)):
+                log.info('Processing {}:{}'.format(rss.repo.name, rss.suite.name))
+                scheduled_count += update_package_build_schedule(session, rss, simulate, limit_arch, limit_count)
+                if limit_count > 0 and scheduled_count >= limit_count:
+                    break
 
     if not processed:
         if suite_name and repo_name:
