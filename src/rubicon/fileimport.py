@@ -151,6 +151,9 @@ def reject_dud_upload(
     # move the files referenced by the .dud file
     random_suffix = random_string(4)
     for fname in dud.get_files():
+        if not os.path.exists(fname):
+            continue
+
         target_fname = os.path.join(conf.rejected_dir, os.path.basename(fname))
         if os.path.isfile(target_fname):
             target_fname = target_fname + '+' + random_suffix
