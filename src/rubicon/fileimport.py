@@ -152,6 +152,8 @@ def reject_dud_upload(
     random_suffix = random_string(4)
     for fname in dud.get_files():
         if not os.path.exists(fname):
+            # we ignore the missing file, as we are rejecting the dud upload anyway
+            log.warning('Referenced file "%s" does not exist, skipping.', os.path.basename(fname))
             continue
 
         target_fname = os.path.join(conf.rejected_dir, os.path.basename(fname))
