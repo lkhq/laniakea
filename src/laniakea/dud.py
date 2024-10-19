@@ -147,6 +147,8 @@ class Dud(object):
                 hash_type = hashlib.md5()
                 checksums = self.get('Files')
                 field_name = 'md5sum'
+            else:
+                raise DudFileException('Unknown checksum hash type found for %s: %s' % (filename, check_hash))
 
             changed_files = None
             for cf in checksums:

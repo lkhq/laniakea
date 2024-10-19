@@ -220,6 +220,7 @@ def _verify_hashes(
     with open(local_fname, 'rb') as f:
         # pylint: disable=not-an-iterable
         for hash in Hashes(f).hashes:  # type: ignore
+            hash_okay = False
             if hash.hashtype == 'MD5Sum':
                 hash_okay = file.md5sum == hash.hashvalue
             elif hash.hashtype == 'SHA1':
