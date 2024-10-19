@@ -9,6 +9,7 @@ RUN mkdir -p /build/ci/
 # install build dependencies
 COPY install-native-deps.sh /build/ci/
 RUN chmod +x /build/ci/install-native-deps.sh && /build/ci/install-native-deps.sh
+RUN eatmydata apt-get install -yq --no-install-recommends systemd-dev
 
 # Podman within podman config
 ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
