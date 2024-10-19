@@ -95,6 +95,7 @@ def verify_hashes(file: T.Union[ChangesFileEntry, ArchiveFile], local_fname: T.U
     """Verifies all known hashes of :file"""
     hashes_checked = 0
     with open(local_fname, 'rb') as f:
+        hash_okay = False
         # pylint: disable=not-an-iterable
         for hash in Hashes(f).hashes:  # type: ignore
             if hash.hashtype == 'MD5Sum':
