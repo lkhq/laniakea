@@ -229,9 +229,9 @@ def import_appstream_data(
     mdata_read.clear_components()
     try:
         try:
-            mdata_read.parse_data(yaml_catalog_data, AppStream.FormatKind.YAML)
+            mdata_read.parse_data(yaml_catalog_data, AppStream.FormatKind.YAML)  # pylint: disable=no-member
         except TypeError:
-            mdata_read.parse_data(yaml_catalog_data, -1, AppStream.FormatKind.YAML)
+            mdata_read.parse_data(yaml_catalog_data, -1, AppStream.FormatKind.YAML)  # pylint: disable=no-member
         cpts = mdata_read.get_components().as_array()
     except AttributeError:
         # backwards compatibility with AppStream versions prior to 1.0
