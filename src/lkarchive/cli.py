@@ -74,6 +74,7 @@ def _register_commands():
     import lkarchive.ariadne as ariadne
 
     cli.add_command(ariadne.update_jobs)
+    cli.add_command(ariadne.cleanup_jobs)
 
 
 def run(mainfile, args):

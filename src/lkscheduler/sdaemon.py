@@ -59,9 +59,10 @@ def task_repository_publish(registry: JobsRegistry):
 
 
 def task_repository_expire(registry: JobsRegistry):
-    """Expire old packages in all repositories."""
+    """Expire old packages and data in all repositories."""
     import subprocess
 
+    # expire packages
     with registry.lock_publish_job():
         conf = SchedulerConfig()
         log.info('Cleaning up repository data')
@@ -73,10 +74,26 @@ def task_repository_expire(registry: JobsRegistry):
             start_new_session=True,
             check=False,
         )
-    if proc.returncode == 0:
-        scheduler_log.info('Archive-Expire: Success.')
-    else:
-        scheduler_log.error('Archive-Expire: Error: %s', str(proc.stdout, 'utf-8'))
+        if proc.returncode == 0:
+            scheduler_log.info('Archive-Expire: Success.')
+        else:
+            scheduler_log.error('Archive-Expire: Error: %s', str(proc.stdout, 'utf-8'))
+
+    # remove job data that is no longer needed
+    with registry.lock_publish_job():
+        log.info('Cleaning up job data')
+        proc = subprocess.run(
+            [conf.lk_archive_exe, 'cleanup-jobs'],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            check=False,
+        )
+        if proc.returncode == 0:
+            scheduler_log.info('Archive-JobCleanup: Success.')
+        else:
+            scheduler_log.error('Archive-JobCleanup: Error: %s', str(proc.stdout, 'utf-8'))
 
 
 def task_rubicon_scan(registry: JobsRegistry):

@@ -13,15 +13,17 @@ from sqlalchemy.orm import undefer
 
 from laniakea import LkModule
 from laniakea.db import (
-    Job,
-    JobStatus,
     SourcePackage,
     ArchiveRepoSuiteSettings,
     session_scope,
     config_get_value,
 )
 from laniakea.utils import process_file_lock
-from laniakea.ariadne import schedule_package_builds_for_source
+from laniakea.ariadne import (
+    delete_orphaned_jobs,
+    remove_superfluous_pending_jobs,
+    schedule_package_builds_for_source,
+)
 
 
 def get_newest_sources_index(session, rss: ArchiveRepoSuiteSettings):
@@ -59,54 +61,6 @@ def get_newest_sources_index(session, rss: ArchiveRepoSuiteSettings):
     )
 
     return latest_spkg
-
-
-def delete_orphaned_jobs(session, simulate: bool = False, arch_indep_affinity: str | None = None):
-    '''
-    Clean up jobs that were scheduled for source packages that have meanwhile been removed from
-    the archive entirely.
-    '''
-
-    if not arch_indep_affinity:
-        arch_indep_affinity = config_get_value(LkModule.ARIADNE, 'indep_arch_affinity')
-
-    pending_jobs = (
-        session.query(Job)
-        .filter(Job.module == LkModule.ARIADNE)
-        .filter(Job.status.in_((JobStatus.UNKNOWN, JobStatus.WAITING, JobStatus.DEPWAIT)))
-        .all()
-    )
-    for job in pending_jobs:
-        # The job only is an orphan if the source package triggering it
-        # does no longer exist with the given version number.
-        spkg = (
-            session.query(SourcePackage)
-            .filter(SourcePackage.source_uuid == job.trigger)
-            .filter(SourcePackage.version == job.version)
-            .one_or_none()
-        )
-        if spkg:
-            # check if we have binaries on the requested architecture,
-            # if so, this job is also no longer needed and can be removed.
-            binaries_available = False
-            for bin in spkg.binaries:
-                bin_arch = bin.architecture.name
-                if bin_arch == 'all':
-                    bin_arch = arch_indep_affinity
-                if bin_arch == job.architecture:
-                    binaries_available = True
-                    break
-            if not binaries_available:
-                continue
-
-        # we have no source package for this job, so this job is orphaned and can never be processed.
-        # This happens if a job is scheduled for a package, and then the package is removed entirely from
-        # all archive suites while the job has not finished yet.
-        if simulate:
-            log.info('Delete orphaned job: {}'.format(str(job.uuid)))
-        else:
-            log.debug('Deleting orphaned job: {}'.format(str(job.uuid)))
-            session.delete(job)
 
 
 def update_package_build_schedule(
@@ -154,7 +108,7 @@ def update_package_build_schedule(
             break
 
     # cleanup
-    delete_orphaned_jobs(session, simulate, arch_indep_affinity=arch_indep_affinity)
+    remove_superfluous_pending_jobs(session, simulate, arch_indep_affinity=arch_indep_affinity)
 
     # write all changes to database
     session.commit()
@@ -251,3 +205,20 @@ def update_jobs(
                 file=sys.stderr,
             )
         sys.exit(3)
+
+
+@click.command('cleanup-jobs')
+@click.option(
+    '--simulate',
+    'simulate',
+    is_flag=True,
+    default=False,
+    help='Run simulation, don\'t remove any jobs and instead just display what would be done.',
+)
+def cleanup_jobs(
+    simulate: bool = False,
+):
+    """Remove orphaned completed jobs and their logs."""
+
+    with session_scope() as session:
+        delete_orphaned_jobs(session, simulate)
