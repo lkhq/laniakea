@@ -45,7 +45,11 @@ def _update_appstream_components_internal(
     mdata_write.set_write_header(False)
 
     for cpt in cpts:
-        cpt.set_active_locale('C')
+        try:
+            cpt.set_context_locale('C')
+        except AttributeError:
+            # compatibility with AppStream < 1.0
+            cpt.set_active_locale('C')
 
         pkgname = cpt.get_pkgname()
         if not pkgname:
@@ -147,7 +151,13 @@ def _update_appstream_components_internal(
                 break
 
         dcpt.project_license = cpt.get_project_license()
-        dcpt.developer_name = cpt.get_developer_name()
+        try:
+            developer = cpt.get_developer()
+            if developer:
+                dcpt.developer_name = developer.get_name()
+        except AttributeError:
+            # compatibility with AppStream < 1.0
+            dcpt.developer_name = cpt.get_developer_name()
 
         # test for free software
         dcpt.is_free = False
@@ -218,11 +228,15 @@ def import_appstream_data(
 
     mdata_read.clear_components()
     try:
-        mdata_read.parse_data(yaml_catalog_data, AppStream.FormatKind.YAML)
+        try:
+            mdata_read.parse_data(yaml_catalog_data, AppStream.FormatKind.YAML)
+        except TypeError:
+            mdata_read.parse_data(yaml_catalog_data, -1, AppStream.FormatKind.YAML)
+        cpts = mdata_read.get_components().as_array()
     except AttributeError:
         # backwards compatibility with AppStream versions prior to 1.0
         mdata_read.parse(yaml_catalog_data, AppStream.FormatKind.YAML)  # pylint: disable=no-member
-    cpts = mdata_read.get_components()
+        cpts = mdata_read.get_components()
 
     log.debug('Found {} software components in {}/{}'.format(len(cpts), rss.suite.name, component.name))
     if len(cpts) == 0:
