@@ -5,9 +5,17 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
+from datetime import UTC, datetime, timedelta
 
 from laniakea import LkModule, LocalConfig
-from laniakea.db import Job, JobKind, JobStatus, SourcePackage, config_get_value
+from laniakea.db import (
+    Job,
+    JobKind,
+    JobResult,
+    JobStatus,
+    SourcePackage,
+    config_get_value,
+)
 from laniakea.utils import get_dir_shorthand_for_uuid
 from laniakea.logging import log
 
@@ -86,7 +94,7 @@ def delete_orphaned_jobs(
             .one_or_none()
         )
         if not spkg:
-            log.info(f"Deleting old job {job.uuid} (package that triggered it is no longer available)")
+            log.info(f'Deleting old job {job.uuid} (package that triggered it is no longer available)')
 
             # don't perform any action if we're just simulating
             if simulate:
@@ -108,3 +116,37 @@ def delete_orphaned_jobs(
 
             # drop the job
             session.delete(job)
+
+
+def retry_stalled_jobs(
+    session,
+    simulate: bool = False,
+):
+    """Reschedule all jobs that have been in a running/accepted state for too long.
+
+    :param session: A SQLAlchemy session
+    :param simulate: Do not perform any changes, just log what would be done
+    """
+
+    # we assume that anything that is stuck in running or scheduled for two weeks is probably stalled for some reason
+    fourteen_days_ago = datetime.now(UTC) - timedelta(days=14)
+    stalled_jobs = (
+        session.query(Job)
+        .filter(Job.status.in_((JobStatus.RUNNING, JobStatus.SCHEDULED)))
+        .filter(Job.time_assigned <= fourteen_days_ago)
+        .all()
+    )
+
+    for job in stalled_jobs:
+        log.info(f'Rescheduling stalled job: {job.uuid}')
+
+        # don't perform any action if we're just simulating
+        if simulate:
+            continue
+
+        # if we are here, it should be safe to reschedule the job
+        job.status = JobStatus.WAITING
+        job.result = JobResult.UNKNOWN
+        job.time_assigned = None
+        job.time_finished = None
+        job.latest_log_excerpt = 'Job has been rescheduled due to inactivity'

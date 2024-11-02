@@ -11,6 +11,7 @@ import click
 from sqlalchemy.orm import undefer
 
 from laniakea.db import Job, JobResult, JobStatus, session_scope
+from laniakea.ariadne import retry_stalled_jobs
 
 from .utils import print_note
 
@@ -60,3 +61,20 @@ def retry(id):
         job.latest_log_excerpt = None
 
         print_note('Job {}/{}::{} was rescheduled.'.format(str(job.module), str(job.kind), str(job.uuid)))
+
+
+@job.command()
+@click.option(
+    '--simulate',
+    'simulate',
+    is_flag=True,
+    default=False,
+    help='Run simulation, just display what would be done instead of doing it.',
+)
+def retry_stalled(
+    simulate: bool = False,
+):
+    """Reschedule all jobs that have been in a running/accepted state for too long."""
+
+    with session_scope() as session:
+        retry_stalled_jobs(session, simulate)
