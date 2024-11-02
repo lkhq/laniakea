@@ -11,6 +11,7 @@ import click
 
 from laniakea import LkModule
 from laniakea.db import session_scope, session_factory
+from laniakea.utils import decrypt_traceback_string
 
 from .utils import input_str, print_header, print_error_exit
 
@@ -94,3 +95,14 @@ def shell():
     # pylint: disable=possibly-unused-variable
     with session_scope() as session:
         bpython.embed(locals_=locals())
+
+
+@core.command()
+@click.argument('tb_string', nargs=1)
+def decode_traceback(tb_string):
+    """Decode a traceback string that was generated on this machine."""
+
+    try:
+        print(decrypt_traceback_string(tb_string))
+    except Exception as exc:
+        print_error_exit(f'Error decoding traceback: {exc}')

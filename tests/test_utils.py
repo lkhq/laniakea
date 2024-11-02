@@ -101,3 +101,24 @@ def test_renameat2():
 
         assert apple_path.exists()
         assert orange_path.exists()
+
+
+def test_traceback_decrypt():
+    from laniakea.utils import decrypt_traceback_string, format_encrypted_traceback
+    from laniakea.utils.traceback import compact_traceback
+
+    try:
+        # Code that raises an exception
+        1 / 0
+    except Exception as e:
+        orig_tb = compact_traceback(e)
+        encrypted = format_encrypted_traceback(e)
+        decrypted = decrypt_traceback_string(encrypted)
+        assert "ZeroDivisionError" in decrypted
+        assert orig_tb == decrypted
+        assert encrypted != decrypted
+
+        # test decryption with wrong key
+        key = b"wrongkey"
+        with pytest.raises(Exception):
+            decrypt_traceback_string(encrypted, key=key)

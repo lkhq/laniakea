@@ -35,6 +35,10 @@ from laniakea.utils.fileutil import (
     hardlink_or_copy,
     check_filename_safe,
 )
+from laniakea.utils.traceback import (
+    decrypt_traceback_string,
+    format_encrypted_traceback,
+)
 
 __all__ = [
     'arch_matches',
@@ -64,4 +68,6 @@ __all__ = [
     'safe_rename',
     'hardlink_or_copy',
     'set_process_title',
+    'format_encrypted_traceback',
+    'decrypt_traceback_string',
 ]

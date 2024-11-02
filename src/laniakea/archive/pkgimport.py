@@ -39,7 +39,13 @@ from laniakea.db import (
     ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
 )
-from laniakea.utils import safe_strip, safe_rename, split_strip, hardlink_or_copy
+from laniakea.utils import (
+    safe_strip,
+    safe_rename,
+    split_strip,
+    hardlink_or_copy,
+    format_encrypted_traceback,
+)
 from laniakea.logging import log, archive_log
 from laniakea.msgstream import EventEmitter
 from laniakea.localconfig import LocalConfig, LintianConfig
@@ -1331,7 +1337,8 @@ class UploadHandler:
                         os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, split_epoch(spkg.version)[1])),
                     )
             except Exception as e:
-                raise UploadError('Failed to import source package: {}'.format(str(e)))
+                tb_s = format_encrypted_traceback(e)
+                raise UploadError('Failed to import source package: {}\nDiagnostic Code: {}'.format(str(e), tb_s))
 
         # import binary packages
         for file in files.values():
@@ -1341,7 +1348,8 @@ class UploadHandler:
                 try:
                     pi.import_binary(os.path.join(changes.directory, file.fname), file.component)
                 except Exception as e:
-                    raise UploadError('Failed to import binary package: {}'.format(str(e)))
+                    tb_s = format_encrypted_traceback(e)
+                    raise UploadError('Failed to import binary package: {}\nDiagnostic Code: {}'.format(str(e), tb_s))
 
         # looks like the package was accepted - spread the news!
         ev_data = build_event_data_for_accepted_upload(rss, spkg, changes, is_new, uploader)
