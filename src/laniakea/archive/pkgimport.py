@@ -1337,8 +1337,15 @@ class UploadHandler:
                         os.path.join(spkg_queue_dir, '{}_{}.changes'.format(spkg.name, split_epoch(spkg.version)[1])),
                     )
             except Exception as e:
-                tb_s = format_encrypted_traceback(e)
-                raise UploadError('Failed to import source package: {}\nDiagnostic Code: {}'.format(str(e), tb_s))
+                message = 'Failed to import source package: {}'.format(str(e))
+                if not isinstance(
+                    e, (ArchiveImportError, ArchiveImportNewError, ArchivePackageExistsError, HashVerifyError)
+                ):
+                    # we only emit an encrypted traceback in case of unexpected/uncommon errors
+                    tb_s = format_encrypted_traceback(e)
+                    message += '\nDiagnostic Code: {}'.format(tb_s)
+
+                raise UploadError(message)
 
         # import binary packages
         for file in files.values():
@@ -1348,8 +1355,15 @@ class UploadHandler:
                 try:
                     pi.import_binary(os.path.join(changes.directory, file.fname), file.component)
                 except Exception as e:
-                    tb_s = format_encrypted_traceback(e)
-                    raise UploadError('Failed to import binary package: {}\nDiagnostic Code: {}'.format(str(e), tb_s))
+                    message = 'Failed to import binary package: {}'.format(str(e))
+                    if not isinstance(
+                        e, (ArchiveImportError, ArchiveImportNewError, ArchivePackageExistsError, HashVerifyError)
+                    ):
+                        # we only emit an encrypted traceback in case of unexpected/uncommon errors
+                        tb_s = format_encrypted_traceback(e)
+                        message += '\nDiagnostic Code: {}'.format(tb_s)
+
+                    raise UploadError(message)
 
         # looks like the package was accepted - spread the news!
         ev_data = build_event_data_for_accepted_upload(rss, spkg, changes, is_new, uploader)
