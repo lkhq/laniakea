@@ -740,7 +740,7 @@ class PackageImporter:
                     pkgname,
                     version,
                     pkgarch,
-                    component.name,
+                    component_name,
                 )
                 return None
 
