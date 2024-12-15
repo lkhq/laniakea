@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2016-2024 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
@@ -8,9 +8,8 @@ import os
 from typing import Any
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import func, create_engine, literal_column
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.sql import func
 from sqlalchemy.types import UserDefinedType
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -20,12 +19,10 @@ from ..localconfig import LocalConfig
 
 __all__ = ['Base', 'DebVersion', 'Database', 'UUID', 'session_scope', 'create_tsvector', 'print_query']
 
-
 Base: Any = declarative_base()
 
 
-# Patch in support for the debversion field type so that it works during
-# reflection
+# Patch in support for the debversion field type so that it works during reflection
 # pylint: disable=abstract-method,no-init
 class DebVersion(UserDefinedType):
     cache_ok = True
@@ -38,11 +35,6 @@ class DebVersion(UserDefinedType):
 
     def result_processor(self, dialect, coltype):
         return None
-
-
-from sqlalchemy.databases import postgres
-
-postgres.ischema_names['debversion'] = DebVersion
 
 
 class Database:
@@ -71,7 +63,7 @@ class Database:
             return self._engine
 
         def create_tables(self):
-            '''Initialize the database and create all tables'''
+            """Initialize the database and create all tables."""
             from alembic import command
             from alembic.config import Config
 
@@ -84,10 +76,10 @@ class Database:
             self.upgrade()
 
         def drop_tables(self):
-            '''Drop all database tables.'''
+            """Drop all database tables."""
             from sqlalchemy.orm import close_all_sessions
 
-            # due to q Postgres/SQLAlchemy quirk, we need to explicitly close all sessions
+            # due to a Postgres/SQLAlchemy quirk, we need to explicitly close all sessions
             # before touching the tables
             close_all_sessions()
 
@@ -95,7 +87,7 @@ class Database:
             Base.metadata.drop_all(self._engine)
 
         def upgrade(self):
-            '''Upgrade database schema to the newest revision'''
+            """Upgrade database schema to the newest revision"""
             import alembic.config
 
             from .. import lk_py_directory
@@ -186,7 +178,7 @@ class Database:
                     session.add(arch_all)
 
         def downgrade(self, revision):
-            '''Upgrade database schema to the newest revision'''
+            """Upgrade database schema to the newest revision"""
             import alembic.config
 
             from .. import lk_py_directory
@@ -214,9 +206,9 @@ def session_factory():
 
 @contextmanager
 def session_scope():
-    '''
+    """
     Provide a transactional scope around a series of operations.
-    '''
+    """
     session = session_factory()
     try:
         yield session
@@ -232,14 +224,14 @@ def create_tsvector(*args):
     exp = args[0]
     for e in args[1:]:
         exp += ' ' + e
-    return func.to_tsvector('english', exp)
+    return func.to_tsvector(literal_column("'english'"), exp)
 
 
 def print_query(query, literals=True):
-    '''
+    """
     Print a SQLAlchemy query with literals inserted and
     adjusted for the PostgreSQL dialect.
-    '''
+    """
     from sqlalchemy.dialects import postgresql
 
     sql = query.statement.compile(dialect=postgresql.dialect(), compile_kwargs={'literal_binds': literals})

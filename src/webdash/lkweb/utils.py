@@ -37,7 +37,7 @@ def humanized_timediff(time):
 
 def fetch_statistics_for(session, stat_key: str, start_at: datetime) -> list[dict[str, T.Any]] | None:
     values = (
-        session.query(func.extract('epoch', StatsEntry.time), StatsEntry.value)
+        session.query(func.extract('epoch', StatsEntry.time), StatsEntry.value)  # pylint: disable=not-callable
         .filter(StatsEntry.key == stat_key, StatsEntry.time > start_at)
         .order_by(StatsEntry.time)
         .all()

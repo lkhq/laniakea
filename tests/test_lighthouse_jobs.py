@@ -111,6 +111,7 @@ class TestLighthouseJobRequests:
         # request new job
         req['accepts'] = ['package-build']
         reply = self.send_request(sock, req)
+        assert reply.get('error', None) is None
         assert reply['time_created']
         del reply['time_created']
         assert reply['uuid']

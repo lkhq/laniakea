@@ -38,7 +38,7 @@ def debcheck_has_issues_for_package(
         .filter(DebcheckIssue.suite_id == rss.suite.id)
         .filter(DebcheckIssue.package_name == spkg.name)
         .filter(DebcheckIssue.package_version == spkg.version)
-        .filter(DebcheckIssue.architectures.any(arch.name))
+        .filter(DebcheckIssue.architectures.contains([arch.name]))
         .exists()
     )
     return session.query(eq).scalar()
