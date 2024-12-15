@@ -84,7 +84,9 @@ def guess_archive_uploader_for_changes(session, changes: Changes) -> ArchiveUplo
     """
 
     possible_uploaders: list[ArchiveUploader] = (
-        session.query(ArchiveUploader).filter(ArchiveUploader.pgp_fingerprints.any(changes.primary_fingerprint)).all()
+        session.query(ArchiveUploader)
+        .filter(ArchiveUploader.pgp_fingerprints.contains([changes.primary_fingerprint]))
+        .all()
     )
     if not possible_uploaders:
         raise UploaderError(

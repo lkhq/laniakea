@@ -4,7 +4,8 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-from sqlalchemy import Column, String
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSON
 
 from .base import Base
@@ -35,14 +36,14 @@ class LkModule:
 
 
 class ConfigEntry(Base):
-    '''
+    """
     A generic, multi-purpose configuration entry.
-    '''
+    """
 
     __tablename__ = 'config'
 
-    id = Column(String, primary_key=True)
-    value = Column(JSON)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[dict] = mapped_column(JSON)
 
     def __init__(self, mod, identifier, value: dict = None):
         if not value:

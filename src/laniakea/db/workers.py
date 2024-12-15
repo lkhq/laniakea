@@ -9,16 +9,17 @@ from enum import IntEnum
 from uuid import uuid4
 from datetime import datetime
 
-from sqlalchemy import Enum, Text, Column, Boolean, DateTime
+from sqlalchemy import Enum, Text, Boolean, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
 from .base import UUID, Base
 
 
 class WorkerStatus(IntEnum):
-    '''
+    """
     State this worker is in.
-    '''
+    """
 
     UNKNOWN = 0
     ACTIVE = enum.auto()
@@ -28,25 +29,33 @@ class WorkerStatus(IntEnum):
 
 
 class SparkWorker(Base):
-    '''
+    """
     An external machine/service that takes tasks from a Lighthouse server.
-    '''
+    """
 
     __tablename__ = 'spark_workers'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    name = Column(Text())  # The machine/worker name
-    owner = Column(Text(), nullable=True)  # Owner of this worker
+    name: Mapped[str] = mapped_column(Text())  # The machine/worker name
+    owner: Mapped[str] = mapped_column(Text(), nullable=True)  # Owner of this worker
 
-    time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this worker was registered/created
+    time_created: Mapped[datetime] = mapped_column(
+        DateTime(), default=datetime.utcnow
+    )  # Time when this worker was registered/created
 
-    accepts = Column(ARRAY(Text()))  # Modules this worker will accept jobs for
-    architectures = Column(ARRAY(Text()))  # Architectures this worker will accept jobs for
+    accepts: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])  # Modules this worker will accept jobs for
+    architectures: Mapped[list[str]] = mapped_column(
+        ARRAY(Text()), default=[]
+    )  # Architectures this worker will accept jobs for
 
-    status = Column(Enum(WorkerStatus))  # Status/health of this machine
-    enabled = Column(Boolean())  # Whether this worker should receive jobs or not
+    status: Mapped[WorkerStatus] = mapped_column(
+        Enum(WorkerStatus), default=WorkerStatus.UNKNOWN
+    )  # Status/health of this machine
+    enabled: Mapped[bool] = mapped_column(Boolean(), default=False)  # Whether this worker should receive jobs or not
 
-    last_ping = Column(DateTime())  # Time when we last got a message from the worker
+    last_ping: Mapped[datetime] = mapped_column(
+        DateTime(), default=datetime.utcnow
+    )  # Time when we last got a message from the worker
 
-    data = Column(JSON)  # Custom worker properties
+    data: Mapped[dict] = mapped_column(JSON, default={})  # Custom worker properties

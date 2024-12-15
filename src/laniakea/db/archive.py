@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2016-2024 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
@@ -9,7 +9,7 @@ import enum
 import json
 import uuid
 from pathlib import Path
-from datetime import datetime
+from datetime import UTC, datetime
 from dataclasses import dataclass
 
 import apt_pkg
@@ -28,7 +28,7 @@ from sqlalchemy import (
     SmallInteger,
     UniqueConstraint,
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import Mapped, backref, relationship, mapped_column
 from sqlalchemy.sql import cast, func
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import CHAR, JSON, TEXT, ARRAY, JSONB
@@ -61,18 +61,14 @@ class ArchiveConfig(Base):
 
     __tablename__ = 'archive_config'
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    primary_repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
-    primary_repo = relationship('ArchiveRepository')
-    # If True, Laniakea will automatically create, delete and assign debug suites
-    auto_debug_management = Column(Boolean(), default=True)
-
-    # Location (directory) of the primary/master repository
-    primary_repo_root = Column(Text(), nullable=False, default='/')
-    extra_repo_root = Column(Text(), nullable=False, default='/multiverse')  # Location of the additional repositories
-
-    archive_url = Column(Text(), nullable=False)  # Web URL of the primary archive mirror
+    primary_repo_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repositories.id'))
+    primary_repo: Mapped['ArchiveRepository'] = relationship('ArchiveRepository')
+    auto_debug_management: Mapped[bool] = mapped_column(Boolean(), default=True)
+    primary_repo_root: Mapped[str] = mapped_column(Text(), nullable=False, default='/')
+    extra_repo_root: Mapped[str] = mapped_column(Text(), nullable=False, default='/multiverse')
+    archive_url: Mapped[str] = mapped_column(Text(), nullable=False)
 
 
 class ArchiveRepository(Base):
@@ -82,24 +78,26 @@ class ArchiveRepository(Base):
 
     __tablename__ = 'archive_repositories'
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    name = Column(String(100), unique=True)  # Name of the repository
-    origin_name = Column(String(100))  # Name of the origin of this repository (e.g. "Purism")
-    is_debug = Column(Boolean(), default=False)  # If True, this repository is used for debug suites
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    origin_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    is_debug: Mapped[bool] = mapped_column(Boolean(), default=False)
 
-    debug_repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
-    # Indicates the debug-symbol repository that belongs to this repository (if any)
-    debug_repo_for = relationship('ArchiveRepository', backref=backref('debug_repo', remote_side=[id]), uselist=False)
+    debug_repo_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repositories.id'), nullable=True)
+    debug_repo_for: Mapped['ArchiveRepository'] = relationship(
+        'ArchiveRepository', backref=backref('debug_repo', remote_side=[id]), uselist=False
+    )
 
-    uploaders = relationship('ArchiveUploader', secondary=uploader_repo_assoc_table, back_populates='repos')
+    uploaders: Mapped[list['ArchiveUploader']] = relationship(
+        'ArchiveUploader', secondary=uploader_repo_assoc_table, back_populates='repos'
+    )
 
-    suite_settings = relationship(
+    suite_settings: Mapped[list['ArchiveRepoSuiteSettings']] = relationship(
         'ArchiveRepoSuiteSettings', back_populates='repo', uselist=True, cascade='all, delete, delete-orphan'
     )
 
-    # map upload suites to the actual suite automatically
-    upload_suite_map = Column(MutableDict.as_mutable(JSON), default={})
+    upload_suite_map: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON()), default={})
 
     def __init__(self, name):
         self.name = name
@@ -205,25 +203,35 @@ class ArchiveUploader(Base):
 
     __tablename__ = 'archive_uploaders'
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    email = Column(Text(), unique=True)  # E-Mail address of this entity used for signing
-    pgp_fingerprints = Column(ARRAY(Text()))  # Fingerprints of the GnuPG keys associated with this entity
-    is_human = Column(Boolean(), default=True)  # Whether this entry applies to a human person or a machine
+    email: Mapped[str] = mapped_column(Text(), unique=True)  # E-Mail address of this entity used for signing
+    pgp_fingerprints: Mapped[list[str]] = mapped_column(
+        ARRAY(Text()), default=[]
+    )  # Fingerprints of the GnuPG keys associated with this entity
+    is_human: Mapped[bool] = mapped_column(
+        Boolean(), default=True
+    )  # Whether this entry applies to a human person or a machine
 
-    name = Column(Text(), nullable=True)  # Full name of this uploader
-    alias = Column(Text(), nullable=True)  # Alias or nickname of this uploader
+    name: Mapped[str] = mapped_column(Text(), nullable=True)  # Full name of this uploader
+    alias: Mapped[str] = mapped_column(Text(), nullable=True)  # Alias or nickname of this uploader
 
-    allow_source_uploads = Column(Boolean(), default=True)  # Whether source uploads are permitted
-    allow_binary_uploads = Column(Boolean(), default=True)  # Whether binary package uploads are permitted
-    allow_flatpak_uploads = Column(Boolean(), default=True)  # Whether binary Flatpak bundle uploads are permitted
+    allow_source_uploads: Mapped[bool] = mapped_column(Boolean(), default=True)  # Whether source uploads are permitted
+    allow_binary_uploads: Mapped[bool] = mapped_column(
+        Boolean(), default=True
+    )  # Whether binary package uploads are permitted
+    allow_flatpak_uploads: Mapped[bool] = mapped_column(
+        Boolean(), default=True
+    )  # Whether binary Flatpak bundle uploads are permitted
 
     # Whether uploads of this entity should always end up in the NEW queue
-    always_review = Column(Boolean(), default=False)
+    always_review: Mapped[bool] = mapped_column(Boolean(), default=False)
     # Names of source packages that this entity is allowed to touch, empty to allow all
-    allowed_packages = Column(ARRAY(Text()))
+    allowed_packages: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
 
-    repos = relationship('ArchiveRepository', secondary=uploader_repo_assoc_table, back_populates='uploaders')
+    repos: Mapped[list['ArchiveRepository']] = relationship(
+        'ArchiveRepository', secondary=uploader_repo_assoc_table, back_populates='uploaders'
+    )
 
     def __init__(self, email: str):
         self.email = email
@@ -308,27 +316,35 @@ class ArchiveSuite(Base):
 
     __tablename__ = 'archive_suites'
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    name = Column(String(120), unique=True)  # Name of the suite, usually the codename e.g. "sid"
-    alias = Column(String(120), unique=True, nullable=True)  # Alternative name of the suite, e.g. "unstable"
-    summary = Column(String(200), nullable=True)  # Short description string for this suite
-    version = Column(String(80), nullable=True)  # Version string applicable for this suite
-    dbgsym_policy = Column(
+    name: Mapped[str] = mapped_column(String(120), unique=True)  # Name of the suite, usually the codename e.g. "sid"
+    alias: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=True
+    )  # Alternative name of the suite, e.g. "unstable"
+    summary: Mapped[str] = mapped_column(String(200), nullable=True)  # Short description string for this suite
+    version: Mapped[str] = mapped_column(String(80), nullable=True)  # Version string applicable for this suite
+    dbgsym_policy: Mapped[DbgSymPolicy] = mapped_column(
         Enum(DbgSymPolicy), default=DbgSymPolicy.NO_DEBUG
     )  # Set how debug symbol packages should be handled for this suite
 
-    architectures = relationship('ArchiveArchitecture', secondary=suite_arch_assoc_table, back_populates='suites')
-    components = relationship('ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites')
+    architectures: Mapped[list['ArchiveArchitecture']] = relationship(
+        'ArchiveArchitecture', secondary=suite_arch_assoc_table, back_populates='suites'
+    )
+    components: Mapped[list['ArchiveComponent']] = relationship(
+        'ArchiveComponent', secondary=suite_component_assoc_table, back_populates='suites'
+    )
 
-    debug_suite_id = Column(Integer, ForeignKey('archive_suites.id'))
-    debug_suite_for = relationship('ArchiveSuite', backref=backref('debug_suite', remote_side=[id]), uselist=False)
+    debug_suite_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_suites.id'), nullable=True)
+    debug_suite_for: Mapped['ArchiveSuite'] = relationship(
+        'ArchiveSuite', backref=backref('debug_suite', remote_side=[id]), uselist=False
+    )
 
-    repo_settings = relationship(
+    repo_settings: Mapped[list['ArchiveRepoSuiteSettings']] = relationship(
         'ArchiveRepoSuiteSettings', back_populates='suite', cascade='all, delete, delete-orphan'
     )
 
-    parents = relationship(
+    parents: Mapped[list['ArchiveSuite']] = relationship(
         'ArchiveSuite',
         secondary=suite_parents_assoc_table,
         primaryjoin=id == suite_parents_assoc_table.c.suite_id,
@@ -336,8 +352,12 @@ class ArchiveSuite(Base):
         backref='overlays',
     )
 
-    pkgs_source = relationship('SourcePackage', secondary=srcpkg_suite_assoc_table, back_populates='suites')
-    pkgs_binary = relationship('BinaryPackage', secondary=binpkg_suite_assoc_table, back_populates='suites')
+    pkgs_source: Mapped[list['SourcePackage']] = relationship(
+        'SourcePackage', secondary=srcpkg_suite_assoc_table, back_populates='suites'
+    )
+    pkgs_binary: Mapped[list['BinaryPackage']] = relationship(
+        'BinaryPackage', secondary=binpkg_suite_assoc_table, back_populates='suites'
+    )
 
     _primary_arch = None
 
@@ -368,45 +388,29 @@ class ArchiveRepoSuiteSettings(Base):
     __tablename__ = 'archive_repo_suite_settings'
     __table_args__ = (UniqueConstraint('repo_id', 'suite_id', name='_repo_suite_uc'),)
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo: ArchiveRepository = relationship('ArchiveRepository', back_populates='suite_settings')
+    repo_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
+    repo: Mapped['ArchiveRepository'] = relationship('ArchiveRepository', back_populates='suite_settings')
 
-    suite_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=False)
-    suite: ArchiveSuite = relationship('ArchiveSuite', back_populates='repo_settings')
+    suite_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_suites.id'), nullable=False)
+    suite: Mapped['ArchiveSuite'] = relationship('ArchiveSuite', back_populates='repo_settings')
 
-    # Override the default suite summary text for the particular repository
-    suite_summary = Column(String(200), nullable=True)
-    # Whether new packages can arrive in this suite via regular uploads ("unstable", "staging", ...)
-    accept_uploads = Column(Boolean(), default=False)
-
-    new_policy = Column(Enum(NewPolicy), default=NewPolicy.DEFAULT)  # Policy how new packages should be processed
-
-    # Whether this is a development target suite ("testing", "green", ...)
-    devel_target = Column(Boolean(), default=False)
-    frozen = Column(Boolean(), default=False)  # Whether the suite is frozen and immutable for changes
-    auto_overrides = Column(Boolean(), default=False)  # Automatically process overrides, no package will land in NEW
-    # Every package will end up in the NEW queue for manual review, no automatic ACCEPT will happen
-    manual_accept = Column(Boolean(), default=False)
-
-    # If set, packages from this source will not be installed automatically
-    not_automatic = Column(Boolean(), default=False)
-    # Packages will not be auto-installed, but auto-upgraded if already installed
-    but_automatic_upgrades = Column(Boolean(), default=False)
-
-    valid_time = Column(Integer, default=604800)  # time in seconds how long the suite index should be considered valid
-    # delay before a package is available to 100% of all users (0 to disable phased updates)
-    phased_update_delay = Column(Integer, default=0)
-    signingkeys = Column(
-        ARRAY(String(64))
-    )  # Fingerprints of GPG keys the suite will be signed with in the respective repo
-    announce_emails = Column(ARRAY(Text()))  # E-Mail addresses that changes to this repository should be announced at
-
-    changes_pending = Column(Boolean(), default=True)  # whether the suite in this repository has unpublished changes
-    time_published = Column(
-        DateTime(), default=datetime.utcfromtimestamp(0)
-    )  # Time when this repo/suite configuration was last published
+    suite_summary: Mapped[str] = mapped_column(String(200), nullable=True)
+    accept_uploads: Mapped[bool] = mapped_column(Boolean(), default=False)
+    new_policy: Mapped[NewPolicy] = mapped_column(Enum(NewPolicy), default=NewPolicy.DEFAULT)
+    devel_target: Mapped[bool] = mapped_column(Boolean(), default=False)
+    frozen: Mapped[bool] = mapped_column(Boolean(), default=False)
+    auto_overrides: Mapped[bool] = mapped_column(Boolean(), default=False)
+    manual_accept: Mapped[bool] = mapped_column(Boolean(), default=False)
+    not_automatic: Mapped[bool] = mapped_column(Boolean(), default=False)
+    but_automatic_upgrades: Mapped[bool] = mapped_column(Boolean(), default=False)
+    valid_time: Mapped[int] = mapped_column(Integer, default=604800)
+    phased_update_delay: Mapped[int] = mapped_column(Integer, default=0)
+    signingkeys: Mapped[list[str]] = mapped_column(ARRAY(String(64)), default=[])
+    announce_emails: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    changes_pending: Mapped[bool] = mapped_column(Boolean(), default=True)
+    time_published: Mapped[datetime] = mapped_column(DateTime(), default=datetime.fromtimestamp(0, UTC))
 
     def __init__(self, repo: ArchiveRepository, suite: ArchiveSuite):
         if repo.is_debug and suite.dbgsym_policy != DbgSymPolicy.ONLY_DEBUG:
@@ -426,16 +430,18 @@ class ArchiveComponent(Base):
 
     __tablename__ = 'archive_components'
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    name = Column(String(100), unique=True)  # Name of the repository
-    summary = Column(String(200), nullable=True)  # Short explanation of this component's purpose
+    name: Mapped[str] = mapped_column(String(100), unique=True)  # Name of the repository
+    summary: Mapped[str] = mapped_column(String(200), nullable=True)  # Short explanation of this component's purpose
 
-    suites = relationship('ArchiveSuite', secondary=suite_component_assoc_table, back_populates='components')
+    suites: Mapped[list['ArchiveSuite']] = relationship(
+        'ArchiveSuite', secondary=suite_component_assoc_table, back_populates='components'
+    )
 
-    parent_component_id = Column(Integer, ForeignKey('archive_components.id'))
+    parent_component_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_components.id'), nullable=True)
     # Other components that need to be present to fulfill dependencies of packages in this component
-    parent_component = relationship('ArchiveComponent', remote_side=[id])
+    parent_component: Mapped['ArchiveComponent'] = relationship('ArchiveComponent', remote_side=[id])
 
     def __init__(self, name):
         self.name = name
@@ -455,16 +461,18 @@ class ArchiveArchitecture(Base):
 
     __tablename__ = 'archive_architectures'
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    name = Column(String(80), unique=True)  # Name of the architecture
-    summary = Column(String(200))  # Short description of this architecture
+    name: Mapped[str] = mapped_column(String(80), unique=True)  # Name of the architecture
+    summary: Mapped[str] = mapped_column(String(200))  # Short description of this architecture
 
-    suites = relationship(
+    suites: Mapped[list['ArchiveSuite']] = relationship(
         'ArchiveSuite', secondary=suite_arch_assoc_table, back_populates='architectures'
     )  # Suites that contain this architecture
 
-    pkgs_binary = relationship('BinaryPackage', back_populates='architecture', cascade=None)
+    pkgs_binary: Mapped[list['BinaryPackage']] = relationship(
+        'BinaryPackage', back_populates='architecture', cascade=None
+    )
 
     def __init__(self, name):
         self.name = name
@@ -478,11 +486,11 @@ class ArchiveSection(Base):
 
     __tablename__ = 'archive_sections'
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    name = Column(String(80), unique=True, nullable=False)  # Unique name/ID of the section
-    title = Column(String(100), nullable=False)  # Title of the section
-    summary = Column(Text(), nullable=True)  # Short description of this section
+    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)  # Unique name/ID of the section
+    title: Mapped[str] = mapped_column(String(100), nullable=False)  # Title of the section
+    summary: Mapped[str] = mapped_column(Text(), nullable=True)  # Short description of this section
 
     def __init__(self, name: str, title: str, summary: str = None):
         self.name = name
@@ -497,17 +505,19 @@ class ArchiveQueueNewEntry(Base):
 
     __tablename__ = 'archive_queue_new'
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    package_uuid = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'), nullable=False)
-    package = relationship('SourcePackage')
+    package_uuid: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'), nullable=False
+    )
+    package: Mapped['SourcePackage'] = relationship('SourcePackage')
 
-    destination_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=False)
-    destination = relationship('ArchiveSuite')
+    destination_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_suites.id'), nullable=False)
+    destination: Mapped['ArchiveSuite'] = relationship('ArchiveSuite')
 
-    comment = Column(Text(), nullable=True)
+    comment: Mapped[str] = mapped_column(Text(), nullable=True)
 
-    def __init__(self, spkg: 'SourcePackage', dest: ArchiveSuite):
+    def __init__(self, spkg: 'SourcePackage', dest: 'ArchiveSuite'):
         self.package = spkg
         self.destination = dest
 
@@ -696,22 +706,26 @@ class ArchiveFile(Base):
     __tablename__ = 'archive_files'
     __table_args__ = (UniqueConstraint('repo_id', 'fname', name='_repo_fname_uc'),)
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo = relationship('ArchiveRepository')
+    repo_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
+    repo: Mapped['ArchiveRepository'] = relationship('ArchiveRepository')
 
-    fname = Column(Text(), nullable=False)
-    size = Column(BigInteger())  # the size of the file
-    time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this file was created
+    fname: Mapped[str] = mapped_column(Text(), nullable=False)
+    size: Mapped[int] = mapped_column(BigInteger())  # the size of the file
+    time_created: Mapped[datetime] = mapped_column(
+        DateTime(), default=datetime.utcnow
+    )  # Time when this file was created
 
-    md5sum = Column(CHAR(32))  # the files' MD5 checksum
-    sha1sum = Column(CHAR(40))  # the files' SHA1 checksum
-    sha256sum = Column(CHAR(64))  # the files' SHA256 checksum
-    sha512sum = Column(CHAR(128))  # the files' SHA512 checksum
+    md5sum: Mapped[str] = mapped_column(CHAR(32))  # the files' MD5 checksum
+    sha1sum: Mapped[str] = mapped_column(CHAR(40))  # the files' SHA1 checksum
+    sha256sum: Mapped[str] = mapped_column(CHAR(64))  # the files' SHA256 checksum
+    sha512sum: Mapped[str] = mapped_column(CHAR(128))  # the files' SHA512 checksum
 
-    pkgs_source = relationship('SourcePackage', secondary=srcpkg_file_assoc_table, back_populates='files')
-    pkg_binary = relationship('BinaryPackage', back_populates='bin_file')
+    pkgs_source: Mapped[list['SourcePackage']] = relationship(
+        'SourcePackage', secondary=srcpkg_file_assoc_table, back_populates='files'
+    )
+    pkg_binary: Mapped['BinaryPackage'] = relationship('BinaryPackage', back_populates='bin_file')
 
     def __init__(self, fname: T.Union[Path, str], repo: ArchiveRepository = None):
         self.fname = str(fname)
@@ -741,72 +755,84 @@ class SourcePackage(Base):
 
     __tablename__ = 'archive_pkgs_source'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
+    uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
 
     # The unique identifier for the whole source packaging project (stays the same even if the package version changes)
-    source_uuid = Column(UUID(as_uuid=True), default=None, nullable=False)
+    source_uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), default=None, nullable=False)
 
-    name = Column(String(200))  # Source package name
-    version = Column(DebVersion())  # Version of this package
+    name: Mapped[str] = mapped_column(String(200))  # Source package name
+    version: Mapped[str] = mapped_column(DebVersion())  # Version of this package
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo = relationship('ArchiveRepository')
+    repo_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
+    repo: Mapped['ArchiveRepository'] = relationship('ArchiveRepository')
 
-    suites = relationship(
+    suites: Mapped[list['ArchiveSuite']] = relationship(
         'ArchiveSuite', secondary=srcpkg_suite_assoc_table, back_populates='pkgs_source'
     )  # Suites this package is in
 
-    component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
-    component = relationship('ArchiveComponent')  # Component this package is in
+    component_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_components.id'), nullable=False)
+    component: Mapped['ArchiveComponent'] = relationship('ArchiveComponent')  # Component this package is in
 
-    time_added = Column(DateTime(), default=datetime.utcnow)  # Time when this package was first seen
-    time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive
-    time_deleted = Column(DateTime(), nullable=True)  # Time when this package was deleted from the archive
+    time_added: Mapped[datetime] = mapped_column(
+        DateTime(), default=datetime.utcnow
+    )  # Time when this package was first seen
+    time_published: Mapped[datetime] = mapped_column(
+        DateTime(), nullable=True
+    )  # Time when this package was published in the archive
+    time_deleted: Mapped[datetime] = mapped_column(
+        DateTime(), nullable=True
+    )  # Time when this package was deleted from the archive
 
-    section_id = Column(Integer, ForeignKey('archive_sections.id'))
-    section = relationship('ArchiveSection')  # Section of the source package
+    section_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_sections.id'), nullable=True)
+    section: Mapped['ArchiveSection'] = relationship('ArchiveSection')  # Section of the source package
 
-    architectures = Column(ARRAY(String(80)))  # List of architectures this source package can be built for
+    architectures: Mapped[list[str]] = mapped_column(
+        ARRAY(String(80))
+    )  # List of architectures this source package can be built for
 
-    standards_version = Column(String(80), nullable=True)
-    format_version = Column(String(80))
+    standards_version: Mapped[str] = mapped_column(String(80), nullable=True)
+    format_version: Mapped[str] = mapped_column(String(80))
 
-    maintainer = Column(Text())
-    original_maintainer = Column(Text(), nullable=True)
-    uploaders = Column(ARRAY(Text()))
+    maintainer: Mapped[str] = mapped_column(Text())
+    original_maintainer: Mapped[str] = mapped_column(Text(), nullable=True)
+    uploaders: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
 
-    homepage = Column(Text(), nullable=True)  # homepage URL of this package
-    vcs_browser = Column(Text(), nullable=True)  # VCS browser URL
-    vcs_git = Column(Text(), nullable=True)  # Git repository URL
+    homepage: Mapped[str] = mapped_column(Text(), nullable=True)  # homepage URL of this package
+    vcs_browser: Mapped[str] = mapped_column(Text(), nullable=True)  # VCS browser URL
+    vcs_git: Mapped[str] = mapped_column(Text(), nullable=True)  # Git repository URL
 
-    summary = Column(Text(), nullable=True)
-    description = Column(Text(), nullable=True)
+    summary: Mapped[str] = mapped_column(Text(), nullable=True)
+    description: Mapped[str] = mapped_column(Text(), nullable=True)
 
-    testsuite = Column(ARRAY(String(100)))  # list of testsuite types this package contains
-    testsuite_triggers = Column(ARRAY(String(200)))  # list of package names that trigger the testsuite
+    testsuite: Mapped[list[str]] = mapped_column(
+        ARRAY(String(100)), default=[]
+    )  # list of testsuite types this package contains
+    testsuite_triggers: Mapped[list[str]] = mapped_column(
+        ARRAY(String(200)), default=[]
+    )  # list of package names that trigger the testsuite
 
     # value for how important it is to upgrade to this package version from previous ones
-    changes_urgency = Column(Enum(ChangesUrgency), default=ChangesUrgency.MEDIUM)
+    changes_urgency: Mapped[ChangesUrgency] = mapped_column(Enum(ChangesUrgency), default=ChangesUrgency.MEDIUM)
 
     # see https://www.debian.org/doc/debian-policy/ch-relationships.html
-    build_depends = Column(ARRAY(Text()))
-    build_depends_indep = Column(ARRAY(Text()))
-    build_depends_arch = Column(ARRAY(Text()))
+    build_depends: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    build_depends_indep: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    build_depends_arch: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
 
-    build_conflicts = Column(ARRAY(Text()))
-    build_conflicts_indep = Column(ARRAY(Text()))
-    build_conflicts_arch = Column(ARRAY(Text()))
+    build_conflicts: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    build_conflicts_indep: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    build_conflicts_arch: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
 
-    directory = Column(Text(), nullable=False)  # pool directory name for the sources
-    files = relationship(
+    directory: Mapped[str] = mapped_column(Text(), nullable=False)  # pool directory name for the sources
+    files: Mapped[list['ArchiveFile']] = relationship(
         'ArchiveFile', secondary=srcpkg_file_assoc_table, back_populates='pkgs_source'
     )  # Files that make this source package
 
-    binaries = relationship('BinaryPackage', back_populates='source', uselist=True)
+    binaries: Mapped[list['BinaryPackage']] = relationship('BinaryPackage', back_populates='source', uselist=True)
 
-    _expected_binaries_json = Column('expected_binaries', JSON)
+    _expected_binaries_json: Mapped[str] = mapped_column('expected_binaries', JSON)
     # Additional key-value metadata that may be specific to this package
-    extra_data = Column(MutableDict.as_mutable(JSONB), default={})
+    extra_data: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSONB()), default={})
 
     _expected_binaries = None
 
@@ -937,17 +963,19 @@ class ArchiveVersionMemory(Base):
     __tablename__ = 'archive_pkg_version_memory'
     __table_args__ = (UniqueConstraint('repo_suite_id', 'pkg_name', 'arch_name', name='_rss_pkg_uc'),)
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    repo_suite_id = Column(Integer, ForeignKey('archive_repo_suite_settings.id'), nullable=False)
-    repo_suite = relationship('ArchiveRepoSuiteSettings')
+    repo_suite_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repo_suite_settings.id'), nullable=False)
+    repo_suite: Mapped['ArchiveRepoSuiteSettings'] = relationship('ArchiveRepoSuiteSettings')
 
-    pkg_name = Column(String(200), nullable=False)  # Name of the package
-    arch_name = Column(
+    pkg_name: Mapped[str] = mapped_column(String(200), nullable=False)  # Name of the package
+    arch_name: Mapped[str] = mapped_column(
         String(80), nullable=False, default='source'
     )  # Architecture identifier name, such as "amd64" or "source"
 
-    highest_version = Column(DebVersion())  # Highest version of the source package that we have seen so far
+    highest_version: Mapped[DebVersion] = mapped_column(
+        DebVersion()
+    )  # Highest version of the source package that we have seen so far
 
 
 class PackageOverride(Base):
@@ -958,24 +986,30 @@ class PackageOverride(Base):
     __tablename__ = 'archive_pkg_overrides'
     __table_args__ = (UniqueConstraint('repo_id', 'suite_id', 'pkg_name', name='_repo_suite_pkgname_uc'),)
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo = relationship('ArchiveRepository', cascade=None)  # Repository this override belongs to
+    repo_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
+    repo: Mapped['ArchiveRepository'] = relationship(
+        'ArchiveRepository', cascade=None
+    )  # Repository this override belongs to
 
-    suite_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=False)
-    suite = relationship('ArchiveSuite', cascade=None)  # Suite this override belongs to
+    suite_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_suites.id'), nullable=False)
+    suite: Mapped['ArchiveSuite'] = relationship('ArchiveSuite', cascade=None)  # Suite this override belongs to
 
-    pkg_name = Column(String(200))  # Name of the binary package this override belongs to
+    pkg_name: Mapped[str] = mapped_column(String(200))  # Name of the binary package this override belongs to
 
-    essential = Column(Boolean(), default=False)  # Whether this package is marked as essential
-    priority = Column(Enum(PackagePriority), default=PackagePriority.OPTIONAL)  # Priority of the package
+    essential: Mapped[bool] = mapped_column(Boolean(), default=False)  # Whether this package is marked as essential
+    priority: Mapped[PackagePriority] = mapped_column(
+        Enum(PackagePriority), default=PackagePriority.OPTIONAL
+    )  # Priority of the package
 
-    component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
-    component = relationship('ArchiveComponent', cascade=None)  # Component this override is for
+    component_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_components.id'), nullable=False)
+    component: Mapped['ArchiveComponent'] = relationship(
+        'ArchiveComponent', cascade=None
+    )  # Component this override is for
 
-    section_id = Column(Integer, ForeignKey('archive_sections.id'), nullable=False)
-    section = relationship('ArchiveSection')  # Section of the package
+    section_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_sections.id'), nullable=False)
+    section: Mapped['ArchiveSection'] = relationship('ArchiveSection')  # Section of the package
 
     def __init__(self, pkgname: str, repo: ArchiveRepository, suite: ArchiveSuite):
         self.pkg_name = pkgname
@@ -998,73 +1032,87 @@ class BinaryPackage(Base):
 
     __tablename__ = 'archive_pkgs_binary'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
-    deb_type = Column(Enum(DebType), default=DebType.DEB)  # Deb package type
+    uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=None, nullable=False)
+    deb_type: Mapped[DebType] = mapped_column(Enum(DebType), default=DebType.DEB)  # Deb package type
 
-    name = Column(String(200))  # Package name
-    version = Column(DebVersion())  # Version of this package
+    name: Mapped[str] = mapped_column(String(200))  # Package name
+    version: Mapped[str] = mapped_column(DebVersion())  # Version of this package
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
-    repo = relationship('ArchiveRepository', cascade=None)  # Repository this package belongs to
+    repo_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repositories.id'), nullable=False)
+    repo: Mapped['ArchiveRepository'] = relationship(
+        'ArchiveRepository', cascade=None
+    )  # Repository this package belongs to
 
-    suites = relationship(
+    suites: Mapped[list['ArchiveSuite']] = relationship(
         'ArchiveSuite', secondary=binpkg_suite_assoc_table, back_populates='pkgs_binary', cascade=None
     )  # Suites this package is in
 
-    component_id = Column(Integer, ForeignKey('archive_components.id'), nullable=False)
-    component = relationship('ArchiveComponent', cascade=None)  # Component this package is in
+    component_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_components.id'), nullable=False)
+    component: Mapped['ArchiveComponent'] = relationship(
+        'ArchiveComponent', cascade=None
+    )  # Component this package is in
 
-    architecture_id = Column(Integer, ForeignKey('archive_architectures.id'), nullable=False)
+    architecture_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_architectures.id'), nullable=False)
     # Architecture this binary was built for
-    architecture = relationship('ArchiveArchitecture', back_populates='pkgs_binary', cascade=None)
+    architecture: Mapped['ArchiveArchitecture'] = relationship(
+        'ArchiveArchitecture', back_populates='pkgs_binary', cascade=None
+    )
 
-    source_id = Column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'))
-    source = relationship('SourcePackage', back_populates='binaries', cascade='merge')
+    source_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('archive_pkgs_source.uuid'), nullable=True)
+    source: Mapped['SourcePackage'] = relationship('SourcePackage', back_populates='binaries', cascade='merge')
 
-    time_added = Column(DateTime(), default=datetime.utcnow)  # Time when this package was added to the archive
-    time_published = Column(DateTime(), nullable=True)  # Time when this package was published in the archive
-    time_deleted = Column(DateTime(), nullable=True)  # Time when this package was deleted from the archive
+    time_added: Mapped[datetime] = mapped_column(
+        DateTime(), default=datetime.utcnow
+    )  # Time when this package was added to the archive
+    time_published: Mapped[datetime] = mapped_column(
+        DateTime(), nullable=True
+    )  # Time when this package was published in the archive
+    time_deleted: Mapped[datetime] = mapped_column(
+        DateTime(), nullable=True
+    )  # Time when this package was deleted from the archive
 
-    size_installed = Column(BigInteger())  # Size of the installed package
+    size_installed: Mapped[int] = mapped_column(BigInteger())  # Size of the installed package
 
-    summary = Column(Text())
-    description = Column(Text())
-    description_md5 = Column(CHAR(32))
+    summary: Mapped[str] = mapped_column(Text())
+    description: Mapped[str] = mapped_column(Text())
+    description_md5: Mapped[str] = mapped_column(CHAR(32))
 
-    depends = Column(ARRAY(Text()))
-    pre_depends = Column(ARRAY(Text()))
+    depends: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    pre_depends: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
 
-    replaces = Column(ARRAY(Text()))
-    provides = Column(ARRAY(Text()))
-    recommends = Column(ARRAY(Text()))
-    suggests = Column(ARRAY(Text()))
-    enhances = Column(ARRAY(Text()))
-    conflicts = Column(ARRAY(Text()))
-    breaks = Column(ARRAY(Text()))
+    replaces: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    provides: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    recommends: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    suggests: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    enhances: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    conflicts: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    breaks: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
 
-    built_using = Column(ARRAY(Text()))
-    static_built_using = Column(ARRAY(Text()))
+    built_using: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
+    static_built_using: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
 
-    build_ids = Column(ARRAY(Text()))
+    build_ids: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])
 
-    maintainer = Column(Text())
-    original_maintainer = Column(Text(), nullable=True)
-    homepage = Column(Text())
+    maintainer: Mapped[str] = mapped_column(Text())
+    original_maintainer: Mapped[str] = mapped_column(Text(), nullable=True)
+    homepage: Mapped[str] = mapped_column(Text(), nullable=True)
 
-    multi_arch = Column(String(40))
+    multi_arch: Mapped[str] = mapped_column(String(40), nullable=True)
 
-    phased_update_percentage = Column(SmallInteger(), default=100)
+    phased_update_percentage: Mapped[int] = mapped_column(SmallInteger(), default=100)
 
-    contents = Column(ARRAY(Text()))  # List of filenames that this package contains
+    contents: Mapped[list[str]] = mapped_column(
+        ARRAY(Text()), default=[]
+    )  # List of filenames that this package contains
 
     # Additional key-value metadata that may be specific to this package
-    extra_data = Column(MutableDict.as_mutable(JSONB), default={})
+    extra_data: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSONB()), default={})
 
-    bin_file_id = Column(Integer, ForeignKey('archive_files.id'))
-    bin_file = relationship(
+    bin_file_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_files.id'), nullable=True)
+    bin_file: Mapped['ArchiveFile'] = relationship(
         'ArchiveFile', back_populates='pkg_binary', cascade='all, delete, delete-orphan', single_parent=True
     )
-    sw_cpts = relationship(
+    sw_cpts: Mapped[list['SoftwareComponent']] = relationship(
         'SoftwareComponent',
         secondary=swcpt_binpkg_assoc_table,
         back_populates='pkgs_binary',
@@ -1145,38 +1193,44 @@ class SoftwareComponent(Base):
 
     __tablename__ = 'software_components'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    kind = Column(Integer())  # The component type
+    kind: Mapped[int] = mapped_column(Integer)  # The component type
 
-    cid = Column(Text(), nullable=False)  # The component ID of this software
-    gcid = Column(Text(), nullable=False)  # The global component ID as used by appstream-generator
+    cid: Mapped[str] = mapped_column(Text, nullable=False)  # The component ID of this software
+    gcid: Mapped[str] = mapped_column(Text, nullable=False)  # The global component ID as used by appstream-generator
 
-    name = Column(Text(), nullable=False)  # Name of this component
-    summary = Column(Text())  # Short description of this component
-    description = Column(Text())  # Description of this component
+    name: Mapped[str] = mapped_column(Text, nullable=False)  # Name of this component
+    summary: Mapped[str] = mapped_column(Text)  # Short description of this component
+    description: Mapped[str] = mapped_column(Text, nullable=True)  # Description of this component
 
-    icon_name = Column(String(200))  # Name of the primary cached icon of this component
+    icon_name: Mapped[str] = mapped_column(
+        String(200), nullable=True
+    )  # Name of the primary cached icon of this component
 
-    is_free = Column(Boolean(), default=False)  # Whether this component is "free as in freedom" software
-    project_license = Column(Text())  # License of this software
-    developer_name = Column(Text())  # Name of the developer of this software
+    is_free: Mapped[bool] = mapped_column(
+        Boolean, default=False
+    )  # Whether this component is "free as in freedom" software
+    project_license: Mapped[str] = mapped_column(Text, nullable=True)  # License of this software
+    developer_name: Mapped[str] = mapped_column(Text, nullable=True)  # Name of the developer of this software
 
-    supports_touch = Column(Boolean(), default=False)  # Whether this component supports touch input
+    supports_touch: Mapped[bool] = mapped_column(Boolean, default=False)  # Whether this component supports touch input
 
-    categories = Column(ARRAY(String(100)))  # Categories this component is in
+    categories: Mapped[list[str]] = mapped_column(ARRAY(String(100)), default=[])  # Categories this component is in
 
-    pkgs_binary = relationship(
+    pkgs_binary: Mapped[list['BinaryPackage']] = relationship(
         'BinaryPackage',
         secondary=swcpt_binpkg_assoc_table,
         order_by='desc(BinaryPackage.version)',
         back_populates='sw_cpts',
     )  # Packages this software component is contained in
 
-    flatpakref_uuid = Column(UUID(as_uuid=True), ForeignKey('flatpak_refs.uuid'), nullable=True)
-    flatpakref = relationship('FlatpakRef')
+    flatpakref_uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('flatpak_refs.uuid'), nullable=True)
+    flatpakref: Mapped['FlatpakRef'] = relationship('FlatpakRef')
 
-    _data = Column('data', JSON)  # JSON representation of AppStream's collection data for this component
+    _data: Mapped[str] = mapped_column(
+        'data', JSON
+    )  # JSON representation of AppStream's collection data for this component
 
     __ts_vector__ = create_tsvector(
         cast(func.coalesce(name, ''), TEXT),
@@ -1208,8 +1262,12 @@ class SoftwareComponent(Base):
     @data.setter
     def data(self, value: T.Union[str, bytes, T.Dict[str, T.Any]]):
         if type(value) is bytes or type(value) is str:
-            self._data = value
+            self._data = str(value)
         elif type(value) is dict:
             self._data = json.dumps(value)
         else:
             raise ValueError('Can not add {} ({}) as software component data value.'.format(type(value), str(value)))
+
+
+# late imports to avoid circular dependencies but make linters happy
+from laniakea.db.flatpak import FlatpakRef

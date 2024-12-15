@@ -8,6 +8,8 @@ import uuid
 import logging as log
 from datetime import datetime
 
+from sqlalchemy import text
+
 import laniakea.typing as T
 from laniakea import LkModule, LocalConfig
 from laniakea.db import (
@@ -76,7 +78,8 @@ class JobWorker:
 
     def _assign_suitable_job(self, session, job_kind, arch, client_id):
         qres = session.execute(
-            '''WITH cte AS (
+            text(
+                '''WITH cte AS (
                                         SELECT uuid
                                         FROM   jobs
                                         WHERE  status=:jstatus_old
@@ -92,7 +95,8 @@ class JobWorker:
                                         time_assigned=now()
                                     FROM cte
                                         WHERE  j.uuid = cte.uuid
-                                    RETURNING j.*''',
+                                    RETURNING j.*'''
+            ),
             {
                 'jstatus_old': 'WAITING',
                 'arch': arch,
@@ -101,7 +105,7 @@ class JobWorker:
                 'worker_id': client_id,
             },
         )
-        res = qres.fetchone()
+        res = qres.mappings().fetchone()
         session.commit()
         return res
 

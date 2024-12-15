@@ -9,9 +9,9 @@ import uuid
 from uuid import uuid4
 from datetime import datetime
 
-from sqlalchemy import Enum, Text, Index, Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy import Enum, Text, Index, String, Integer, DateTime, ForeignKey
 from marshmallow import EXCLUDE, Schema, fields
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import Mapped, backref, relationship, mapped_column
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
 from .base import UUID, Base, DebVersion
@@ -22,27 +22,27 @@ DEBCHECK_ENTITY_UUID = uuid.UUID('43f7d768-7cce-4bd7-90ce-1ea6dec23a60')
 
 
 class PackageIssue(Schema):
-    '''
+    """
     Information about the package issue reason.
-    '''
+    """
 
-    package_type = fields.Enum(PackageType, by_value=True)
-    package_name = fields.Str()
-    package_version = fields.Str()
-    architectures = fields.List(fields.Str())
+    package_type: PackageType = fields.Enum(PackageType, by_value=True)  # type: ignore
+    package_name: str = fields.Str()  # type: ignore
+    package_version: str = fields.Str()  # type: ignore
+    architectures: list[str] = fields.List(fields.Str())  # type: ignore
 
-    depends = fields.Str(allow_none=True)
-    unsat_dependency = fields.Str()
-    unsat_conflict = fields.Str()
+    depends: str | None = fields.Str(allow_none=True)  # type: ignore
+    unsat_dependency: str = fields.Str()  # type: ignore
+    unsat_conflict: str = fields.Str()  # type: ignore
 
     class Meta:
         unknown = EXCLUDE
 
 
 class PackageConflict(Schema):
-    '''
+    """
     Information about a conflict between packages.
-    '''
+    """
 
     pkg1 = fields.Nested(PackageIssue())
     pkg2 = fields.Nested(PackageIssue())
@@ -55,32 +55,34 @@ class PackageConflict(Schema):
 
 
 class DebcheckIssue(Base):
-    '''
+    """
     Data for a package migration excuse, as emitted by Britney
-    '''
+    """
 
     __tablename__ = 'debcheck_issues'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    time = Column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
+    time: Mapped[datetime] = mapped_column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
 
-    package_type = Column(Enum(PackageType))
+    package_type: Mapped[PackageType] = mapped_column(Enum(PackageType))
 
-    repo_id = Column(Integer, ForeignKey('archive_repositories.id'))
-    repo = relationship('ArchiveRepository')
+    repo_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_repositories.id'))
+    repo: Mapped['ArchiveRepository'] = relationship('ArchiveRepository')
 
-    suite_id = Column(Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
-    suite = relationship('ArchiveSuite', backref=backref('debcheck_issues', passive_deletes=True))
+    suite_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_suites.id', ondelete='cascade'))
+    suite: Mapped['ArchiveSuite'] = relationship(
+        'ArchiveSuite', backref=backref('debcheck_issues', passive_deletes=True)
+    )
 
     # Architectures this issue affects, may be a wildcard like "any" or (list of) architecture expressions
-    architectures = Column(ARRAY(Text()), default=['any'])
+    architectures: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=['any'])
 
-    package_name = Column(String(200))  # Name of the package this issue affects
-    package_version = Column(DebVersion())  # Version of the package this issue affects
+    package_name: Mapped[str] = mapped_column(String(200))  # Name of the package this issue affects
+    package_version: Mapped[DebVersion] = mapped_column(DebVersion())  # Version of the package this issue affects
 
-    _missing_json = Column('missing', JSON)  # information about missing packages
-    _conflicts_json = Column('conflicts', JSON)  # information about conflicts
+    _missing_json: Mapped[dict] = mapped_column('missing', JSON)  # information about missing packages
+    _conflicts_json: Mapped[dict] = mapped_column('conflicts', JSON)  # information about conflicts
 
     _missing = None
     _conflicts = None

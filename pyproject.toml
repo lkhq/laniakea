@@ -17,7 +17,7 @@ requires = ["meson"]
 
 [tool.laniakea.dependencies]
 base = [
-    'SQLAlchemy>=1.4,<2.0',
+    'SQLAlchemy>=2.0',
     'alembic',
     'psycopg2>=2.7.7',
     'python-debian',
@@ -62,10 +62,10 @@ tests = [
     'black',
 ]
 docs = [
-    'Sphinx>=3.4',
+    'Sphinx>=6.0',
     'Pygments>=2.6',
     'sphinx-autodoc-typehints',
-    'piccolo-theme>=0.14',
+    'piccolo_theme>=0.14',
 ]
 
 [tool.pylint.master]
@@ -132,9 +132,10 @@ multi_line_output = 3
 skip_gitignore = true
 length_sort = true
 atomic = true
-skip_glob = ["tests/test_data/*"]
+skip_glob = ["venv/*", "build/*", "tests/test_data/*"]
 
 [tool.black]
 target-version = ['py39']
 line-length = 120
 skip-string-normalization = true
+exclude = 'build/|buck-out/|dist/|_build/|build/|\.git/|\.hg/|\.mypy_cache/|\.tox/|\.venv/|venv/'

@@ -8,7 +8,8 @@
 from enum import StrEnum
 from datetime import datetime
 
-from sqlalchemy import Text, Column, Integer, DateTime, PrimaryKeyConstraint
+from sqlalchemy import Text, Integer, DateTime, PrimaryKeyConstraint
+from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
 from .archive import ArchiveSuite, ArchiveRepository, ArchiveArchitecture
@@ -72,12 +73,14 @@ class StatsEntry(Base):
 
     __tablename__ = 'statistics'
 
-    key = Column(Text(), nullable=False)  # Unique identifier string for this event
-    time = Column(DateTime(), default=datetime.utcnow, nullable=False)  # Time when the value was measured
+    key: Mapped[str] = mapped_column(Text, nullable=False)  # Unique identifier string for this event
+    time: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False
+    )  # Time when the value was measured
 
-    value = Column(Integer())  # Value at the given time
+    value: Mapped[int] = mapped_column(Integer)  # Value at the given time
 
-    __table_args__ = (PrimaryKeyConstraint(key, time),)
+    __table_args__ = (PrimaryKeyConstraint('key', 'time'),)
 
     def __init__(self, key: str, value: int):
         self.key = key
