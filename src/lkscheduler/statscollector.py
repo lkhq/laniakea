@@ -117,7 +117,7 @@ def _collect_depcheck_issue_counts(session, rss: ArchiveRepoSuiteSettings):
                 DebcheckIssue.package_type == PackageType.BINARY,
                 DebcheckIssue.repo_id == rss.repo_id,
                 DebcheckIssue.suite_id == rss.suite_id,
-                DebcheckIssue.architectures.any(arch.name),
+                DebcheckIssue.architectures.contains([arch.name]),
             )
             .count()
         )

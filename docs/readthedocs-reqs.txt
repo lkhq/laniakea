@@ -24,5 +24,5 @@ flask-rebar
 mautrix
 Pygments
 Sphinx
-piccolo-theme
+piccolo_theme
 sphinx-autodoc-typehints

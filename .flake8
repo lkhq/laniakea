@@ -5,6 +5,7 @@ exclude =
     .git,
     __pycache__,
     build,
+    venv,
     dist
 extend-ignore =
     W503,

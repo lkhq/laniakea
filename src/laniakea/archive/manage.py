@@ -952,9 +952,9 @@ def guess_binary_package_remove_issues(
             SourcePackage.suites.any(id=rss.suite_id),
             SourcePackage.time_deleted.is_(None),
             or_(
-                *[SourcePackage.build_depends.any(mt) for mt in bpkg_match_terms],
-                *[SourcePackage.build_depends_indep.any(mt) for mt in bpkg_match_terms],
-                *[SourcePackage.build_depends_arch.any(mt) for mt in bpkg_match_terms],
+                *[SourcePackage.build_depends.contains(mt) for mt in bpkg_match_terms],
+                *[SourcePackage.build_depends_indep.contains(mt) for mt in bpkg_match_terms],
+                *[SourcePackage.build_depends_arch.contains(mt) for mt in bpkg_match_terms],
             ),
         )
         .all()
@@ -967,8 +967,8 @@ def guess_binary_package_remove_issues(
             BinaryPackage.time_deleted.is_(None),
             or_(BinaryPackage.architecture_id == bpkg.architecture_id, BinaryPackage.architecture.has(name='all')),
             or_(
-                *[BinaryPackage.depends.any(mt) for mt in bpkg_match_terms],
-                *[BinaryPackage.pre_depends.any(mt) for mt in bpkg_match_terms],
+                *[BinaryPackage.depends.contains(mt) for mt in bpkg_match_terms],
+                *[BinaryPackage.pre_depends.contains(mt) for mt in bpkg_match_terms],
             ),
         )
         .all()

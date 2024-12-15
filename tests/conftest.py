@@ -124,11 +124,14 @@ def localconfig(samples_dir):
 
 
 def pgsql_test_available(session_scope):
-    '''test if PostgreSQL is available with the current configuration'''
+    """test if PostgreSQL is available with the current configuration."""
+    from sqlalchemy import text
+    from sqlalchemy.exc import OperationalError
+
     try:
         with session_scope() as session:
-            session.execute('SELECT CURRENT_TIME;')
-    except Exception:  # noqa: E722
+            session.execute(text('SELECT CURRENT_TIME;'))
+    except OperationalError:
         return False
     return True
 

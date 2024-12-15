@@ -796,7 +796,7 @@ class PackageImporter:
                 )
             )
 
-        if is_new:
+        if is_new and bpkg in self._session:
             self._session.expunge(bpkg)
 
         # find pool location
@@ -955,7 +955,7 @@ class PackageImporter:
         return bpkg
 
 
-def _add_uploader_event_data(event_data: T.Dict[str, str], uploader: T.Optional[ArchiveUploader]):
+def _add_uploader_event_data(event_data: T.Dict[str, T.Any], uploader: T.Optional[ArchiveUploader]):
     """Add relevant uploader data to the event data"""
     if not uploader:
         return

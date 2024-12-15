@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2016-2024 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
@@ -9,8 +9,8 @@ from enum import IntEnum
 from uuid import uuid4
 from datetime import datetime
 
-from sqlalchemy import Enum, Text, Index, Column, String, Integer, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Enum, Text, Index, String, Integer, DateTime, ForeignKey
+from sqlalchemy.orm import Mapped, relationship, mapped_column
 from sqlalchemy.dialects.postgresql import JSON
 
 from .base import UUID, Base, DebVersion
@@ -75,35 +75,47 @@ class Job(Base):
 
     __tablename__ = 'jobs'
 
-    uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    status = Column(Enum(JobStatus), default=JobStatus.WAITING)  # Status of this job
+    status: Mapped[JobStatus] = mapped_column(Enum(JobStatus), default=JobStatus.WAITING)  # Status of this job
 
-    module = Column(String(100), nullable=False)  # the name of the module responsible for this job
-    kind = Column(String(200), nullable=False)  # kind of the job
+    module: Mapped[str] = mapped_column(String(100), nullable=False)  # the name of the module responsible for this job
+    kind: Mapped[str] = mapped_column(String(200), nullable=False)  # kind of the job
 
-    trigger = Column(UUID(as_uuid=True))  # ID of the entity responsible for triggering this job's creation
+    trigger: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )  # ID of the entity responsible for triggering this job's creation
 
-    suite_id = Column(Integer, ForeignKey('archive_suites.id'), nullable=True)
-    suite: ArchiveSuite = relationship('ArchiveSuite')  # Suite this job is supposed to run on (can be null)
-    version = Column(DebVersion())  # Version of the item this job is for (can be null)
+    suite_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_suites.id'), nullable=True)
+    suite: Mapped[ArchiveSuite] = relationship('ArchiveSuite')  # Suite this job is supposed to run on (can be null)
+    version: Mapped[DebVersion] = mapped_column(
+        DebVersion(), nullable=True
+    )  # Version of the item this job is for (can be null)
 
     # Architecture this job can run on, "any" in case the architecture does not matter
-    architecture = Column(String(80), default='any')
+    architecture: Mapped[str] = mapped_column(String(80), default='any')
 
-    time_created = Column(DateTime(), default=datetime.utcnow)  # Time when this job was created.
-    time_assigned = Column(DateTime())  # Time when this job was assigned to a worker.
-    time_finished = Column(DateTime())  # Time when this job was finished.
+    time_created: Mapped[datetime] = mapped_column(
+        DateTime(), default=datetime.utcnow
+    )  # Time when this job was created.
+    time_assigned: Mapped[datetime] = mapped_column(
+        DateTime(), nullable=True
+    )  # Time when this job was assigned to a worker.
+    time_finished: Mapped[datetime] = mapped_column(DateTime(), nullable=True)  # Time when this job was finished.
 
-    priority = Column(Integer())  # Priority of this job (higher value means faster execution of the task)
+    priority: Mapped[int] = mapped_column(
+        Integer(), default=0
+    )  # Priority of this job (higher value means faster execution of the task)
 
-    worker = Column(UUID(as_uuid=True))  # Unique ID of the entity the job is assigned to
+    worker: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )  # Unique ID of the entity the job is assigned to
 
-    result = Column(Enum(JobResult), default=JobResult.UNKNOWN)  # Result of this job
+    result: Mapped[JobResult] = mapped_column(Enum(JobResult), default=JobResult.UNKNOWN)  # Result of this job
 
-    data = Column(JSON)  # Job-specific payload data
+    data: Mapped[dict] = mapped_column(JSON, default={})  # Job-specific payload data
 
-    latest_log_excerpt = Column(Text())  # An excerpt of the current job log
+    latest_log_excerpt: Mapped[str] = mapped_column(Text(), nullable=True)  # An excerpt of the current job log
 
     def is_taken(self):
         return self.status == JobStatus.SCHEDULED or self.status == JobStatus.RUNNING
