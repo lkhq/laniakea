@@ -27,7 +27,7 @@ jobs:
 
 
   test-deb-bullseye:
-    name: Testsuite (Debian 12)
+    name: Testsuite (Debian 13)
     runs-on: ubuntu-24.04
 
     steps:
