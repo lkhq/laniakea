@@ -67,6 +67,9 @@ class BritneyConfig:
         # we don't support autopkgtest yet
         self._contents.append('ADT_ENABLE      = no')
 
+        # we don't enforce Built-Using relationships in the archive yet
+        self._contents.append('BUILT_USING_POLICY_ENABLE = no')
+
     def set_archive_paths(self, from_path: str, to_path: str):
         assert not self._paths_set
 
