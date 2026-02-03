@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2020-2022 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2020-2026 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
@@ -21,6 +21,7 @@ from debian.deb822 import Sources, Packages
 import laniakea.typing as T
 from laniakea import LkModule
 from laniakea.db import (
+    UUID,
     DebType,
     NewPolicy,
     ArchiveFile,
@@ -38,6 +39,7 @@ from laniakea.db import (
     ArchiveQueueNewEntry,
     ArchiveVersionMemory,
     ArchiveRepoSuiteSettings,
+    session_scope,
 )
 from laniakea.utils import (
     safe_strip,
@@ -133,7 +135,7 @@ def verify_hashes(file: T.Union[ChangesFileEntry, ArchiveFile], local_fname: T.U
 
 
 # result tuple of import_source
-ImportSourceResult = namedtuple('ImportSourceResult', 'pkg is_new')
+ImportSourceResult = namedtuple('ImportSourceResult', 'spkg_uuid is_new')
 
 
 class PackageImporter:
@@ -142,12 +144,11 @@ class PackageImporter:
     without performing any policy/permission checks.
     """
 
-    def __init__(self, session, repo_suite_settings: ArchiveRepoSuiteSettings):
-        self._session = session
-        self._rss = repo_suite_settings
+    def __init__(self, rss: ArchiveRepoSuiteSettings):
+        self._rss_id = rss.id
 
-        self._repo_root = self._rss.repo.get_root_dir()
-        self._repo_newqueue_root = self._rss.repo.get_new_queue_dir()
+        self._repo_root = rss.repo.get_root_dir()
+        self._repo_newqueue_root = rss.repo.get_new_queue_dir()
         os.makedirs(self._repo_newqueue_root, exist_ok=True)
 
         self._keep_source_packages = False
@@ -155,12 +156,8 @@ class PackageImporter:
         self._ensure_not_frozen()
 
     @property
-    def current_session(self):
-        return self._session
-
-    @property
-    def repo_suite_settings(self) -> ArchiveRepoSuiteSettings:
-        return self._rss
+    def repo_suite_settings_id(self) -> int:
+        return self._rss_id
 
     @property
     def keep_source_packages(self) -> bool:
@@ -180,13 +177,18 @@ class PackageImporter:
     def prefer_hardlinks(self, v: bool):
         self._prefer_hardlinks = v
 
+    def get_rss(self, session) -> ArchiveRepoSuiteSettings:
+        """Get the repo/suite settings for this importer."""
+        rss = session.query(ArchiveRepoSuiteSettings).filter(ArchiveRepoSuiteSettings.id == self._rss_id).one()
+        return rss
+
     def _ensure_not_frozen(self):
-        if self._rss.frozen:
-            raise ArchiveImportError(
-                'Can not import anything into frozen repo/suite `{}/{}`.'.format(
-                    self._rss.repo.name, self._rss.suite.name
+        with session_scope() as session:
+            rss = self.get_rss(session)
+            if rss.frozen:
+                raise ArchiveImportError(
+                    'Can not import anything into frozen repo/suite `{}/{}`.'.format(rss.repo.name, rss.suite.name)
                 )
-            )
 
     def _copy_or_move(self, src, dst, *, override: bool = False):
         os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -244,141 +246,147 @@ class PackageImporter:
         pkgname = safe_strip(src_tf.pop('Package'))
         version = safe_strip(src_tf.pop('Version'))
 
-        result = (
-            self._session.query(ArchiveVersionMemory.highest_version)
-            .filter(
-                ArchiveVersionMemory.repo_suite_id == self._rss.id,
-                ArchiveVersionMemory.arch_name == 'source',
-                ArchiveVersionMemory.pkg_name == pkgname,
-                ArchiveVersionMemory.highest_version > version,
-            )
-            .one_or_none()
-        )
-        if result:
-            if ignore_existing:
-                return ImportSourceResult(None, False)
-            if not ignore_version_check:
-                raise ArchiveImportError(
-                    (
-                        'Unable to import package "{}": '
-                        'We have already seen higher version "{}" in {}:{} before.\n'
-                        'Uploads must have a higher version than already present in the archive.'
-                    ).format(pkgname, result[0], self._rss.repo.name, self._rss.suite.name)
-                )
+        with session_scope() as session:
+            rss = self.get_rss(session)
 
-        if not component_name:
-            raise ArchiveImportError('Unable to import source package without explicit component name.')
-
-        self._session.commit()
-        with self._session.begin_nested():
-            spkg = SourcePackage(pkgname, version, self._rss.repo)
-            spkg.component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()
-
-            # check if this package is currently in the NEW queue, and if it is just update it
-            nq_entry = (
-                self._session.query(ArchiveQueueNewEntry)
+            result = (
+                session.query(ArchiveVersionMemory.highest_version)
                 .filter(
-                    ArchiveQueueNewEntry.destination_id == self._rss.suite_id,
-                    ArchiveQueueNewEntry.package.has(name=spkg.name),
-                    ArchiveQueueNewEntry.package.has(version=spkg.version),
-                    ArchiveQueueNewEntry.package.has(repo_id=self._rss.repo_id),
+                    ArchiveVersionMemory.repo_suite_id == rss.id,
+                    ArchiveVersionMemory.arch_name == 'source',
+                    ArchiveVersionMemory.pkg_name == pkgname,
+                    ArchiveVersionMemory.highest_version > version,
                 )
                 .one_or_none()
             )
-            if nq_entry:
-                spkg = nq_entry.package
-            else:
-                # check if the package already exists
-                ret = self._session.query(
-                    exists().where(
-                        SourcePackage.repo_id == self._rss.repo_id,
-                        SourcePackage.name == pkgname,
-                        SourcePackage.version == version,
-                    )
-                ).scalar()
-                if ret:
-                    if ignore_existing:
-                        return ImportSourceResult(None, False)
-                    self._session.rollback()
-                    raise ArchivePackageExistsError(
-                        'Can not import source package {}/{}: Already exists.'.format(pkgname, version)
-                    )
-                spkg.time_added = datetime.now(UTC)
-
-            spkg.format_version = safe_strip(src_tf.pop('Format'))
-            spkg.standards_version = safe_strip(src_tf.pop('Standards-Version', None))
-            spkg.architectures = pop_split(src_tf, 'Architecture', ' ')
-            spkg.maintainer = safe_strip(src_tf.pop('Maintainer'))
-            spkg.original_maintainer = safe_strip(src_tf.pop('Original-Maintainer', None))
-            spkg.uploaders = pop_split(src_tf, 'Uploaders', ',')
-            spkg.homepage = safe_strip(src_tf.pop('Homepage', None))
-            spkg.vcs_browser = safe_strip(src_tf.pop('Vcs-Browser', None))
-            spkg.vcs_git = safe_strip(src_tf.pop('Vcs-Git', None))
-
-            spkg_dsc_text = safe_strip(src_tf.pop('Description', None))
-            if spkg_dsc_text:
-                # some source packages actually have a description text
-                spkg.description = spkg_dsc_text
-                spkg.summary = spkg_dsc_text.split('\n', 1)[0].strip()
-
-            spkg.testsuite = pop_split(src_tf, 'Testsuite', ',')
-            spkg.testsuite_triggers = pop_split(src_tf, 'Testsuite-Triggers', ',')
-
-            spkg.build_depends = pop_split(src_tf, 'Build-Depends', ',')
-            spkg.build_depends_indep = pop_split(src_tf, 'Build-Depends-Indep', ',')
-            spkg.build_depends_arch = pop_split(src_tf, 'Build-Depends-Arch', ',')
-            spkg.build_conflicts = pop_split(src_tf, 'Build-Conflicts', ',')
-            spkg.build_conflicts_indep = pop_split(src_tf, 'Build-Conflicts-Indep', ',')
-            spkg.build_conflicts_arch = pop_split(src_tf, 'Build-Conflicts-Arch', ',')
-            if 'Package-List' in src_tf:
-                spkg.expected_binaries = parse_package_list(src_tf.pop('Package-List'))
-                src_tf.pop('Binary')
-            else:
-                log.warning(
-                    'Source package dsc file `{}/{}` had no `Package-List` '
-                    '- falling back to parsing `Binaries`.'.format(pkgname, version)
-                )
-                binary_stubs = []
-                for b in pop_split(src_tf, 'Binary', ','):
-                    pi = PackageInfo()
-                    pi.name = b
-                    pi.component = spkg.component.name
-                    binary_stubs.append(pi)
-                spkg.expected_binaries = binary_stubs
-
-            # set package section, guess it if necessary
-            section_name = safe_strip(src_tf.pop('Section', None))
-            if not section_name and len(spkg.expected_binaries) >= 1:
-                # take section name from the first binary entry
-                section_name = spkg.expected_binaries[0].section
-                if not section_name:
-                    # fall back to "misc"
-                    log.warning(
-                        'Unable to determine section name for new source `%s/%s` targeted at %s/%s. Assuming `misc`.',
-                        spkg.name,
-                        spkg.version,
-                        self._rss.repo.name,
-                        self._rss.suite.name,
-                    )
-                    section_name = 'misc'
-            spkg.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == section_name).one_or_none()
-            if not spkg.section:
-                if ignore_bad_section:
-                    log.warning('Ignoring bad section "%s" for %s/%s', section_name, pkgname, version)
-                    spkg.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == 'misc').one()
-                else:
-                    self._session.rollback()
+            if result:
+                if ignore_existing:
+                    return ImportSourceResult(None, False)
+                if not ignore_version_check:
                     raise ArchiveImportError(
-                        'Section {} for {}/{} does not exist.'.format(section_name, pkgname, version)
+                        (
+                            'Unable to import package "{}": '
+                            'We have already seen higher version "{}" in {}:{} before.\n'
+                            'Uploads must have a higher version than already present in the archive.'
+                        ).format(pkgname, result[0], rss.repo.name, rss.suite.name)
                     )
 
-            spkg.directory = pool_dir_from_name_component(pkgname, spkg.component.name)
+            if not component_name:
+                raise ArchiveImportError('Unable to import source package without explicit component name.')
+
+            # check if this package is currently in the NEW queue, and if it is just update it
+            nq_entry = (
+                session.query(ArchiveQueueNewEntry)
+                .filter(
+                    ArchiveQueueNewEntry.destination_id == rss.suite_id,
+                    ArchiveQueueNewEntry.package.has(name=pkgname),
+                    ArchiveQueueNewEntry.package.has(version=version),
+                    ArchiveQueueNewEntry.package.has(repo_id=rss.repo_id),
+                )
+                .one_or_none()
+            )
+
+            with session.no_autoflush:
+                if nq_entry:
+                    spkg = nq_entry.package
+                else:
+                    spkg = SourcePackage(pkgname, version, rss.repo)
+                    session.add(spkg)
+                    spkg.component = (
+                        session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one()
+                    )
+
+                    # check if the package already exists
+                    ret = session.query(
+                        exists().where(
+                            SourcePackage.repo_id == rss.repo_id,
+                            SourcePackage.name == pkgname,
+                            SourcePackage.version == version,
+                        )
+                    ).scalar()
+                    if ret:
+                        if ignore_existing:
+                            return ImportSourceResult(None, False)
+                        raise ArchivePackageExistsError(
+                            'Can not import source package {}/{}: Already exists.'.format(pkgname, version)
+                        )
+                    spkg.time_added = datetime.now(UTC)
+
+                spkg.format_version = safe_strip(src_tf.pop('Format'))
+                spkg.standards_version = safe_strip(src_tf.pop('Standards-Version', None))
+                spkg.architectures = pop_split(src_tf, 'Architecture', ' ')
+                spkg.maintainer = safe_strip(src_tf.pop('Maintainer'))
+                spkg.original_maintainer = safe_strip(src_tf.pop('Original-Maintainer', None))
+                spkg.uploaders = pop_split(src_tf, 'Uploaders', ',')
+                spkg.homepage = safe_strip(src_tf.pop('Homepage', None))
+                spkg.vcs_browser = safe_strip(src_tf.pop('Vcs-Browser', None))
+                spkg.vcs_git = safe_strip(src_tf.pop('Vcs-Git', None))
+
+                spkg_dsc_text = safe_strip(src_tf.pop('Description', None))
+                if spkg_dsc_text:
+                    # some source packages actually have a description text
+                    spkg.description = spkg_dsc_text
+                    spkg.summary = spkg_dsc_text.split('\n', 1)[0].strip()
+
+                spkg.testsuite = pop_split(src_tf, 'Testsuite', ',')
+                spkg.testsuite_triggers = pop_split(src_tf, 'Testsuite-Triggers', ',')
+
+                spkg.build_depends = pop_split(src_tf, 'Build-Depends', ',')
+                spkg.build_depends_indep = pop_split(src_tf, 'Build-Depends-Indep', ',')
+                spkg.build_depends_arch = pop_split(src_tf, 'Build-Depends-Arch', ',')
+                spkg.build_conflicts = pop_split(src_tf, 'Build-Conflicts', ',')
+                spkg.build_conflicts_indep = pop_split(src_tf, 'Build-Conflicts-Indep', ',')
+                spkg.build_conflicts_arch = pop_split(src_tf, 'Build-Conflicts-Arch', ',')
+                if 'Package-List' in src_tf:
+                    spkg.expected_binaries = parse_package_list(src_tf.pop('Package-List'))
+                    src_tf.pop('Binary')
+                else:
+                    log.warning(
+                        'Source package dsc file `{}/{}` had no `Package-List` '
+                        '- falling back to parsing `Binaries`.'.format(pkgname, version)
+                    )
+                    binary_stubs = []
+                    for b in pop_split(src_tf, 'Binary', ','):
+                        pi = PackageInfo()
+                        pi.name = b
+                        pi.component = spkg.component.name
+                        binary_stubs.append(pi)
+                    spkg.expected_binaries = binary_stubs
+
+                # source package directory in the pool
+                spkg.directory = pool_dir_from_name_component(pkgname, spkg.component.name)
+
+                # set package section, guess it if necessary
+                section_name = safe_strip(src_tf.pop('Section', None))
+                if not section_name and len(spkg.expected_binaries) >= 1:
+                    # take section name from the first binary entry
+                    section_name = spkg.expected_binaries[0].section
+                    if not section_name:
+                        # fall back to "misc"
+                        log.warning(
+                            'Unable to determine section name for new source `%s/%s` targeted at %s/%s. Assuming `misc`.',
+                            spkg.name,
+                            spkg.version,
+                            rss.repo.name,
+                            rss.suite.name,
+                        )
+                        section_name = 'misc'
+                spkg.section = session.query(ArchiveSection).filter(ArchiveSection.name == section_name).one_or_none()
+                if not spkg.section:
+                    if ignore_bad_section:
+                        log.warning('Ignoring bad section "%s" for %s/%s', section_name, pkgname, version)
+                        spkg.section = session.query(ArchiveSection).filter(ArchiveSection.name == 'misc').one()
+                    else:
+                        raise ArchiveImportError(
+                            'Section {} for {}/{} does not exist.'.format(section_name, pkgname, version)
+                        )
+
             files = checksums_list_to_file(src_tf.pop('Files'), 'md5')
             files = checksums_list_to_file(src_tf.pop('Checksums-Sha1'), 'sha1', files)
             files = checksums_list_to_file(src_tf.pop('Checksums-Sha256'), 'sha256', files)
             files = checksums_list_to_file(src_tf.pop('Checksums-Sha512', None), 'sha512', files)
 
-            missing_overrides = check_overrides_source(self._session, self._rss, spkg)
+            missing_overrides = check_overrides_source(session, rss, spkg)
             if new_policy == NewPolicy.NEVER_NEW:
                 is_new = False
             elif new_policy == NewPolicy.ALWAYS_NEW:
@@ -392,12 +400,12 @@ class PackageImporter:
             if nq_entry and spkg.files:
                 for file in spkg.files:
                     other_owner = (
-                        self._session.query(SourcePackage.uuid)
+                        session.query(SourcePackage.uuid)
                         .filter(SourcePackage.files.any(id=file.id), SourcePackage.uuid != spkg.uuid)
                         .first()
                     )
                     if not other_owner:
-                        self._session.delete(file)
+                        session.delete(file)
                 spkg.files.clear()
 
             files_todo = []
@@ -407,9 +415,9 @@ class PackageImporter:
 
                 pool_fname = os.path.join(spkg.directory, new_file.fname)
                 afile = (
-                    self._session.query(ArchiveFile)
+                    session.query(ArchiveFile)
                     .filter(
-                        ArchiveFile.repo_id == self._rss.repo_id,
+                        ArchiveFile.repo_id == rss.repo_id,
                         ArchiveFile.fname == pool_fname,
                     )
                     .one_or_none()
@@ -417,27 +425,25 @@ class PackageImporter:
                 if afile:
                     # we have an existing registered file!
                     if afile.sha1sum != new_file.sha1sum:
-                        self._session.rollback()
                         raise ArchiveImportError(
                             'File {} does not match SHA1 checksum of file in archive: {} != {}'.format(
                                 new_file.fname, new_file.sha1sum, afile.sha1sum
                             )
                         )
                     if afile.sha256sum != new_file.sha256sum:
-                        self._session.rollback()
                         raise ArchiveImportError(
                             'File {} does not match SHA256 checksum of file in archive: {} != {}'.format(
                                 new_file.fname, new_file.sha256sum, afile.sha256sum
                             )
                         )
                     if afile.sha512sum != new_file.sha512sum:
-                        self._session.rollback()
                         raise ArchiveImportError(
                             'File {} does not match SHA256 checksum of file in archive: {} != {}'.format(
                                 new_file.fname, new_file.sha512sum, afile.sha512sum
                             )
                         )
 
+                    session.add(afile)
                     if is_new:
                         # file will be in NEW or is moving out of NEW, so we always need to copy/move it,
                         # unless it is a preexisting orig.tar.* file (possibly registered to another
@@ -448,33 +454,32 @@ class PackageImporter:
                 else:
                     # we have a new file!
                     afile = new_file
-                    afile.repo = self._rss.repo
+                    afile.repo = rss.repo
                     afile.fname = pool_fname
                     files_todo.append(afile)
-                    self._session.add(afile)
+                    session.add(afile)
 
                 spkg.files.append(afile)
 
             if missing_overrides and new_policy == NewPolicy.NEVER_NEW:
                 # if we are supposed to skip NEW, we just register the overrides and add the package
                 # to its designated suite
-                register_package_overrides(self._session, self._rss, missing_overrides)
-                spkg.suites.append(self._rss.suite)
+                register_package_overrides(session, rss, missing_overrides)
+                spkg.suites.append(rss.suite)
             else:
                 if missing_overrides or new_policy == NewPolicy.ALWAYS_NEW:
                     # add to NEW queue (update entry or create new one)
                     if not nq_entry:
-                        nq_entry = ArchiveQueueNewEntry(spkg, self._rss.suite)
-                        self._session.add(nq_entry)
+                        nq_entry = ArchiveQueueNewEntry(spkg, rss.suite)
+                        session.add(nq_entry)
 
                     nq_entry.package = spkg
-                    nq_entry.destination = self._rss.suite
+                    nq_entry.destination = rss.suite
                     if error_if_new:
-                        self._session.rollback()
                         raise ArchiveImportNewError('Package `{}/{}` is NEW'.format(pkgname, version))
                 else:
                     # no missing overrides, the package is good to go
-                    spkg.suites.append(self._rss.suite)
+                    spkg.suites.append(rss.suite)
 
             if is_new:
                 # we just delete the existing queue directory contents
@@ -486,6 +491,9 @@ class PackageImporter:
                     log.debug('Removing old package contents from NEW queue: %s', old_newq_dir)
                     shutil.rmtree(old_newq_dir)
 
+            # commit stuff before touching the filesystem
+            session.commit()
+
             for file in files_todo:
                 if is_new:
                     # move package to the NEW queue
@@ -495,19 +503,17 @@ class PackageImporter:
                     pool_fname_full = os.path.join(self._repo_root, file.fname)
 
                 if not is_new and os.path.exists(pool_fname_full):
-                    self._session.rollback()
                     raise ArchiveImportError(
                         'Destination source file `{}` already exists. Can not continue'.format(file.fname)
                     )
                 self._copy_or_move(
                     os.path.join(dsc_dir, os.path.basename(file.fname)), pool_fname_full, override=is_new
                 )
-                self._session.add(file)
 
             if not is_new and nq_entry:
                 # the package is no longer NEW (all overrides are added), but apparently
                 # we have a NEW queue entry - get rid of that
-                self._session.delete(nq_entry)
+                session.delete(nq_entry)
 
             # drop directory key, we don't need it
             src_tf.pop('Directory')
@@ -518,39 +524,40 @@ class PackageImporter:
                 log.debug('Extra data fields for `{}/{}`: {}'.format(pkgname, version, dict(src_tf)))
                 spkg.extra_data = dict(src_tf)
 
-        # NOTE: At this point, we left the nested session
-        self._session.add(spkg)
-        if not is_new:
-            # extract changelog & copyright files
-            try:
-                publish_package_metadata(spkg)
-            except Exception as e:
-                # We do not want to fail at this stage due to e.g. permission issues
-                # or bad configuration and end up with files copied to the archive without
-                # registered entity in the database.
-                # The metadata will be added at a later time.
-                log.error('Unable to extract package metadata: %s', str(e))
+            if not is_new:
+                # extract changelog & copyright files
+                try:
+                    publish_package_metadata(spkg)
+                except Exception as e:
+                    # We do not want to fail at this stage due to e.g. permission issues
+                    # or bad configuration and end up with files copied to the archive without
+                    # registered entity in the database.
+                    # The metadata will be added at a later time.
+                    log.error('Unable to extract package metadata: %s', str(e))
 
-        if is_new:
-            log.info(
-                'Source `{}/{}` for {}/{} added to NEW queue.'.format(
-                    spkg.name, spkg.version, self._rss.repo.name, self._rss.suite.name
+            if is_new:
+                log.info(
+                    'Source `{}/{}` for {}/{} added to NEW queue.'.format(
+                        spkg.name, spkg.version, rss.repo.name, rss.suite.name
+                    )
                 )
-            )
-        else:
-            package_mark_published(self._session, self._rss, spkg)
-            self._rss.changes_pending = True
-            log.info(
-                'Added source `{}/{}` to {}/{}.'.format(
-                    spkg.name, spkg.version, self._rss.repo.name, self._rss.suite.name
+            else:
+                package_mark_published(session, rss, spkg)
+                rss.changes_pending = True
+                log.info(
+                    'Added source `{}/{}` to {}/{}.'.format(spkg.name, spkg.version, rss.repo.name, rss.suite.name)
                 )
-            )
-            self._session.commit()
 
-        return ImportSourceResult(spkg, is_new)
+            session.commit()
+            return ImportSourceResult(spkg.uuid, is_new)
 
     def _find_source_package(
-        self, deb_rss: ArchiveRepoSuiteSettings, source_name: str, source_version: str
+        self,
+        session,
+        rss: ArchiveRepoSuiteSettings,
+        deb_rss: ArchiveRepoSuiteSettings,
+        source_name: str,
+        source_version: str,
     ) -> T.Tuple[T.Optional[SourcePackage], bool]:
         """Find the respective binary package.
 
@@ -559,7 +566,7 @@ class PackageImporter:
         """
 
         source = (
-            self._session.query(SourcePackage)
+            session.query(SourcePackage)
             .filter(
                 SourcePackage.repo_id == deb_rss.repo_id,
                 SourcePackage.suites.any(id=deb_rss.suite_id),
@@ -571,13 +578,13 @@ class PackageImporter:
         if source:
             return source, False
 
-        if deb_rss.id != self._rss.id:
+        if deb_rss.id != rss.id:
             # maybe the package is in the non-debug suite?
             source = (
-                self._session.query(SourcePackage)
+                session.query(SourcePackage)
                 .filter(
-                    SourcePackage.repo_id == self._rss.repo_id,
-                    SourcePackage.suites.any(id=self._rss.suite_id),
+                    SourcePackage.repo_id == rss.repo_id,
+                    SourcePackage.suites.any(id=rss.suite_id),
                     SourcePackage.name == source_name,
                     SourcePackage.version == source_version,
                 )
@@ -588,7 +595,7 @@ class PackageImporter:
 
         # maybe the package is in NEW?
         nq_entry = (
-            self._session.query(ArchiveQueueNewEntry)
+            session.query(ArchiveQueueNewEntry)
             .join(ArchiveQueueNewEntry.package)
             .filter(
                 SourcePackage.repo_id == deb_rss.repo_id,
@@ -602,11 +609,11 @@ class PackageImporter:
             return nq_entry.package, True
 
         nq_entry = (
-            self._session.query(ArchiveQueueNewEntry)
+            session.query(ArchiveQueueNewEntry)
             .join(ArchiveQueueNewEntry.package)
             .filter(
-                SourcePackage.repo_id == self._rss.repo_id,
-                ArchiveQueueNewEntry.destination_id == self._rss.suite_id,
+                SourcePackage.repo_id == rss.repo_id,
+                ArchiveQueueNewEntry.destination_id == rss.suite_id,
                 SourcePackage.name == source_name,
                 SourcePackage.version == source_version,
             )
@@ -627,7 +634,7 @@ class PackageImporter:
         ignore_version_check: bool = False,
         override_section: T.Optional[str] = None,
         ignore_missing_override: bool = False,
-    ) -> BinaryPackage | None:
+    ) -> UUID | None:
         """Import a binary package into the given suite or its NEW queue.
 
         :param deb_fname: Path to a deb/udeb package to import
@@ -669,206 +676,214 @@ class PackageImporter:
         version = safe_strip(bin_tf.pop('Version'))
         pkgarch = safe_strip(bin_tf.pop('Architecture'))
 
-        deb_rss = self._rss
-        deb_component = 'main'
-        section = override_section if override_section else bin_tf.get('Section')
-        if '/' in section:
-            deb_component, section = section.split('/')
-        is_debug_pkg = True if section == 'debug' and pkgname.endswith('-dbgsym') else False
-        if is_debug_pkg:
-            deb_rss = repo_suite_settings_for_debug(self._session, self._rss)
-            if not deb_rss:
-                log.info(
-                    'Skipped import of `{}`: Not allowed or no debug-symbol location.'.format(
-                        os.path.basename(deb_fname)
+        with session_scope() as session:
+            rss = self.get_rss(session)
+
+            deb_rss = rss
+            deb_component = 'main'
+            section = override_section if override_section else bin_tf.get('Section')
+            if '/' in section:
+                deb_component, section = section.split('/')
+            is_debug_pkg = True if section == 'debug' and pkgname.endswith('-dbgsym') else False
+            if is_debug_pkg:
+                deb_rss = repo_suite_settings_for_debug(session, rss)
+                if not deb_rss:
+                    log.info(
+                        'Skipped import of `{}`: Not allowed or no debug-symbol location.'.format(
+                            os.path.basename(deb_fname)
+                        )
                     )
+                    return None
+            if not component_name:
+                component_name = deb_component
+
+            # check if the package already exists
+            ret = session.query(
+                exists().where(
+                    BinaryPackage.repo_id == deb_rss.repo_id,
+                    BinaryPackage.name == pkgname,
+                    BinaryPackage.version == version,
+                    BinaryPackage.architecture.has(name=pkgarch),
                 )
-                return None
-        if not component_name:
-            component_name = deb_component
-
-        # check if the package already exists
-        ret = self._session.query(
-            exists().where(
-                BinaryPackage.repo_id == deb_rss.repo_id,
-                BinaryPackage.name == pkgname,
-                BinaryPackage.version == version,
-                BinaryPackage.architecture.has(name=pkgarch),
-            )
-        ).scalar()
-        if ret:
-            if ignore_existing:
-                return None
-            raise ArchivePackageExistsError(
-                'Can not import binary package {}/{}/{}: Already exists.'.format(pkgname, version, pkgarch)
-            )
-
-        # ensure we are not downgrading binary package versions
-        high_ver_res = (
-            self._session.query(ArchiveVersionMemory.highest_version)
-            .filter(
-                ArchiveVersionMemory.repo_suite_id == self._rss.id,
-                ArchiveVersionMemory.pkg_name == pkgname,
-                ArchiveVersionMemory.arch_name == pkgarch,
-                ArchiveVersionMemory.highest_version > version,
-            )
-            .one_or_none()
-        )
-        if high_ver_res:
-            if not ignore_version_check:
-                raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}`: '
-                    'We have already seen higher version "{}" in this repository/suite before.'.format(
-                        pkgname, version, high_ver_res[0]
-                    )
+            ).scalar()
+            if ret:
+                if ignore_existing:
+                    return None
+                raise ArchivePackageExistsError(
+                    'Can not import binary package {}/{}/{}: Already exists.'.format(pkgname, version, pkgarch)
                 )
 
-        # fetch component this binary package is in
-        component = self._session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one_or_none()
-        if component:
-            if component not in deb_rss.suite.components:
-                raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}/{}`: Archive component `{}` does not exist in `{}:{}`.'.format(
-                        pkgname, version, pkgarch, component.name, deb_rss.repo.name, deb_rss.suite.name
-                    )
+            # ensure we are not downgrading binary package versions
+            high_ver_res = (
+                session.query(ArchiveVersionMemory.highest_version)
+                .filter(
+                    ArchiveVersionMemory.repo_suite_id == rss.id,
+                    ArchiveVersionMemory.pkg_name == pkgname,
+                    ArchiveVersionMemory.arch_name == pkgarch,
+                    ArchiveVersionMemory.highest_version > version,
                 )
-        else:
-            if component_name == 'main':
-                raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}/{}`: Archive component `{}` is missing.'.format(
-                        pkgname, version, pkgarch, component_name
+                .one_or_none()
+            )
+            if high_ver_res:
+                if not ignore_version_check:
+                    raise ArchiveImportError(
+                        'Unable to import binary package `{}/{}`: '
+                        'We have already seen higher version "{}" in this repository/suite before.'.format(
+                            pkgname, version, high_ver_res[0]
+                        )
                     )
-                )
+
+            # fetch component this binary package is in
+            component = session.query(ArchiveComponent).filter(ArchiveComponent.name == component_name).one_or_none()
+            if component:
+                if component not in deb_rss.suite.components:
+                    raise ArchiveImportError(
+                        'Unable to import binary package `{}/{}/{}`: Archive component `{}` does not exist in `{}:{}`.'.format(
+                            pkgname, version, pkgarch, component.name, deb_rss.repo.name, deb_rss.suite.name
+                        )
+                    )
             else:
-                # We do not have the desired component *at all* - this may be the case if we do
-                # support 'main', but not 'contrib', and if a source package in 'main' has built
-                # binaries for 'contrib'. In that case, we simply drop the binary package semi-silently
-                # and do emit a warning.
-                archive_log.info(
-                    'BINPKG-IMPORT-IGNORED: %s/%s/%s @ %s:%s/%s',
-                    pkgname,
-                    version,
-                    pkgarch,
-                    deb_rss.repo.name,
-                    deb_rss.suite.name,
-                    component_name,
-                )
-                log.warning(
-                    'Ignored import request for binary `%s/%s/%s`: Archive component `%s` does not exist.',
-                    pkgname,
-                    version,
-                    pkgarch,
-                    component_name,
-                )
-                return None
-
-        self._session.commit()
-        with self._session.begin_nested():
-            bpkg = BinaryPackage(pkgname, version, deb_rss.repo)
-
-            bpkg.component = component
-            bpkg.architecture = (
-                self._session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == pkgarch).one()
-            )
-            bpkg.update_uuid()
-
-            bpkg.deb_type = pkg_type
-            bpkg.maintainer = safe_strip(bin_tf.pop('Maintainer'))
-            bpkg.original_maintainer = safe_strip(bin_tf.pop('Original-Maintainer', None))
-            bpkg.homepage = safe_strip(bin_tf.pop('Homepage', None))
-            bpkg.size_installed = int(bin_tf.pop('Installed-Size', '0'))
-            bpkg.time_added = datetime.now(UTC)
-
-            source_info_raw = bin_tf.pop('Source', '')
-            if not source_info_raw:
-                source_name = pkgname
-                source_version = version
-            elif '(' in source_info_raw:
-                source_name = source_info_raw[0 : source_info_raw.index('(') - 1].strip()
-                source_version = source_info_raw[source_info_raw.index('(') + 1 : source_info_raw.index(')')].strip()
-            else:
-                source_name = source_info_raw
-                source_version = version
-
-            # find the corresponding source package
-            bpkg.source, is_new = self._find_source_package(deb_rss, source_name, source_version)
-            if not bpkg.source:
-                if deb_rss.id == self._rss.id:
-                    search_msg = 'looked for {}/{} in {}:{}'.format(
-                        source_name, source_version, deb_rss.repo.name, deb_rss.suite.name
+                if component_name == 'main':
+                    raise ArchiveImportError(
+                        'Unable to import binary package `{}/{}/{}`: Archive component `{}` is missing.'.format(
+                            pkgname, version, pkgarch, component_name
+                        )
                     )
                 else:
-                    search_msg = 'looked for {}/{} in {}:{} and {}:{}'.format(
-                        source_name,
-                        source_version,
+                    # We do not have the desired component *at all* - this may be the case if we do
+                    # support 'main', but not 'contrib', and if a source package in 'main' has built
+                    # binaries for 'contrib'. In that case, we simply drop the binary package semi-silently
+                    # and do emit a warning.
+                    archive_log.info(
+                        'BINPKG-IMPORT-IGNORED: %s/%s/%s @ %s:%s/%s',
+                        pkgname,
+                        version,
+                        pkgarch,
                         deb_rss.repo.name,
                         deb_rss.suite.name,
-                        self._rss.repo.name,
-                        self._rss.suite.name,
+                        component_name,
                     )
-                self._session.rollback()
-                raise ArchiveImportError(
-                    'Unable to import binary package `{}/{}/{}`: Could not find corresponding source package ({}).'.format(
-                        pkgname, version, pkgarch, search_msg
+                    log.warning(
+                        'Ignored import request for binary `%s/%s/%s`: Archive component `%s` does not exist.',
+                        pkgname,
+                        version,
+                        pkgarch,
+                        component_name,
                     )
+                    return None
+
+            with session.no_autoflush:
+                bpkg = BinaryPackage(pkgname, version, deb_rss.repo)
+                session.add(bpkg)
+
+                bpkg.component = component
+                bpkg.architecture = session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name == pkgarch).one()
+                bpkg.update_uuid()
+
+                bpkg.deb_type = pkg_type
+                bpkg.maintainer = safe_strip(bin_tf.pop('Maintainer'))
+                bpkg.original_maintainer = safe_strip(bin_tf.pop('Original-Maintainer', None))
+                bpkg.homepage = safe_strip(bin_tf.pop('Homepage', None))
+                bpkg.size_installed = int(bin_tf.pop('Installed-Size', '0'))
+                bpkg.time_added = datetime.now(UTC)
+
+                source_info_raw = bin_tf.pop('Source', '')
+                if not source_info_raw:
+                    source_name = pkgname
+                    source_version = version
+                elif '(' in source_info_raw:
+                    source_name = source_info_raw[0 : source_info_raw.index('(') - 1].strip()
+                    source_version = source_info_raw[
+                        source_info_raw.index('(') + 1 : source_info_raw.index(')')
+                    ].strip()
+                else:
+                    source_name = source_info_raw
+                    source_version = version
+
+                # find the corresponding source package
+                with session.no_autoflush:
+                    bpkg.source, is_new = self._find_source_package(session, rss, deb_rss, source_name, source_version)
+                if not bpkg.source:
+                    if deb_rss.id == rss.id:
+                        search_msg = 'looked for {}/{} in {}:{}'.format(
+                            source_name, source_version, deb_rss.repo.name, deb_rss.suite.name
+                        )
+                    else:
+                        search_msg = 'looked for {}/{} in {}:{} and {}:{}'.format(
+                            source_name,
+                            source_version,
+                            deb_rss.repo.name,
+                            deb_rss.suite.name,
+                            rss.repo.name,
+                            rss.suite.name,
+                        )
+                    raise ArchiveImportError(
+                        'Unable to import binary package `{}/{}/{}`: Could not find corresponding source package ({}).'.format(
+                            pkgname, version, pkgarch, search_msg
+                        )
+                    )
+
+                # find pool location
+                if is_new:
+                    # for NEW stuff, we move the binary next to the source into its component
+                    pool_dir = pool_dir_from_name_component(bpkg.source.name, bpkg.source.component.name)
+                else:
+                    # if we are not NEW, the binary goes into its proper place
+                    pool_dir = pool_dir_from_name_component(bpkg.source.name, component.name)
+                deb_basename = '{}_{}_{}.{}'.format(
+                    bpkg.name, split_epoch(bpkg.version)[1], bpkg.architecture.name, str(pkg_type)
                 )
+                pool_fname = os.path.join(pool_dir, deb_basename)
 
-            if is_new and bpkg in self._session:
-                self._session.expunge(bpkg)
+                bpkg.description = safe_strip(bin_tf.pop('Description'))
+                bpkg.summary = bpkg.description.split('\n', 1)[0].strip()
+                bpkg.description_md5 = hashlib.md5(str(bpkg.description).encode('utf-8')).hexdigest()
 
-            # find pool location
-            if is_new:
-                # for NEW stuff, we move the binary next to the source into its component
-                pool_dir = pool_dir_from_name_component(bpkg.source.name, bpkg.source.component.name)
-            else:
-                # if we are not NEW, the binary goes into its proper place
-                pool_dir = pool_dir_from_name_component(bpkg.source.name, component.name)
-            deb_basename = '{}_{}_{}.{}'.format(
-                bpkg.name, split_epoch(bpkg.version)[1], bpkg.architecture.name, str(pkg_type)
-            )
-            pool_fname = os.path.join(pool_dir, deb_basename)
+                # we don't need the generated filename value
+                bin_tf.pop('Filename')
+                # we fetch those from already added overrides
+                bin_tf.pop('Priority', None)
+                bin_tf.pop('Section')
+                bin_tf.pop('Essential', None)
 
-            # configure package file
-            af = ArchiveFile(pool_fname, deb_rss.repo)
-            af.size = bin_tf.pop('Size')
-            af.md5sum = bin_tf.pop('MD5sum')
-            af.sha1sum = bin_tf.pop('SHA1')
-            af.sha256sum = bin_tf.pop('SHA256')
-            af.sha512sum = bin_tf.pop('SHA512', None)
+                # configure package file
+                af = ArchiveFile(pool_fname, deb_rss.repo)
+                af.size = bin_tf.pop('Size')
+                af.md5sum = bin_tf.pop('MD5sum')
+                af.sha1sum = bin_tf.pop('SHA1')
+                af.sha256sum = bin_tf.pop('SHA256')
+                af.sha512sum = bin_tf.pop('SHA512', None)
+                session.add(af)
 
-            # ensure checksums match
-            verify_hashes(af, deb_fname)
-            if is_new:
-                # if this binary belongs to a package in the NEW queue, we don't register it and just move the binary
-                # alongside the source package
-                pool_fname_full = os.path.join(self._repo_newqueue_root, af.fname)
-                self._copy_or_move(deb_fname, pool_fname_full, override=True)
+                # ensure checksums match
+                verify_hashes(af, deb_fname)
 
-                log.info(
-                    'Binary `{}/{}` for {}/{} added to NEW queue'.format(
-                        bpkg.name, bpkg.version, deb_rss.repo.name, deb_rss.suite.name
+                if is_new:
+                    # if this binary belongs to a package in the NEW queue, we don't register it and just move the binary
+                    # alongside the source package
+                    pool_fname_full = os.path.join(self._repo_newqueue_root, af.fname)
+                    self._copy_or_move(deb_fname, pool_fname_full, override=True)
+
+                    log.info(
+                        'Binary `{}/{}` for {}/{} added to NEW queue'.format(
+                            bpkg.name, bpkg.version, deb_rss.repo.name, deb_rss.suite.name
+                        )
                     )
-                )
-                # nothing left to do, we will not register this package with the database
-                return bpkg
-            else:
-                pool_fname_full = os.path.join(deb_rss.repo.get_root_dir(), af.fname)
+
+                    if af in session:
+                        session.expunge(af)
+                    if bpkg in session:
+                        session.expunge(bpkg)
+
+                    # nothing left to do, we will not register this package with the database
+                    return bpkg.uuid
 
             bpkg.bin_file = af
-            bpkg.description = safe_strip(bin_tf.pop('Description'))
-            bpkg.summary = bpkg.description.split('\n', 1)[0].strip()
-            bpkg.description_md5 = hashlib.md5(str(bpkg.description).encode('utf-8')).hexdigest()
-
-            # we don't need the generated filename value
-            bin_tf.pop('Filename')
-            # we fetch those from already added overrides
-            bin_tf.pop('Priority', None)
-            bin_tf.pop('Section')
-            bin_tf.pop('Essential', None)
+            pool_fname_full = os.path.join(deb_rss.repo.get_root_dir(), af.fname)
 
             # check for override
             override = (
-                self._session.query(PackageOverride)
+                session.query(PackageOverride)
                 .filter(
                     PackageOverride.repo_id == deb_rss.repo_id,
                     PackageOverride.suite_id == deb_rss.suite_id,
@@ -881,16 +896,16 @@ class PackageImporter:
                     # we have a debug package, so we can auto-generate a new override
                     override = PackageOverride(bpkg.name, deb_rss.repo, deb_rss.suite)
                     override.component = component
-                    override.section = self._session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
+                    override.section = session.query(ArchiveSection).filter(ArchiveSection.name == 'debug').one()
                     override.priority = PackagePriority.OPTIONAL
-                    self._session.add(override)
+                    session.add(override)
                 elif ignore_missing_override:
                     # The override is missing, but we are supposed to ignore that fact.
                     # So we will try our very best to guess a sensible override for this binary.
 
                     # Try to copy an override from another suite in the same repository.
                     eov = (
-                        self._session.query(PackageOverride)
+                        session.query(PackageOverride)
                         .filter(
                             PackageOverride.repo_id == bpkg.repo_id,
                             PackageOverride.pkg_name == bpkg.name,
@@ -910,7 +925,7 @@ class PackageImporter:
                         override.section = eov.section
                         override.essential = eov.essential
                         override.priority = eov.priority
-                        self._session.add(override)
+                        session.add(override)
                     else:
                         # we just make up an override from scratch now
                         log.warning(
@@ -923,9 +938,8 @@ class PackageImporter:
                         override.component = bpkg.component
                         override.section = bpkg.source.section
                         override.essential = False
-                        self._session.add(override)
+                        session.add(override)
                 else:
-                    self._session.rollback()
                     raise ArchiveImportError(
                         'Missing override for `{}/{}`: Please process the source package through NEW first before uploading a binary.'.format(
                             pkgname, version
@@ -957,6 +971,10 @@ class PackageImporter:
             # add (custom) fields that we did no account for
             bpkg.extra_data = dict(bin_tf)
 
+            # commit stuff before touching the filesystem
+            session.add(bpkg)
+            session.commit()
+
             # copy files and register binary
             if os.path.exists(pool_fname_full):
                 raise ArchiveImportError(
@@ -964,16 +982,14 @@ class PackageImporter:
                 )
             self._copy_or_move(deb_fname, pool_fname_full)
 
-        # NOTE: We left the nested session at this point
-        self._session.add(af)
-        self._session.add(bpkg)
+            package_mark_published(session, deb_rss, bpkg)
+            deb_rss.changes_pending = True
+            log.info(
+                'Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, deb_rss.repo.name, deb_rss.suite.name)
+            )
 
-        package_mark_published(self._session, deb_rss, bpkg)
-        deb_rss.changes_pending = True
-        log.info('Added binary `{}/{}` to {}/{}'.format(bpkg.name, bpkg.version, deb_rss.repo.name, deb_rss.suite.name))
-        self._session.commit()
-
-        return bpkg
+            session.commit()
+            return bpkg.uuid
 
 
 def _add_uploader_event_data(event_data: T.Dict[str, T.Any], uploader: T.Optional[ArchiveUploader]):
@@ -1023,9 +1039,9 @@ class UploadHandler:
     Verifies an upload and admits it to the archive if basic checks pass.
     """
 
-    def __init__(self, session, repo: ArchiveRepository, event_emitter: T.Optional[EventEmitter] = None):
-        self._session = session
-        self._repo = repo
+    def __init__(self, repo: ArchiveRepository, event_emitter: T.Optional[EventEmitter] = None):
+        self._repo_id = repo.id
+        self._repo_name = repo.name
         self._emitter = event_emitter
 
         self._lconf = LocalConfig()
@@ -1037,12 +1053,17 @@ class UploadHandler:
         self.auto_emit_reject = True
         self.skip_lintian_check = False
 
-        self._suite_map: T.Dict[str, str] = self._repo.upload_suite_map
+        self._suite_map: T.Dict[str, str] = repo.upload_suite_map
         if not self._suite_map:
             self._suite_map = {}
 
         if not shutil.which('bwrap') or not shutil.which('lintian'):
             raise RuntimeError('Could not find Bubblewrap or Lintian. Please ensure both tools are installed.')
+
+    def _get_repo(self, session) -> ArchiveRepository:
+        """Fetch the repository for this upload handler."""
+        repo = session.query(ArchiveRepository).filter(ArchiveRepository.id == self._repo_id).one()
+        return repo
 
     def emit_package_upload_rejected(
         self,
@@ -1052,14 +1073,14 @@ class UploadHandler:
     ):
         """Emit a message-stream reject message for this package upload."""
 
-        event_data = {'repo': self._repo.name, 'upload_name': Path(changes_fname).stem, 'reason': reason}
+        event_data = {'repo': self._repo_name, 'upload_name': Path(changes_fname).stem, 'reason': reason}
         _add_uploader_event_data(event_data, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-rejected', event_data)
         archive_log.info(
             'UPLOAD_REJECT: %s @ %s: %s', event_data['upload_name'], event_data['repo'], event_data['reason']
         )
 
-    def _process_changes_internal(self, fname: T.PathUnion) -> UploadChangesResult:
+    def _process_changes_internal(self, session, fname: T.PathUnion) -> UploadChangesResult:
         """Version of :func:`process_changes` that will not emit message stream messages"""
         from glob import glob
 
@@ -1070,7 +1091,7 @@ class UploadHandler:
         )
 
         # find the entity who uploaded the changes
-        uploader = guess_archive_uploader_for_changes(self._session, changes)
+        uploader = guess_archive_uploader_for_changes(session, changes)
         if changes.weak_signature:
             return UploadChangesResult(
                 False,
@@ -1105,9 +1126,9 @@ class UploadHandler:
 
         # fetch the repository-suite config for this package
         rss = (
-            self._session.query(ArchiveRepoSuiteSettings)
+            session.query(ArchiveRepoSuiteSettings)
             .filter(
-                ArchiveRepoSuiteSettings.repo.has(id=self._repo.id),
+                ArchiveRepoSuiteSettings.repo.has(id=self._repo_id),
                 ArchiveRepoSuiteSettings.suite.has(name=suite_name),
             )
             .one_or_none()
@@ -1117,7 +1138,7 @@ class UploadHandler:
             return UploadChangesResult(
                 False,
                 uploader,
-                error='No repository/suite configuration found for {}:{}.'.format(self._repo.name, suite_name),
+                error='No repository/suite configuration found for {}:{}.'.format(self._repo_name, suite_name),
             )
         if rss.frozen:
             return UploadChangesResult(
@@ -1135,7 +1156,7 @@ class UploadHandler:
             )
 
         result = (
-            self._session.query(ArchiveVersionMemory.highest_version)
+            session.query(ArchiveVersionMemory.highest_version)
             .filter(
                 ArchiveVersionMemory.repo_suite_id == rss.id,
                 ArchiveVersionMemory.pkg_name == changes.source_name,
@@ -1217,7 +1238,7 @@ class UploadHandler:
 
             # actually perform final checks and import the package into the archive
             try:
-                is_new, spkg = self._import_trusted_changes(rss, changes, uploader)
+                is_new, spkg = self._import_trusted_changes(session, rss, changes, uploader)
             except (ArchiveImportError, UploadError) as e:
                 return UploadChangesResult(False, uploader, error=str(e))
 
@@ -1233,6 +1254,7 @@ class UploadHandler:
 
     def _import_trusted_changes(
         self,
+        session,
         rss: ArchiveRepoSuiteSettings,
         changes: Changes,
         uploader: ArchiveUploader,
@@ -1281,7 +1303,7 @@ class UploadHandler:
                             pool_dir_from_name_component(dsc.get('Source'), dsc_cfe.component), dscf_basename
                         )
                         afile_orig = (
-                            self._session.query(ArchiveFile)
+                            session.query(ArchiveFile)
                             .filter(
                                 ArchiveFile.fname == orig_poolname,
                                 ArchiveFile.sha1sum == dsc_f.sha1sum,
@@ -1291,9 +1313,7 @@ class UploadHandler:
                         )
                         if not afile_orig:
                             afile_orig_nocs = (
-                                self._session.query(ArchiveFile)
-                                .filter(ArchiveFile.fname == orig_poolname)
-                                .one_or_none()
+                                session.query(ArchiveFile).filter(ArchiveFile.fname == orig_poolname).one_or_none()
                             )
                             if afile_orig_nocs:
                                 raise UploadError(
@@ -1334,7 +1354,7 @@ class UploadHandler:
                 )
 
         # prepare package importer
-        pi = PackageImporter(self._session, rss)
+        pi = PackageImporter(rss)
         pi.keep_source_packages = self.keep_source_packages
         changes_urgency = ChangesUrgency.from_string(changes.changes.get('Urgency', 'low'))
 
@@ -1347,9 +1367,10 @@ class UploadHandler:
                 # uploader policy beats suite policy
                 if uploader.always_review:
                     new_policy = NewPolicy.ALWAYS_NEW
-                spkg, is_new = pi.import_source(
+                spkg_uuid, is_new = pi.import_source(
                     os.path.join(changes.directory, dsc_cfe.fname), dsc_cfe.component, new_policy=new_policy
                 )
+                spkg = session.query(SourcePackage).filter(SourcePackage.uuid == spkg_uuid).one()
                 spkg.changes_urgency = changes_urgency
                 if is_new:
                     spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
@@ -1390,7 +1411,7 @@ class UploadHandler:
         ev_data = build_event_data_for_accepted_upload(rss, spkg, changes, is_new, uploader)
         self._emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-upload-accepted', ev_data)
         archive_log.info(
-            '%s: %s @ %s', 'UPLOAD-NEW' if is_new else 'UPLOAD-ACCEPTED', ev_data['upload_name'], self._repo.name
+            '%s: %s @ %s', 'UPLOAD-NEW' if is_new else 'UPLOAD-ACCEPTED', ev_data['upload_name'], self._repo_name
         )
 
         return is_new, spkg
@@ -1400,20 +1421,29 @@ class UploadHandler:
         Verify and import an upload by its .changes file.
         The caller should make sure the changes file is located at a safe location.
         :param fname: Path to the .changes file
-        :return: A tuple of a boolean indication whether the changes file was processed successfully,
+        :return: A :class:`UploadChangesResult` instance indicating whether the upload was successful,
         the archive uploader this upload belongs to, and an optional string explaining the error reason in case of a failure.
 
         In case of irrecoverable issues (when no uploader can be determined or the signature is missing or invalid)
         an exception is thrown, otherwise a tuple consisting of the status, uploader and error message (if any) is returned.
         """
 
-        try:
-            result = self._process_changes_internal(fname)
-        except Exception as e:
-            if self.auto_emit_reject:
-                self.emit_package_upload_rejected(fname, str(e), None)
-            raise e
-        if not result.success or result.error:
-            if self.auto_emit_reject:
-                self.emit_package_upload_rejected(fname, result.error, result.uploader)
-        return result
+        with session_scope() as session:
+            try:
+                result = self._process_changes_internal(session, fname)
+            except Exception as e:
+                # we have to ensure any _process_changes_internal actions are rolled back at this point
+                session.rollback()
+
+                if self.auto_emit_reject:
+                    self.emit_package_upload_rejected(fname, str(e), None)
+                raise e
+            if not result.success or result.error:
+                if self.auto_emit_reject:
+                    self.emit_package_upload_rejected(fname, result.error, result.uploader)
+
+            if result.spkg:
+                session.expunge(result.spkg)
+            if result.uploader:
+                session.expunge(result.uploader)
+            return result

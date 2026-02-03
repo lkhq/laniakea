@@ -383,35 +383,36 @@ class SyncEngine:
             return False
 
         # check if the package already exists in our current repository
-        rss = pkgip.repo_suite_settings
-        session = pkgip.current_session
-        ret = session.query(
-            exists().where(
-                SourcePackage.repo_id == rss.repo_id,
-                SourcePackage.name == origin_pkg.name,
-                SourcePackage.version == origin_pkg.version,
-            )
-        ).scalar()
-        if ret:
-            # the package already exists in this exact version, so we don't need to import it
-            # and just need to make it available in the new suite!
-            spkg = (
-                session.query(SourcePackage)
-                .filter(
+        with session_scope() as session:
+            rss = pkgip.get_rss(session)
+
+            ret = session.query(
+                exists().where(
                     SourcePackage.repo_id == rss.repo_id,
                     SourcePackage.name == origin_pkg.name,
                     SourcePackage.version == origin_pkg.version,
                 )
-                .one()
-            )
-            copy_source_package(
-                session, spkg, rss, include_binaries=True, allow_missing_debug=True, emitter=self._ev_emitter
-            )
-            self._synced_source_pkgs.append((origin_pkg, PackageSyncState.COPIED))
-        else:
-            # the package is new to this repository, just import it
-            pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW, ignore_bad_section=True)
-            self._synced_source_pkgs.append((origin_pkg, PackageSyncState.SYNCED))
+            ).scalar()
+            if ret:
+                # the package already exists in this exact version, so we don't need to import it
+                # and just need to make it available in the new suite!
+                spkg = (
+                    session.query(SourcePackage)
+                    .filter(
+                        SourcePackage.repo_id == rss.repo_id,
+                        SourcePackage.name == origin_pkg.name,
+                        SourcePackage.version == origin_pkg.version,
+                    )
+                    .one()
+                )
+                copy_source_package(
+                    session, spkg, rss, include_binaries=True, allow_missing_debug=True, emitter=self._ev_emitter
+                )
+                self._synced_source_pkgs.append((origin_pkg, PackageSyncState.COPIED))
+            else:
+                # the package is new to this repository, just import it
+                pkgip.import_source(dscfile, component, new_policy=NewPolicy.NEVER_NEW, ignore_bad_section=True)
+                self._synced_source_pkgs.append((origin_pkg, PackageSyncState.SYNCED))
 
         return True
 
@@ -558,6 +559,7 @@ class SyncEngine:
                 # now import the binary packages, if there is anything to import
                 if bin_files:
                     bin_files_synced = True
+                    pkgip_rss = pkgip.get_rss(session)
                     for orig_bpkg in bin_files:
                         fname = self._source_reader.get_file(orig_bpkg.bin_file)
                         try:
@@ -570,7 +572,7 @@ class SyncEngine:
                                 .filter(
                                     BinaryPackage.name == orig_bpkg.name,
                                     BinaryPackage.version == orig_bpkg.version,
-                                    BinaryPackage.repo.has(id=pkgip.repo_suite_settings.repo_id),
+                                    BinaryPackage.repo.has(id=pkgip_rss.repo_id),
                                     BinaryPackage.component.has(name=component),
                                     BinaryPackage.architecture.has(name=arch_name),
                                 )
@@ -591,7 +593,7 @@ class SyncEngine:
                             # sync it - this may happen especially when syncing updates/security suites
                             ebpkg.time_deleted = None
 
-                            new_suite = pkgip.repo_suite_settings.suite
+                            new_suite = pkgip_rss.suite
                             if new_suite not in ebpkg.suites:
                                 log.warning(
                                     (
@@ -603,7 +605,7 @@ class SyncEngine:
                                     new_suite.name,
                                 )
                                 ebpkg.suites.append(new_suite)
-                                package_mark_published(session, pkgip.repo_suite_settings, ebpkg)
+                                package_mark_published(session, pkgip_rss, ebpkg)
 
             if not bin_files_synced and not existing_packages:
                 log.warning('No binary packages synced for source {}/{}'.format(spkg.name, spkg.version))
@@ -624,7 +626,7 @@ class SyncEngine:
         src_pkg_map = self._get_origin_repo_source_package_map(self._source_suite_name, component_name)
 
         rss = repo_suite_settings_for(session, self._repo_name, self._target_suite_name)
-        pkgip = PackageImporter(session, rss)
+        pkgip = PackageImporter(rss)
         pkgip.keep_source_packages = True
 
         # list of valid architectures supported by the target
@@ -806,7 +808,7 @@ class SyncEngine:
         # obtain package import helper to register new packages with the archive
         rss = repo_suite_settings_for(session, self._repo_name, self._target_suite_name)
         suitable_architectures = set([a.name for a in rss.suite.architectures])
-        pkgip = PackageImporter(session, rss)
+        pkgip = PackageImporter(rss)
         pkgip.keep_source_packages = True
 
         # list of valid architectures supported by the target

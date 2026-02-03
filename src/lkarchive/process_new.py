@@ -94,7 +94,7 @@ def newqueue_accept(
     session.commit()
     spkg_queue_dir = os.path.join(rss.repo.get_new_queue_dir(), spkg.directory)
     spkg_fname = os.path.join(rss.repo.get_new_queue_dir(), dsc_file.fname)
-    pi = PackageImporter(session, rss)
+    pi = PackageImporter(rss)
     pi.import_source(spkg_fname, spkg.component.name, error_if_new=True)
     session.commit()
 

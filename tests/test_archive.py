@@ -257,7 +257,7 @@ class TestArchive:
             rss = repo_suite_settings_for(session, 'master', 'unstable')
 
             # import a source package directly
-            pi = PackageImporter(session, rss)
+            pi = PackageImporter(rss)
             pi.keep_source_packages = True
             pi.import_source(os.path.join(package_samples, 'package_0.1-1.dsc'), 'main', new_policy=NewPolicy.NEVER_NEW)
             session.commit()
@@ -384,7 +384,7 @@ class TestArchive:
 
             # test processing an actual upload from a changes file
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
-            uh = UploadHandler(session, repo)
+            uh = UploadHandler(repo)
             uh.keep_source_packages = True
 
             # fail on a Lintian check
@@ -640,7 +640,7 @@ class TestArchive:
             rss = repo_suite_settings_for(session, 'master', 'unstable')
 
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
-            uh = UploadHandler(session, repo)
+            uh = UploadHandler(repo)
             uh.keep_source_packages = True
             uh.skip_lintian_check = True
 
@@ -716,7 +716,7 @@ class TestArchive:
             assert rss_dbg.suite.name == 'unstable-debug'
 
             repo = session.query(ArchiveRepository).filter(ArchiveRepository.name == 'master').one()
-            uh = UploadHandler(session, repo)
+            uh = UploadHandler(repo)
             uh.keep_source_packages = True
             uh.skip_lintian_check = True
 

@@ -501,23 +501,25 @@ def import_sample_packages(package_samples, database):
         rss = repo_suite_settings_for(session, 'master', 'unstable')
 
         # import a source package directly
-        pi = PackageImporter(session, rss)
+        pi = PackageImporter(rss)
         pi.keep_source_packages = True
         pi.prefer_hardlinks = True
 
         for dsc_fname in sorted(iglob(os.path.join(package_samples, '*.dsc'))):
             if dsc_fname.endswith('~exp.dsc'):
                 continue
-            spkg, _ = pi.import_source(dsc_fname, 'main', new_policy=NewPolicy.NEVER_NEW, ignore_version_check=True)
-            spkg_ids.append(spkg.uuid)
-            assert spkg
+            spkg_uuid, _ = pi.import_source(
+                dsc_fname, 'main', new_policy=NewPolicy.NEVER_NEW, ignore_version_check=True
+            )
+            spkg_ids.append(spkg_uuid)
+            assert spkg_uuid
 
         for deb_fname in iglob(os.path.join(package_samples, '*.deb')):
             if fnmatch(deb_fname, '*~exp_*.deb'):
                 continue
-            bpkg = pi.import_binary(deb_fname, ignore_version_check=True)
-            assert bpkg
-            bpkg_ids.append(bpkg.uuid)
+            bpkg_uuid = pi.import_binary(deb_fname, ignore_version_check=True)
+            assert bpkg_uuid
+            bpkg_ids.append(bpkg_uuid)
         for udeb_fname in iglob(os.path.join(package_samples, '*.udeb')):
             bpkg = pi.import_binary(udeb_fname, ignore_version_check=True)
             assert bpkg

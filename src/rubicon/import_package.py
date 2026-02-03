@@ -95,7 +95,7 @@ def handle_package_uploads(
 
     from laniakea.ariadne import schedule_package_builds_for_source
 
-    uh = UploadHandler(session, repo, event_emitter)
+    uh = UploadHandler(repo, event_emitter)
     uh.keep_source_packages = False
     uh.auto_emit_reject = False
 

@@ -73,7 +73,7 @@ def import_packages(
     if not src_fnames and not bin_fnames:
         raise ValueError('No valid source or binary packages found to import!')
 
-    pi = PackageImporter(session, rss)
+    pi = PackageImporter(rss)
     pi.keep_source_packages = True
 
     # import sources
@@ -346,7 +346,7 @@ def _import_repo_into_suite(
     if not rss_dest_dbg:
         rss_dest_dbg = rss_dest
 
-    pi = PackageImporter(session, rss_dest)
+    pi = PackageImporter(rss_dest)
     pi.keep_source_packages = True  # we must not delete the source while importing it
     pi.prefer_hardlinks = True  # prefer hardlinks if we are on the same drive, to save space
 

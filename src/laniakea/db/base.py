@@ -205,13 +205,17 @@ def session_factory():
 
 
 @contextmanager
-def session_scope():
+def session_scope(*, autoflush=True):
     """
     Provide a transactional scope around a series of operations.
     """
     session = session_factory()
     try:
-        yield session
+        if autoflush:
+            yield session
+        else:
+            with session.no_autoflush:
+                yield session
         session.commit()
     except:  # noqa: E722
         session.rollback()
