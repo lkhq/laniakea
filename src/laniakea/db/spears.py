@@ -110,6 +110,9 @@ class SpearsOldBinaries:
     binaries: list[Any] = []
 
 
+# FIXME: For unknown reasons, pylint complains about unsubscriptable-object here, and *only* here,
+# even though most of the other ORM classes use "Mapped" without problems.
+# pylint: disable=unsubscriptable-object
 class SpearsExcuse(Base):
     """
     Data for a package migration excuse, as emitted by Britney
