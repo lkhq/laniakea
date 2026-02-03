@@ -66,15 +66,15 @@ def cmd_list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str])
         if repo_name:
             spkg_q = spkg_q.filter(SourcePackage.repo.has(name=repo_name))
         if suite_name:
-            spkg_q = spkg_q.filter(SourcePackage.suite.has(name=suite_name))
+            spkg_q = spkg_q.filter(SourcePackage.suites.any(name=suite_name))
         spkgs = spkg_q.order_by(SourcePackage.name.desc(), SourcePackage.version.desc()).all()
 
         # find binary packages
         bpkg_q = session.query(BinaryPackage).filter(BinaryPackage.name.like(term_q))
         if repo_name:
-            bpkg_q = spkg_q.filter(BinaryPackage.repo.has(name=repo_name))
+            bpkg_q = bpkg_q.filter(BinaryPackage.repo.has(name=repo_name))
         if suite_name:
-            bpkg_q = spkg_q.filter(BinaryPackage.suite.has(name=suite_name))
+            bpkg_q = bpkg_q.filter(BinaryPackage.suites.any(name=suite_name))
         bpkgs = bpkg_q.order_by(BinaryPackage.name.desc(), BinaryPackage.version.desc()).all()
 
         if not spkgs and not bpkgs:
