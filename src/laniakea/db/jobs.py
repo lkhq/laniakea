@@ -7,7 +7,7 @@
 import enum
 from enum import IntEnum
 from uuid import uuid4
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Enum, Text, Index, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, relationship, mapped_column
@@ -96,7 +96,7 @@ class Job(Base):
     architecture: Mapped[str] = mapped_column(String(80), default='any')
 
     time_created: Mapped[datetime] = mapped_column(
-        DateTime(), default=datetime.utcnow
+        DateTime(), default=lambda: datetime.now(UTC)
     )  # Time when this job was created.
     time_assigned: Mapped[datetime] = mapped_column(
         DateTime(), nullable=True

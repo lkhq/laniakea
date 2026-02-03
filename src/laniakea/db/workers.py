@@ -7,7 +7,7 @@
 import enum
 from enum import IntEnum
 from uuid import uuid4
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Enum, Text, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
@@ -41,7 +41,7 @@ class SparkWorker(Base):
     owner: Mapped[str] = mapped_column(Text(), nullable=True)  # Owner of this worker
 
     time_created: Mapped[datetime] = mapped_column(
-        DateTime(), default=datetime.utcnow
+        DateTime(), default=lambda: datetime.now(UTC)
     )  # Time when this worker was registered/created
 
     accepts: Mapped[list[str]] = mapped_column(ARRAY(Text()), default=[])  # Modules this worker will accept jobs for
@@ -55,7 +55,7 @@ class SparkWorker(Base):
     enabled: Mapped[bool] = mapped_column(Boolean(), default=False)  # Whether this worker should receive jobs or not
 
     last_ping: Mapped[datetime] = mapped_column(
-        DateTime(), default=datetime.utcnow
+        DateTime(), default=lambda: datetime.now(UTC)
     )  # Time when we last got a message from the worker
 
     data: Mapped[dict] = mapped_column(JSON, default={})  # Custom worker properties

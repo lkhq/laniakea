@@ -7,7 +7,7 @@
 import json
 import uuid
 from uuid import uuid4
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Enum, Text, Index, String, Integer, DateTime, ForeignKey
 from marshmallow import EXCLUDE, Schema, fields
@@ -63,7 +63,7 @@ class DebcheckIssue(Base):
 
     uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    time: Mapped[datetime] = mapped_column(DateTime(), default=datetime.utcnow)  # Time when this excuse was created
+    time: Mapped[datetime] = mapped_column(DateTime(), default=lambda: datetime.now(UTC))  # Time when this excuse was created
 
     package_type: Mapped[PackageType] = mapped_column(Enum(PackageType))
 
