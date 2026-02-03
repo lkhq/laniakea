@@ -6,7 +6,7 @@
 
 import os
 import functools
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from collections import namedtuple
 from dataclasses import field, dataclass
 
@@ -305,7 +305,7 @@ def package_mark_delete(
             )
     else:
         log.info('Marking package for removal: %s', str(pkg))
-        pkg.time_deleted = datetime.utcnow()
+        pkg.time_deleted = datetime.now(UTC)
 
         if is_src_pkg:
             archive_log.info(
@@ -358,7 +358,7 @@ def package_mark_delete(
                     )
             else:
                 log.info('Marking binary for removal: %s', str(bpkg))
-                bpkg.time_deleted = datetime.utcnow()
+                bpkg.time_deleted = datetime.now(UTC)
                 archive_log.info(
                     'MARKED-REMOVAL-BIN: %s/%s/%s @ %s', bpkg.name, bpkg.version, bpkg.architecture.name, rss.repo.name
                 )
@@ -677,7 +677,7 @@ def expire_superseded(session, rss: ArchiveRepoSuiteSettings, *, retention_days=
 
     # grab all the packages that we should physically delete as they have been marked for deletion for a while
     log.info("Deleting expired packages")
-    time_cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    time_cutoff = datetime.now(UTC) - timedelta(days=retention_days)
     spkgs_delete = (
         session.query(SourcePackage)
         .filter(

@@ -10,7 +10,7 @@ import hashlib
 import tempfile
 import subprocess
 from pathlib import Path
-from datetime import datetime
+from datetime import UTC, datetime
 from collections import namedtuple
 from dataclasses import dataclass
 
@@ -300,7 +300,7 @@ class PackageImporter:
                 raise ArchivePackageExistsError(
                     'Can not import source package {}/{}: Already exists.'.format(pkgname, version)
                 )
-            spkg.time_added = datetime.utcnow()
+            spkg.time_added = datetime.now(UTC)
 
         spkg.format_version = safe_strip(src_tf.pop('Format'))
         spkg.standards_version = safe_strip(src_tf.pop('Standards-Version', None))
@@ -761,7 +761,7 @@ class PackageImporter:
         bpkg.original_maintainer = safe_strip(bin_tf.pop('Original-Maintainer', None))
         bpkg.homepage = safe_strip(bin_tf.pop('Homepage', None))
         bpkg.size_installed = int(bin_tf.pop('Installed-Size', '0'))
-        bpkg.time_added = datetime.utcnow()
+        bpkg.time_added = datetime.now(UTC)
 
         source_info_raw = bin_tf.pop('Source', '')
         if not source_info_raw:

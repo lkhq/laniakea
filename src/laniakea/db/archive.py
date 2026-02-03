@@ -926,7 +926,7 @@ class SourcePackage(Base):
 
     def mark_remove(self):
         """Mark this source package for removal during next maintenance run."""
-        self.time_deleted = datetime.utcnow()
+        self.time_deleted = datetime.now(UTC)
 
     def get_metadata_dir(self, lconf=None):
         """Get the metadata storage location for this package."""

@@ -10,7 +10,7 @@ import re
 import shutil
 import tempfile
 import subprocess
-from datetime import datetime
+from datetime import UTC, datetime
 from contextlib import contextmanager
 
 import apt_pkg
@@ -292,7 +292,7 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[
 
     # set publication time
     if not pkg.time_published:
-        pkg.time_published = datetime.utcnow()
+        pkg.time_published = datetime.now(UTC)
 
 
 def find_latest_source_package(session, rss: ArchiveRepoSuiteSettings, pkgname: str) -> T.Optional[SourcePackage]:

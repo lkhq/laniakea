@@ -6,10 +6,10 @@
 
 import os
 
-from apt_pkg import (  # type: ignore[attr-defined]
+from apt_pkg import (
+    Hashes,
     TagFile,
     TagSection,
-    sha256sum,
     version_compare,
 )
 
@@ -297,7 +297,7 @@ class RepositoryReader:
         fname = self._fetch_repo_file_internal(afile.fname, check=True)
         if check:
             with open(fname, 'rb') as f:
-                sha256h = sha256sum(f)
+                sha256h = Hashes(f).hashes.find('SHA256').hashvalue  # pylint: disable=no-member
                 if sha256h != afile.sha256sum:
                     raise Exception(
                         'Checksum validation of "{}" failed ({} != {}).'.format(fname, sha256h, afile.sha256sum)
@@ -375,7 +375,7 @@ class RepositoryReader:
 
         # validate the file
         with open(index_fname, 'rb') as f:
-            index_sha256sum = sha256sum(f)
+            index_sha256sum = Hashes(f).hashes.find('SHA256').hashvalue  # pylint: disable=no-member
 
         valid = False
         for af in ird.files:
