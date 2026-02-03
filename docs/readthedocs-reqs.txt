@@ -5,6 +5,7 @@ PyYAML
 SQLAlchemy
 alembic
 click
+cryptography
 firehose
 humanize
 marshmallow
