@@ -53,7 +53,7 @@ class ArchivePublishError(Exception):
     """Something went wrong while publishing a repository."""
 
 
-@concurrent.process(daemon=False, name='dep11-import', context=mproc.get_context('forkserver'))
+@concurrent.process(daemon=False, name='dep11-import', context=mproc.get_context('forkserver'))  # type: ignore[call-overload]
 def _retrieve_dep11_data_async(
     repo_name: str, lconf_fname: T.Optional[T.PathUnion] = None
 ) -> T.Tuple[bool, T.Optional[str], T.Optional[T.PathUnion]]:
@@ -911,7 +911,7 @@ def _publish_suite_dists(
         archive_log.info('PUBLISHED: %s/%s', rss.repo.name, rss.suite.name)
 
 
-@concurrent.process(daemon=False, name='publish-repo-suite-dists', context=mproc.get_context('forkserver'))
+@concurrent.process(daemon=False, name='publish-repo-suite-dists', context=mproc.get_context('forkserver'))  # type: ignore[call-overload]
 def publish_suite_dists_async(
     repo_name: str,
     suite_name: str,
