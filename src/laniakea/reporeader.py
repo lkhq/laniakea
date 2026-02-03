@@ -30,7 +30,7 @@ from laniakea.utils import split_strip, download_file, is_remote_url
 from laniakea.logging import log
 from laniakea.utils.gpg import SignedFile
 from laniakea.localconfig import LocalConfig
-from laniakea.archive.utils import parse_package_list_str
+from laniakea.archive.utils import parse_package_list
 
 
 class ExternalSourcePackage:
@@ -456,7 +456,7 @@ class RepositoryReader:
                         pi.priority = PackagePriority.from_string(e.get('Priority', 'optional'))
                         ex_binaries.append(pi)
                 else:
-                    ex_binaries = parse_package_list_str(
+                    ex_binaries = parse_package_list(
                         raw_pkg_list, default_version=pkg.version, default_archs=pkg.architectures
                     )
                 pkg.expected_binaries = ex_binaries

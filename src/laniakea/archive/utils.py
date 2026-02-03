@@ -77,7 +77,7 @@ re_file_binary = re.compile(_re_file_prefix + r'_(?P<architecture>[a-z0-9-]+)\.(
 
 
 def checksums_list_to_file(cslist, checksum: str, files=None, *, base_dir=None) -> T.Dict[str, ArchiveFile]:
-    """Convert a list of checkums (from a Sources, Packages or .dsc file) to ArchiveFile objects."""
+    """Convert a list of checksums (from a Sources, Packages or .dsc file) to ArchiveFile objects."""
 
     if not files:
         files = {}
@@ -104,17 +104,46 @@ def checksums_list_to_file(cslist, checksum: str, files=None, *, base_dir=None) 
     return files
 
 
-def parse_package_list_str(pkg_list_raw, default_version: str | None = None, default_archs: list[str] | None = None):
-    '''
+def parse_package_list(pkg_list_raw: str | list[dict[str, str]], default_version: str | None = None, default_archs: list[str] | None = None):
+    """
     Parse a "Package-List" field and return its information in
     PackageInfo data structures.
     See https://www.debian.org/doc/debian-policy/ch-controlfields.html#package-list
-    '''
+    """
 
     res = []
     if not default_archs:
         default_archs = []
 
+    # Handle new python-debian format (list of dicts)
+    if isinstance(pkg_list_raw, list):
+        for entry in pkg_list_raw:
+            pi = PackageInfo()
+            pi.name = entry.get('package', '')
+            pi.version = default_version
+            pi.deb_type = DebType.from_string(entry.get('package-type', 'deb'))
+            pi.section = entry.get('section', '')
+            if '/' in pi.section:
+                pi.component, pi.section = pi.section.split('/', 2)
+            pi.priority = PackagePriority.from_string(entry.get('priority', 'optional'))
+
+            # handle architectures from '_other' field or 'arch' field
+            arch_str = entry.get('arch', '')
+            if not arch_str:
+                other = entry.get('_other', '')
+                if other:
+                    for part in other.split():
+                        if part.startswith('arch='):
+                            arch_str = part[5:]
+                            break
+            if arch_str:
+                pi.architectures = arch_str.split(',')
+            else:
+                pi.architectures = default_archs
+            res.append(pi)
+        return res
+
+    # Handle old string format
     for line in pkg_list_raw.split('\n'):
         parts = split_strip(line, ' ')
         if len(parts) < 4:
