@@ -268,7 +268,7 @@ def package_mark_delete(
     if not emitter:
         emitter = EventEmitter(LkModule.ARCHIVE)
 
-    is_src_pkg = type(pkg) is SourcePackage
+    is_src_pkg = isinstance(pkg, SourcePackage)
 
     if rss.suite in pkg.suites:
         log.info('Removing package %s from suite %s', str(pkg), rss.suite.name)
@@ -293,6 +293,7 @@ def package_mark_delete(
             }
             emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-suite-deleted', event_data)
         else:
+            assert isinstance(pkg, BinaryPackage)  # type narrowing for MyPy
             archive_log.info(
                 '%s: %s/%s/%s @ %s/%s',
                 'DELETED-SUITE-BIN',
@@ -323,6 +324,7 @@ def package_mark_delete(
             }
             emitter.submit_event_for_mod(LkModule.ARCHIVE, 'package-src-marked-removal', event_data)
         else:
+            assert isinstance(pkg, BinaryPackage)  # type narrowing for MyPy
             archive_log.info(
                 '%s: %s/%s/%s @ %s/%s',
                 'MARKED-REMOVAL-BIN',
@@ -333,6 +335,7 @@ def package_mark_delete(
                 rss.suite.name,
             )
     if is_src_pkg:
+        assert isinstance(pkg, SourcePackage)  # type narrowing for MyPy
         for bpkg in pkg.binaries:
             rm_suite_names = []
             if rss.suite in bpkg.suites:

@@ -10,6 +10,7 @@ import sys
 import time
 import fcntl
 import collections
+from typing import TypeVar, overload
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -47,6 +48,17 @@ def cd(where):
         yield os.chdir(where)
     finally:
         os.chdir(ncwd)
+
+
+_T = TypeVar('_T')
+
+
+@overload
+def listify(item: list[_T]) -> list[_T]: ...
+
+
+@overload
+def listify(item: _T) -> list[_T]: ...
 
 
 def listify(item):

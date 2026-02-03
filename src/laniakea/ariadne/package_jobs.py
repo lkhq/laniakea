@@ -121,7 +121,7 @@ def schedule_build_for_arch(
         job = Job()
         job.module = LkModule.ARIADNE
         job.kind = JobKind.PACKAGE_BUILD
-        job.version = spkg.version
+        job.version = spkg.version  # type: ignore[assignment]
         job.architecture = arch.name
         job.trigger = spkg.source_uuid
         job.suite = rss.suite
