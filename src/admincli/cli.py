@@ -49,39 +49,39 @@ def cli(ctx, verbose, version, config_fname):
 def _register_commands():
     '''Register lk-admin subcommands.'''
 
-    import lkadmin.core as core
+    import admincli.core as core
 
     cli.add_command(core.core)
 
-    import lkadmin.archive as archive
+    import admincli.archive as archive
 
     cli.add_command(archive.archive)
 
-    import lkadmin.job as job
+    import admincli.job as job
 
     cli.add_command(job.job)
 
-    import lkadmin.synchrotron as synchrotron
+    import admincli.synchrotron as synchrotron
 
     cli.add_command(synchrotron.synchrotron)
 
-    import lkadmin.spears as spears
+    import admincli.spears as spears
 
     cli.add_command(spears.spears)
 
-    import lkadmin.ariadne as ariadne
+    import admincli.ariadne as ariadne
 
     cli.add_command(ariadne.ariadne)
 
-    import lkadmin.isotope as isotope
+    import admincli.isotope as isotope
 
     cli.add_command(isotope.isotope)
 
-    import lkadmin.planter as planter
+    import admincli.planter as planter
 
     cli.add_command(planter.planter)
 
-    import lkadmin.flatpak as flatpak
+    import admincli.flatpak as flatpak
 
     cli.add_command(flatpak.flatpak)
 

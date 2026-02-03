@@ -60,7 +60,7 @@ class RubiConfig:
         self.schedule_builds = cdata.get('ScheduleBuilds', True)
 
         my_dir = os.path.dirname(os.path.realpath(__file__))
-        self.lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'lkarchive', 'lk-archive.py'))
+        self.lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'archivecli', 'lk-archive.py'))
         if not os.path.isfile(self.lk_archive_exe):
             self.lk_archive_exe = shutil.which('lk-archive')
         if not self.lk_archive_exe:

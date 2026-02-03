@@ -11,6 +11,6 @@ if not thisfile.startswith(('/usr', '/bin')):
     sys.path.append(os.path.normpath(os.path.join(os.path.dirname(thisfile), '..')))
 
 if __name__ == '__main__':
-    from lkadmin import cli
+    from archivecli import cli
 
     sys.exit(cli.run(thisfile, sys.argv[1:]))

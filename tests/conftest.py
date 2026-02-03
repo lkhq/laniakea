@@ -60,7 +60,7 @@ def localconfig(samples_dir):
     set_verbose(True)
 
     test_aux_data_dir = os.path.join('/tmp', 'test-lkaux')
-    test_archive_dir = os.path.join('/tmp', 'test-lkarchive')
+    test_archive_dir = os.path.join('/tmp', 'test-archivecli')
     if os.path.isdir(test_aux_data_dir):
         shutil.rmtree(test_aux_data_dir)
     os.makedirs(test_aux_data_dir)
@@ -290,7 +290,7 @@ def database(sources_dir, samples_dir, localconfig, create_database):
     config_set_distro_tag('test')
 
     # create archive configuration for the test suite
-    lkadmin_exe = os.path.join(sources_dir, 'lkadmin', 'lk-admin.py')
+    lkadmin_exe = os.path.join(sources_dir, 'admincli', 'lk-admin.py')
     subprocess.run(
         [
             lkadmin_exe,

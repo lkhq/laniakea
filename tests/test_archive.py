@@ -32,8 +32,8 @@ from laniakea.archive import (
 )
 from laniakea.utils.gpg import GpgException
 from laniakea.localconfig import LintianConfig
-from lkarchive.data_import import import_heidi_result
-from lkarchive.process_new import newqueue_accept, newqueue_reject
+from archivecli.data_import import import_heidi_result
+from archivecli.process_new import newqueue_accept, newqueue_reject
 from laniakea.archive.utils import (
     re_file_orig,
     lintian_check,
@@ -906,7 +906,7 @@ class TestArchive:
             assert bpkg
 
     def test_publish(self, ctx, samples_dir):
-        from lkarchive.publish import publish_repo_dists
+        from archivecli.publish import publish_repo_dists
 
         # link the DEP-11 fetch hook to its destination
         os.makedirs(ctx._lconf.data_import_hooks_dir, exist_ok=True)

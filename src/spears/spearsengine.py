@@ -52,7 +52,7 @@ class SpearsEngine:
         os.makedirs(self._workspace, exist_ok=True)
 
         my_dir = os.path.dirname(os.path.realpath(__file__))
-        self._lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'lkarchive', 'lk-archive.py'))
+        self._lk_archive_exe = os.path.normpath(os.path.join(my_dir, '..', 'archivecli', 'lk-archive.py'))
         if not os.path.isfile(self._lk_archive_exe):
             self._lk_archive_exe = 'lk-archive'
 

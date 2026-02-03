@@ -1,6 +1,6 @@
 # Meson definition for Laniakea - Admin CLI
 
-install_subdir('.', install_dir: 'lib/laniakea/lkadmin/',
+install_subdir('.', install_dir: 'lib/laniakea/admincli/',
     exclude_directories: ['__pycache__'],
     exclude_files: ['meson.build', 'lk-admin.py'],
 )

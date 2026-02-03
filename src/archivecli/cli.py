@@ -46,14 +46,14 @@ def _register_commands():
 
     cli.add_command(publish)
 
-    import lkarchive.data_import as dip
+    import archivecli.data_import as dip
 
     cli.add_command(dip.import_pkg)
     cli.add_command(dip.import_heidi_result)
     cli.add_command(dip.import_repository)
     cli.add_command(dip.export_package_list)
 
-    import lkarchive.manage_pkg as mgr
+    import archivecli.manage_pkg as mgr
 
     cli.add_command(mgr.cmd_list)
     cli.add_command(mgr.remove)
@@ -63,15 +63,15 @@ def _register_commands():
     cli.add_command(mgr.show_overrides)
     cli.add_command(mgr.change_override)
 
-    from lkarchive.process_new import process_new
+    from archivecli.process_new import process_new
 
     cli.add_command(process_new)
 
-    import lkarchive.validate as validate
+    import archivecli.validate as validate
 
     cli.add_command(validate.check_integrity)
 
-    import lkarchive.ariadne as ariadne
+    import archivecli.ariadne as ariadne
 
     cli.add_command(ariadne.update_jobs)
     cli.add_command(ariadne.cleanup_jobs)

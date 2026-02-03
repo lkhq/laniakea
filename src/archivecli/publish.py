@@ -64,7 +64,7 @@ def _retrieve_dep11_data_async(
     import subprocess
 
     from laniakea.logging import configure_pkg_archive_logger
-    from lkarchive.check_dep11 import check_dep11_path
+    from archivecli.check_dep11 import check_dep11_path
 
     # reload singleton data for multiprocessing
     lconf = LocalConfig(lconf_fname)

@@ -25,7 +25,7 @@ subdir('laniakea')
 
 # Admin cli tool
 if (get_option('cli-admin'))
-    subdir('lkadmin')
+    subdir('admincli')
 endif
 
 # Key management cli tool
@@ -34,7 +34,7 @@ if (get_option('cli-admin'))
 endif
 
 # Archive management cli tool
-subdir('lkarchive')
+subdir('archivecli')
 
 # Lighthouse relay
 if (get_option('lighthouse'))

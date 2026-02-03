@@ -1,6 +1,6 @@
 # Meson definition for Laniakea - Archive CLI
 
-install_subdir('.', install_dir: 'lib/laniakea/lkarchive/',
+install_subdir('.', install_dir: 'lib/laniakea/archivecli/',
     exclude_directories: ['__pycache__'],
     exclude_files: ['meson.build', 'lk-archive.py'],
 )
