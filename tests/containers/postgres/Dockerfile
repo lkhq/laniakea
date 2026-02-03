@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM debian:trixie
 
 # prepare
 ENV LANG C.UTF-8
@@ -7,8 +7,8 @@ RUN apt-get update -qq
 
 # set up Postgres with debversion extension for use in Laniakea testssuite
 RUN apt-get install --no-install-recommends -yq \
-    postgresql-15 \
-    postgresql-15-debversion
+    postgresql-17 \
+    postgresql-17-debversion
 
 RUN echo "/etc/init.d/postgresql start && exit 0" > /etc/rc.local
 RUN /etc/init.d/postgresql start && \
@@ -18,10 +18,10 @@ RUN /etc/init.d/postgresql start && \
     su postgres -c "psql -c \"CREATE EXTENSION IF NOT EXISTS debversion;\" laniakea_unittest"
 
 USER postgres
-RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/15/main/pg_hba.conf
+RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/17/main/pg_hba.conf
 
-RUN echo "listen_addresses = '*'" >> /etc/postgresql/15/main/postgresql.conf
-RUN echo "log_destination = 'stderr'" >> /etc/postgresql/15/main/postgresql.conf
+RUN echo "listen_addresses = '*'" >> /etc/postgresql/17/main/postgresql.conf
+RUN echo "log_destination = 'stderr'" >> /etc/postgresql/17/main/postgresql.conf
 
 EXPOSE 5434
-CMD ["/usr/lib/postgresql/15/bin/postgres", "-D", "/var/lib/postgresql/15/main", "-c", "config_file=/etc/postgresql/15/main/postgresql.conf", "-p", "5432"]
+CMD ["/usr/lib/postgresql/17/bin/postgres", "-D", "/var/lib/postgresql/17/main", "-c", "config_file=/etc/postgresql/17/main/postgresql.conf", "-p", "5432"]
