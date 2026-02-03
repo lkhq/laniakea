@@ -41,7 +41,9 @@ class SpearsHint(Base):
         'SpearsMigrationTask'
     )  # Migration task this hint belongs to
 
-    time: Mapped[datetime] = mapped_column(DateTime(), default=lambda: datetime.now(UTC))  # Time when this hint was created
+    time: Mapped[datetime] = mapped_column(
+        DateTime(), default=lambda: datetime.now(UTC)
+    )  # Time when this hint was created
     hint: Mapped[str] = mapped_column(Text())  # A Britney hint
     reason: Mapped[str] = mapped_column(Text())  # Reason why the package is blacklisted
 
