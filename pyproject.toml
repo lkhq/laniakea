@@ -54,6 +54,7 @@ tests = [
     'pytest',
     'pytest-flask',
     'mypy',
+    'sqlalchemy[mypy]',
     'flake8',
     'pylint',
     'pylint-flask',
