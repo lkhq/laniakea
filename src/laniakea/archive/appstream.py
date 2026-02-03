@@ -138,7 +138,7 @@ def _update_appstream_components_internal(
                 mdata_write.components_to_collection(AppStream.FormatKind.YAML)  # pylint: disable=no-member
             )
 
-        dcpt.data = json.dumps(y_data)  # type: ignore[assignment]
+        dcpt.data = json.dumps(y_data)
 
         # add new software component to database
         dcpt.name = cpt.get_name()

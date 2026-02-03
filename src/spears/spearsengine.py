@@ -137,7 +137,7 @@ class SpearsEngine:
 
         return True
 
-    @concurrent.thread
+    @concurrent.thread  # type: ignore[arg-type]
     def _write_merged_dists_data_for(
         self, session, mi_wspace: str, mtask: SpearsMigrationTask, suites: T.Union[ArchiveSuite, list[ArchiveSuite]]
     ):
