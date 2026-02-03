@@ -284,7 +284,7 @@ def package_mark_published(session, rss: ArchiveRepoSuiteSettings, pkg: T.Union[
         vmem.repo_suite = rss
         vmem.pkg_name = pkg.name
         vmem.arch_name = arch_name
-        vmem.highest_version = pkg.version
+        vmem.highest_version = pkg.version  # type: ignore[assignment]
         session.add(vmem)
 
     # "undelete" package, just in case it is marked as deleted

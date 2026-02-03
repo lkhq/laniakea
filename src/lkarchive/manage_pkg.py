@@ -159,14 +159,26 @@ def print_package_removal_details(
         table.add_column('Architecture')
 
     for pkg in pkgs:
-        table.add_row(
-            pkg.name if is_source else '{} ({})'.format(pkg.name, pkg.source.name),
-            pkg.version,
-            pkg.repo.name,
-            ' '.join([s.name for s in pkg.suites]),
-            pkg.component.name,
-            ' '.join([b.name for b in pkg.binaries]) if is_source else pkg.architecture.name,
-        )
+        if is_source:
+            assert isinstance(pkg, SourcePackage)  # type narrowing for MyPy
+            table.add_row(
+                pkg.name,
+                pkg.version,
+                pkg.repo.name,
+                ' '.join([s.name for s in pkg.suites]),
+                pkg.component.name,
+                ' '.join([b.name for b in pkg.binaries]),
+            )
+        else:
+            assert isinstance(pkg, BinaryPackage)  # type narrowing for MyPy
+            table.add_row(
+                '{} ({})'.format(pkg.name, pkg.source.name),
+                pkg.version,
+                pkg.repo.name,
+                ' '.join([s.name for s in pkg.suites]),
+                pkg.component.name,
+                pkg.architecture.name,
+            )
 
     console.print(table)
 
@@ -174,8 +186,10 @@ def print_package_removal_details(
     bin_issues = set()
     for pkg in pkgs:
         if is_source:
+            assert isinstance(pkg, SourcePackage)  # type narrowing for MyPy
             si, bi = guess_source_package_remove_issues(session, rss, pkg)
         else:
+            assert isinstance(pkg, BinaryPackage)  # type narrowing for MyPy
             si, bi = guess_binary_package_remove_issues(session, rss, pkg)
         src_issues.update([s.name + '/' + s.version for s in si])
         bin_issues.update([b.name + '/' + b.version for b in bi])

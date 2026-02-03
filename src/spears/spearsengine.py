@@ -258,8 +258,8 @@ class SpearsEngine:
         This function prepares the combined data in the respective workspace location.
         """
 
-        srcmerge_future = self._write_merged_dists_data_for(session, mi_wspace, mtask, mtask.source_suites)
-        dstmerge_future = self._write_merged_dists_data_for(session, mi_wspace, mtask, mtask.target_suite)
+        srcmerge_future = self._write_merged_dists_data_for(session, mi_wspace, mtask, mtask.source_suites)  # type: ignore[call-arg]
+        dstmerge_future = self._write_merged_dists_data_for(session, mi_wspace, mtask, mtask.target_suite)  # type: ignore[call-arg]
 
         srcmerge_future.result()
         dstmerge_future.result()
