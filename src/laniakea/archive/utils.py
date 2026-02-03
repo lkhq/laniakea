@@ -104,7 +104,9 @@ def checksums_list_to_file(cslist, checksum: str, files=None, *, base_dir=None) 
     return files
 
 
-def parse_package_list(pkg_list_raw: str | list[dict[str, str]], default_version: str | None = None, default_archs: list[str] | None = None):
+def parse_package_list(
+    pkg_list_raw: str | list[dict[str, str]], default_version: str | None = None, default_archs: list[str] | None = None
+):
     """
     Parse a "Package-List" field and return its information in
     PackageInfo data structures.
