@@ -337,15 +337,12 @@ class ArchiveSuite(Base):
 
     debug_suite_id: Mapped[int] = mapped_column(Integer, ForeignKey('archive_suites.id'), nullable=True)
     debug_suite_for: Mapped['ArchiveSuite | None'] = relationship(
-        'ArchiveSuite',
-        foreign_keys=[debug_suite_id],
-        back_populates='debug_suite',
-        uselist=False,
-        remote_side='ArchiveSuite.id',
+        'ArchiveSuite', backref=backref('debug_suite', remote_side='ArchiveSuite.id'), uselist=False
     )
-    debug_suite: Mapped['ArchiveSuite | None'] = relationship(
-        'ArchiveSuite', foreign_keys='ArchiveSuite.debug_suite_id', back_populates='debug_suite_for', uselist=False
-    )
+
+    # Type annotation for the backref-created attribute (for MyPy)
+    if T.TYPE_CHECKING:
+        debug_suite: Mapped['ArchiveSuite | None']
 
     repo_settings: Mapped[list['ArchiveRepoSuiteSettings']] = relationship(
         'ArchiveRepoSuiteSettings', back_populates='suite', cascade='all, delete, delete-orphan'
