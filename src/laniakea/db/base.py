@@ -27,7 +27,7 @@ Base: Any = declarative_base()
 class DebVersion(UserDefinedType):
     cache_ok = True
 
-    def get_col_spec(self):
+    def get_col_spec(self, **kw):
         return 'DEBVERSION'
 
     def bind_processor(self, dialect):
