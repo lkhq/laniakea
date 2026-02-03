@@ -100,7 +100,7 @@ class ExcusesFile:
         for entry in ysrc:
             excuse = SpearsExcuse()
 
-            excuse.date = datetime.utcnow()
+            excuse.time_created = datetime.utcnow()
             excuse.migration_task = self._mtask
 
             spkg_name = str(entry['source'])
