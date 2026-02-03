@@ -59,10 +59,10 @@ stamp-all: $(ALL) $(OTHER)
 	fi
 
 %_F: %.orig.tar.gz
-	p=$*; (cd $${p/_/-}; dpkg-buildpackage -F)
+	p=$*; (cd $${p/_/-}; dpkg-buildpackage --sign-backend=gpg -F)
 
 %_A: %.orig.tar.gz
-	p=$*; (cd $${p/_/-}; dpkg-buildpackage -A)
+	p=$*; (cd $${p/_/-}; dpkg-buildpackage --sign-backend=gpg -A)
 
 # build packages as if they were built with
 # sbuild --dpkg-file-suffix="-buildd"
@@ -84,7 +84,7 @@ stamp-all: $(ALL) $(OTHER)
 	)
 
 %_B: %.orig.tar.gz
-	p=$*; (cd $${p/_/-}; dpkg-buildpackage -B)
+	p=$*; (cd $${p/_/-}; dpkg-buildpackage --sign-backend=gpg -B)
 
 # build packages as if they were built with
 # sbuild --dpkg-file-suffix="-buildd"
@@ -106,7 +106,7 @@ stamp-all: $(ALL) $(OTHER)
 	)
 
 %_S: %.orig.tar.gz
-	p=$*; (cd $${p/_/-}; dpkg-buildpackage -S)
+	p=$*; (cd $${p/_/-}; dpkg-buildpackage --sign-backend=gpg -S)
 
 %_source.changes: %_amd64.changes
 	mergechanges -S $< /dev/null > $@
