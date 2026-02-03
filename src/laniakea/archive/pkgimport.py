@@ -58,7 +58,7 @@ from laniakea.archive.utils import (
     check_overrides_source,
     checksums_list_to_file,
     package_mark_published,
-    parse_package_list_str,
+    parse_package_list,
     publish_package_metadata,
     register_package_overrides,
     pool_dir_from_name_component,
@@ -328,7 +328,7 @@ class PackageImporter:
         spkg.build_conflicts_indep = pop_split(src_tf, 'Build-Conflicts-Indep', ',')
         spkg.build_conflicts_arch = pop_split(src_tf, 'Build-Conflicts-Arch', ',')
         if 'Package-List' in src_tf:
-            spkg.expected_binaries = parse_package_list_str(src_tf.pop('Package-List'))
+            spkg.expected_binaries = parse_package_list(src_tf.pop('Package-List'))
             src_tf.pop('Binary')
         else:
             log.warning(
