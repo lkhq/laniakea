@@ -1,3 +1,4 @@
+SQLAlchemy
 black
 flake8
 isort

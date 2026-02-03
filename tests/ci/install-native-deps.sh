@@ -46,6 +46,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     python3-gi \
     python3-tomlkit \
     python3-cairo-dev \
+    python3-cryptography \
     python3-sqlalchemy \
     python3-alembic \
     python3-psycopg2 \

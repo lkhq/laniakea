@@ -19,6 +19,7 @@ requires = ["meson"]
 base = [
     'SQLAlchemy>=2.0',
     'alembic',
+    'cryptography',
     'psycopg2>=2.7.7',
     'python-debian',
     'python-apt>=2.2.1',
@@ -54,7 +55,7 @@ tests = [
     'pytest',
     'pytest-flask',
     'mypy',
-    'sqlalchemy[mypy]',
+    'SQLAlchemy[mypy]',
     'flake8',
     'pylint',
     'pylint-flask',

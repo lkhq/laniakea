@@ -2,4 +2,4 @@
 Pygments>=2.6
 Sphinx>=6.0
 piccolo_theme>=0.14
-sphinx-autodoc-typehints~=2.3.0
+sphinx-autodoc-typehints~=3.5.2
