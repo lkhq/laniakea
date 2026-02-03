@@ -259,7 +259,7 @@ class SignedFile:
             self.expired = True
             self.invalid = True
 
-        elif fields[1] in (b'REVKEYSIG', b'BADSIG', b'ERRSIG', b'KEYREVOKED', b'NO_PUBKEY'):
+        elif fields[1] in (b'REVKEYSIG', b'BADSIG', b'ERRSIG', b'KEYREVOKED', b'NO_PUBKEY', b'FAILURE'):
             self.invalid = True
 
         else:
