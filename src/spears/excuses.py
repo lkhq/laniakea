@@ -6,7 +6,7 @@
 
 import re
 from typing import Dict
-from datetime import datetime
+from datetime import UTC, datetime
 
 import yaml
 
@@ -100,7 +100,7 @@ class ExcusesFile:
         for entry in ysrc:
             excuse = SpearsExcuse()
 
-            excuse.time_created = datetime.utcnow()
+            excuse.time_created = datetime.now(UTC)
             excuse.migration_task = self._mtask
 
             spkg_name = str(entry['source'])

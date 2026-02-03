@@ -6,7 +6,7 @@
 
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from dataclasses import field, dataclass
 
 import rich
@@ -74,10 +74,10 @@ def _ensure_package_consistency(session, repo: ArchiveRepository, fix_issues: bo
             else:
                 issues_fixed.append(('{}/{}/source'.format(spkg.name, spkg.version), 'No suites'))
                 if fix_issues:
-                    spkg.time_deleted = datetime.utcnow()
+                    spkg.time_deleted = datetime.now(UTC)
                     archive_log.info('%s: %s/%s @ %s', 'MARKED-REMOVAL-SRC', spkg.name, spkg.version, repo.name)
                     for bpkg in spkg.binaries:
-                        bpkg.time_deleted = datetime.utcnow()
+                        bpkg.time_deleted = datetime.now(UTC)
                         archive_log.info('MARKED-REMOVAL-BIN: %s/%s @ %s', bpkg.name, bpkg.version, repo.name)
                 continue
 

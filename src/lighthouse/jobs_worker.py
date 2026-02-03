@@ -6,7 +6,7 @@
 
 import uuid
 import logging as log
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import text
 
@@ -256,7 +256,7 @@ class JobWorker:
 
             session.add(worker)
 
-        worker.last_ping = datetime.utcnow()
+        worker.last_ping = datetime.now(UTC)
 
         accepted_kinds = req_data.get('accepts', [])
         if type(accepted_kinds) is list:
@@ -400,7 +400,7 @@ class JobWorker:
             session.query(Job).filter(Job.uuid == job_id).update({'latest_log_excerpt': log_excerpt})
 
         # update last seen information
-        session.query(SparkWorker).filter(SparkWorker.uuid == client_id).update({'last_ping': datetime.utcnow()})
+        session.query(SparkWorker).filter(SparkWorker.uuid == client_id).update({'last_ping': datetime.now(UTC)})
         session.commit()
 
     def _process_job_finished_request(self, session, request, success: bool):
@@ -430,7 +430,7 @@ class JobWorker:
         # (if things get lost along the way or fail verification, we may need to restart this job)
         job.result = JobResult.SUCCESS_PENDING if success else JobResult.FAILURE_PENDING
         job.status = JobStatus.DONE
-        job.time_finished = datetime.utcnow()
+        job.time_finished = datetime.now(UTC)
 
         event_data = {'job_id': job_id, 'client_name': client_name, 'client_id': client_id, 'result': str(job.result)}
         self._emit_event('job-finished', event_data)

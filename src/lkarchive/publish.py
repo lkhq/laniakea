@@ -15,7 +15,7 @@ import functools
 import multiprocessing as mproc
 from glob import iglob
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import click
 from pebble import concurrent
@@ -649,7 +649,7 @@ def _publish_suite_dists(
     # update the suite data if forced, explicitly marked as changes pending or if we published the suite
     # for the last time about a week ago (6 days to give admins some time to fix issues before the old
     # data expires about 2 days later)
-    if not rss.changes_pending and not force and not rss.time_published < datetime.utcnow() - timedelta(days=6):
+    if not rss.changes_pending and not force and not rss.time_published < datetime.now(UTC) - timedelta(days=6):
         log.info('Not updating %s/%s: No pending changes.', rss.repo.name, rss.suite.name)
         return
 
@@ -827,9 +827,9 @@ def _publish_suite_dists(
     # we set the date to 2 minutes in the past to guard against clock sync issue when updating
     # rapidly and some clients are a bit behind the master clock (which should not happen, but
     # sometimes does)
-    entry['Date'] = datetime_to_rfc2822_string(datetime.utcnow() - timedelta(minutes=2))
+    entry['Date'] = datetime_to_rfc2822_string(datetime.now(UTC) - timedelta(minutes=2))
     if not rss.frozen and not only_sources:
-        entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.utcnow() + timedelta(days=8))
+        entry['Valid-Until'] = datetime_to_rfc2822_string(datetime.now(UTC) + timedelta(days=8))
     entry['Acquire-By-Hash'] = 'yes'
 
     if rss.not_automatic:

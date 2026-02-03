@@ -6,7 +6,7 @@
 
 import enum
 from uuid import uuid4
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     Enum,
@@ -89,7 +89,7 @@ class SyncBlacklistEntry(Base):
 
     pkgname: Mapped[str] = mapped_column(String(120))  # Name of the blacklisted package
     time_created: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
+        DateTime, default=lambda: datetime.now(UTC)
     )  # Time when the package was blacklisted
     reason: Mapped[str] = mapped_column(Text)  # Reason why the package is blacklisted
 
@@ -140,7 +140,7 @@ class SynchrotronIssue(Base):
     )
 
     time_created: Mapped[datetime] = mapped_column(
-        DateTime(), default=datetime.utcnow
+        DateTime(), default=lambda: datetime.now(UTC)
     )  # Time when this excuse was created
 
     kind: Mapped[SynchrotronIssueKind] = mapped_column(

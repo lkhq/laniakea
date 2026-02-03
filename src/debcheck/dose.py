@@ -6,7 +6,7 @@
 
 import os
 import subprocess
-from datetime import datetime
+from datetime import UTC, datetime
 
 import yaml
 from pebble import concurrent
@@ -251,7 +251,7 @@ class DoseDebcheck:
                     continue
 
             issue = DebcheckIssue()
-            issue.time = datetime.utcnow()
+            issue.time = datetime.now(UTC)
             missing = []
             conflicts = []
             set_basic_package_info(issue, entry, is_primary=True, type_override=package_type_override)

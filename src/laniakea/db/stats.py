@@ -6,7 +6,7 @@
 
 
 from enum import StrEnum
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Text, Integer, DateTime, PrimaryKeyConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -75,7 +75,7 @@ class StatsEntry(Base):
 
     key: Mapped[str] = mapped_column(Text, nullable=False)  # Unique identifier string for this event
     time: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=lambda: datetime.now(UTC), nullable=False
     )  # Time when the value was measured
 
     value: Mapped[int] = mapped_column(Integer)  # Value at the given time

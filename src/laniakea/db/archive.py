@@ -718,7 +718,7 @@ class ArchiveFile(Base):
     fname: Mapped[str] = mapped_column(Text(), nullable=False)
     size: Mapped[int] = mapped_column(BigInteger())  # the size of the file
     time_created: Mapped[datetime] = mapped_column(
-        DateTime(), default=datetime.utcnow
+        DateTime(), default=lambda: datetime.now(UTC)
     )  # Time when this file was created
 
     md5sum: Mapped[str] = mapped_column(CHAR(32))  # the files' MD5 checksum
@@ -778,7 +778,7 @@ class SourcePackage(Base):
     component: Mapped['ArchiveComponent'] = relationship('ArchiveComponent')  # Component this package is in
 
     time_added: Mapped[datetime] = mapped_column(
-        DateTime(), default=datetime.utcnow
+        DateTime(), default=lambda: datetime.now(UTC)
     )  # Time when this package was first seen
     time_published: Mapped[datetime] = mapped_column(
         DateTime(), nullable=True
@@ -1066,7 +1066,7 @@ class BinaryPackage(Base):
     source: Mapped['SourcePackage'] = relationship('SourcePackage', back_populates='binaries', cascade='merge')
 
     time_added: Mapped[datetime] = mapped_column(
-        DateTime(), default=datetime.utcnow
+        DateTime(), default=lambda: datetime.now(UTC)
     )  # Time when this package was added to the archive
     time_published: Mapped[datetime] = mapped_column(
         DateTime(), nullable=True

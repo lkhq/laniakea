@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: LGPL-3.0+
 
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 
 import humanize
 
@@ -27,5 +27,5 @@ def humanized_timediff(time):
     if not time:
         return 'Never'
 
-    timediff = datetime.utcnow().replace(microsecond=0) - time
+    timediff = datetime.now(UTC).replace(microsecond=0) - time
     return humanize.naturaltime(timediff)

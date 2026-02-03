@@ -7,7 +7,7 @@
 import json
 import math
 from enum import Enum, auto
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from flask import Blueprint, abort, request, current_app, render_template
 
@@ -52,7 +52,7 @@ def fetch_queue_statistics_for(
 def get_full_queue_statistics(session) -> tuple[str, str]:
     pending_stats = {}
     depwait_stats = {}
-    earliest_time = datetime.utcnow() - timedelta(days=365)
+    earliest_time = datetime.now(UTC) - timedelta(days=365)
     for arch in session.query(ArchiveArchitecture).filter(ArchiveArchitecture.name != 'all').all():
         pending_stats[arch.name] = fetch_queue_statistics_for(
             session, StatsEventKind.JOB_QUEUE_PENDING, arch.name, earliest_time

@@ -6,7 +6,7 @@
 
 import json
 import math
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from flask import Blueprint, abort, render_template
 
@@ -46,7 +46,7 @@ def index():
 
 @cache.memoize(30 * 60)
 def fetch_excuses_statistics_for(session, repo_name: str, target_suite_name: str) -> str:
-    start_at = datetime.utcnow() - timedelta(days=120)
+    start_at = datetime.now(UTC) - timedelta(days=120)
 
     stat_key = make_stats_key(StatsEventKind.MIGRATIONS_PENDING, repo_name, target_suite_name)
     return json.dumps(fetch_statistics_for(session, stat_key, start_at))

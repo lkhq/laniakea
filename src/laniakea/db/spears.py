@@ -125,7 +125,7 @@ class SpearsExcuse(Base):
     uuid: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     time_created: Mapped[datetime] = mapped_column(
-        DateTime(), default=datetime.utcnow
+        DateTime(), default=lambda: datetime.now(UTC)
     )  # Time when this excuse was created
 
     migration_id: Mapped[int] = mapped_column(Integer, ForeignKey('spears_migrations.id'))
