@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2016-2022 Matthias Klumpp <matthias@tenstral.net>
+# Copyright (C) 2016-2026 Matthias Klumpp <matthias@tenstral.net>
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
 import os
 import sys
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 thisfile = __file__
 if not os.path.isabs(thisfile):
