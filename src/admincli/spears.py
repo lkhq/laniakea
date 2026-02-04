@@ -101,7 +101,7 @@ def add_hint(source_suite, target_suite, hint, reason):
     REASON: Reason for adding this hint.
     '''
 
-    from laniakea.db import SpearsHint, SpearsMigrationTask, ArchiveSuite
+    from laniakea.db import SpearsHint, SpearsMigrationTask
 
     with session_scope() as session:
         # Find the migration task by target suite
@@ -136,7 +136,7 @@ def remove_hint(source_suite, target_suite, hint):
     HINT: Britney hint string.
     '''
 
-    from laniakea.db import SpearsHint, SpearsMigrationTask, ArchiveSuite
+    from laniakea.db import SpearsHint, SpearsMigrationTask
 
     with session_scope() as session:
         # Find the migration task by target suite
