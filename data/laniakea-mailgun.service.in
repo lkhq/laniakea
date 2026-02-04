@@ -1,6 +1,6 @@
 [Unit]
 Description=Laniakea Mailgun
-After=syslog.target network.target postgresql.service
+After=network.target postgresql.service
 ConditionPathExists=/etc/laniakea/mailgun.toml
 
 [Service]

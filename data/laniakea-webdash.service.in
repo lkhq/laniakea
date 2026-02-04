@@ -1,6 +1,6 @@
 [Unit]
 Description=Laniakea Web Dashboard
-After=syslog.target network.target
+After=network.target
 ConditionPathExists=/var/lib/laniakea/webdash/config.cfg
 
 [Service]

@@ -1,6 +1,6 @@
 [Unit]
 Description=Laniakea Matrix Bot
-After=syslog.target network.target
+After=network.target
 ConditionPathExists=/etc/laniakea/mirk.toml
 
 [Service]
