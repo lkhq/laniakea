@@ -133,7 +133,7 @@ class UserHints:
                         with open(fname, 'r') as f:
                             data = tomlkit.load(f)
                             if 'ignore' not in data:
-                                log.warning('User Hints: Missing \'issues\' key in %s', os.path.basename(fname))
+                                log.warning('User Hints: Missing \'ignore\' key in %s', os.path.basename(fname))
                                 continue
 
                             valid_files_found = True

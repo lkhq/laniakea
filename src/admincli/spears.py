@@ -101,16 +101,24 @@ def add_hint(source_suite, target_suite, hint, reason):
     REASON: Reason for adding this hint.
     '''
 
-    from laniakea.db import SpearsHint
+    from laniakea.db import SpearsHint, SpearsMigrationTask, ArchiveSuite
 
     with session_scope() as session:
-        migration_id = '{}-to-{}'.format(source_suite, target_suite)
+        # Find the migration task by target suite
+        mtask = (
+            session.query(SpearsMigrationTask)
+            .join(SpearsMigrationTask.target_suite)
+            .filter(ArchiveSuite.name == target_suite)
+            .first()
+        )
+        if not mtask:
+            print_error_exit('Migration task not found for target suite: {}'.format(target_suite))
 
         # remove a preexisting hint
-        session.query(SpearsHint).filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == hint).delete()
+        session.query(SpearsHint).filter(SpearsHint.migration_id == mtask.id, SpearsHint.hint == hint).delete()
 
         h = SpearsHint()
-        h.migration_id = migration_id
+        h.migration_id = mtask.id
         h.hint = hint
         h.reason = reason
 
@@ -126,14 +134,22 @@ def remove_hint(source_suite, target_suite, hint):
     SOURCE_SUITE: Source suite of the package.
     TARGET_SUITE: Target suite of the package.
     HINT: Britney hint string.
-    REASON: Reason for adding this hint.
     '''
 
-    from laniakea.db import SpearsHint
+    from laniakea.db import SpearsHint, SpearsMigrationTask, ArchiveSuite
 
     with session_scope() as session:
-        migration_id = '{}-to-{}'.format(source_suite, target_suite)
-        session.query(SpearsHint).filter(SpearsHint.migration_id == migration_id, SpearsHint.hint == hint).delete()
+        # Find the migration task by target suite
+        mtask = (
+            session.query(SpearsMigrationTask)
+            .join(SpearsMigrationTask.target_suite)
+            .filter(ArchiveSuite.name == target_suite)
+            .first()
+        )
+        if not mtask:
+            print_error_exit('Migration task not found for target suite: {}'.format(target_suite))
+
+        session.query(SpearsHint).filter(SpearsHint.migration_id == mtask.id, SpearsHint.hint == hint).delete()
 
 
 @spears.command()
