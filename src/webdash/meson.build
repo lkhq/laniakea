@@ -2,7 +2,12 @@
 
 install_subdir('.', install_dir: 'lib/laniakea/webdash/',
     exclude_directories: ['__pycache__', 'lkweb/__pycache__'],
-    exclude_files: ['meson.build', '.gitignore', 'lkwebdash.ini.in'],
+    exclude_files: [
+        'meson.build',
+        '.gitignore',
+        'lkwebdash.ini.in',
+        'templates/default/.gitignore',
+    ],
 )
 
 wd_data = configuration_data()

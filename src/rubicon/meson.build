@@ -2,7 +2,11 @@
 
 install_subdir('.', install_dir: 'lib/laniakea/rubicon/',
     exclude_directories: ['__pycache__'],
-    exclude_files: ['meson.build', 'rubicon'],
+    exclude_files: [
+        'meson.build',
+        'rubicon',
+        'rubicon.in'
+    ],
 )
 
 if get_option('virtualenv') != ''
