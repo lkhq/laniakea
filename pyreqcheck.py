@@ -202,11 +202,18 @@ def run(args):
     with open('pyproject.toml', 'rb') as f:
         pyproject = toml.load(f)
 
+    lkdeps = pyproject['dependency-groups']
+    for k, v in pyproject['tool']['laniakea']['dependencies'].items():
+        if k not in lkdeps:
+            lkdeps[k] = v
+        else:
+            lkdeps[k].extend(v)
+
     if args.check_group:
-        ensure_dependencies(pyproject['tool']['laniakea']['dependencies'].get(args.check_group))
+        ensure_dependencies(lkdeps.get(args.check_group))
     if args.write_requirements:
-        write_requirements(pyproject['tool']['laniakea']['dependencies'])
-        write_requirements_readthedocs(pyproject['tool']['laniakea']['dependencies'])
+        write_requirements(lkdeps)
+        write_requirements_readthedocs(lkdeps)
 
     return 0
 

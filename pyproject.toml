@@ -13,9 +13,14 @@ Documentation = "https://github.com/lkhq/laniakea"
 Source = "https://github.com/lkhq/laniakea"
 
 [build-system]
-requires = ["meson"]
+build-backend = 'mesonpy'
+requires = [
+    'meson >= 1.2.3; python_version >= "3.12"',
+    'pyproject-metadata >= 0.9.0',
+    'tomlkit',
+]
 
-[tool.laniakea.dependencies]
+[dependency-groups]
 base = [
     'SQLAlchemy>=2.0',
     'alembic',
@@ -40,7 +45,6 @@ base = [
     'rich>=12.4',
     'voluptuous',
     'setproctitle',
-    'gir:AppStream~=1.0',
 ]
 web = [
     'Flask',
@@ -68,6 +72,11 @@ docs = [
     'Pygments>=2.6',
     'sphinx-autodoc-typehints',
     'piccolo_theme>=0.14',
+]
+
+[tool.laniakea.dependencies]
+base = [
+    'gir:AppStream~=1.0',
 ]
 
 [tool.pylint.master]
