@@ -12,8 +12,8 @@ rebar = Rebar()
 # All handler URL rules will be prefixed by '/v1'
 registry = rebar.create_handler_registry(
     prefix='/api/v1',
-    spec_path='/apidocs',
-    swagger_ui_path='/apidocs/ui',
+    spec_path='/docs',
+    swagger_ui_path='/docs/ui',
     swagger_generator=SwaggerV3Generator(title='Laniakea SW API'),
 )
 
