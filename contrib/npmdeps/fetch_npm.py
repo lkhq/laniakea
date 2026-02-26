@@ -21,84 +21,90 @@ node_modules = [
     {
         'name': 'bulma',
         'files': ['css/bulma.min.css'],
-        'copy_to': [
+        'copy_to': {
             os.path.join(src_dir, 'webdash/templates/default/static/css/'),
             os.path.join(src_dir, 'webswview/templates/default/static/css/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/css/'),
-        ],
+        },
     },
     {
         'name': '@fortawesome/fontawesome-free',
         'files': ['css/fontawesome.min.css', 'css/all.min.css'],
-        'copy_to': [
+        'copy_to': {
             os.path.join(src_dir, 'webdash/templates/default/static/css/fontawesome/'),
             os.path.join(src_dir, 'webswview/templates/default/static/css/fontawesome/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/css/fontawesome/'),
-        ],
+        },
     },
     {
         'name': '@fortawesome/fontawesome-free',
         'files': ['webfonts/*'],
-        'copy_to': [
+        'copy_to': {
             os.path.join(src_dir, 'webdash/templates/default/static/css/webfonts/'),
             os.path.join(src_dir, 'webswview/templates/default/static/css/webfonts/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/css/webfonts/'),
-        ],
+        },
     },
     {
         'name': '@fontsource/cantarell',
         'files': ['files/*'],
-        'copy_to': [
+        'copy_to': {
             os.path.join(src_dir, 'webdash/templates/default/static/fonts/'),
             os.path.join(src_dir, 'webswview/templates/default/static/fonts/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/fonts/'),
-        ],
+        },
     },
     {
         'name': 'chart.js',
         'files': ['dist/chart.umd.js', 'dist/chart.umd.js.map'],
-        'copy_to': [
+        'copy_to': {
             os.path.join(src_dir, 'webdash/templates/default/static/js/chart/'),
             os.path.join(src_dir, 'webswview/templates/default/static/js/chart/'),
-            os.path.join(src_dir, 'webswview/templates/default/static/js/chart/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/js/chart/'),
-        ],
+        },
     },
     {
         'name': 'chartjs-adapter-moment',
         'files': ['dist/chartjs-adapter-moment.min.js'],
-        'copy_to': [
+        'copy_to': {
             os.path.join(src_dir, 'webdash/templates/default/static/js/chart/'),
             os.path.join(src_dir, 'webswview/templates/default/static/js/chart/'),
-            os.path.join(src_dir, 'webswview/templates/default/static/js/chart/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/js/chart/'),
-        ],
+        },
     },
     {
         'name': 'jquery',
         'files': ['dist/jquery.slim.min.js'],
-        'copy_to': [
+        'copy_to': {
             os.path.join(src_dir, 'webdash/templates/default/static/js/jquery/'),
             os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
-            os.path.join(src_dir, 'webswview/templates/default/static/js/jquery/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/js/jquery/'),
-        ],
+        },
     },
     {
         'name': 'moment',
         'files': ['min/moment.min.js', 'min/moment.min.js.map'],
-        'copy_to': [
+        'copy_to': {
             os.path.join(src_dir, 'webdash/templates/default/static/js/moment/'),
             os.path.join(src_dir, 'webswview/templates/default/static/js/moment/'),
-            os.path.join(src_dir, 'webswview/templates/default/static/js/moment/'),
             os.path.join(src_dir, 'webswview/templates/pureos/static/js/moment/'),
-        ],
+        },
     },
 ]
 
 
 def fetch_node_modules(node_cmd):
-    subprocess.run([node_cmd, 'install', '--no-save'], check=True)
+    try:
+        subprocess.run([node_cmd, 'install', '--no-save'], check=True)
+    except FileNotFoundError:
+        print(f"Node command '{node_cmd}' not found.", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to run '{node_cmd} install --no-save': {e}", file=sys.stderr)
+        sys.exit(1)
+    if not os.path.isdir(os.path.join(thisdir, 'node_modules')):
+        print("node_modules directory not found after install.", file=sys.stderr)
+        sys.exit(1)
 
 
 def install_node_modules():
