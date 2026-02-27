@@ -6,4 +6,4 @@ cd $BASEDIR
 
 export FLASK_DEBUG=1
 export FLASK_ENV=development
-exec flask run --with-threads $@
+exec python3 -m flask run --with-threads $@
