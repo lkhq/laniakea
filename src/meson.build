@@ -24,12 +24,12 @@ endif
 subdir('laniakea')
 
 # Admin cli tool
-if (get_option('cli-admin'))
+if get_option('cli-admin')
     subdir('admincli')
 endif
 
 # Key management cli tool
-if (get_option('cli-admin'))
+if get_option('cli-admin')
     subdir('keytool')
 endif
 
@@ -37,7 +37,7 @@ endif
 subdir('archivecli')
 
 # Lighthouse relay
-if (get_option('lighthouse'))
+if get_option('lighthouse')
     subdir('lighthouse')
 endif
 
@@ -46,59 +46,47 @@ endif
 subdir('lkscheduler')
 
 # E-Mail emitter
-if (get_option('mailgun'))
+if get_option('mailgun')
     subdir('mailgun')
 endif
 
 # Debcheck
-if (get_option('debcheck'))
+if get_option('debcheck')
     subdir('debcheck')
 endif
 
 # Rubicon data importer
-if (get_option('rubicon'))
+if get_option('rubicon')
     subdir('rubicon')  # deferred upload processing
 endif
 
 # Package upload webservice
-if (get_option('webupload'))
+if get_option('webupload')
     subdir('webupload')  # HTTPS upload service
 endif
 
 # Planter
-if (get_option('planter'))
+if get_option('planter')
     subdir('planter')
 endif
 
 # Spears
-if (get_option('spears'))
+if get_option('spears')
     subdir('spears')
 endif
 
 # Synchrotron
-if (get_option('synchrotron'))
+if get_option('synchrotron')
     subdir('synchrotron')
 endif
 
 # mIrk
-if (get_option('mirk'))
+if get_option('mirk')
     subdir('mirk')
 endif
 
 # web frontends
-if (get_option('webgui'))
-    # JS/CSS/etc frontend 3rd-party downloaded code
-    if get_option('download-npm')
-        npm_exe = find_program('npm')
-        if run_command('[', '-f', 'webdash/templates/default/static/css/bulma.min.css', ']', check: false).returncode() != 0
-            message('Downloading NPM packages for web frontends...')
-            getjs_cmd = run_command(py, source_root + '/contrib/npmdeps/fetch_npm.py', npm_exe, check: false)
-            if getjs_cmd.returncode() != 0
-                error('Unable to install NPM packages:\n' + getjs_cmd.stdout() + getjs_cmd.stderr())
-            endif
-        endif
-    endif
-
+if get_option('webgui')
     # admin & technical overview
     subdir('webdash')
     # software view

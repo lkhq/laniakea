@@ -17,11 +17,6 @@ option('mypy-install-types',
 #
 # Build config flags
 #
-option('download-npm',
-    type: 'boolean',
-    value: true,
-    description: 'Download web dependencies with NPM when configuring the build'
-)
 option('virtualenv',
     type: 'string',
     value: '',

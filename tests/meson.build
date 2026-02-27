@@ -23,7 +23,7 @@ if get_option('linting')
 
     pylint_exe = find_program('pylint')
     test('pylint',
-        py,
+        python,
         args: [pylint_exe.full_path(),
                '-f', 'colorized',
                pylint_paths],
@@ -38,7 +38,7 @@ if get_option('linting')
         mypy_typeinst_args = ['--install-types', '--non-interactive']
     endif
     test('mypy',
-        py,
+        python,
         args: [mypy_exe.full_path(),
                mypy_typeinst_args,
                join_paths(source_root, 'src'),
@@ -51,7 +51,7 @@ if get_option('linting')
 
     isort_exe = find_program('isort')
     test('isort',
-        py,
+        python,
         args: [isort_exe.full_path(),
                '--diff', '.'],
         workdir: source_root,
@@ -61,7 +61,7 @@ if get_option('linting')
 
     black_exe = find_program('black')
     test('black',
-        py,
+        python,
         args: [black_exe.full_path(),
                '--diff', '.'],
         workdir: source_root,
@@ -70,9 +70,8 @@ if get_option('linting')
     )
 endif
 
-py_exe = find_program('python3')
 test('pytest',
-    py_exe,
+    python,
     args: ['-m', 'pytest', '-x'],
     workdir: source_root,
     is_parallel: false,

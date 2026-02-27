@@ -2,7 +2,7 @@
 
 install_subdir(
     '.',
-    install_dir: py.get_install_dir() / 'laniakea',
+    install_dir: python.get_install_dir() / 'laniakea',
     exclude_directories: ['__pycache__'],
     exclude_files: ['meson.build'],
     strip_directory: true
@@ -10,7 +10,7 @@ install_subdir(
 install_symlink(
     'laniakea',
     install_dir: 'lib/laniakea',
-    pointing_to: py.get_install_dir() / 'laniakea',
+    pointing_to: python.get_install_dir() / 'laniakea',
 )
 
 apt_ftparchive_exe = find_program('apt-ftparchive', required: false)

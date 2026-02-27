@@ -1,0 +1,84 @@
+#
+# Static data from 3rd-party NPM sources for Laniakea.
+#
+
+src_dir = "../src/"
+
+[[packages]]
+name = "bulma"
+files = ["css/bulma.min.css"]
+extra_files = ["LICENSE", "css/bulma.css", "sass/*"]
+copy_to = [
+  "webdash/templates/default/static/css/",
+  "webswview/templates/default/static/css/",
+  "webswview/templates/pureos/static/css/",
+]
+
+[[packages]]
+name = "@fortawesome/fontawesome-free"
+files = ["css/fontawesome.min.css", "css/all.min.css"]
+extra_files = ["LICENSE.txt", "css/fontawesome.css", "css/all.css"]
+copy_to = [
+  "webdash/templates/default/static/css/fontawesome/",
+  "webswview/templates/default/static/css/fontawesome/",
+  "webswview/templates/pureos/static/css/fontawesome/",
+]
+
+[[packages]]
+name = "@fortawesome/fontawesome-free"
+files = ["webfonts/*"]
+copy_to = [
+  "webdash/templates/default/static/css/webfonts/",
+  "webswview/templates/default/static/css/webfonts/",
+  "webswview/templates/pureos/static/css/webfonts/",
+]
+
+[[packages]]
+name = "@fontsource/cantarell"
+files = ["files/*"]
+extra_files = ["LICENSE"]
+copy_to = [
+  "webdash/templates/default/static/fonts/",
+  "webswview/templates/default/static/fonts/",
+  "webswview/templates/pureos/static/fonts/",
+]
+
+[[packages]]
+name = "chart.js"
+files = ["dist/chart.umd.js", "dist/chart.umd.js.map"]
+extra_files = ["LICENSE.md", "dist/chart.js", "dist/chart.js.map"]
+copy_to = [
+  "webdash/templates/default/static/js/chart/",
+  "webswview/templates/default/static/js/chart/",
+  "webswview/templates/pureos/static/js/chart/",
+]
+
+[[packages]]
+name = "chartjs-adapter-moment"
+files = ["dist/chartjs-adapter-moment.min.js"]
+extra_files = ["LICENSE.md", "dist/chartjs-adapter-moment.js"]
+copy_to = [
+  "webdash/templates/default/static/js/chart/",
+  "webswview/templates/default/static/js/chart/",
+  "webswview/templates/pureos/static/js/chart/",
+]
+
+[[packages]]
+name = "jquery"
+files = ["dist/jquery.slim.min.js"]
+extra_files = ["LICENSE.txt", "AUTHORS.txt", "src/*"]
+copy_to = [
+  "webdash/templates/default/static/js/jquery/",
+  "webswview/templates/default/static/js/jquery/",
+  "webswview/templates/pureos/static/js/jquery/",
+]
+
+[[packages]]
+name = "moment"
+files = ["min/moment.min.js", "min/moment.min.js.map"]
+extra_files = ["LICENSE", "src/*"]
+copy_to = [
+  "webdash/templates/default/static/js/moment/",
+  "webswview/templates/default/static/js/moment/",
+  "webswview/templates/pureos/static/js/moment/",
+]

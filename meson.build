@@ -1,14 +1,16 @@
 project('Laniakea', 'c',
     meson_version: '>=1.0',
     license: 'LGPL-3.0+',
-    version: '0.1'
+    version: '0.1.1'
 )
 
 source_root = meson.project_source_root()
 build_root  = meson.project_build_root()
 
+fs    = import('fs')
 pymod = import('python')
-py = pymod.find_installation('python3')
+
+python = pymod.find_installation('python3')
 
 #
 # Dependencies
@@ -16,7 +18,7 @@ py = pymod.find_installation('python3')
 python_min_version = '3.11'
 systemd_dep = dependency('systemd')
 
-if not py.language_version().version_compare('>=' + python_min_version)
+if not python.language_version().version_compare('>=' + python_min_version)
     error('Python version is too low. We require at least ' + python_min_version + ' to run.')
 endif
 
@@ -38,7 +40,12 @@ if build_machine.system() != 'linux'
 endif
 
 #
-# Lanikaea Modules
+# 3rd-party vendored data
+#
+subdir('vendor')
+
+#
+# Sources
 #
 subdir('src')
 
