@@ -15,6 +15,16 @@ copy_to = [
 ]
 
 [[packages]]
+name = "@fontsource/nunito"
+files = ["files/*latin*"]
+extra_files = ["LICENSE"]
+copy_to = [
+  "webdash/templates/default/static/fonts/",
+  "webswview/templates/default/static/fonts/",
+  "webswview/templates/pureos/static/fonts/",
+]
+
+[[packages]]
 name = "@fortawesome/fontawesome-free"
 files = ["css/fontawesome.min.css", "css/all.min.css"]
 extra_files = ["LICENSE.txt", "css/fontawesome.css", "css/all.css"]
@@ -31,16 +41,6 @@ copy_to = [
   "webdash/templates/default/static/css/webfonts/",
   "webswview/templates/default/static/css/webfonts/",
   "webswview/templates/pureos/static/css/webfonts/",
-]
-
-[[packages]]
-name = "@fontsource/cantarell"
-files = ["files/*"]
-extra_files = ["LICENSE"]
-copy_to = [
-  "webdash/templates/default/static/fonts/",
-  "webswview/templates/default/static/fonts/",
-  "webswview/templates/pureos/static/fonts/",
 ]
 
 [[packages]]
