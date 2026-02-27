@@ -16,7 +16,7 @@ Source = "https://github.com/lkhq/laniakea"
 build-backend = 'mesonpy'
 requires = [
     'meson >= 1.2.3; python_version >= "3.12"',
-    'pyproject-metadata >= 0.9.0',
+    'meson-python',
     'tomlkit',
 ]
 
