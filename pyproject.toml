@@ -6,7 +6,7 @@ authors = [
 ]
 license = {text="LGPL-3.0-or-later"}
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 
 [project.urls]
 Documentation = "https://github.com/lkhq/laniakea"
