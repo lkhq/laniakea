@@ -86,7 +86,7 @@ def stage_node_modules(config: StaticNPMDataConfig, node_cmd):
                 print(f'Staged: {info_name}')
 
 
-def _static_data_copy_matches(config: StaticNPMDataConfig):
+def _static_data_copy_matches(config: StaticNPMDataConfig, fail_missing=True):
     for info in config.modules:
         mod_dir = os.path.join(config.stage_dir, info['name_short'])
         # copy_to already contains absolute paths
@@ -95,7 +95,8 @@ def _static_data_copy_matches(config: StaticNPMDataConfig):
             matches = [m for m in glob(os.path.join(mod_dir, pattern))]
             if not matches:
                 print(f"Could not find any match for {pattern} in package {info.get('name_short')}", file=sys.stderr)
-                sys.exit(1)
+                if fail_missing:
+                    sys.exit(1)
             for fname in matches:
                 for dest in install_dests:
                     yield fname, os.path.join(config.src_dir, dest)
@@ -110,7 +111,7 @@ def install_static_data(config: StaticNPMDataConfig):
 
 def cleanup_static_data(config: StaticNPMDataConfig):
     """Cleanup all vendored data from the source tree."""
-    for fname, dest in _static_data_copy_matches(config):
+    for fname, dest in _static_data_copy_matches(config, fail_missing=False):
         rm_fname = os.path.join(dest, os.path.basename(fname))
         if os.path.isfile(rm_fname):
             print(f"Removing file: {rm_fname}")
