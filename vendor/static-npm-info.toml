@@ -46,7 +46,7 @@ copy_to = [
 [[packages]]
 name = "chart.js"
 files = ["dist/chart.umd.js", "dist/chart.umd.js.map"]
-extra_files = ["LICENSE.md", "dist/chart.js", "dist/chart.js.map"]
+extra_files = ["LICENSE.md", "dist/*"]
 copy_to = [
   "webdash/templates/default/static/js/chart/",
   "webswview/templates/default/static/js/chart/",
