@@ -111,8 +111,10 @@ You will need to add some system users for Laniakea services to use:
     # generic user for various administrative tasks, e.g. archive creation & management
     # NOTE: This user needs a HOME directory, mostly because of GnuPG silliness
     sudo adduser --system --disabled-login --disabled-password --home /var/lib/laniakea/home --ingroup lkmaster lkmaster
+    # group for the Lighthouse service and other services like it
+    sudo addgroup --system _lklighthouse
     # user for the "Lighthouse" message relay service & job distribution system
-    sudo adduser --system --disabled-login --disabled-password --no-create-home _lklighthouse
+    sudo adduser --system --disabled-login --disabled-password --no-create-home --ingroup _lklighthouse _lklighthouse
     # user for web services as well as the Matrix bot
     sudo adduser --system --disabled-login --disabled-password --no-create-home --ingroup www-data lkweb
     # web user needs to be a member of the master user group for HTTPS web uploads

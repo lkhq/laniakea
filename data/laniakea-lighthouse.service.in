@@ -9,7 +9,7 @@ Type=notify
 Restart=on-failure
 ProtectSystem=full
 User=_lklighthouse
-Group=nogroup
+Group=_lklighthouse
 ExecStart=@LIGHTHOUSE_INSTALL_BIN@
 
 [Install]

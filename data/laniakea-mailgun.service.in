@@ -10,8 +10,8 @@ RestartSec=15
 #ProtectSystem=full
 #ProtectHome=true
 
-User=lkmaster
-Group=nogroup
+User=_lklighthouse
+Group=_lklighthouse
 ExecStart=@MAILGUN_INSTALL_BIN@
 
 [Install]

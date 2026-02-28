@@ -4,4 +4,4 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
-__appname__ = 'laniakea-lighthouse'
+__appname__ = 'laniakea-mailgun'

@@ -11,7 +11,6 @@ RestartSec=15
 #ProtectHome=true
 
 User=lkweb
-Group=nogroup
 ExecStart=@MIRK_INSTALL_BIN@
 
 [Install]
