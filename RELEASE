@@ -1,0 +1,23 @@
+Laniakea Release Notes
+======================
+
+1. Set variables
+
+NEW_VERSION="0.1.1"
+
+2. Commit changes in Laniakea git:
+
+git commit -a -m "Release version $NEW_VERSION"
+git tag -s -f -m "Release $NEW_VERSION" v$NEW_VERSION <gpg password>
+git push && git push --tags
+
+3. Wait for GitHub Actions to successfully publish the release
+
+4. Do post release version bump in RELEASE, meson.build, src/laniakea/__init__.py
+
+5. Commit trivial changes:
+
+git commit -a -m "trivial: post release version bump"
+git push
+
+6. Announce the new release
