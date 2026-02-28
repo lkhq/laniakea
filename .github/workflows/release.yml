@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-test:
+    name: Build & Test
+    uses: ./.github/workflows/build-test.yml
+
+  release:
+    name: Create Release
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Derive version string
+        id: version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+
+      - name: Prepare source tarball
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p release_assets
+          set -x
+
+          # Create source tarball for offline installs, with embedded NPM stuff
+          git clone --depth 1 --branch "v${VERSION}" "https://github.com/${GITHUB_REPOSITORY}.git" "laniakea-${VERSION}"
+
+          cd "laniakea-${VERSION}"
+          python3 ./vendor/update-static.py stage
+          rm -r ./vendor/node_modules
+          rm -rf ./.git
+          cd ..
+          tar -cJf "release_assets/laniakea-${VERSION}_fullsrc.tar.xz" "laniakea-${VERSION}"
+
+          echo "Assets to upload:"
+          ls -la release_assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Version ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: release_assets/*
