@@ -3,7 +3,7 @@ Laniakea Release Notes
 
 1. Set variables
 
-NEW_VERSION="0.1.1"
+NEW_VERSION="0.1.2"
 
 2. Commit changes in Laniakea git:
 

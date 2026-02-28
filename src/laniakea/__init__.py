@@ -7,7 +7,7 @@
 import os
 import sys
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 thisfile = __file__
 if not os.path.isabs(thisfile):

@@ -1,7 +1,7 @@
 project('Laniakea', 'c',
     meson_version: '>=1.0',
     license: 'LGPL-3.0+',
-    version: '0.1.1'
+    version: '0.1.2'
 )
 
 source_root = meson.project_source_root()
