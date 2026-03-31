@@ -39,32 +39,47 @@ eatmydata apt-get install -yq --no-install-recommends \
     npm
 
 eatmydata apt-get install -yq --no-install-recommends \
-    python3-pip \
-    python3-setuptools \
-    python3-virtualenv \
-    python3-pytest \
-    python3-gi \
-    python3-tomlkit \
-    python3-cairo-dev \
-    python3-cryptography \
-    python3-sqlalchemy \
+    flake8 \
+    isort \
+    mypy \
+    pylint \
     python3-alembic \
-    python3-psycopg2 \
-    python3-nacl \
-    python3-debian \
-    python3-apt \
-    python3-zmq \
-    python3-yaml \
-    python3-systemd \
-    python3-flask \
-    python3-flask-restful \
-    python3-flask-login \
-    python3-pytest-flask \
-    python3-humanize \
-    python3-marshmallow \
-    python3-pebble \
-    python3-requests \
     python3-apscheduler \
+    python3-apt \
     python3-click \
+    python3-cryptography \
+    python3-debian \
+    python3-firehose \
+    python3-flask \
+    python3-flask-caching \
+    python3-flask-login \
+    python3-gi \
+    python3-humanize \
+    python3-jinja2 \
+    python3-marshmallow \
+    python3-mautrix \
+    python3-mesonpy \
+    python3-nacl \
+    python3-pebble \
+    python3-pip \
+    python3-psycopg2 \
+    python3-pylint-flask \
+    python3-pytest \
+    python3-pytest-flask \
+    python3-pytz \
+    python3-requests \
     python3-rich \
-    python3-voluptuous
+    python3-setproctitle \
+    python3-sqlalchemy  \
+    python3-systemd \
+    python3-tomlkit \
+    python3-tornado \
+    python3-typeshed \
+    python3-virtualenv \
+    python3-voluptuous \
+    python3-yaml \
+    python3-zmq
+
+# install if available
+eatmydata apt-get install -yq --no-install-recommends \
+    python3-flask-rebar || true
