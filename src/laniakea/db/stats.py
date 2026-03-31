@@ -66,6 +66,9 @@ def make_stats_key_jobqueue(kind: StatsEventKind, arch_name: str) -> str:
     return '-'.join((kind, arch_name))
 
 
+# FIXME: For unknown reasons, pylint complains about unsubscriptable-object here, fut only on DebCI
+# I could not reproduce this anywhere else, so, ignore the issue for now.
+# pylint: disable=unsubscriptable-object
 class StatsEntry(Base):
     """
     Value of a certain archive property at a given time.
