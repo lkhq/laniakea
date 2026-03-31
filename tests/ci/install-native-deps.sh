@@ -39,10 +39,7 @@ eatmydata apt-get install -yq --no-install-recommends \
     npm
 
 eatmydata apt-get install -yq --no-install-recommends \
-    flake8 \
     isort \
-    mypy \
-    pylint \
     python3-alembic \
     python3-apscheduler \
     python3-apt \
