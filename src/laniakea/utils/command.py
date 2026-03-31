@@ -51,9 +51,9 @@ def run_command(command, input=None, capture_output=True):
     except OSError as e:
         return (None, str(e), -1)
 
-    (output, stderr) = pipe.communicate(input=input)
+    output, stderr = pipe.communicate(input=input)
     if capture_output:
-        (output, stderr) = (c.decode('utf-8', errors='ignore') for c in (output, stderr))
+        output, stderr = (c.decode('utf-8', errors='ignore') for c in (output, stderr))
     return (output, stderr, pipe.returncode)
 
 

@@ -82,10 +82,10 @@ def parse_file_list(
             continue
 
         if has_priority_and_section:
-            (md5sum, size, section, priority, filename) = line.split()
+            md5sum, size, section, priority, filename = line.split()
             entry = dict(md5sum=md5sum, size=int(size), section=section, priority=priority, filename=filename)
         else:
-            (md5sum, size, filename) = line.split()
+            md5sum, size, filename = line.split()
             entry = dict(md5sum=md5sum, size=int(size), filename=filename)
 
         entries[filename] = entry
@@ -93,7 +93,7 @@ def parse_file_list(
     for line in control.get(fields[1], "").split('\n'):
         if len(line) == 0:
             continue
-        (sha1sum, size, filename) = line.split()
+        sha1sum, size, filename = line.split()
         entry = entries.get(filename, None)
         if entry is None:
             raise InvalidChangesError('{0} is listed in {1}, but not in {2}.'.format(filename, fields[1], fields[0]))
@@ -106,7 +106,7 @@ def parse_file_list(
     for line in control.get(fields[2], "").split('\n'):
         if len(line) == 0:
             continue
-        (sha256sum, size, filename) = line.split()
+        sha256sum, size, filename = line.split()
         entry = entries.get(filename, None)
         if entry is None:
             raise InvalidChangesError('{0} is listed in {1}, but not in {2}.'.format(filename, fields[2], fields[0]))

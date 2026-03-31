@@ -78,8 +78,7 @@ class JobWorker:
 
     def _assign_suitable_job(self, session, job_kind, arch, client_id):
         qres = session.execute(
-            text(
-                '''WITH cte AS (
+            text('''WITH cte AS (
                                         SELECT uuid
                                         FROM   jobs
                                         WHERE  status=:jstatus_old
@@ -95,8 +94,7 @@ class JobWorker:
                                         time_assigned=now()
                                     FROM cte
                                         WHERE  j.uuid = cte.uuid
-                                    RETURNING j.*'''
-            ),
+                                    RETURNING j.*'''),
             {
                 'jstatus_old': 'WAITING',
                 'arch': arch,

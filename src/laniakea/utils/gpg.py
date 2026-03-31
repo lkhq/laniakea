@@ -36,7 +36,7 @@ class _Pipe:
     '''
 
     def __enter__(self):
-        (self.r, self.w) = os.pipe()
+        self.r, self.w = os.pipe()
         return self
 
     def __exit__(self, type, value, traceback):
@@ -120,7 +120,7 @@ class SignedFile:
                 read = self._do_io([contents.r, stderr.r, status.r], {stdin.w: data})
                 stdin.w = None  # was closed by _do_io
 
-                (pid_, exit_code, usage_) = os.wait4(pid, 0)
+                pid_, exit_code, usage_ = os.wait4(pid, 0)
 
                 self.contents = read[contents.r]
                 self.status = read[status.r]
