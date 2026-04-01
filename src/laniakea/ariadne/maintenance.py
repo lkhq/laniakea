@@ -42,11 +42,12 @@ def remove_superfluous_pending_jobs(session, simulate: bool = False, arch_indep_
     )
     for job in pending_jobs:
         # The job only is an orphan if the source package triggering it
-        # does no longer exist with the given version number.
+        # does no longer exist with the given version number in the target suite.
         spkg = (
             session.query(SourcePackage)
             .filter(SourcePackage.source_uuid == job.trigger)
             .filter(SourcePackage.version == job.version)
+            .filter(SourcePackage.suites.contains(job.suite))
             .one_or_none()
         )
         if spkg:
