@@ -78,7 +78,7 @@ def title_for_job(session, job):
         )
         if not spkg:
             return title
-        return 'Build {} {} on {}'.format(spkg.name, job.version, job.architecture)
+        return 'Build {} {}'.format(spkg.name, job.version)
     elif job.kind == JobKind.OS_IMAGE_BUILD:
         recipe = session.query(ImageBuildRecipe).filter(ImageBuildRecipe.uuid == job.trigger).one_or_none()
         if not recipe:

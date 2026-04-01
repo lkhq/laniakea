@@ -65,8 +65,11 @@
           <header class="card-header">
               <div class="card-header-title has-text-weight-semibold">
                   <a class="has-text-black" href="{{ url_for('jobs.job', uuid=j.uuid) }}">{{title_for_job(session, j)}}</a>
-
+                  &nbsp;
                   <span class="tag is-rounded is-light"><i class="fas fa-microchip"></i>&nbsp;{{j.architecture}}</span>
+                  {% if j.suite %}
+                  <span class="tag is-rounded is-light is-info"><i class="fas fa-box"></i>&nbsp;{{j.suite.name}}</span>
+                  {% endif %}
                   <span class="tag is-rounded is-light is-link"><i class="fas fa-star-of-life"></i>&nbsp;{{humanized_timediff(j.time_created)}}</span>
               </div>
           </header>
