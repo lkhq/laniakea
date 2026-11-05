@@ -371,13 +371,28 @@ class SpearsEngine:
 
     def _collect_urgencies(self, session, mi_wspace: T.PathUnion, mtask: SpearsMigrationTask):
         log.debug('Collecting urgencies for %s:%s', mtask.repo.name, mtask.target_suite.name)
-        udata = (
-            session.query(SourcePackage.name, SourcePackage.version, SourcePackage.changes_urgency).filter(
-                SourcePackage.repo_id == mtask.repo.id,
-                SourcePackage.suites.any(id=mtask.target_suite_id),
-                SourcePackage.time_deleted.is_(None),
+
+        # Britney only looks at urgencies of versions that are newer than the one in the target suite,
+        # but not newer than the one in the source suite, and then picks the most urgent one.
+        # So we need to list the packages from the source suites here, and we list every version of them
+        # that we still know about, including ones that were superseded and are already marked for removal.
+        # Otherwise, a critical upload that was followed by a low-urgency one would lose its urgency
+        # before it ever had the chance to migrate.
+        src_names_sq = (
+            session.query(SourcePackage.name)
+            .filter(
+                SourcePackage.repo_id == mtask.repo_id,
+                SourcePackage.suites.any(ArchiveSuite.id.in_([s.id for s in mtask.source_suites])),
             )
-        ).all()
+            .distinct()
+            .subquery('src_names_sq')
+        )
+        udata = (
+            session.query(SourcePackage.name, SourcePackage.version, SourcePackage.changes_urgency)
+            .join(src_names_sq, SourcePackage.name == src_names_sq.c.name)
+            .filter(SourcePackage.repo_id == mtask.repo_id)
+            .all()
+        )
 
         log.info('Writing urgency policy file for: %s:%s', mtask.repo.name, mtask.target_suite.name)
         urgency_policy_file = os.path.join(mi_wspace, 'state', 'age-policy-urgencies')
