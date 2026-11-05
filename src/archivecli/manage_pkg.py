@@ -31,6 +31,7 @@ from laniakea.archive import (
     find_latest_source_package,
 )
 from laniakea.msgstream import EventEmitter
+from laniakea.archive.utils import AptVersion
 from laniakea.archive.manage import (
     expire_superseded,
     copy_source_package,
@@ -103,13 +104,34 @@ def cmd_list(term: str, repo_name: T.Optional[str], suite_name: T.Optional[str])
             else:
                 bpkg_by_arch[bpkid] = dict(bpkg=bpkg, archs={arch_str}, suites=set([s.name for s in bpkg.suites]))
 
-        # sort the result list by source-version
+        # Sort the result list by source package and source version, so all packages that were built
+        # from the same source end up next to each other. Versions have to be compared the way APT does it,
+        # otherwise 2.06-3 would be listed after 2.06-13.
+        # For each source version we show the source package first, followed by its binaries.
         all_pkg_info = []
         for data in bpkg_by_arch.values():
             bpkg = data['bpkg']
-            all_pkg_info.append(('{}-{}'.format(bpkg.source.name, bpkg.source.version), data))
+            sort_key = (
+                bpkg.source.name,
+                AptVersion(bpkg.source.version),
+                bpkg.repo.name,
+                1,  # binaries come after their source
+                bpkg.name,
+                AptVersion(bpkg.version),
+                ' '.join(sorted(data['suites'])),
+            )
+            all_pkg_info.append((sort_key, data))
         for spkg in spkgs:
-            all_pkg_info.append(('{}-{}'.format(spkg.name, spkg.version), spkg))
+            sort_key = (
+                spkg.name,
+                AptVersion(spkg.version),
+                spkg.repo.name,
+                0,  # the source package comes first
+                spkg.name,
+                AptVersion(spkg.version),
+                ' '.join(sorted([s.name for s in spkg.suites])),
+            )
+            all_pkg_info.append((sort_key, spkg))
         all_pkg_info.sort(key=lambda x: x[0])
 
         # display the result
