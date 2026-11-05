@@ -31,7 +31,7 @@ class DoseDebcheck:
         self._repo_reader.set_trusted(True)
         self._session = session
 
-    @concurrent.thread  # type: ignore[arg-type]
+    @concurrent.thread
     def _execute_dose_async(self, dose_exe, args, files: list[str] = None, arch_info=None):
         if not files:
             files = []

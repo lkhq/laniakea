@@ -6,11 +6,13 @@
 
 import os
 import shutil
+import hashlib
 
 import pytest
 
 from laniakea.db import (
     NewPolicy,
+    ArchiveFile,
     ArchiveSuite,
     ArchiveConfig,
     BinaryPackage,
@@ -44,6 +46,33 @@ from laniakea.archive.utils import (
     repo_suite_settings_for_debug,
 )
 from laniakea.archive.manage import expire_superseded
+from laniakea.archive.pkgimport import HashVerifyError, verify_hashes
+
+
+def test_verify_hashes(tmp_path):
+    """
+    APT may compute more checksums than we have reference values for (like SHA3 since APT 3.3),
+    and verifying files has to keep working then.
+    """
+    data = b'Hello, world!\n'
+    fname = tmp_path / 'hello.txt'
+    fname.write_bytes(data)
+
+    afile = ArchiveFile('pool/main/h/hello/hello.txt')
+    afile.size = len(data)
+    afile.md5sum = hashlib.md5(data).hexdigest()
+    afile.sha1sum = hashlib.sha1(data).hexdigest()
+    afile.sha256sum = hashlib.sha256(data).hexdigest()
+
+    # SHA512 checksums are optional
+    verify_hashes(afile, fname)
+
+    afile.sha512sum = hashlib.sha512(data).hexdigest()
+    verify_hashes(afile, fname)
+
+    afile.sha256sum = hashlib.sha256(b'Something else').hexdigest()
+    with pytest.raises(HashVerifyError, match='^SHA256 checksum validation of "pool/main/h/hello/hello.txt" failed'):
+        verify_hashes(afile, fname)
 
 
 def test_utils():

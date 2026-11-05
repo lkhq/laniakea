@@ -113,8 +113,14 @@ def verify_hashes(file: T.Union[ChangesFileEntry, ArchiveFile], local_fname: T.U
             elif hash.hashtype == 'SHA256':
                 hash_okay = file.sha256sum == hash.hashvalue
             elif hash.hashtype == 'SHA512':
-                if file.sha512sum is not None:
-                    hash_okay = file.sha512sum == hash.hashvalue
+                if file.sha512sum is None:
+                    # SHA512 checksums are optional, so we can't always verify them
+                    continue
+                hash_okay = file.sha512sum == hash.hashvalue
+            elif hash.hashtype in ('SHA3-256', 'SHA3-512'):
+                # APT can compute these since version 3.3, but neither dpkg nor the archive
+                # provide SHA3 checksums yet, so there is nothing we could verify them against
+                continue
             elif hash.hashtype == 'Checksum-FileSize':
                 hash_okay = int(file.size) == int(hash.hashvalue)
             else:
@@ -131,7 +137,9 @@ def verify_hashes(file: T.Union[ChangesFileEntry, ArchiveFile], local_fname: T.U
                 )
             hashes_checked += 1
     if hashes_checked < 4:
-        raise HashVerifyError('An insufficient amount of hashes was validated for "{}" - this is a bug.')
+        raise HashVerifyError(
+            'An insufficient amount of hashes was validated for "{}" - this is a bug.'.format(file.fname)
+        )
 
 
 # result tuple of import_source
