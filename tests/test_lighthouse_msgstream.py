@@ -68,23 +68,23 @@ class TestLighthouseMsgStream:
     def test_msg_simple_submit_listen(self):
         # create subscriber socket that is listening to all events emitted by the Lighthouse instance
         sub_socket = create_event_listen_socket(self._zctx)
+        # don't wait forever for an event that may never arrive
+        sub_socket.setsockopt(zmq.RCVTIMEO, 5000)
 
         # create connection with the Lighthouse server to submit new events
         pub_socket = create_submit_socket(self._zctx)
 
-        submit_event_message(
-            pub_socket, self._sender_id, '_lk.testsuite.my-event', {'hello': 'world'}, self._sender_signing_key
-        )
-
         for i in range(1, 4):
+            # Subscribers only get events that were published after their subscription reached
+            # the publisher, which may take a moment. So on a slow system our event may get lost,
+            # and we submit it again a few times before we give up.
+            submit_event_message(
+                pub_socket, self._sender_id, '_lk.testsuite.my-event', {'hello': 'world'}, self._sender_signing_key
+            )
             try:
                 mparts = sub_socket.recv_multipart()
                 break
             except zmq.error.Again as e:
-                # the test might be slow, so we retry to get a connection three times
-                # before we give up
-                sub_socket.close()
-                sub_socket = create_event_listen_socket(self._zctx)
                 if i == 3:
                     raise e
 

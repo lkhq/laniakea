@@ -14,33 +14,54 @@ __mainfile = None
 server_processes: list[Process] = []
 
 
-def run_jobs_server(endpoint, pub_queue):
+def _setup_worker(config_fname, verbose):
+    '''
+    Set up configuration and logging for a server worker process.
+
+    Our worker processes may be started via a fork server (the default since Python 3.14),
+    in which case they don't inherit any state from the main process. So we have to load
+    the right configuration again.
+    '''
+    from laniakea.logging import set_verbose
+    from laniakea.localconfig import LocalConfig
+
+    LocalConfig(config_fname)
+    set_verbose(verbose)
+
+
+def run_jobs_server(config_fname, verbose, endpoint, pub_queue):
     '''
     Run a server process which serves job requests to
     Laniakea Spark instances.
     '''
+    _setup_worker(config_fname, verbose)
+
     from lighthouse.jobs_server import JobsServer
 
     server = JobsServer(endpoint, pub_queue)
     server.run()
 
 
-def run_events_receiver_server(endpoint, pub_queue):
+def run_events_receiver_server(config_fname, verbose, endpoint, pub_queue):
     '''
     Run a server process which handles submissions to the
     event stream and publishes new events publicly.
     '''
+    _setup_worker(config_fname, verbose)
+
     from lighthouse.events_receiver import EventsReceiver
 
     receiver = EventsReceiver(endpoint, pub_queue)
     receiver.run()
 
 
-def run_events_publisher_server(endpoints, pub_queue):
+def run_events_publisher_server(config_fname, verbose, endpoints, pub_queue):
     '''
     Run a server process which publishes processed events on
     one or multiple ZeroMQ publisher sockets.
     '''
+    _setup_worker(config_fname, verbose)
+
     from lighthouse.events_publisher import EventsPublisher
 
     publisher = EventsPublisher(endpoints, pub_queue)
@@ -72,6 +93,9 @@ def run_server(options):
 
     lconf = LocalConfig()
 
+    # settings our worker processes need to set themselves up
+    worker_args = (lconf.fname, bool(options.verbose))
+
     # TODO: Disable server features requiring the database if Lighthouse is
     # configured as relay, making it only forward requests to other instances.
 
@@ -82,7 +106,10 @@ def run_server(options):
         log.info('Creating event stream publisher.')
         pub_queue = Queue()
         spub = Process(
-            target=run_events_publisher_server, args=(publish_endpoints, pub_queue), name='EventsPublisher', daemon=True
+            target=run_events_publisher_server,
+            args=(*worker_args, publish_endpoints, pub_queue),
+            name='EventsPublisher',
+            daemon=True,
         )
         spub.start()
         server_processes.append(spub)
@@ -92,7 +119,7 @@ def run_server(options):
         for i, submit_endpoint in enumerate(lconf.lighthouse.endpoints_submit):
             p = Process(
                 target=run_events_receiver_server,
-                args=(submit_endpoint, pub_queue),
+                args=(*worker_args, submit_endpoint, pub_queue),
                 name='EventsServer-{}'.format(i),
                 daemon=True,
             )
@@ -103,7 +130,10 @@ def run_server(options):
     log.info('Creating job handlers.')
     for i, jobs_endpoint in enumerate(lconf.lighthouse.endpoints_jobs):
         p = Process(
-            target=run_jobs_server, args=(jobs_endpoint, pub_queue), name='JobsServer-{}'.format(i), daemon=True
+            target=run_jobs_server,
+            args=(*worker_args, jobs_endpoint, pub_queue),
+            name='JobsServer-{}'.format(i),
+            daemon=True,
         )
         p.start()
         server_processes.append(p)

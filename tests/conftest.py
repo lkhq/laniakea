@@ -400,6 +400,8 @@ class LighthouseServer:
 
         def start(self):
             import time
+            import socket
+            from urllib.parse import urlparse
 
             # ensure we are not running anymore, in case we were before
             self.terminate()
@@ -411,9 +413,23 @@ class LighthouseServer:
             self._pipe = subprocess.Popen(
                 [lh_exe, '--verbose', '--config', self._lconf.fname], shell=False, stdout=sys.stdout, stderr=sys.stderr
             )
-            time.sleep(0.5)
-            if self._pipe.poll():
-                pytest.fail('Lighthouse failed to start up, check stderr')
+
+            # Wait for all server processes to be ready to accept connections. Starting them may take
+            # a moment, especially if they are launched via a fork server (the default since Python 3.14).
+            lhc = self._lconf.lighthouse
+            deadline = time.monotonic() + 30
+            for endpoint in lhc.servers_jobs + lhc.servers_submit + lhc.servers_publish:
+                url = urlparse(endpoint)
+                while True:
+                    if self._pipe.poll() is not None:
+                        pytest.fail('Lighthouse failed to start up, check stderr')
+                    try:
+                        with socket.create_connection((url.hostname, url.port), timeout=1):
+                            break
+                    except OSError:
+                        if time.monotonic() > deadline:
+                            pytest.fail('Lighthouse did not start listening on {} in time'.format(endpoint))
+                        time.sleep(0.1)
 
         def terminate(self):
             if not self._pipe:
