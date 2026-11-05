@@ -27,7 +27,10 @@ if [ "$1" = "lint-only" ]; then
         -Dlinting=true \
         ..
 else
+    # Linters run in a separate job on Debian Testing only, as their results
+    # depend on the versions of the tools and Python modules we have available.
     meson \
         --prefix=/tmp/lk-install-root \
+        -Dlinting=false \
         ..
 fi;
