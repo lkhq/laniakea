@@ -794,6 +794,9 @@ def copy_binary_package_override(
             if bpkg.time_deleted:
                 # Make one last-ditch effort in trying to resurrect an override for a package
                 # that is brought back from the dead.
+                # We prefer the override of the destination suite, but the package may never have been
+                # in that suite before (e.g. it came in via a different suite and was removed from there),
+                # so we will also take an override from any other suite in this repository.
                 # If that fails, we have to give up on it, as the override has probably already
                 # been deleted.
                 log.info('Trying to resurrect override for zombie package %s', str(bpkg))
@@ -806,8 +809,21 @@ def copy_binary_package_override(
                     )
                     .one_or_none()
                 )
+                if not override_test:
+                    override_test = (
+                        session.query(PackageOverride)
+                        .filter(
+                            PackageOverride.repo_id == repo.id,
+                            PackageOverride.pkg_name == bpkg.name,
+                        )
+                        .first()
+                    )
                 if override_test:
-                    origin_suite_name = dest_suite.name
+                    origin_suite_name = override_test.suite.name
+                    if override_test.suite_id != dest_suite.id:
+                        log.info(
+                            'Resurrecting override for zombie package %s from suite %s', str(bpkg), origin_suite_name
+                        )
 
             if not origin_suite_name:
                 raise ArchiveError('Can not copy binary package: No override origin suite found for `{}`.'.format(bpkg))
