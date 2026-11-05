@@ -33,6 +33,7 @@ class LkModule:
     # Accepts job result artifacts (logfiles, built files, ...), verifies them and moves them to the right place
     RUBICON = 'rubicon'
     ARIADNE = 'ariadne'  # Package autobuild scheduler
+    SCHEDULER = 'scheduler'  # Runs periodic maintenance tasks
 
 
 class ConfigEntry(Base):

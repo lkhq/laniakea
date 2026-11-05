@@ -7,14 +7,17 @@
 import os
 import asyncio
 import datetime
+import subprocess
 from contextlib import contextmanager
 
+from apscheduler.events import EVENT_JOB_ERROR, JobExecutionEvent
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
-from laniakea import LocalConfig
+from laniakea import LkModule, LocalConfig
 from laniakea.utils import process_file_lock
 from laniakea.logging import log
+from laniakea.msgstream import EventEmitter
 from lkscheduler.config import SchedulerConfig
 from lkscheduler.statscollector import task_collect_statistics
 
@@ -37,194 +40,156 @@ class JobsRegistry:
             yield
 
 
+class TaskError(Exception):
+    """A scheduled task did not complete successfully."""
+
+
+def run_task_tool(title: str, cmd: list[str]) -> str | None:
+    """Run a Laniakea tool as part of a scheduled task.
+
+    The complete output of a failed run is written to the scheduler log.
+
+    :param title: Name of this task step, used as prefix for log messages.
+    :param cmd: The command to run.
+    :return: A short error summary if the command failed, None on success.
+    """
+
+    # Our tools are written in Python, which buffers stdout when it is not a TTY. That would mix up
+    # the order of stdout and stderr lines in the output we log, so we disable output buffering.
+    tool_env = dict(os.environ)
+    tool_env['PYTHONUNBUFFERED'] = '1'
+
+    proc = subprocess.run(
+        cmd,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=tool_env,
+        start_new_session=True,
+        check=False,
+    )
+    if proc.returncode == 0:
+        return None
+
+    output = str(proc.stdout, 'utf-8', errors='replace')
+    scheduler_log.error('%s: Error: %s', title, output)
+
+    # the last line usually holds the actual error message, e.g. the one of an exception
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    return '{} failed with exit code {}: {}'.format(title, proc.returncode, lines[-1] if lines else 'No output.')
+
+
 def task_repository_publish(registry: JobsRegistry):
     """Publish the archive repositories."""
-    import subprocess
 
     with registry.lock_publish_job():
         conf = SchedulerConfig()
         log.info('Publishing all repositories')
-        proc = subprocess.run(
-            [conf.lk_archive_exe, 'publish'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-    if proc.returncode == 0:
-        scheduler_log.info('Archive-Publish: Success.')
-    else:
-        scheduler_log.error('Archive-Publish: Error: %s', str(proc.stdout, 'utf-8'))
+        error = run_task_tool('Archive-Publish', [conf.lk_archive_exe, 'publish'])
+    if error:
+        raise TaskError(error)
+    scheduler_log.info('Archive-Publish: Success.')
 
 
 def task_repository_expire(registry: JobsRegistry):
     """Expire old packages and data in all repositories."""
-    import subprocess
+
+    errors = []
 
     # expire packages
     with registry.lock_publish_job():
         conf = SchedulerConfig()
         log.info('Cleaning up repository data')
-        proc = subprocess.run(
-            [conf.lk_archive_exe, 'expire'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-        if proc.returncode == 0:
-            scheduler_log.info('Archive-Expire: Success.')
+        error = run_task_tool('Archive-Expire', [conf.lk_archive_exe, 'expire'])
+        if error:
+            errors.append(error)
         else:
-            scheduler_log.error('Archive-Expire: Error: %s', str(proc.stdout, 'utf-8'))
+            scheduler_log.info('Archive-Expire: Success.')
 
-    # remove job data that is no longer needed
+    # remove job data that is no longer needed, even if expiring packages has failed
     with registry.lock_publish_job():
         log.info('Cleaning up job data')
-        proc = subprocess.run(
-            [conf.lk_archive_exe, 'cleanup-jobs'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-        if proc.returncode == 0:
-            scheduler_log.info('Archive-JobCleanup: Success.')
+        error = run_task_tool('Archive-JobCleanup', [conf.lk_archive_exe, 'cleanup-jobs'])
+        if error:
+            errors.append(error)
         else:
-            scheduler_log.error('Archive-JobCleanup: Error: %s', str(proc.stdout, 'utf-8'))
+            scheduler_log.info('Archive-JobCleanup: Success.')
+
+    if errors:
+        raise TaskError('\n'.join(errors))
 
 
 def task_rubicon_scan(registry: JobsRegistry):
     """Make Rubicon look for new uploads."""
-    import subprocess
 
     with registry.lock_publish_job():
         conf = SchedulerConfig()
-        proc = subprocess.run(
-            [conf.rubicon_exe],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-    if proc.returncode == 0:
-        scheduler_log.info('Rubicon: Success.')
-    else:
-        scheduler_log.error('Rubicon: Error: %s', str(proc.stdout, 'utf-8'))
+        error = run_task_tool('Rubicon', [conf.rubicon_exe])
+    if error:
+        raise TaskError(error)
+    scheduler_log.info('Rubicon: Success.')
 
 
 def task_spears_migrate(registry: JobsRegistry):
     """Make Spears migrate packages."""
-    import subprocess
 
     with registry.lock_publish_job():
         conf = SchedulerConfig()
 
         # update static data
-        proc = subprocess.run(
-            [conf.spears_exe, 'update'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-        if proc.returncode != 0:
-            scheduler_log.error('Spears-Update: Error: %s', str(proc.stdout, 'utf-8'))
-            return
+        error = run_task_tool('Spears-Update', [conf.spears_exe, 'update'])
+        if error:
+            raise TaskError(error)
 
         # run the actual migration
-        proc = subprocess.run(
-            [conf.spears_exe, 'migrate'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-    if proc.returncode == 0:
-        scheduler_log.info('Spears: Success.')
-    else:
-        scheduler_log.error('Spears: Error: %s', str(proc.stdout, 'utf-8'))
+        error = run_task_tool('Spears', [conf.spears_exe, 'migrate'])
+    if error:
+        raise TaskError(error)
+    scheduler_log.info('Spears: Success.')
 
 
 def task_debcheck(registry: JobsRegistry):
     """Make Debcheck test dependencies."""
-    import subprocess
 
+    errors = []
     with registry.lock_publish_job():
         conf = SchedulerConfig()
 
         # check sources
-        proc = subprocess.run(
-            [conf.debcheck_exe, 'sources'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-        if proc.returncode != 0:
-            scheduler_log.error('Debcheck sources check: Error: %s', str(proc.stdout, 'utf-8'))
+        error = run_task_tool('Debcheck sources check', [conf.debcheck_exe, 'sources'])
+        if error:
+            errors.append(error)
 
-        # check binaries
-        proc = subprocess.run(
-            [conf.debcheck_exe, 'binaries'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-        if proc.returncode == 0:
-            scheduler_log.info('Debcheck: Success.')
-        else:
-            scheduler_log.error('Debcheck binaries check: Error: %s', str(proc.stdout, 'utf-8'))
+        # check binaries, even if checking sources has failed
+        error = run_task_tool('Debcheck binaries check', [conf.debcheck_exe, 'binaries'])
+        if error:
+            errors.append(error)
+
+    if errors:
+        raise TaskError('\n'.join(errors))
+    scheduler_log.info('Debcheck: Success.')
 
 
 def task_ariadne_update(registry: JobsRegistry):
     """Make Ariadne verify & update all package autobuild data."""
-    import subprocess
 
     with registry.lock_publish_job():
         conf = SchedulerConfig()
-        proc = subprocess.run(
-            [conf.lk_archive_exe, 'update-jobs'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-    if proc.returncode == 0:
-        scheduler_log.info('Ariadne: Success.')
-    else:
-        scheduler_log.error('Ariadne: Error: %s', str(proc.stdout, 'utf-8'))
+        error = run_task_tool('Ariadne', [conf.lk_archive_exe, 'update-jobs'])
+    if error:
+        raise TaskError(error)
+    scheduler_log.info('Ariadne: Success.')
 
 
 def task_synchrotron_autosync(registry: JobsRegistry):
     """Run automatic package synchronization."""
-    import subprocess
 
     with registry.lock_publish_job():
         conf = SchedulerConfig()
-
-        # run autosync
-        proc = subprocess.run(
-            [conf.synchrotron_exe, 'autosync'],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            check=False,
-        )
-        if proc.returncode == 0:
-            scheduler_log.info('Synchrotron Autosync: Success.')
-        else:
-            scheduler_log.error('Synchrotron Autosync: Error: %s', str(proc.stdout, 'utf-8'))
+        error = run_task_tool('Synchrotron Autosync', [conf.synchrotron_exe, 'autosync'])
+    if error:
+        raise TaskError(error)
+    scheduler_log.info('Synchrotron Autosync: Success.')
 
 
 def task_configure_rotate_logfile():
@@ -257,6 +222,7 @@ class SchedulerDaemon:
         self._lconf = LocalConfig()
         self._sconf = SchedulerConfig()
         self._registry = JobsRegistry()
+        self._emitter = EventEmitter(LkModule.SCHEDULER)
 
         # configure logging
         task_configure_rotate_logfile()
@@ -264,6 +230,7 @@ class SchedulerDaemon:
         db = Database()
         self._jobstore = SQLAlchemyJobStore(engine=db.engine, tablename='maintenance_jobs', metadata=Base.metadata)
         self._scheduler = AsyncIOScheduler(jobstores={'default': self._jobstore})
+        self._scheduler.add_listener(self._on_job_error, EVENT_JOB_ERROR)
 
         # we're ready now
         self._scheduler.start()
@@ -366,6 +333,24 @@ class SchedulerDaemon:
             self._registry.set_job(job)
 
         self._job_setup_todo.discard(job_id)
+
+    def _on_job_error(self, event: JobExecutionEvent):
+        """Announce a failed task on the message stream."""
+
+        job = self._scheduler.get_job(event.job_id)
+        if isinstance(event.exception, TaskError):
+            reason = str(event.exception)
+        else:
+            reason = '{}: {}'.format(type(event.exception).__name__, str(event.exception))
+
+        self._emitter.submit_event(
+            'task-failed',
+            {
+                'job_id': event.job_id,
+                'job_name': job.name if job else event.job_id,
+                'reason': reason,
+            },
+        )
 
     def run(self):
         try:

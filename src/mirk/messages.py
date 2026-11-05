@@ -4,6 +4,7 @@
 #
 # SPDX-License-Identifier: LGPL-3.0+
 
+import html
 
 import laniakea.typing as T
 
@@ -401,6 +402,21 @@ templates_debcheck = {
 
 
 #
+# Templates for the Scheduler
+#
+
+
+def pretty_scheduler_task_failed(tag, data):
+    # the reason may contain raw tool output, so we must not interpret it as HTML
+    data['reason'] = html.escape(data['reason'])
+    tmpl = 'Scheduled task <b>{job_name}</b> has <red>failed</red>: <code>{reason}</code>'
+    return render_template_colors(tmpl).format(**data)
+
+
+templates_scheduler = {'_lk.scheduler.task-failed': pretty_scheduler_task_failed}
+
+
+#
 # Assemble complete template set
 #
 message_templates: dict[str, T.Any] = {}
@@ -411,3 +427,4 @@ message_templates.update(templates_isotope)
 message_templates.update(templates_archive)
 message_templates.update(templates_spears)
 message_templates.update(templates_debcheck)
+message_templates.update(templates_scheduler)
